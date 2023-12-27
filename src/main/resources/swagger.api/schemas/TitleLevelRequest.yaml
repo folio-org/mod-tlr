@@ -1,0 +1,7 @@
+TitleLevelRequest:
+  description: Title-level request
+  type: "object"
+  properties:
+    id:
+      description: Id of the title-level request
+      $ref: "uuid.yaml"
