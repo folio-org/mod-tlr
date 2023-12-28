@@ -1,8 +1,8 @@
-package org.folio.mr.service;
+package org.folio.service;
 
-import org.folio.mr.domain.mapper.TitleLevelRequestMapper;
-import org.folio.mr.repository.TitleLevelRequestsRepository;
-import org.folio.mr.service.impl.TitleLevelRequestsServiceImpl;
+import org.folio.domain.mapper.TitleLevelRequestMapper;
+import org.folio.repository.TitleLevelRequestsRepository;
+import org.folio.service.impl.TitleLevelRequestsServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

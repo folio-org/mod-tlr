@@ -1,7 +1,7 @@
-package org.folio.mr.domain.mapper;
+package org.folio.domain.mapper;
 
-import org.folio.mr.domain.dto.TitleLevelRequest;
-import org.folio.mr.domain.entity.TitleLevelRequestEntity;
+import org.folio.domain.dto.TitleLevelRequest;
+import org.folio.domain.entity.TitleLevelRequestEntity;
 import org.mapstruct.Mapper;
 import org.mapstruct.NullValueCheckStrategy;
 

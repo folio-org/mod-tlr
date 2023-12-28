@@ -1,12 +1,12 @@
-package org.folio.mr.service.impl;
+package org.folio.service.impl;
 
 import java.util.Optional;
 import java.util.UUID;
 
-import org.folio.mr.domain.dto.TitleLevelRequest;
-import org.folio.mr.domain.mapper.TitleLevelRequestMapper;
-import org.folio.mr.repository.TitleLevelRequestsRepository;
-import org.folio.mr.service.TitleLevelRequestsService;
+import org.folio.domain.dto.TitleLevelRequest;
+import org.folio.domain.mapper.TitleLevelRequestMapper;
+import org.folio.repository.TitleLevelRequestsRepository;
+import org.folio.service.TitleLevelRequestsService;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;

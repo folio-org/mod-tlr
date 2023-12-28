@@ -1,4 +1,4 @@
-package org.folio.mr.api;
+package org.folio.api;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;

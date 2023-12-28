@@ -1,4 +1,4 @@
-package org.folio.mr.context;
+package org.folio.context;
 
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;

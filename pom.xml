@@ -28,7 +28,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <sonar.exclusions>
       <!-- define sonar exclusions here -->
-      src/main/java/org/folio/template/FolioSpringTemplateApplication.java
+      src/main/java/org/folio/TitleLevelRequestsApplication.java
     </sonar.exclusions>
     <argLine/>
 
@@ -232,8 +232,8 @@
               <inputSpec>${project.basedir}/src/main/resources/swagger.api/title-level-requests.yaml</inputSpec>
               <output>${project.build.directory}/generated-sources</output>
               <generatorName>spring</generatorName>
-              <modelPackage>${project.groupId}.mr.domain.dto</modelPackage>
-              <apiPackage>${project.groupId}.mr.rest.resource</apiPackage>
+              <modelPackage>${project.groupId}.domain.dto</modelPackage>
+              <apiPackage>${project.groupId}.rest.resource</apiPackage>
               <generateApis>true</generateApis>
               <generateApiTests>true</generateApiTests>
               <generateApiDocumentation>true</generateApiDocumentation>

@@ -1,4 +1,4 @@
-package org.folio.mr.controller;
+package org.folio.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -6,8 +6,8 @@ import static org.mockito.Mockito.when;
 
 import java.util.Optional;
 
-import org.folio.mr.domain.dto.TitleLevelRequest;
-import org.folio.mr.service.TitleLevelRequestsService;
+import org.folio.domain.dto.TitleLevelRequest;
+import org.folio.service.TitleLevelRequestsService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

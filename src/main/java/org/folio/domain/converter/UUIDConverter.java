@@ -1,4 +1,4 @@
-package org.folio.mr.domain.converter;
+package org.folio.domain.converter;
 
 import jakarta.persistence.AttributeConverter;
 import java.util.UUID;

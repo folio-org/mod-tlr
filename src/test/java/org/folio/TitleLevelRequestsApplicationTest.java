@@ -1,4 +1,4 @@
-package org.folio.mr;
+package org.folio;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 

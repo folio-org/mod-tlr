@@ -1,10 +1,10 @@
-package org.folio.mr.controller;
+package org.folio.controller;
 
 import java.util.UUID;
 
-import org.folio.mr.domain.dto.TitleLevelRequest;
-import org.folio.mr.rest.resource.TitleLevelRequestsApi;
-import org.folio.mr.service.TitleLevelRequestsService;
+import org.folio.domain.dto.TitleLevelRequest;
+import org.folio.rest.resource.TitleLevelRequestsApi;
+import org.folio.service.TitleLevelRequestsService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
