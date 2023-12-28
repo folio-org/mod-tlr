@@ -11,24 +11,24 @@ class UUIDConverterTest {
   private static final UUIDConverter CONVERTER = new UUIDConverter();
 
   @Test
-  public void convertValidUUIDStringToUUID() {
+  void convertValidUUIDStringToUUID() {
     UUID uuid = UUID.randomUUID();
     assertEquals(CONVERTER.convertToDatabaseColumn(uuid.toString()), uuid);
   }
 
   @Test
-  public void convertNullUUIDStringToUUID() {
+  void convertNullUUIDStringToUUID() {
     assertNull(CONVERTER.convertToDatabaseColumn(null));
   }
 
   @Test
-  public void convertValidUUIDToString() {
+  void convertValidUUIDToString() {
     UUID uuid = UUID.randomUUID();
     assertEquals(CONVERTER.convertToEntityAttribute(uuid), uuid.toString());
   }
 
   @Test
-  public void convertNullUUIDToString() {
+  void convertNullUUIDToString() {
     assertNull(CONVERTER.convertToEntityAttribute(null));
   }
 
