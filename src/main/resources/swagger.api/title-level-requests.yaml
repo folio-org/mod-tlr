@@ -1,0 +1,51 @@
+openapi: 3.0.0
+info:
+  title: Title-level requests API
+  version: v1
+paths:
+  /title-level-requests/{requestId}:
+    get:
+      description: Retrieve title-level request by id
+      operationId: get
+      parameters:
+        - $ref: '#/components/parameters/requestId'
+      responses:
+        '200':
+          $ref: '#/components/responses/TitleLevelRequest'
+        '400':
+          description: Bad request
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Bad request
+        '404':
+          description: Not found
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Not found
+        '500':
+          description: Internal server error
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Internal server error
+components:
+  parameters:
+    requestId:
+      name: requestId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    TitleLevelRequest:
+        description: Title-level request object
+        content:
+          application/json:
+            schema:
+              $ref: 'schemas/TitleLevelRequest.yaml#/TitleLevelRequest'

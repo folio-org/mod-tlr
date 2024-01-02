@@ -1,0 +1,22 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
+
+<!--    Changeset for creating table title_level_request with columns id, created_by, updated_by -->
+    <changeSet id="createTitleLevelRequestTable" author="OleksandrVidinieiev">
+        <comment>
+            Create title_level_request table
+        </comment>
+        <createTable tableName="title_level_request">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true"/>
+            </column>
+          <column name="created_date" type="timestamp without time zone" defaultValueComputed="now()">
+            <constraints nullable="false"/>
+          </column>
+          <column name="updated_date" type="timestamp without time zone"/>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>
