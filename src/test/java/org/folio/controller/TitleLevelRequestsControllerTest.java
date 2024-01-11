@@ -42,7 +42,7 @@ class TitleLevelRequestsControllerTest {
   }
 
   @Test
-  public void titleLevelRequestShouldSuccessfullyBeCreated() {
+  void titleLevelRequestShouldSuccessfullyBeCreated() {
     TitleLevelRequest mockRequest = new TitleLevelRequest();
     when(requestsService.post(any(TitleLevelRequest.class))).thenReturn(mockRequest);
 
@@ -53,7 +53,7 @@ class TitleLevelRequestsControllerTest {
   }
 
   @Test
-  public void titleLevelRequestShouldReturnError() {
+  void titleLevelRequestShouldReturnError() {
     when(requestsService.post(any(TitleLevelRequest.class))).thenThrow(new NullPointerException());
 
     assertEquals(INTERNAL_SERVER_ERROR, requestsController.postTitleLevelRequest(
