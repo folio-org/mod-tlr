@@ -29,6 +29,19 @@
           "pathPattern": "/_/tenant"
         }
       ]
+    },
+    {
+      "id": "_timer",
+      "version": "1.0",
+      "interfaceType": "system",
+      "handlers": [
+        {
+          "methods": [ "POST" ],
+          "pathPattern": "/title-level-requests-processing",
+          "unit": "second",
+          "delay": "30"
+        }
+      ]
     }
   ],
   "permissionSets" : [],
