@@ -25,4 +25,12 @@ public class TitleLevelRequestsServiceImpl implements TitleLevelRequestsService 
     return titleLevelRequestsRepository.findById(id)
       .map(requestsMapper::mapEntityToDto);
   }
+
+  @Override
+  public TitleLevelRequest post(TitleLevelRequest titleLevelRequest) {
+    log.debug("post:: parameters titleLevelRequest: {}", () -> titleLevelRequest);
+
+    return requestsMapper.mapEntityToDto(titleLevelRequestsRepository.save(
+      requestsMapper.mapDtoToEntity(titleLevelRequest)));
+  }
 }

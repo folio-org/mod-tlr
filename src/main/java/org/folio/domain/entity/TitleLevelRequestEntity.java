@@ -1,5 +1,9 @@
 package org.folio.domain.entity;
 
+import java.util.UUID;
+
+import org.folio.domain.converter.UUIDConverter;
+
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -10,8 +14,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import org.folio.domain.converter.UUIDConverter;
-import java.util.UUID;
 
 @Entity
 @Table(name = "title_level_request")
@@ -26,5 +28,15 @@ public class TitleLevelRequestEntity {
   @Id
   @Convert(converter = UUIDConverter.class)
   private UUID id;
-
+  @Convert(converter = UUIDConverter.class)
+  private UUID instanceId;
+  @Convert(converter = UUIDConverter.class)
+  private UUID requesterId;
+  private String requestType;
+  private String requestLevel;
+  private String requestExpirationDate;
+  private String patronComments;
+  private String fulfillmentPreference;
+  @Convert(converter = UUIDConverter.class)
+  private UUID pickupServicePointId;
 }

@@ -3,22 +3,34 @@ info:
   title: Title-level requests API
   version: v1
 paths:
+  /title-level-requests:
+    post:
+      description: Create title-level request
+      operationId: postTitleLevelRequest
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/titleLevelRequest"
+        required: true
+      responses:
+        '201':
+          $ref: "#/components/responses/titleLevelRequest"
+        '400':
+          $ref: '#/components/responses/badRequestResponse'
+        '500':
+          $ref: '#/components/responses/internalServerErrorResponse'
   /title-level-requests/{requestId}:
     get:
       description: Retrieve title-level request by id
-      operationId: get
+      operationId: getTitleLevelRequestById
       parameters:
         - $ref: '#/components/parameters/requestId'
       responses:
         '200':
-          $ref: '#/components/responses/TitleLevelRequest'
+          $ref: '#/components/responses/titleLevelRequest'
         '400':
-          description: Bad request
-          content:
-            text/plain:
-              schema:
-                type: string
-                example: Bad request
+          $ref: '#/components/responses/badRequestResponse'
         '404':
           description: Not found
           content:
@@ -27,13 +39,13 @@ paths:
                 type: string
                 example: Not found
         '500':
-          description: Internal server error
-          content:
-            text/plain:
-              schema:
-                type: string
-                example: Internal server error
+          $ref: '#/components/responses/internalServerErrorResponse'
 components:
+  schemas:
+    titleLevelRequest:
+      $ref: 'schemas/TitleLevelRequest.yaml#/TitleLevelRequest'
+    errorResponse:
+      $ref: schemas/errors.json
   parameters:
     requestId:
       name: requestId
@@ -43,10 +55,31 @@ components:
         type: string
         format: uuid
   responses:
-    TitleLevelRequest:
+    titleLevelRequest:
         description: Title-level request object
         content:
           application/json:
             schema:
               $ref: 'schemas/TitleLevelRequest.yaml#/TitleLevelRequest'
-
+    badRequestResponse:
+      description: Validation errors
+      content:
+        application/json:
+          example:
+            errors:
+              - message: Request is invalid
+                code: invalid.request
+            total_records: 1
+          schema:
+            $ref: "#/components/schemas/errorResponse"
+    internalServerErrorResponse:
+      description: When unhandled exception occurred during code execution, e.g. NullPointerException
+      content:
+        application/json:
+          example:
+            errors:
+              - message: Unexpected error
+                code: unexpected.error
+            total_records: 1
+          schema:
+            $ref: "#/components/schemas/errorResponse"
