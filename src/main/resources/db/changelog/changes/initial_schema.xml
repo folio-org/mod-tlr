@@ -11,7 +11,7 @@
         </comment>
         <createTable tableName="title_level_request">
           <column name="id" type="uuid">
-                <constraints primaryKey="true"/>
+            <constraints primaryKey="true"/>
           </column>
           <column name="instance_id" type="uuid"/>
           <column name="requester_id" type="uuid"/>
