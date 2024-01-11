@@ -4,15 +4,23 @@
                    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
 
-<!--    Changeset for creating table title_level_request with columns id, created_by, updated_by -->
+<!--    Changeset for creating table title_level_request with all the required fields -->
     <changeSet id="createTitleLevelRequestTable" author="OleksandrVidinieiev">
         <comment>
             Create title_level_request table
         </comment>
         <createTable tableName="title_level_request">
-            <column name="id" type="uuid">
+          <column name="id" type="uuid">
                 <constraints primaryKey="true"/>
-            </column>
+          </column>
+          <column name="instance_id" type="uuid"/>
+          <column name="requester_id" type="uuid"/>
+          <column name="request_type" type="varchar(255)"/>
+          <column name="request_level" type="varchar(255)"/>
+          <column name="request_expiration_date" type="datetime"/>
+          <column name="patron_comments" type="varchar(255)"/>
+          <column name="fulfillment_preference" type="varchar(255)"/>
+          <column name="pickup_service_point_id" type="uuid"/>
           <column name="created_date" type="timestamp without time zone" defaultValueComputed="now()">
             <constraints nullable="false"/>
           </column>

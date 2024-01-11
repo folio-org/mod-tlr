@@ -46,7 +46,7 @@ class TitleLevelRequestsControllerTest {
     TitleLevelRequest mockRequest = new TitleLevelRequest();
     when(requestsService.post(any(TitleLevelRequest.class))).thenReturn(mockRequest);
 
-   var response = requestsController.postTitleLevelRequest(new TitleLevelRequest());
+    var response = requestsController.postTitleLevelRequest(new TitleLevelRequest());
 
     assertEquals(CREATED, response.getStatusCode());
     assertEquals(mockRequest, response.getBody());
