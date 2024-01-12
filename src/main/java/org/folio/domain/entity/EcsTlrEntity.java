@@ -16,14 +16,14 @@ import lombok.Setter;
 import lombok.ToString;
 
 @Entity
-@Table(name = "title_level_request")
+@Table(name = "ecs_tlr")
 @Getter
 @Setter
 @ToString
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class TitleLevelRequestEntity {
+public class EcsTlrEntity {
 
   @Id
   @Convert(converter = UUIDConverter.class)

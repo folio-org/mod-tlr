@@ -4,12 +4,12 @@
                    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
 
-<!--    Changeset for creating table title_level_request with all the required fields -->
-    <changeSet id="createTitleLevelRequestTable" author="OleksandrVidinieiev">
+<!--    Changeset for creating table ecs_tlr with all the required fields -->
+    <changeSet id="createEcsTlrTable" author="OleksandrVidinieiev">
         <comment>
-            Create title_level_request table
+            Create ecs_tlr table
         </comment>
-        <createTable tableName="title_level_request">
+        <createTable tableName="ecs_tlr">
           <column name="id" type="uuid">
             <constraints primaryKey="true"/>
           </column>

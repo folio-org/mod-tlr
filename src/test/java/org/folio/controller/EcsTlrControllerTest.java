@@ -9,8 +9,8 @@ import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 
 import java.util.Optional;
 
-import org.folio.domain.dto.TitleLevelRequest;
-import org.folio.service.TitleLevelRequestsService;
+import org.folio.domain.dto.EcsTlr;
+import org.folio.service.EcsTlrService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -19,44 +19,44 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatusCode;
 
 @ExtendWith(MockitoExtension.class)
-class TitleLevelRequestsControllerTest {
+class EcsTlrControllerTest {
   @Mock
-  private TitleLevelRequestsService requestsService;
+  private EcsTlrService requestsService;
 
   @InjectMocks
-  private TitleLevelRequestsController requestsController;
+  private EcsTlrController requestsController;
 
   @Test
   void getByIdNotFoundWhenNull() {
     when(requestsService.get(any())).thenReturn(Optional.empty());
-    var response = requestsController.getTitleLevelRequestById(any());
+    var response = requestsController.getEcsTlrById(any());
     verify(requestsService).get(any());
     assertEquals(response.getStatusCode(), HttpStatusCode.valueOf(404));
   }
 
   @Test
   void getById() {
-    when(requestsService.get(any())).thenReturn(Optional.of(new TitleLevelRequest()));
-    var response = requestsController.getTitleLevelRequestById(any());
+    when(requestsService.get(any())).thenReturn(Optional.of(new EcsTlr()));
+    var response = requestsController.getEcsTlrById(any());
     assertEquals(response.getStatusCode(), HttpStatusCode.valueOf(200));
   }
 
   @Test
-  void titleLevelRequestShouldSuccessfullyBeCreated() {
-    TitleLevelRequest mockRequest = new TitleLevelRequest();
-    when(requestsService.post(any(TitleLevelRequest.class))).thenReturn(mockRequest);
+  void ecsTlrShouldSuccessfullyBeCreated() {
+    var mockRequest = new EcsTlr();
+    when(requestsService.post(any(EcsTlr.class))).thenReturn(mockRequest);
 
-    var response = requestsController.postTitleLevelRequest(new TitleLevelRequest());
+    var response = requestsController.postEcsTlr(new EcsTlr());
 
     assertEquals(CREATED, response.getStatusCode());
     assertEquals(mockRequest, response.getBody());
   }
 
   @Test
-  void titleLevelRequestShouldReturnError() {
-    when(requestsService.post(any(TitleLevelRequest.class))).thenThrow(new NullPointerException());
+  void ecsTlrShouldReturnError() {
+    when(requestsService.post(any(EcsTlr.class))).thenThrow(new NullPointerException());
 
-    assertEquals(INTERNAL_SERVER_ERROR, requestsController.postTitleLevelRequest(
-      new TitleLevelRequest()).getStatusCode());
+    assertEquals(INTERNAL_SERVER_ERROR, requestsController.postEcsTlr(
+      new EcsTlr()).getStatusCode());
   }
 }

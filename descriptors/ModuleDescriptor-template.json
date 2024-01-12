@@ -3,14 +3,22 @@
   "name": "Folio mod-tlr module",
   "provides": [
     {
-      "id": "title-level-requests",
+      "id": "ecs-tlr",
       "version": "1.0",
       "handlers": [
         {
           "methods": [
             "GET"
           ],
-          "pathPattern": "/title-level-requests/{requestId}",
+          "pathPattern": "/tlr/ecs-tlr/{requestId}",
+          "permissionsRequired": [],
+          "modulePermissions": []
+        },
+        {
+          "methods": [
+            "POST"
+          ],
+          "pathPattern": "/tlr/ecs-tlr",
           "permissionsRequired": [],
           "modulePermissions": []
         }
@@ -37,7 +45,7 @@
       "handlers": [
         {
           "methods": [ "POST" ],
-          "pathPattern": "/title-level-requests-processing",
+          "pathPattern": "/tlr/ecs-tlr-processing",
           "unit": "second",
           "delay": "30"
         }

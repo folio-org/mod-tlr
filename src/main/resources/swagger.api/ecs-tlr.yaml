@@ -1,34 +1,34 @@
 openapi: 3.0.0
 info:
-  title: Title-level requests API
+  title: ECS TLR API
   version: v1
 paths:
-  /title-level-requests:
+  /tlr/ecs-tlr:
     post:
-      description: Create title-level request
-      operationId: postTitleLevelRequest
+      description: Create ECS TLR
+      operationId: postEcsTlr
       requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/titleLevelRequest"
+              $ref: "#/components/schemas/ecs-tlr"
         required: true
       responses:
         '201':
-          $ref: "#/components/responses/titleLevelRequest"
+          $ref: "#/components/responses/ecs-tlr"
         '400':
           $ref: '#/components/responses/badRequestResponse'
         '500':
           $ref: '#/components/responses/internalServerErrorResponse'
-  /title-level-requests/{requestId}:
+  /tlr/ecs-tlr/{requestId}:
     get:
-      description: Retrieve title-level request by id
-      operationId: getTitleLevelRequestById
+      description: Retrieve ECS TLR by id
+      operationId: getEcsTlrById
       parameters:
         - $ref: '#/components/parameters/requestId'
       responses:
         '200':
-          $ref: '#/components/responses/titleLevelRequest'
+          $ref: '#/components/responses/ecs-tlr'
         '400':
           $ref: '#/components/responses/badRequestResponse'
         '404':
@@ -42,8 +42,8 @@ paths:
           $ref: '#/components/responses/internalServerErrorResponse'
 components:
   schemas:
-    titleLevelRequest:
-      $ref: 'schemas/TitleLevelRequest.yaml#/TitleLevelRequest'
+    ecs-tlr:
+      $ref: 'schemas/EcsTlr.yaml#/EcsTlr'
     errorResponse:
       $ref: schemas/errors.json
   parameters:
@@ -55,12 +55,12 @@ components:
         type: string
         format: uuid
   responses:
-    titleLevelRequest:
-        description: Title-level request object
+    ecs-tlr:
+        description: ECS TLR object
         content:
           application/json:
             schema:
-              $ref: 'schemas/TitleLevelRequest.yaml#/TitleLevelRequest'
+              $ref: 'schemas/EcsTlr.yaml#/EcsTlr'
     badRequestResponse:
       description: Validation errors
       content:

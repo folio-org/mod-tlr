@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 
 class OpenRequestsProcessingApiTest extends BaseIT {
-  private static final String PROCESS_OPEN_REQUESTS_URL = "/title-level-requests-processing";
+  private static final String PROCESS_OPEN_REQUESTS_URL = "/tlr/ecs-tlr-processing";
 
   @Test
   void getByIdNotFound() throws Exception {
