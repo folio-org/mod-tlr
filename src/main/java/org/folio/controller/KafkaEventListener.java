@@ -11,12 +11,8 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public class KafkaEventListener {
 
-  private final KafkaEventHandler eventHandler;
-
   @Autowired
-  public KafkaEventListener(KafkaEventHandler eventHandler) {
-    this.eventHandler = eventHandler;
-  }
+  private KafkaEventHandler eventHandler;
 
   @KafkaListener(topicPattern = "${folio.environment}\\.\\w+\\.circulation\\.request", groupId = "${kafka.consumer.group-id}")
   public void handleRequestUpdateEvent(String message) {
