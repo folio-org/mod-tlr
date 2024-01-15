@@ -11,7 +11,7 @@
             "GET"
           ],
           "pathPattern": "/tlr/ecs-tlr/{requestId}",
-          "permissionsRequired": [],
+          "permissionsRequired": ["tlr.ecs-tlr.item.get"],
           "modulePermissions": []
         },
         {
@@ -19,7 +19,7 @@
             "POST"
           ],
           "pathPattern": "/tlr/ecs-tlr",
-          "permissionsRequired": [],
+          "permissionsRequired": ["tlr.ecs-tlr.post"],
           "modulePermissions": []
         }
       ]
@@ -52,7 +52,18 @@
       ]
     }
   ],
-  "permissionSets" : [],
+  "permissionSets" : [
+    {
+      "permissionName": "tlr.ecs-tlr.item.get",
+      "displayName": "ecs-tlr - get request by id",
+      "description": "get ecs-tlr request"
+    },
+    {
+      "permissionName": "tlr.ecs-tlr.post",
+      "displayName": "ecs-tlr - create request",
+      "description": "create ecs-tlr request"
+    }
+  ],
   "requires": [],
   "launchDescriptor": {
     "dockerImage": "@artifactId@:@version@",
