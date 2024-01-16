@@ -10,9 +10,11 @@ import lombok.extern.log4j.Log4j2;
 @Component
 @Log4j2
 public class KafkaEventListener {
+  private final KafkaEventHandler eventHandler;
 
-  @Autowired
-  private KafkaEventHandler eventHandler;
+  public KafkaEventListener(@Autowired KafkaEventHandler eventHandler) {
+    this.eventHandler = eventHandler;
+  }
 
   @KafkaListener(
     topicPattern = "${folio.environment}\\.\\w+\\.circulation\\.request",
