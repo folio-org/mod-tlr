@@ -32,12 +32,35 @@ paths:
         '400':
           $ref: '#/components/responses/badRequestResponse'
         '404':
-          description: Not found
-          content:
-            text/plain:
-              schema:
-                type: string
-                example: Not found
+          $ref: '#/components/responses/notFoundResponse'
+        '500':
+          $ref: '#/components/responses/internalServerErrorResponse'
+    put:
+      description: Update ECS TLR by id
+      operationId: putEcsTlrById
+      parameters:
+        - $ref: '#/components/parameters/requestId'
+      responses:
+        '204':
+          description: Request successfully updated
+        '400':
+          $ref: '#/components/responses/badRequestResponse'
+        '404':
+          $ref: '#/components/responses/notFoundResponse'
+        '500':
+          $ref: '#/components/responses/internalServerErrorResponse'
+    delete:
+      description: Remove ECS TLR by id
+      operationId: deleteEcsTlrById
+      parameters:
+        - $ref: '#/components/parameters/requestId'
+      responses:
+        '204':
+          description: Request successfully removed
+        '400':
+          $ref: '#/components/responses/badRequestResponse'
+        '404':
+          $ref: '#/components/responses/notFoundResponse'
         '500':
           $ref: '#/components/responses/internalServerErrorResponse'
 components:
@@ -56,13 +79,24 @@ components:
         format: uuid
   responses:
     ecs-tlr:
-        description: ECS TLR object
-        content:
-          application/json:
-            schema:
-              $ref: 'schemas/EcsTlr.yaml#/EcsTlr'
+      description: ECS TLR object
+      content:
+        application/json:
+          schema:
+            $ref: 'schemas/EcsTlr.yaml#/EcsTlr'
     badRequestResponse:
       description: Validation errors
+      content:
+        application/json:
+          example:
+            errors:
+              - message: Request is invalid
+                code: notfound.request
+            total_records: 1
+          schema:
+            $ref: "#/components/schemas/errorResponse"
+    notFoundResponse:
+      description: Not found
       content:
         application/json:
           example:

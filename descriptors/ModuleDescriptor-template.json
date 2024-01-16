@@ -7,19 +7,27 @@
       "version": "1.0",
       "handlers": [
         {
-          "methods": [
-            "GET"
-          ],
+          "methods": ["GET"],
           "pathPattern": "/tlr/ecs-tlr/{requestId}",
           "permissionsRequired": ["tlr.ecs-tlr.item.get"],
           "modulePermissions": []
         },
         {
-          "methods": [
-            "POST"
-          ],
+          "methods": ["POST"],
           "pathPattern": "/tlr/ecs-tlr",
           "permissionsRequired": ["tlr.ecs-tlr.post"],
+          "modulePermissions": []
+        },
+        {
+          "methods": ["PUT"],
+          "pathPattern": "/tlr/ecs-tlr/{requestId}",
+          "permissionsRequired": ["tlr.ecs-tlr.item.put"],
+          "modulePermissions": []
+        },
+        {
+          "methods": ["DELETE"],
+          "pathPattern": "/tlr/ecs-tlr/{requestId}",
+          "permissionsRequired": ["tlr.ecs-tlr.item.delete"],
           "modulePermissions": []
         }
       ]
@@ -62,6 +70,16 @@
       "permissionName": "tlr.ecs-tlr.post",
       "displayName": "ecs-tlr - create request",
       "description": "create ecs-tlr request"
+    },
+    {
+      "permissionName": "tlr.ecs-tlr.put",
+      "displayName": "ecs-tlr - update request",
+      "description": "update ecs-tlr request"
+    },
+    {
+      "permissionName": "tlr.ecs-tlr.delete",
+      "displayName": "ecs-tlr - remove request",
+      "description": "remove ecs-tlr request"
     }
   ],
   "requires": [],
