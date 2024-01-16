@@ -7,17 +7,13 @@
       "version": "1.0",
       "handlers": [
         {
-          "methods": [
-            "GET"
-          ],
+          "methods": ["GET"],
           "pathPattern": "/tlr/ecs-tlr/{requestId}",
           "permissionsRequired": ["tlr.ecs-tlr.item.get"],
           "modulePermissions": []
         },
         {
-          "methods": [
-            "POST"
-          ],
+          "methods": ["POST"],
           "pathPattern": "/tlr/ecs-tlr",
           "permissionsRequired": ["tlr.ecs-tlr.post"],
           "modulePermissions": []

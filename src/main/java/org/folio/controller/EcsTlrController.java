@@ -36,10 +36,10 @@ public class EcsTlrController implements TlrApi {
     log.debug("postEcsTlr:: parameters ecsTlr: {}", ecsTlr);
 
     try {
-      return new ResponseEntity<>(ecsTlrService.post(ecsTlr), CREATED);
+      return ResponseEntity.status(CREATED).body(ecsTlrService.post(ecsTlr));
     } catch (Exception e) {
       log.error("postEcsTlr:: unexpected error: {}", e.getMessage());
-      return new ResponseEntity<>(ecsTlr, INTERNAL_SERVER_ERROR);
+      return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(ecsTlr);
     }
   }
 }

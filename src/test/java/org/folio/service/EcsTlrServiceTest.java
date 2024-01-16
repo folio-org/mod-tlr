@@ -10,6 +10,7 @@ import java.util.UUID;
 import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.domain.mapper.EcsTlrMapper;
+import org.folio.domain.mapper.EcsTlrMapperImpl;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.impl.EcsTlrServiceImpl;
 import org.joda.time.DateTime;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -26,8 +28,8 @@ class EcsTlrServiceTest {
   private EcsTlrServiceImpl ecsTlrService;
   @Mock
   private EcsTlrRepository ecsTlrRepository;
-  @Mock
-  private EcsTlrMapper ecsTlrMapper;
+  @Spy
+  private final EcsTlrMapper ecsTlrMapper = new EcsTlrMapperImpl();
 
   @Test
   void getById() {
@@ -43,7 +45,7 @@ class EcsTlrServiceTest {
     var requestType = EcsTlr.RequestTypeEnum.PAGE;
     var requestLevel = EcsTlr.RequestLevelEnum.TITLE;
     var fulfillmentPreference = EcsTlr.FulfillmentPreferenceEnum.HOLD_SHELF;
-    var requestExpirationDate = DateTime.now().toDate();
+    var requestExpirationDate = DateTime.now();
     var patronComments = "Test comment";
 
     var mockEcsTlrEntity = new EcsTlrEntity();
@@ -51,7 +53,7 @@ class EcsTlrServiceTest {
     mockEcsTlrEntity.setRequesterId(requesterId);
     mockEcsTlrEntity.setRequestType(requestType.getValue());
     mockEcsTlrEntity.setRequestLevel(requestLevel.getValue());
-    mockEcsTlrEntity.setRequestExpirationDate(requestExpirationDate.toString());
+    mockEcsTlrEntity.setRequestExpirationDate(requestExpirationDate);
     mockEcsTlrEntity.setPatronComments(patronComments);
     mockEcsTlrEntity.setFulfillmentPreference(fulfillmentPreference.getValue());
     mockEcsTlrEntity.setPickupServicePointId(pickupServicePointId);
@@ -61,7 +63,7 @@ class EcsTlrServiceTest {
     mockRequest.setRequesterId(requesterId.toString());
     mockRequest.setRequestType(requestType);
     mockRequest.setRequestLevel(requestLevel);
-    mockRequest.setRequestExpirationDate(requestExpirationDate);
+    mockRequest.setRequestExpirationDate(requestExpirationDate.toDate());
     mockRequest.setPatronComments(patronComments);
     mockRequest.setFulfillmentPreference(fulfillmentPreference);
     mockRequest.setPickupServicePointId(pickupServicePointId.toString());
@@ -75,7 +77,7 @@ class EcsTlrServiceTest {
     assertEquals(instanceId.toString(), postEcsTlr.getInstanceId());
     assertEquals(requesterId.toString(), postEcsTlr.getRequesterId());
     assertEquals(requestType, postEcsTlr.getRequestType());
-    assertEquals(requestExpirationDate, postEcsTlr.getRequestExpirationDate());
+    assertEquals(requestExpirationDate.toDate(), postEcsTlr.getRequestExpirationDate());
     assertEquals(patronComments, postEcsTlr.getPatronComments());
     assertEquals(fulfillmentPreference, postEcsTlr.getFulfillmentPreference());
     assertEquals(pickupServicePointId.toString(), postEcsTlr.getPickupServicePointId());
