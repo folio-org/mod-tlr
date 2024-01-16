@@ -1,5 +1,5 @@
 package org.folio.service;
 
 public interface KafkaEventHandler {
-  void handle(String message);
+  void handle(String event);
 }

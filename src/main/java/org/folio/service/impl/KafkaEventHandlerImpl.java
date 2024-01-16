@@ -10,7 +10,7 @@ import lombok.extern.log4j.Log4j2;
 public class KafkaEventHandlerImpl implements KafkaEventHandler {
 
   @Override
-  public void handle(String message) {
-    log.info("handle:: message consumed : {}", message);
+  public void handle(String event) {
+    log.info("handle:: event consumed: {}", event);
   }
 }

@@ -72,13 +72,13 @@ class KafkaEventListenerTest {
 
   @SneakyThrows
   private static int getOffset(String topic, String consumerGroup) {
-      return kafkaAdminClient.listConsumerGroupOffsets(consumerGroup)
-        .partitionsToOffsetAndMetadata()
-        .thenApply(partitions -> Optional.ofNullable(partitions.get(new TopicPartition(topic, 0)))
+    return kafkaAdminClient.listConsumerGroupOffsets(consumerGroup)
+      .partitionsToOffsetAndMetadata()
+      .thenApply(partitions -> Optional.ofNullable(partitions.get(new TopicPartition(topic, 0)))
         .map(OffsetAndMetadata::offset)
         .map(Long::intValue)
         .orElse(0))
-        .get(10, TimeUnit.SECONDS);
+      .get(10, TimeUnit.SECONDS);
   }
 
   private static void publishEventAndWait(String topic, String consumerGroupId, String payload) {

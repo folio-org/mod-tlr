@@ -14,10 +14,13 @@ public class KafkaEventListener {
   @Autowired
   private KafkaEventHandler eventHandler;
 
-  @KafkaListener(topicPattern = "${folio.environment}\\.\\w+\\.circulation\\.request", groupId = "${kafka.consumer.group-id}")
-  public void handleRequestUpdateEvent(String message) {
-    log.info("handleRequestUpdateEvent:: message received: {}", message);
-    eventHandler.handle(message);
+  @KafkaListener(
+    topicPattern = "${folio.environment}\\.\\w+\\.circulation\\.request",
+    groupId = "${kafka.consumer.group-id}"
+  )
+  public void handleRequestEvent(String event) {
+    log.info("handleRequestEvent:: message received: {}", event);
+    eventHandler.handle(event);
   }
 
 }
