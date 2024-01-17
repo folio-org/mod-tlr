@@ -1,11 +1,8 @@
 package org.folio.domain.entity;
 
+import java.util.Date;
 import java.util.UUID;
 
-import org.folio.domain.converter.UUIDConverter;
-import org.joda.time.DateTime;
-
-import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -23,17 +20,13 @@ import lombok.NoArgsConstructor;
 public class EcsTlrEntity {
 
   @Id
-  @Convert(converter = UUIDConverter.class)
   private UUID id;
-  @Convert(converter = UUIDConverter.class)
   private UUID instanceId;
-  @Convert(converter = UUIDConverter.class)
   private UUID requesterId;
   private String requestType;
   private String requestLevel;
-  private DateTime requestExpirationDate;
+  private Date requestExpirationDate;
   private String patronComments;
   private String fulfillmentPreference;
-  @Convert(converter = UUIDConverter.class)
   private UUID pickupServicePointId;
 }

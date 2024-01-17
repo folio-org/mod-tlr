@@ -45,7 +45,7 @@ class EcsTlrServiceTest {
     var requestType = EcsTlr.RequestTypeEnum.PAGE;
     var requestLevel = EcsTlr.RequestLevelEnum.TITLE;
     var fulfillmentPreference = EcsTlr.FulfillmentPreferenceEnum.HOLD_SHELF;
-    var requestExpirationDate = DateTime.now();
+    var requestExpirationDate = DateTime.now().toDate();
     var patronComments = "Test comment";
 
     var mockEcsTlrEntity = new EcsTlrEntity();
@@ -63,7 +63,7 @@ class EcsTlrServiceTest {
     mockRequest.setRequesterId(requesterId.toString());
     mockRequest.setRequestType(requestType);
     mockRequest.setRequestLevel(requestLevel);
-    mockRequest.setRequestExpirationDate(requestExpirationDate.toDate());
+    mockRequest.setRequestExpirationDate(requestExpirationDate);
     mockRequest.setPatronComments(patronComments);
     mockRequest.setFulfillmentPreference(fulfillmentPreference);
     mockRequest.setPickupServicePointId(pickupServicePointId.toString());
@@ -77,7 +77,7 @@ class EcsTlrServiceTest {
     assertEquals(instanceId.toString(), postEcsTlr.getInstanceId());
     assertEquals(requesterId.toString(), postEcsTlr.getRequesterId());
     assertEquals(requestType, postEcsTlr.getRequestType());
-    assertEquals(requestExpirationDate.toDate(), postEcsTlr.getRequestExpirationDate());
+    assertEquals(requestExpirationDate, postEcsTlr.getRequestExpirationDate());
     assertEquals(patronComments, postEcsTlr.getPatronComments());
     assertEquals(fulfillmentPreference, postEcsTlr.getFulfillmentPreference());
     assertEquals(pickupServicePointId.toString(), postEcsTlr.getPickupServicePointId());
