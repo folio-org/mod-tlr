@@ -39,6 +39,7 @@ class EcsTlrServiceTest {
 
   @Test
   void postEcsTlr() {
+    var id = UUID.randomUUID();
     var instanceId = UUID.randomUUID();
     var requesterId = UUID.randomUUID();
     var pickupServicePointId = UUID.randomUUID();
@@ -49,31 +50,31 @@ class EcsTlrServiceTest {
     var patronComments = "Test comment";
 
     var mockEcsTlrEntity = new EcsTlrEntity();
+    mockEcsTlrEntity.setId(id);
     mockEcsTlrEntity.setInstanceId(instanceId);
     mockEcsTlrEntity.setRequesterId(requesterId);
-    mockEcsTlrEntity.setRequestType(requestType.getValue());
+    mockEcsTlrEntity.setRequestType(requestType.toString());
     mockEcsTlrEntity.setRequestLevel(requestLevel.getValue());
     mockEcsTlrEntity.setRequestExpirationDate(requestExpirationDate);
     mockEcsTlrEntity.setPatronComments(patronComments);
     mockEcsTlrEntity.setFulfillmentPreference(fulfillmentPreference.getValue());
     mockEcsTlrEntity.setPickupServicePointId(pickupServicePointId);
 
-    var mockRequest = new EcsTlr();
-    mockRequest.setInstanceId(instanceId.toString());
-    mockRequest.setRequesterId(requesterId.toString());
-    mockRequest.setRequestType(requestType);
-    mockRequest.setRequestLevel(requestLevel);
-    mockRequest.setRequestExpirationDate(requestExpirationDate);
-    mockRequest.setPatronComments(patronComments);
-    mockRequest.setFulfillmentPreference(fulfillmentPreference);
-    mockRequest.setPickupServicePointId(pickupServicePointId.toString());
+    var ecsTlr = new EcsTlr();
+    ecsTlr.setId(id.toString());
+    ecsTlr.setInstanceId(instanceId.toString());
+    ecsTlr.setRequesterId(requesterId.toString());
+    ecsTlr.setRequestType(requestType);
+    ecsTlr.setRequestLevel(requestLevel);
+    ecsTlr.setRequestExpirationDate(requestExpirationDate);
+    ecsTlr.setPatronComments(patronComments);
+    ecsTlr.setFulfillmentPreference(fulfillmentPreference);
+    ecsTlr.setPickupServicePointId(pickupServicePointId.toString());
 
-    when(ecsTlrMapper.mapDtoToEntity(any(EcsTlr.class))).thenReturn(mockEcsTlrEntity);
-    when(ecsTlrMapper.mapEntityToDto(any(EcsTlrEntity.class))).thenReturn(mockRequest);
     when(ecsTlrRepository.save(any(EcsTlrEntity.class))).thenReturn(mockEcsTlrEntity);
+    var postEcsTlr = ecsTlrService.post(ecsTlr);
 
-    var postEcsTlr = ecsTlrService.post(mockRequest);
-
+    assertEquals(id.toString(), postEcsTlr.getId());
     assertEquals(instanceId.toString(), postEcsTlr.getInstanceId());
     assertEquals(requesterId.toString(), postEcsTlr.getRequesterId());
     assertEquals(requestType, postEcsTlr.getRequestType());
