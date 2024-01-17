@@ -4,18 +4,15 @@ import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.Mappings;
 import org.mapstruct.Named;
 import org.mapstruct.NullValueCheckStrategy;
 
 @Mapper(componentModel = "spring", nullValueCheckStrategy = NullValueCheckStrategy.ALWAYS)
 public interface EcsTlrMapper {
 
-  @Mappings({
-    @Mapping(target="requestType", qualifiedByName = "StringToRequestType"),
-    @Mapping(target="requestLevel", qualifiedByName = "StringToRequestLevel"),
-    @Mapping(target="fulfillmentPreference", qualifiedByName = "StringToFulfillmentPreference")
-  })
+  @Mapping(target = "requestType", qualifiedByName = "StringToRequestType")
+  @Mapping(target = "requestLevel", qualifiedByName = "StringToRequestLevel")
+  @Mapping(target = "fulfillmentPreference", qualifiedByName = "StringToFulfillmentPreference")
   EcsTlr mapEntityToDto(EcsTlrEntity ecsTlrEntity);
   EcsTlrEntity mapDtoToEntity(EcsTlr ecsTlr);
 
