@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 public interface SearchClient {
 
   @GetMapping("/instances")
-  ResultList<Instance> searchInstances(@RequestParam("query") CqlQuery cql);
+  ResultList<Instance> searchInstances(@RequestParam("query") CqlQuery cql, @RequestParam("expandAll") Boolean expandAll);
 
   @Data
   @JsonIgnoreProperties(ignoreUnknown = true)
