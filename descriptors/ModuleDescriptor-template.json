@@ -51,13 +51,13 @@
   "permissionSets" : [
     {
       "permissionName": "tlr.ecs-tlr.item.get",
-      "displayName": "ecs-tlr - get request by id",
-      "description": "get ecs-tlr request"
+      "displayName": "ecs-tlr - get ECS TLR by ID",
+      "description": "Get ECS TLR"
     },
     {
       "permissionName": "tlr.ecs-tlr.post",
-      "displayName": "ecs-tlr - create request",
-      "description": "create ecs-tlr request"
+      "displayName": "ecs-tlr - create ECS TLR",
+      "description": "Create ECS TLR"
     }
   ],
   "requires": [],

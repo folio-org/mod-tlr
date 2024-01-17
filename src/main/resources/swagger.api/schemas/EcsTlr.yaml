@@ -1,5 +1,5 @@
 EcsTlr:
-  description: ECS TLR
+  description: ECS TLR - title-level requests in a multi-tenant environment with Сonsortia support enabled
   type: "object"
   properties:
     id:
