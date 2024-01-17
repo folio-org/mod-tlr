@@ -56,11 +56,11 @@ components:
         format: uuid
   responses:
     ecs-tlr:
-        description: ECS TLR object
-        content:
-          application/json:
-            schema:
-              $ref: 'schemas/EcsTlr.yaml#/EcsTlr'
+      description: ECS TLR object
+      content:
+        application/json:
+          schema:
+            $ref: 'schemas/EcsTlr.yaml#/EcsTlr'
     badRequestResponse:
       description: Validation errors
       content:
