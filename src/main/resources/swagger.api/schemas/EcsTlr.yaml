@@ -3,7 +3,7 @@ EcsTlr:
   type: "object"
   properties:
     id:
-      description: "ID of the ecs-tlr"
+      description: "ID of the ECS TLR"
       $ref: "uuid.yaml"
     instanceId:
       description: "ID of the instance being requested"
