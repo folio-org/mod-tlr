@@ -29,4 +29,5 @@ public class EcsTlrEntity {
   private String patronComments;
   private String fulfillmentPreference;
   private UUID pickupServicePointId;
+  private UUID itemId;
 }

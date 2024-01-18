@@ -33,3 +33,12 @@ EcsTlr:
     pickupServicePointId:
       description: "The ID of the Service Point where this request can be picked up"
       $ref: "uuid.yaml"
+    itemId:
+      description: "ID of the item being requested"
+      $ref: "uuid.yaml"
+    required:
+      - instanceId
+      - requesterId
+      - requestType
+      - requestLevel
+      - fulfillmentPreference

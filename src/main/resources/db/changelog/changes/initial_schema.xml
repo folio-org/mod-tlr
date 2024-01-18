@@ -21,6 +21,7 @@
           <column name="patron_comments" type="varchar(255)"/>
           <column name="fulfillment_preference" type="varchar(255)"/>
           <column name="pickup_service_point_id" type="uuid"/>
+          <column name="item_id" type="uuid"/>
           <column name="created_date" type="timestamp without time zone" defaultValueComputed="now()">
             <constraints nullable="false"/>
           </column>
