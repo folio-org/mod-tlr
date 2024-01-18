@@ -63,23 +63,23 @@
   "permissionSets" : [
     {
       "permissionName": "tlr.ecs-tlr.item.get",
-      "displayName": "ecs-tlr - get request by id",
-      "description": "get ecs-tlr request"
+      "displayName": "ecs-tlr - get ECS TLR by ID",
+      "description": "Get ECS TLR"
     },
     {
       "permissionName": "tlr.ecs-tlr.post",
-      "displayName": "ecs-tlr - create request",
-      "description": "create ecs-tlr request"
+      "displayName": "ecs-tlr - create ECS TLR",
+      "description": "Create ECS TLR"
     },
     {
       "permissionName": "tlr.ecs-tlr.put",
-      "displayName": "ecs-tlr - update request",
-      "description": "update ecs-tlr request"
+      "displayName": "ecs-tlr - update ECS TLR",
+      "description": "Update ECS TLR"
     },
     {
       "permissionName": "tlr.ecs-tlr.delete",
-      "displayName": "ecs-tlr - remove request",
-      "description": "remove ecs-tlr request"
+      "displayName": "ecs-tlr - remove ECS TLR",
+      "description": "Remove ECS TLR"
     }
   ],
   "requires": [],

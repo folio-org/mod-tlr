@@ -1,9 +1,9 @@
 EcsTlr:
-  description: ECS TLR
+  description: ECS TLR - title-level requests in a multi-tenant environment with Сonsortia support enabled
   type: "object"
   properties:
     id:
-      description: "Id of the ecs-tlr"
+      description: "ID of the ECS TLR"
       $ref: "uuid.yaml"
     instanceId:
       description: "ID of the instance being requested"
@@ -33,3 +33,12 @@ EcsTlr:
     pickupServicePointId:
       description: "The ID of the Service Point where this request can be picked up"
       $ref: "uuid.yaml"
+    itemId:
+      description: "ID of the item being requested"
+      $ref: "uuid.yaml"
+  required:
+    - instanceId
+    - requesterId
+    - requestType
+    - requestLevel
+    - fulfillmentPreference

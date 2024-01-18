@@ -22,7 +22,7 @@ paths:
           $ref: '#/components/responses/internalServerErrorResponse'
   /tlr/ecs-tlr/{requestId}:
     get:
-      description: Retrieve ECS TLR by id
+      description: Retrieve ECS TLR by ID
       operationId: getEcsTlrById
       parameters:
         - $ref: '#/components/parameters/requestId'

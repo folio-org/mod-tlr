@@ -22,6 +22,8 @@ public class EcsTlrServiceImpl implements EcsTlrService {
 
   @Override
   public Optional<EcsTlr> get(UUID id) {
+    log.debug("get:: parameters id: {}", id);
+
     return ecsTlrRepository.findById(id)
       .map(requestsMapper::mapEntityToDto);
   }

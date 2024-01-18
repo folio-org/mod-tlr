@@ -51,12 +51,4 @@ class EcsTlrControllerTest {
     assertEquals(CREATED, response.getStatusCode());
     assertEquals(mockRequest, response.getBody());
   }
-
-  @Test
-  void ecsTlrShouldReturnError() {
-    when(requestsService.post(any(EcsTlr.class))).thenThrow(new NullPointerException());
-
-    assertEquals(INTERNAL_SERVER_ERROR, requestsController.postEcsTlr(
-      new EcsTlr()).getStatusCode());
-  }
 }

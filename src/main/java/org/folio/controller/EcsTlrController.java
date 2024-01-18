@@ -1,7 +1,6 @@
 package org.folio.controller;
 
 import static org.springframework.http.HttpStatus.CREATED;
-import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.OK;
 
 import java.util.UUID;
@@ -35,11 +34,6 @@ public class EcsTlrController implements TlrApi {
   public ResponseEntity<EcsTlr> postEcsTlr(EcsTlr ecsTlr) {
     log.debug("postEcsTlr:: parameters ecsTlr: {}", ecsTlr);
 
-    try {
-      return new ResponseEntity<>(ecsTlrService.post(ecsTlr), CREATED);
-    } catch (Exception e) {
-      log.error("postEcsTlr:: unexpected error: {}", e.getMessage());
-      return new ResponseEntity<>(ecsTlr, INTERNAL_SERVER_ERROR);
-    }
+    return ResponseEntity.status(CREATED).body(ecsTlrService.post(ecsTlr));
   }
 }
