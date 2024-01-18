@@ -3,15 +3,19 @@
   "name": "Folio mod-tlr module",
   "provides": [
     {
-      "id": "title-level-requests",
+      "id": "ecs-tlr",
       "version": "1.0",
       "handlers": [
         {
-          "methods": [
-            "GET"
-          ],
-          "pathPattern": "/title-level-requests/{requestId}",
-          "permissionsRequired": [],
+          "methods": ["GET"],
+          "pathPattern": "/tlr/ecs-tlr/{requestId}",
+          "permissionsRequired": ["tlr.ecs-tlr.item.get"],
+          "modulePermissions": []
+        },
+        {
+          "methods": ["POST"],
+          "pathPattern": "/tlr/ecs-tlr",
+          "permissionsRequired": ["tlr.ecs-tlr.post"],
           "modulePermissions": []
         }
       ]
@@ -37,14 +41,25 @@
       "handlers": [
         {
           "methods": [ "POST" ],
-          "pathPattern": "/title-level-requests-processing",
+          "pathPattern": "/tlr/ecs-tlr-processing",
           "unit": "second",
           "delay": "30"
         }
       ]
     }
   ],
-  "permissionSets" : [],
+  "permissionSets" : [
+    {
+      "permissionName": "tlr.ecs-tlr.item.get",
+      "displayName": "ecs-tlr - get ECS TLR by ID",
+      "description": "Get ECS TLR"
+    },
+    {
+      "permissionName": "tlr.ecs-tlr.post",
+      "displayName": "ecs-tlr - create ECS TLR",
+      "description": "Create ECS TLR"
+    }
+  ],
   "requires": [],
   "launchDescriptor": {
     "dockerImage": "@artifactId@:@version@",

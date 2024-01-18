@@ -6,8 +6,8 @@ import java.util.UUID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-class TitleLevelRequestsApiTest extends BaseIT {
-  private static final String TLR_URL = "/title-level-requests/";
+class EcsTlrApiTest extends BaseIT {
+  private static final String TLR_URL = "/tlr/ecs-tlr/";
 
   @Test
   void getByIdNotFound() throws Exception {
