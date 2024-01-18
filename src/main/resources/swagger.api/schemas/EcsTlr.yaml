@@ -36,9 +36,9 @@ EcsTlr:
     itemId:
       description: "ID of the item being requested"
       $ref: "uuid.yaml"
-    required:
-      - instanceId
-      - requesterId
-      - requestType
-      - requestLevel
-      - fulfillmentPreference
+  required:
+    - instanceId
+    - requesterId
+    - requestType
+    - requestLevel
+    - fulfillmentPreference
