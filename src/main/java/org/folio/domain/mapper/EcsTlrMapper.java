@@ -46,7 +46,7 @@ public interface EcsTlrMapper {
   }
 
   @Named("FulfillmentPreferenceToString")
-  default String mapFulfillmentPreferenceToString(EcsTlr.FulfillmentPreferenceEnum fulfillmentPreference) {
-    return fulfillmentPreference != null ? fulfillmentPreference.getValue() : null;
+  default String mapFulfillmentPreferenceToString(EcsTlr.FulfillmentPreferenceEnum fulfillmentPreferenceEnum) {
+    return fulfillmentPreferenceEnum != null ? fulfillmentPreferenceEnum.getValue() : null;
   }
 }
