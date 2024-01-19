@@ -35,4 +35,19 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     return requestsMapper.mapEntityToDto(ecsTlrRepository.save(
       requestsMapper.mapDtoToEntity(ecsTlr)));
   }
+
+  @Override
+  public boolean put(UUID requestId, EcsTlr ecsTlr) {
+    log.debug("put:: requestId: {}, ecsTlr: {}", requestId, ecsTlr);
+
+    return ecsTlrRepository.findById(requestId)
+      .map(ecsTlrEntity -> requestsMapper.mapDtoToEntity(ecsTlr))
+      .map(ecsTlrRepository::save)
+      .isPresent();
+  }
+
+  @Override
+  public void delete(UUID requestId) {
+    ecsTlrRepository.deleteById(requestId);
+  }
 }

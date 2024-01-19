@@ -1,6 +1,7 @@
 package org.folio.controller;
 
 import static org.springframework.http.HttpStatus.CREATED;
+import static org.springframework.http.HttpStatus.NO_CONTENT;
 import static org.springframework.http.HttpStatus.OK;
 
 import java.util.UUID;
@@ -23,7 +24,7 @@ public class EcsTlrController implements TlrApi {
 
   @Override
   public ResponseEntity<EcsTlr> getEcsTlrById(UUID requestId) {
-    log.debug("getEcsTlrById:: parameters id: {}", requestId);
+    log.debug("getEcsTlrById:: parameters requestId: {}", requestId);
 
     return ecsTlrService.get(requestId)
       .map(ResponseEntity.status(OK)::body)
@@ -35,5 +36,22 @@ public class EcsTlrController implements TlrApi {
     log.debug("postEcsTlr:: parameters ecsTlr: {}", ecsTlr);
 
     return ResponseEntity.status(CREATED).body(ecsTlrService.post(ecsTlr));
+  }
+
+  @Override
+  public ResponseEntity<Void> putEcsTlrById(UUID requestId, EcsTlr ecsTlr) {
+    log.debug("putEcsTlrById:: parameters requestId: {}", requestId);
+    ecsTlrService.put(requestId, ecsTlr);
+
+    return ResponseEntity.status(NO_CONTENT).build();
+  }
+
+  @Override
+  public ResponseEntity<Void> deleteEcsTlrById(UUID requestId) {
+    log.debug("deleteEcsTlrById:: parameters requestId: {}", requestId);
+
+    ecsTlrService.delete(requestId);
+
+    return ResponseEntity.status(NO_CONTENT).build();
   }
 }

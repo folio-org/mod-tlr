@@ -38,6 +38,12 @@ paths:
     put:
       description: Update ECS TLR by id
       operationId: putEcsTlrById
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ecs-tlr"
+        required: true
       parameters:
         - $ref: '#/components/parameters/requestId'
       responses:

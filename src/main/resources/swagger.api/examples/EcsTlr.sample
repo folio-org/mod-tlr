@@ -1,0 +1,11 @@
+{
+    "id": "58e3b64b-c634-4afc-aba7-4d2a3ddef63d",
+    "instanceId": "2835ba05-fc4b-4ff2-972b-6ff7faaedd6e",
+    "requesterId": "4565999e-1994-4aab-9282-185731b4ce66",
+    "requestType": "Hold",
+    "requestLevel": "Title",
+    "requestExpirationDate": "2024-01-01T23:11:00-01:00",
+    "patronComments": "test comment",
+    "fulfillmentPreference": "Hold Shelf",
+    "pickupServicePointId": "71ff4b72-70a0-40f6-9f73-6db29ced80a3"
+}

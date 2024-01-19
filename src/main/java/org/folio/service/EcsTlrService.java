@@ -8,4 +8,6 @@ import org.folio.domain.dto.EcsTlr;
 public interface EcsTlrService {
   Optional<EcsTlr> get(UUID requestId);
   EcsTlr post(EcsTlr ecsTlr);
+  boolean put(UUID requestId, EcsTlr ecsTlr);
+  void delete(UUID requestId);
 }
