@@ -14,6 +14,10 @@ public interface EcsTlrMapper {
   @Mapping(target = "requestLevel", qualifiedByName = "StringToRequestLevel")
   @Mapping(target = "fulfillmentPreference", qualifiedByName = "StringToFulfillmentPreference")
   EcsTlr mapEntityToDto(EcsTlrEntity ecsTlrEntity);
+
+  @Mapping(target = "requestType", qualifiedByName = "RequestTypeToString")
+  @Mapping(target = "requestLevel", qualifiedByName = "RequestLevelToString")
+  @Mapping(target = "fulfillmentPreference", qualifiedByName = "FulfillmentPreferenceToString")
   EcsTlrEntity mapDtoToEntity(EcsTlr ecsTlr);
 
   @Named("StringToRequestType")
@@ -29,5 +33,20 @@ public interface EcsTlrMapper {
   @Named("StringToFulfillmentPreference")
   default EcsTlr.FulfillmentPreferenceEnum mapFulfillmentPreference(String fulfillmentPreference) {
     return fulfillmentPreference != null ? EcsTlr.FulfillmentPreferenceEnum.fromValue(fulfillmentPreference) : null;
+  }
+
+  @Named("RequestTypeToString")
+  default String mapRequestTypeToString(EcsTlr.RequestTypeEnum requestTypeEnum) {
+    return requestTypeEnum != null ? requestTypeEnum.getValue() : null;
+  }
+
+  @Named("RequestLevelToString")
+  default String mapRequestLevelToString(EcsTlr.RequestLevelEnum requestLevelEnum) {
+    return requestLevelEnum != null ? requestLevelEnum.getValue() : null;
+  }
+
+  @Named("FulfillmentPreferenceToString")
+  default String mapFulfillmentPreferenceToString(EcsTlr.FulfillmentPreferenceEnum fulfillmentPreferenceEnum) {
+    return fulfillmentPreferenceEnum != null ? fulfillmentPreferenceEnum.getValue() : null;
   }
 }
