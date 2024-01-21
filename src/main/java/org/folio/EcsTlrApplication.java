@@ -6,10 +6,10 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 
 @SpringBootApplication
 @EnableFeignClients
-public class TitleLevelRequestsApplication {
+public class EcsTlrApplication {
 
   public static void main(String[] args) {
-    SpringApplication.run(TitleLevelRequestsApplication.class, args);
+    SpringApplication.run(EcsTlrApplication.class, args);
   }
 
 }

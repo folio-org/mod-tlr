@@ -4,15 +4,24 @@
                    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
 
-<!--    Changeset for creating table title_level_request with columns id, created_by, updated_by -->
-    <changeSet id="createTitleLevelRequestTable" author="OleksandrVidinieiev">
+<!--    Changeset for creating table ecs_tlr with all the required fields -->
+    <changeSet id="createEcsTlrTable" author="OleksandrVidinieiev">
         <comment>
-            Create title_level_request table
+            Create ecs_tlr table
         </comment>
-        <createTable tableName="title_level_request">
-            <column name="id" type="uuid">
-                <constraints primaryKey="true"/>
-            </column>
+        <createTable tableName="ecs_tlr">
+          <column name="id" type="uuid">
+            <constraints primaryKey="true"/>
+          </column>
+          <column name="instance_id" type="uuid"/>
+          <column name="requester_id" type="uuid"/>
+          <column name="request_type" type="varchar(255)"/>
+          <column name="request_level" type="varchar(255)"/>
+          <column name="request_expiration_date" type="timestamp with time zone"/>
+          <column name="patron_comments" type="varchar(255)"/>
+          <column name="fulfillment_preference" type="varchar(255)"/>
+          <column name="pickup_service_point_id" type="uuid"/>
+          <column name="item_id" type="uuid"/>
           <column name="created_date" type="timestamp without time zone" defaultValueComputed="now()">
             <constraints nullable="false"/>
           </column>

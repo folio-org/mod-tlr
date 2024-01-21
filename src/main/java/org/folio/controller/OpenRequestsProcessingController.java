@@ -14,7 +14,7 @@ public class OpenRequestsProcessingController {
 
   private final OpenRequestsProcessingService openRequestsProcessingService;
 
-  @PostMapping(value = "/title-level-requests-processing")
+  @PostMapping(value = "/tlr/ecs-tlr-processing")
   public void processOpenRequests() {
     openRequestsProcessingService.processOpenRequests();
   }

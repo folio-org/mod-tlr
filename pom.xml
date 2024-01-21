@@ -28,7 +28,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <sonar.exclusions>
       <!-- define sonar exclusions here -->
-      src/main/java/org/folio/TitleLevelRequestsApplication.java
+      src/main/java/org/folio/EcsTlrApplication.java
     </sonar.exclusions>
     <argLine/>
 
@@ -258,7 +258,7 @@
               <goal>generate</goal>
             </goals>
             <configuration>
-              <inputSpec>${project.basedir}/src/main/resources/swagger.api/title-level-requests.yaml</inputSpec>
+              <inputSpec>${project.basedir}/src/main/resources/swagger.api/ecs-tlr.yaml</inputSpec>
               <output>${project.build.directory}/generated-sources</output>
               <generatorName>spring</generatorName>
               <modelPackage>${project.groupId}.domain.dto</modelPackage>
