@@ -22,7 +22,6 @@ public class ResultListTest {
 
   @Test
   void canCreateEmptyResultList() {
-    ResultList<Instance> mockResult = ResultList.empty();
-    assertEquals(0, mockResult.getTotalRecords());
+    assertEquals(0, ResultList.empty().getTotalRecords());
   }
 }
