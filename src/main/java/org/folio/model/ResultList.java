@@ -1,7 +1,6 @@
 package org.folio.model;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
-import com.fasterxml.jackson.annotation.JsonAnySetter;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -24,13 +23,6 @@ public class ResultList<T> {
    * Paged result data.
    */
   private List<T> result = Collections.emptyList();
-
-
-  @SuppressWarnings("unused")
-  @JsonAnySetter
-  public void set(String key, List<T> result) {
-    this.result = result;
-  }
 
   /**
    * Creates empty result list.
