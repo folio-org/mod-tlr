@@ -1,6 +1,7 @@
 package org.folio.controller;
 
 import static org.springframework.http.HttpStatus.CREATED;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.NO_CONTENT;
 import static org.springframework.http.HttpStatus.OK;
 
@@ -41,17 +42,18 @@ public class EcsTlrController implements TlrApi {
   @Override
   public ResponseEntity<Void> putEcsTlrById(UUID requestId, EcsTlr ecsTlr) {
     log.debug("putEcsTlrById:: parameters requestId: {}", requestId);
-    ecsTlrService.put(requestId, ecsTlr);
 
-    return ResponseEntity.status(NO_CONTENT).build();
+    return ecsTlrService.put(requestId, ecsTlr)
+      ? ResponseEntity.status(NO_CONTENT).build()
+      : ResponseEntity.status(NOT_FOUND).build();
   }
 
   @Override
   public ResponseEntity<Void> deleteEcsTlrById(UUID requestId) {
     log.debug("deleteEcsTlrById:: parameters requestId: {}", requestId);
 
-    ecsTlrService.delete(requestId);
-
-    return ResponseEntity.status(NO_CONTENT).build();
+    return ecsTlrService.delete(requestId)
+      ? ResponseEntity.status(NO_CONTENT).build()
+      : ResponseEntity.status(NOT_FOUND).build();
   }
 }

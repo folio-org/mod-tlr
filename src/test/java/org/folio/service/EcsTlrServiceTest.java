@@ -1,10 +1,13 @@
 package org.folio.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import org.folio.domain.dto.EcsTlr;
@@ -38,7 +41,7 @@ class EcsTlrServiceTest {
   }
 
   @Test
-  void postEcsTlr() {
+  void ecsTlrShouldBeCreatedThenUpdatedAndDeleted() {
     var id = UUID.randomUUID();
     var instanceId = UUID.randomUUID();
     var requesterId = UUID.randomUUID();
@@ -82,5 +85,13 @@ class EcsTlrServiceTest {
     assertEquals(patronComments, postEcsTlr.getPatronComments());
     assertEquals(fulfillmentPreference, postEcsTlr.getFulfillmentPreference());
     assertEquals(pickupServicePointId.toString(), postEcsTlr.getPickupServicePointId());
+
+    when(ecsTlrRepository.findById(any(UUID.class))).thenReturn(Optional.of(mockEcsTlrEntity));
+    assertTrue(ecsTlrService.put(id, ecsTlr));
+    assertTrue(ecsTlrService.delete(id));
+
+    when(ecsTlrRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
+    assertFalse(ecsTlrService.put(id, ecsTlr));
+    assertFalse(ecsTlrService.delete(id));
   }
 }

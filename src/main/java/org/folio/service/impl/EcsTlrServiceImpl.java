@@ -47,7 +47,12 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   }
 
   @Override
-  public void delete(UUID requestId) {
-    ecsTlrRepository.deleteById(requestId);
+  public boolean delete(UUID requestId) {
+    return ecsTlrRepository.findById(requestId)
+        .map(ecsTlrEntity -> {
+          ecsTlrRepository.deleteById(ecsTlrEntity.getId());
+          return ecsTlrEntity;
+        })
+      .isPresent();
   }
 }
