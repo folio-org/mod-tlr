@@ -24,7 +24,7 @@ class SearchClientTest {
   @Test
   void canGetInstances() {
     SearchClient.Instance instance = new SearchClient.Instance(UUID.randomUUID().toString(), "tenant1");
-    ResultList<SearchClient.Instance> mockResult = ResultList.asSinglePage(List.of(instance));
+    ResultList<SearchClient.Instance> mockResult = ResultList.of(List.of(instance));
     when(searchClient.searchInstances(any(CqlQuery.class), anyBoolean())).thenReturn(mockResult);
     var response = searchClient.searchInstances(CqlQuery.exactMatch("id", UUID.randomUUID().toString()), true);
     assertNotNull(response);
