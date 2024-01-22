@@ -66,6 +66,12 @@ class EcsTlrControllerTest {
   }
 
   @Test
+  void ecsTlrShouldSuccessfullyBeDeleted() {
+    when(requestsService.delete(any(UUID.class))).thenReturn(true);
+    assertEquals(NO_CONTENT, requestsController.deleteEcsTlrById(UUID.randomUUID()).getStatusCode());
+  }
+
+  @Test
   void ecsTlrShouldNotBeFound() {
     var id = UUID.randomUUID();
     var mockRequest = new EcsTlr();
