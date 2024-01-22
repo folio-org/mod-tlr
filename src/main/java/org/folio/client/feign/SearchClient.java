@@ -1,6 +1,7 @@
 package org.folio.client.feign;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.folio.model.ResultList;
 import org.folio.spring.config.FeignClientConfiguration;
@@ -15,6 +16,7 @@ public interface SearchClient {
   @GetMapping("/instances")
   ResultList<Instance> searchInstances(@RequestParam("query") CqlQuery cql, @RequestParam("expandAll") Boolean expandAll);
 
+  @AllArgsConstructor
   @Data
   @JsonIgnoreProperties(ignoreUnknown = true)
   class Instance {
