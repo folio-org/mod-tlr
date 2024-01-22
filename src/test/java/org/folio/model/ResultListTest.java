@@ -14,8 +14,10 @@ public class ResultListTest {
 
   @Test
   void canCreateResultList() {
-    ResultList<Instance> mockResult = ResultList.asSinglePage(new Instance(UUID.randomUUID().toString(), "tenant1"), new Instance(UUID.randomUUID().toString(), "tenant2"));
-    assertTrue(mockResult.getTotalRecords() > 0);
+    assertTrue(ResultList.asSinglePage(
+        new Instance(UUID.randomUUID().toString(), "tenant1"),
+        new Instance(UUID.randomUUID().toString(), "tenant2"))
+      .getTotalRecords() > 0);
   }
 
   @Test
