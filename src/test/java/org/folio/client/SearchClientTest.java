@@ -22,7 +22,7 @@ public class SearchClientTest {
   private SearchClient searchClient;
 
   @Test
-  void testGetInstances() {
+  void canGetInstances() {
     SearchClient.Instance instance = new SearchClient.Instance(UUID.randomUUID().toString(), "tenant1");
     ResultList<SearchClient.Instance> mockResult = ResultList.asSinglePage(List.of(instance));
     when(searchClient.searchInstances(any(CqlQuery.class), anyBoolean())).thenReturn(mockResult);
