@@ -36,12 +36,20 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   @Override
   public EcsTlr create(EcsTlr ecsTlr) {
     log.debug("create:: parameters ecsTlr: {}", () -> ecsTlr);
-    Request mappedRequest = requestsMapper.mapDtoToRequest(ecsTlr);
-    Request cretedRequest = tenantScopedExecutionService.execute("dummy-tenant", // TODO: replace with real tenantId
-      () -> circulationClient.createTitleLevelRequest(mappedRequest));
-    log.info("create:: title-level request created: {}", cretedRequest.getId());
+    createRequest(ecsTlr, "dummy-tenant"); // TODO: replace with real tenantId
 
     return requestsMapper.mapEntityToDto(ecsTlrRepository.save(
       requestsMapper.mapDtoToEntity(ecsTlr)));
+  }
+
+  private Request createRequest(EcsTlr ecsTlr, String tenantId) {
+    log.info("createRequest:: creating request for ECS TLR {} and tenant {}", ecsTlr.getId(), tenantId);
+    Request mappedRequest = requestsMapper.mapDtoToRequest(ecsTlr);
+    Request createdRequest = tenantScopedExecutionService.execute(tenantId,
+      () -> circulationClient.createTitleLevelRequest(mappedRequest));
+    log.info("createRequest:: request created: {}", createdRequest.getId());
+    log.debug("createRequest:: request={}", () -> createdRequest);
+
+    return createdRequest;
   }
 }
