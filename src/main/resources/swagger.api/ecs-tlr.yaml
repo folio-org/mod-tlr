@@ -45,7 +45,9 @@ components:
     ecs-tlr:
       $ref: 'schemas/EcsTlr.yaml#/EcsTlr'
     errorResponse:
-      $ref: schemas/errors.json
+      $ref: 'schemas/errors.json'
+    request:
+      $ref: 'schemas/request.json'
   parameters:
     requestId:
       name: requestId

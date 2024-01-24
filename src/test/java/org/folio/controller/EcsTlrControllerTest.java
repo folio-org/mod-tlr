@@ -5,7 +5,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.CREATED;
-import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 
 import java.util.Optional;
 
@@ -44,7 +43,7 @@ class EcsTlrControllerTest {
   @Test
   void ecsTlrShouldSuccessfullyBeCreated() {
     var mockRequest = new EcsTlr();
-    when(requestsService.post(any(EcsTlr.class))).thenReturn(mockRequest);
+    when(requestsService.create(any(EcsTlr.class))).thenReturn(mockRequest);
 
     var response = requestsController.postEcsTlr(new EcsTlr());
 

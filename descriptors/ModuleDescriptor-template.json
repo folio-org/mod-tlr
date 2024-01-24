@@ -16,7 +16,9 @@
           "methods": ["POST"],
           "pathPattern": "/tlr/ecs-tlr",
           "permissionsRequired": ["tlr.ecs-tlr.post"],
-          "modulePermissions": []
+          "modulePermissions": [
+            "circulation.requests.item.post"
+          ]
         }
       ]
     },

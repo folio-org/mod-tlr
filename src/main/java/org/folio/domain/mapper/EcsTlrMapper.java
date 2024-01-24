@@ -1,6 +1,7 @@
 package org.folio.domain.mapper;
 
 import org.folio.domain.dto.EcsTlr;
+import org.folio.domain.dto.Request;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -36,17 +37,19 @@ public interface EcsTlrMapper {
   }
 
   @Named("RequestTypeToString")
-  default String mapRequestTypeToString(EcsTlr.RequestTypeEnum requestTypeEnum) {
-    return requestTypeEnum != null ? requestTypeEnum.getValue() : null;
+  default String mapRequestType(EcsTlr.RequestTypeEnum requestType) {
+    return requestType != null ? requestType.getValue() : null;
   }
 
   @Named("RequestLevelToString")
-  default String mapRequestLevelToString(EcsTlr.RequestLevelEnum requestLevelEnum) {
-    return requestLevelEnum != null ? requestLevelEnum.getValue() : null;
+  default String mapRequestLevel(EcsTlr.RequestLevelEnum requestLevel) {
+    return requestLevel != null ? requestLevel.getValue() : null;
   }
 
   @Named("FulfillmentPreferenceToString")
-  default String mapFulfillmentPreferenceToString(EcsTlr.FulfillmentPreferenceEnum fulfillmentPreferenceEnum) {
-    return fulfillmentPreferenceEnum != null ? fulfillmentPreferenceEnum.getValue() : null;
+  default String mapFulfillmentPreference(EcsTlr.FulfillmentPreferenceEnum fulfillmentPreference) {
+    return fulfillmentPreference != null ? fulfillmentPreference.getValue() : null;
   }
+
+  Request mapDtoToRequest(EcsTlr ecsTlr);
 }

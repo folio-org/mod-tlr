@@ -72,7 +72,7 @@ class EcsTlrServiceTest {
     ecsTlr.setPickupServicePointId(pickupServicePointId.toString());
 
     when(ecsTlrRepository.save(any(EcsTlrEntity.class))).thenReturn(mockEcsTlrEntity);
-    var postEcsTlr = ecsTlrService.post(ecsTlr);
+    var postEcsTlr = ecsTlrService.create(ecsTlr);
 
     assertEquals(id.toString(), postEcsTlr.getId());
     assertEquals(instanceId.toString(), postEcsTlr.getInstanceId());

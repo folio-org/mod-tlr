@@ -3,9 +3,12 @@ package org.folio.service.impl;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.folio.client.CirculationClient;
 import org.folio.domain.dto.EcsTlr;
+import org.folio.domain.dto.Request;
 import org.folio.domain.mapper.EcsTlrMapper;
 import org.folio.repository.EcsTlrRepository;
+import org.folio.service.TenantScopedExecutionService;
 import org.folio.service.EcsTlrService;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +22,8 @@ public class EcsTlrServiceImpl implements EcsTlrService {
 
   private final EcsTlrRepository ecsTlrRepository;
   private final EcsTlrMapper requestsMapper;
+  private final CirculationClient circulationClient;
+  private final TenantScopedExecutionService tenantScopedExecutionService;
 
   @Override
   public Optional<EcsTlr> get(UUID id) {
@@ -29,8 +34,12 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   }
 
   @Override
-  public EcsTlr post(EcsTlr ecsTlr) {
-    log.debug("post:: parameters ecsTlr: {}", () -> ecsTlr);
+  public EcsTlr create(EcsTlr ecsTlr) {
+    log.debug("create:: parameters ecsTlr: {}", () -> ecsTlr);
+    Request mappedRequest = requestsMapper.mapDtoToRequest(ecsTlr);
+    Request cretedRequest = tenantScopedExecutionService.execute("dummy-tenant", // TODO: replace with real tenantId
+      () -> circulationClient.createTitleLevelRequest(mappedRequest));
+    log.info("create:: title-level request created: {}", cretedRequest.getId());
 
     return requestsMapper.mapEntityToDto(ecsTlrRepository.save(
       requestsMapper.mapDtoToEntity(ecsTlr)));

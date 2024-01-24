@@ -34,6 +34,6 @@ public class EcsTlrController implements TlrApi {
   public ResponseEntity<EcsTlr> postEcsTlr(EcsTlr ecsTlr) {
     log.debug("postEcsTlr:: parameters ecsTlr: {}", ecsTlr);
 
-    return ResponseEntity.status(CREATED).body(ecsTlrService.post(ecsTlr));
+    return ResponseEntity.status(CREATED).body(ecsTlrService.create(ecsTlr));
   }
 }
