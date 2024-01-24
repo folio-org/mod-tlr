@@ -31,7 +31,7 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 
 class EcsTlrApiTest extends BaseIT {
   private static final String TLR_URL = "/tlr/ecs-tlr";
-  private static final String ANOTHER_TENANT = "dummy-tenant";
+  private static final String ANOTHER_TENANT = "university";
   private static final String TENANT_HEADER = "x-okapi-tenant";
 
   @Autowired

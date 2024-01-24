@@ -36,7 +36,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   @Override
   public EcsTlr create(EcsTlr ecsTlr) {
     log.debug("create:: parameters ecsTlr: {}", () -> ecsTlr);
-    createRequest(ecsTlr, "dummy-tenant"); // TODO: replace with real tenantId
+    createRequest(ecsTlr, "university"); // TODO: replace with real tenantId
 
     return requestsMapper.mapEntityToDto(ecsTlrRepository.save(
       requestsMapper.mapDtoToEntity(ecsTlr)));
