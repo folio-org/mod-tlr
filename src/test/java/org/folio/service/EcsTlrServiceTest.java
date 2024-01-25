@@ -80,7 +80,7 @@ class EcsTlrServiceTest {
     when(ecsTlrRepository.save(any(EcsTlrEntity.class))).thenReturn(mockEcsTlrEntity);
     when(tenantScopedExecutionService.execute(any(String.class), any()))
       .thenReturn(new Request().id(UUID.randomUUID().toString()));
-    var postEcsTlr = ecsTlrService.create(ecsTlr);
+    var postEcsTlr = ecsTlrService.post(ecsTlr);
 
     assertEquals(id.toString(), postEcsTlr.getId());
     assertEquals(instanceId.toString(), postEcsTlr.getInstanceId());

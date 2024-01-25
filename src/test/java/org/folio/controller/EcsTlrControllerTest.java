@@ -43,7 +43,7 @@ class EcsTlrControllerTest {
   @Test
   void ecsTlrShouldSuccessfullyBeCreated() {
     var mockRequest = new EcsTlr();
-    when(requestsService.create(any(EcsTlr.class))).thenReturn(mockRequest);
+    when(requestsService.post(any(EcsTlr.class))).thenReturn(mockRequest);
 
     var response = requestsController.postEcsTlr(new EcsTlr());
 

@@ -9,5 +9,5 @@ import org.springframework.web.bind.annotation.PostMapping;
 public interface CirculationClient {
 
   @PostMapping("/circulation/requests")
-  Request createTitleLevelRequest(Request request);
+  Request createRequest(Request request);
 }

@@ -7,5 +7,5 @@ import org.folio.domain.dto.EcsTlr;
 
 public interface EcsTlrService {
   Optional<EcsTlr> get(UUID requestId);
-  EcsTlr create(EcsTlr ecsTlr);
+  EcsTlr post(EcsTlr ecsTlr);
 }

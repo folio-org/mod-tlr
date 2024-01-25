@@ -37,18 +37,18 @@ public interface EcsTlrMapper {
   }
 
   @Named("RequestTypeToString")
-  default String mapRequestType(EcsTlr.RequestTypeEnum requestType) {
-    return requestType != null ? requestType.getValue() : null;
+  default String mapRequestTypeToString(EcsTlr.RequestTypeEnum requestTypeEnum) {
+    return requestTypeEnum != null ? requestTypeEnum.getValue() : null;
   }
 
   @Named("RequestLevelToString")
-  default String mapRequestLevel(EcsTlr.RequestLevelEnum requestLevel) {
-    return requestLevel != null ? requestLevel.getValue() : null;
+  default String mapRequestLevelToString(EcsTlr.RequestLevelEnum requestLevelEnum) {
+    return requestLevelEnum != null ? requestLevelEnum.getValue() : null;
   }
 
   @Named("FulfillmentPreferenceToString")
-  default String mapFulfillmentPreference(EcsTlr.FulfillmentPreferenceEnum fulfillmentPreference) {
-    return fulfillmentPreference != null ? fulfillmentPreference.getValue() : null;
+  default String mapFulfillmentPreferenceToString(EcsTlr.FulfillmentPreferenceEnum fulfillmentPreferenceEnum) {
+    return fulfillmentPreferenceEnum != null ? fulfillmentPreferenceEnum.getValue() : null;
   }
 
   Request mapDtoToRequest(EcsTlr ecsTlr);
