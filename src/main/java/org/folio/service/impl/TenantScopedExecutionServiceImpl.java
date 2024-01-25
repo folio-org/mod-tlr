@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
+import org.folio.exception.TenantScopedExecutionException;
 import org.folio.service.TenantScopedExecutionService;
 import org.folio.spring.FolioExecutionContext;
 import org.folio.spring.FolioModuleMetadata;
@@ -33,7 +34,7 @@ public class TenantScopedExecutionServiceImpl implements TenantScopedExecutionSe
       return action.call();
     } catch (Exception e) {
       log.error("execute:: tenantId={}", tenantId, e);
-      throw new RuntimeException(e);
+      throw new TenantScopedExecutionException(e, tenantId);
     }
   }
 }
