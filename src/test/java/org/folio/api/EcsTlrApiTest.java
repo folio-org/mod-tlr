@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
@@ -64,18 +65,20 @@ class EcsTlrApiTest extends BaseIT {
   @Test
   void titleLevelRequestIsCreatedForDifferentTenant() {
     EcsTlr ecsTlr = buildEcsTlr();
+    String ecsTlrJson = asJsonString(ecsTlr);
     wireMockServer.stubFor(WireMock.post(urlMatching(".*/circulation/requests"))
       .withHeader(TENANT_HEADER, equalTo(ANOTHER_TENANT))
-      .willReturn(jsonResponse(asJsonString(ecsTlr), HttpStatus.SC_CREATED)));
+      .willReturn(jsonResponse(ecsTlrJson, HttpStatus.SC_CREATED)));
     assertEquals(TENANT, getCurrentTenantId());
 
     doPost(TLR_URL, ecsTlr)
       .expectStatus().isCreated()
-      .expectBody().json(asJsonString(ecsTlr));
+      .expectBody().json(ecsTlrJson);
 
     assertEquals(TENANT, getCurrentTenantId());
     wireMockServer.verify(postRequestedFor(urlMatching(".*/circulation/requests"))
-      .withHeader(TENANT_HEADER, equalTo(ANOTHER_TENANT)));
+      .withHeader(TENANT_HEADER, equalTo(ANOTHER_TENANT))
+      .withRequestBody(equalToJson(ecsTlrJson)));
   }
 
   private String getCurrentTenantId() {
