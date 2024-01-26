@@ -78,6 +78,10 @@
         "value": "-XX:MaxRAMPercentage=66.0"
       },
       {
+        "name": "OKAPI_URL",
+        "value": "http://okapi:9130"
+      },
+      {
         "name": "KAFKA_HOST",
         "value": "kafka"
       },
