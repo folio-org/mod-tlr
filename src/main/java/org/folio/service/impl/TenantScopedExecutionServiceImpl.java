@@ -26,14 +26,14 @@ public class TenantScopedExecutionServiceImpl implements TenantScopedExecutionSe
 
   @Override
   public <T> T execute(String tenantId, Callable<T> action) {
-    log.info("execute:: tenantId={}", tenantId);
+    log.info("execute:: tenantId: {}", tenantId);
     Map<String, Collection<String>> headers = executionContext.getAllHeaders();
     headers.put(XOkapiHeaders.TENANT, List.of(tenantId));
 
     try (var x = new FolioExecutionContextSetter(moduleMetadata, headers)) {
       return action.call();
     } catch (Exception e) {
-      log.error("execute:: tenantId={}", tenantId, e);
+      log.error("execute:: tenantId: {}", tenantId, e);
       throw new TenantScopedExecutionException(e, tenantId);
     }
   }

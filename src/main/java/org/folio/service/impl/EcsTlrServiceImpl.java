@@ -48,7 +48,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     Request createdRequest = tenantScopedExecutionService.execute(tenantId,
       () -> circulationClient.createRequest(mappedRequest));
     log.info("createRemoteRequest:: request created: {}", createdRequest.getId());
-    log.debug("createRemoteRequest:: request={}", () -> createdRequest);
+    log.debug("createRemoteRequest:: request: {}", () -> createdRequest);
 
     return createdRequest;
   }
