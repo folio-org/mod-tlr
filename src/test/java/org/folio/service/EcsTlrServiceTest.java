@@ -95,11 +95,11 @@ class EcsTlrServiceTest {
     assertEquals(fulfillmentPreference, postEcsTlr.getFulfillmentPreference());
     assertEquals(pickupServicePointId.toString(), postEcsTlr.getPickupServicePointId());
 
-    when(ecsTlrRepository.findById(any(UUID.class))).thenReturn(Optional.of(mockEcsTlrEntity));
+    when(ecsTlrRepository.existsById(any(UUID.class))).thenReturn(true);
     assertTrue(ecsTlrService.update(id, ecsTlr));
     assertTrue(ecsTlrService.delete(id));
 
-    when(ecsTlrRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
+    when(ecsTlrRepository.existsById(any(UUID.class))).thenReturn(false);
     assertFalse(ecsTlrService.update(id, ecsTlr));
     assertFalse(ecsTlrService.delete(id));
   }
