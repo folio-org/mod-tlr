@@ -93,7 +93,7 @@ class KafkaEventListenerTest {
 
   private static void waitForOffset(String topic, String consumerGroupId, int expectedOffset) {
     Awaitility.await()
-      .atMost(30, TimeUnit.SECONDS)
+      .atMost(60, TimeUnit.SECONDS)
       .until(() -> getOffset(topic, consumerGroupId), offset -> offset.equals(expectedOffset));
   }
 

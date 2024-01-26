@@ -3,9 +3,12 @@ package org.folio.service.impl;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.folio.client.CirculationClient;
 import org.folio.domain.dto.EcsTlr;
+import org.folio.domain.dto.Request;
 import org.folio.domain.mapper.EcsTlrMapper;
 import org.folio.repository.EcsTlrRepository;
+import org.folio.service.TenantScopedExecutionService;
 import org.folio.service.EcsTlrService;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +22,8 @@ public class EcsTlrServiceImpl implements EcsTlrService {
 
   private final EcsTlrRepository ecsTlrRepository;
   private final EcsTlrMapper requestsMapper;
+  private final CirculationClient circulationClient;
+  private final TenantScopedExecutionService tenantScopedExecutionService;
 
   @Override
   public Optional<EcsTlr> get(UUID id) {
@@ -31,8 +36,20 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   @Override
   public EcsTlr post(EcsTlr ecsTlr) {
     log.debug("post:: parameters ecsTlr: {}", () -> ecsTlr);
+    createRemoteRequest(ecsTlr, "university"); // TODO: replace with real tenantId
 
     return requestsMapper.mapEntityToDto(ecsTlrRepository.save(
       requestsMapper.mapDtoToEntity(ecsTlr)));
+  }
+
+  private Request createRemoteRequest(EcsTlr ecsTlr, String tenantId) {
+    log.info("createRemoteRequest:: creating remote request for ECS TLR {} and tenant {}", ecsTlr.getId(), tenantId);
+    Request mappedRequest = requestsMapper.mapDtoToRequest(ecsTlr);
+    Request createdRequest = tenantScopedExecutionService.execute(tenantId,
+      () -> circulationClient.createRequest(mappedRequest));
+    log.info("createRemoteRequest:: request created: {}", createdRequest.getId());
+    log.debug("createRemoteRequest:: request: {}", () -> createdRequest);
+
+    return createdRequest;
   }
 }

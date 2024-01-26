@@ -26,6 +26,7 @@ public class EcsTlrEntity {
   private String requestType;
   private String requestLevel;
   private Date requestExpirationDate;
+  private Date requestDate;
   private String patronComments;
   private String fulfillmentPreference;
   private UUID pickupServicePointId;
