@@ -16,7 +16,9 @@
           "methods": ["POST"],
           "pathPattern": "/tlr/ecs-tlr",
           "permissionsRequired": ["tlr.ecs-tlr.post"],
-          "modulePermissions": []
+          "modulePermissions": [
+            "circulation.requests.item.post"
+          ]
         },
         {
           "methods": ["PUT"],
@@ -93,8 +95,21 @@
       }
     },
     "env": [
-      { "name": "JAVA_OPTIONS",
+      {
+        "name": "JAVA_OPTIONS",
         "value": "-XX:MaxRAMPercentage=66.0"
+      },
+      {
+        "name": "OKAPI_URL",
+        "value": "http://okapi:9130"
+      },
+      {
+        "name": "KAFKA_HOST",
+        "value": "kafka"
+      },
+      {
+        "name": "KAFKA_PORT",
+        "value": "9092"
       },
       { "name": "DB_HOST", "value": "postgres" },
       { "name": "DB_PORT", "value": "5432" },

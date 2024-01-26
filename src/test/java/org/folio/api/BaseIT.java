@@ -3,6 +3,7 @@ package org.folio.api;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import lombok.SneakyThrows;
 import org.folio.spring.integration.XOkapiHeaders;
@@ -14,20 +15,25 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.support.TestPropertySourceUtils;
 import org.springframework.test.util.TestSocketUtils;
+import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.web.reactive.function.BodyInserters;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
+import java.util.UUID;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -38,14 +44,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class BaseIT {
   @Autowired
   protected MockMvc mockMvc;
-  public static WireMockServer wireMockServer;
+  protected static WireMockServer wireMockServer;
   protected static final String TOKEN = "test_token";
-  public static final String TENANT = "diku";
-  protected static PostgreSQLContainer<?> postgresDBContainer = new PostgreSQLContainer<>("postgres:12-alpine");
-  public final static int WIRE_MOCK_PORT = TestSocketUtils.findAvailableTcpPort();
-  protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL)
+  protected static final String TENANT = "diku";
+  private static final PostgreSQLContainer<?> postgresDBContainer = new PostgreSQLContainer<>("postgres:12-alpine");
+  private static final int WIRE_MOCK_PORT = TestSocketUtils.findAvailableTcpPort();
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL)
     .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-    .configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true);
+    .configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true)
+    .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+  @LocalServerPort
+  private int serverPort;
+  private WebTestClient webClient;
 
   static {
     postgresDBContainer.start();
@@ -69,7 +79,7 @@ public class BaseIT {
 
   @SneakyThrows
   protected static void setUpTenant(MockMvc mockMvc) {
-    mockMvc.perform(post("/_/tenant")
+    mockMvc.perform(MockMvcRequestBuilders.post("/_/tenant")
       .content(asJsonString(new TenantAttributes().moduleTo("mod-tlr")))
       .headers(defaultHeaders())
       .contentType(APPLICATION_JSON)).andExpect(status().isNoContent());
@@ -100,6 +110,35 @@ public class BaseIT {
         "spring.datasource.username=" + postgresDBContainer.getUsername(),
         "spring.datasource.password=" + postgresDBContainer.getPassword());
     }
+  }
+
+  protected WebTestClient webClient() {
+    if (webClient == null) {
+      webClient = WebTestClient.bindToServer()
+        .baseUrl("http://localhost:" + serverPort).build();
+    }
+    return webClient;
+  }
+
+  protected WebTestClient.RequestBodySpec buildRequest(HttpMethod method, String uri) {
+    return webClient().method(method)
+      .uri(uri)
+      .accept(APPLICATION_JSON)
+      .contentType(APPLICATION_JSON)
+      .header(XOkapiHeaders.TENANT, TENANT)
+      .header(XOkapiHeaders.URL, wireMockServer.baseUrl())
+      .header(XOkapiHeaders.TOKEN, TOKEN)
+      .header(XOkapiHeaders.USER_ID, randomId());
+  }
+
+  protected WebTestClient.ResponseSpec doPost(String url, Object payload) {
+    return buildRequest(HttpMethod.POST, url)
+      .body(BodyInserters.fromValue(payload))
+      .exchange();
+  }
+
+  protected static String randomId() {
+    return UUID.randomUUID().toString();
   }
 
 }
