@@ -46,7 +46,7 @@ class EcsTlrControllerTest {
   @Test
   void ecsTlrShouldSuccessfullyBeCreated() {
     var mockRequest = new EcsTlr();
-    when(requestsService.post(any(EcsTlr.class))).thenReturn(mockRequest);
+    when(requestsService.create(any(EcsTlr.class))).thenReturn(mockRequest);
 
     var response = requestsController.postEcsTlr(new EcsTlr());
 
@@ -59,7 +59,7 @@ class EcsTlrControllerTest {
     var id = UUID.randomUUID();
     var mockRequest = new EcsTlr();
     mockRequest.setId(id.toString());
-    when(requestsService.put(any(UUID.class), any(EcsTlr.class))).thenReturn(true);
+    when(requestsService.update(any(UUID.class), any(EcsTlr.class))).thenReturn(true);
 
     var response = requestsController.putEcsTlrById(id, mockRequest);
     assertEquals(NO_CONTENT, response.getStatusCode());
@@ -77,7 +77,7 @@ class EcsTlrControllerTest {
     var mockRequest = new EcsTlr();
     mockRequest.setId(UUID.randomUUID().toString());
 
-    when(requestsService.put(any(UUID.class), any(EcsTlr.class))).thenReturn(false);
+    when(requestsService.update(any(UUID.class), any(EcsTlr.class))).thenReturn(false);
     var putResponse = requestsController.putEcsTlrById(id, mockRequest);
     assertEquals(NOT_FOUND, putResponse.getStatusCode());
 

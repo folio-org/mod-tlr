@@ -29,30 +29,32 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   }
 
   @Override
-  public EcsTlr post(EcsTlr ecsTlr) {
-    log.debug("post:: parameters ecsTlr: {}", () -> ecsTlr);
+  public EcsTlr create(EcsTlr ecsTlr) {
+    log.debug("create:: parameters ecsTlr: {}", () -> ecsTlr);
 
     return requestsMapper.mapEntityToDto(ecsTlrRepository.save(
       requestsMapper.mapDtoToEntity(ecsTlr)));
   }
 
   @Override
-  public boolean put(UUID requestId, EcsTlr ecsTlr) {
-    log.debug("put:: requestId: {}, ecsTlr: {}", requestId, ecsTlr);
+  public boolean update(UUID requestId, EcsTlr ecsTlr) {
+    log.debug("update:: parameters requestId: {}, ecsTlr: {}", () -> requestId, () -> ecsTlr);
 
-    return ecsTlrRepository.findById(requestId)
-      .map(ecsTlrEntity -> requestsMapper.mapDtoToEntity(ecsTlr))
-      .map(ecsTlrRepository::save)
-      .isPresent();
+    if (ecsTlrRepository.existsById(requestId)) {
+      ecsTlrRepository.save(requestsMapper.mapDtoToEntity(ecsTlr));
+      return true;
+    }
+    return false;
   }
 
   @Override
   public boolean delete(UUID requestId) {
-    return ecsTlrRepository.findById(requestId)
-        .map(ecsTlrEntity -> {
-          ecsTlrRepository.deleteById(ecsTlrEntity.getId());
-          return ecsTlrEntity;
-        })
-      .isPresent();
+    log.debug("delete:: parameters requestId: {}", () -> requestId);
+
+    if (ecsTlrRepository.existsById(requestId)) {
+      ecsTlrRepository.deleteById(requestId);
+      return true;
+    }
+    return false;
   }
 }

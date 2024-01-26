@@ -36,7 +36,7 @@ paths:
         '500':
           $ref: '#/components/responses/internalServerErrorResponse'
     put:
-      description: Update ECS TLR by id
+      description: Update ECS TLR by ID
       operationId: putEcsTlrById
       requestBody:
         content:
@@ -56,7 +56,7 @@ paths:
         '500':
           $ref: '#/components/responses/internalServerErrorResponse'
     delete:
-      description: Remove ECS TLR by id
+      description: Remove ECS TLR by ID
       operationId: deleteEcsTlrById
       parameters:
         - $ref: '#/components/parameters/requestId'
@@ -97,7 +97,7 @@ components:
           example:
             errors:
               - message: Request is invalid
-                code: notfound.request
+                code: invalid.request
             total_records: 1
           schema:
             $ref: "#/components/schemas/errorResponse"
@@ -107,8 +107,8 @@ components:
         application/json:
           example:
             errors:
-              - message: Request is invalid
-                code: invalid.request
+              - message: Request not found
+                code: notfound.request
             total_records: 1
           schema:
             $ref: "#/components/schemas/errorResponse"

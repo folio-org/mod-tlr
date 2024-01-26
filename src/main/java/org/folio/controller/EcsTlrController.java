@@ -10,6 +10,7 @@ import java.util.UUID;
 import org.folio.domain.dto.EcsTlr;
 import org.folio.rest.resource.TlrApi;
 import org.folio.service.EcsTlrService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -36,24 +37,28 @@ public class EcsTlrController implements TlrApi {
   public ResponseEntity<EcsTlr> postEcsTlr(EcsTlr ecsTlr) {
     log.debug("postEcsTlr:: parameters ecsTlr: {}", ecsTlr);
 
-    return ResponseEntity.status(CREATED).body(ecsTlrService.post(ecsTlr));
+    return ResponseEntity.status(CREATED).body(ecsTlrService.create(ecsTlr));
   }
 
   @Override
   public ResponseEntity<Void> putEcsTlrById(UUID requestId, EcsTlr ecsTlr) {
-    log.debug("putEcsTlrById:: parameters requestId: {}", requestId);
+    log.debug("putEcsTlrById:: parameters requestId: {}, ecsTlr: {}", () -> requestId, () -> ecsTlr);
 
-    return ecsTlrService.put(requestId, ecsTlr)
-      ? ResponseEntity.status(NO_CONTENT).build()
-      : ResponseEntity.status(NOT_FOUND).build();
+    HttpStatus httpStatus = ecsTlrService.update(requestId, ecsTlr)
+      ? NO_CONTENT
+      : NOT_FOUND;
+
+    return ResponseEntity.status(httpStatus).build();
   }
 
   @Override
   public ResponseEntity<Void> deleteEcsTlrById(UUID requestId) {
     log.debug("deleteEcsTlrById:: parameters requestId: {}", requestId);
 
-    return ecsTlrService.delete(requestId)
-      ? ResponseEntity.status(NO_CONTENT).build()
-      : ResponseEntity.status(NOT_FOUND).build();
+    HttpStatus httpStatus = ecsTlrService.delete(requestId)
+      ? NO_CONTENT
+      : NOT_FOUND;
+
+    return ResponseEntity.status(httpStatus).build();
   }
 }

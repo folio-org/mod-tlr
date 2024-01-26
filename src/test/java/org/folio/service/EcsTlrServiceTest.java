@@ -75,7 +75,7 @@ class EcsTlrServiceTest {
     ecsTlr.setPickupServicePointId(pickupServicePointId.toString());
 
     when(ecsTlrRepository.save(any(EcsTlrEntity.class))).thenReturn(mockEcsTlrEntity);
-    var postEcsTlr = ecsTlrService.post(ecsTlr);
+    var postEcsTlr = ecsTlrService.create(ecsTlr);
 
     assertEquals(id.toString(), postEcsTlr.getId());
     assertEquals(instanceId.toString(), postEcsTlr.getInstanceId());
@@ -87,11 +87,11 @@ class EcsTlrServiceTest {
     assertEquals(pickupServicePointId.toString(), postEcsTlr.getPickupServicePointId());
 
     when(ecsTlrRepository.findById(any(UUID.class))).thenReturn(Optional.of(mockEcsTlrEntity));
-    assertTrue(ecsTlrService.put(id, ecsTlr));
+    assertTrue(ecsTlrService.update(id, ecsTlr));
     assertTrue(ecsTlrService.delete(id));
 
     when(ecsTlrRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
-    assertFalse(ecsTlrService.put(id, ecsTlr));
+    assertFalse(ecsTlrService.update(id, ecsTlr));
     assertFalse(ecsTlrService.delete(id));
   }
 }
