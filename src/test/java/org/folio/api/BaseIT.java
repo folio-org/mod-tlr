@@ -128,11 +128,11 @@ public class BaseIT {
       .header(XOkapiHeaders.TENANT, TENANT)
       .header(XOkapiHeaders.URL, wireMockServer.baseUrl())
       .header(XOkapiHeaders.TOKEN, TOKEN)
-      .header(XOkapiHeaders.USER_ID, UUID.randomUUID().toString());
+      .header(XOkapiHeaders.USER_ID, randomId());
   }
 
-  protected WebTestClient.ResponseSpec doPost(String uri, Object payload) {
-    return buildRequest(HttpMethod.POST, uri)
+  protected WebTestClient.ResponseSpec doPost(String url, Object payload) {
+    return buildRequest(HttpMethod.POST, url)
       .body(BodyInserters.fromValue(payload))
       .exchange();
   }
