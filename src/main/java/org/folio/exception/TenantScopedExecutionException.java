@@ -1,5 +1,8 @@
 package org.folio.exception;
 
+import lombok.Getter;
+
+@Getter
 public class TenantScopedExecutionException extends RuntimeException {
   private final String tenantId;
 
