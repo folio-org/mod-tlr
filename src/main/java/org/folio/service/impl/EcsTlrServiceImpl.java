@@ -36,19 +36,19 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   @Override
   public EcsTlr post(EcsTlr ecsTlr) {
     log.debug("post:: parameters ecsTlr: {}", () -> ecsTlr);
-    createRequest(ecsTlr, "university"); // TODO: replace with real tenantId
+    createRemoteRequest(ecsTlr, "university"); // TODO: replace with real tenantId
 
     return requestsMapper.mapEntityToDto(ecsTlrRepository.save(
       requestsMapper.mapDtoToEntity(ecsTlr)));
   }
 
-  private Request createRequest(EcsTlr ecsTlr, String tenantId) {
-    log.info("createRequest:: creating request for ECS TLR {} and tenant {}", ecsTlr.getId(), tenantId);
+  private Request createRemoteRequest(EcsTlr ecsTlr, String tenantId) {
+    log.info("createRemoteRequest:: creating remote request for ECS TLR {} and tenant {}", ecsTlr.getId(), tenantId);
     Request mappedRequest = requestsMapper.mapDtoToRequest(ecsTlr);
     Request createdRequest = tenantScopedExecutionService.execute(tenantId,
       () -> circulationClient.createRequest(mappedRequest));
-    log.info("createRequest:: request created: {}", createdRequest.getId());
-    log.debug("createRequest:: request={}", () -> createdRequest);
+    log.info("createRemoteRequest:: request created: {}", createdRequest.getId());
+    log.debug("createRemoteRequest:: request={}", () -> createdRequest);
 
     return createdRequest;
   }
