@@ -46,3 +46,4 @@ EcsTlr:
     - requestType
     - requestLevel
     - fulfillmentPreference
+    - requestDate
