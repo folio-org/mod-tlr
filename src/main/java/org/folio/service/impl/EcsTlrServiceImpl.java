@@ -4,6 +4,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.folio.domain.dto.EcsTlr;
+import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.domain.mapper.EcsTlrMapper;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.EcsTlrService;
@@ -34,5 +35,16 @@ public class EcsTlrServiceImpl implements EcsTlrService {
 
     return requestsMapper.mapEntityToDto(ecsTlrRepository.save(
       requestsMapper.mapDtoToEntity(ecsTlr)));
+  }
+
+  @Override
+  public void updateRequestItem(UUID tlrRequestId, UUID itemId) {
+    log.debug("updateRequestItem:: parameters tlrRequestId: {}, itemId: {}", tlrRequestId, itemId);
+    ecsTlrRepository.findById(tlrRequestId).ifPresentOrElse(
+      ecsTlrEntity -> {
+        ecsTlrEntity.setItemId(itemId);
+        ecsTlrRepository.save(ecsTlrEntity);
+      },
+      () -> log.error("updateRequestItem:: EcsTlr with tlrId: {} not found", tlrRequestId));
   }
 }

@@ -1,4 +1,4 @@
-package org.folio.controller;
+package org.folio.listener.kafka;
 
 import org.folio.service.KafkaEventHandler;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +22,7 @@ public class KafkaEventListener {
   )
   public void handleRequestEvent(String event) {
     log.info("handleRequestEvent:: message received: {}", event);
-    eventHandler.handle(event);
+    eventHandler.handleRequestEvent(event);
   }
 
 }
