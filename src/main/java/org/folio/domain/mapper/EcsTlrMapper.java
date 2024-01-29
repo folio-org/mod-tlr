@@ -1,6 +1,7 @@
 package org.folio.domain.mapper;
 
 import org.folio.domain.dto.EcsTlr;
+import org.folio.domain.dto.Request;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -49,4 +50,6 @@ public interface EcsTlrMapper {
   default String mapFulfillmentPreferenceToString(EcsTlr.FulfillmentPreferenceEnum fulfillmentPreferenceEnum) {
     return fulfillmentPreferenceEnum != null ? fulfillmentPreferenceEnum.getValue() : null;
   }
+
+  Request mapDtoToRequest(EcsTlr ecsTlr);
 }

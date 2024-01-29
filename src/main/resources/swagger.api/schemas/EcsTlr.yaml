@@ -23,6 +23,10 @@ EcsTlr:
       description: "Date when the request expires"
       type: string
       format: date-time
+    requestDate:
+      description: "Date when the request was placed"
+      type: string
+      format: date-time
     patronComments:
       description: "Comments made by the patron"
       type: string
@@ -42,3 +46,4 @@ EcsTlr:
     - requestType
     - requestLevel
     - fulfillmentPreference
+    - requestDate
