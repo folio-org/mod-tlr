@@ -6,7 +6,6 @@ import java.util.UUID;
 import org.folio.client.CirculationClient;
 import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.Request;
-import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.domain.mapper.EcsTlrMapper;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.TenantScopedExecutionService;
@@ -46,7 +45,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   @Override
   public void updateRequestItem(UUID tlrRequestId, UUID itemId) {
     log.debug("updateRequestItem:: parameters tlrRequestId: {}, itemId: {}", tlrRequestId, itemId);
-    ecsTlrRepository.findById(tlrRequestId).ifPresentOrElse(
+    ecsTlrRepository.findByTlrId(tlrRequestId).ifPresentOrElse(
       ecsTlrEntity -> {
         ecsTlrEntity.setItemId(itemId);
         ecsTlrRepository.save(ecsTlrEntity);
