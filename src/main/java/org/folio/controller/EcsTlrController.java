@@ -43,7 +43,8 @@ public class EcsTlrController implements TlrApi {
   @Override
   public ResponseEntity<Void> putEcsTlrById(UUID requestId, EcsTlr ecsTlr) {
     log.debug("putEcsTlrById:: parameters requestId: {}, ecsTlr: {}", () -> requestId, () -> ecsTlr);
-    HttpStatus httpStatus = ecsTlrService.update(requestId, ecsTlr) ? NO_CONTENT : NOT_FOUND;
+    boolean requestUpdated = ecsTlrService.update(requestId, ecsTlr);
+    HttpStatus httpStatus = requestUpdated  ? NO_CONTENT : NOT_FOUND;
 
     return ResponseEntity.status(httpStatus).build();
   }
@@ -51,7 +52,8 @@ public class EcsTlrController implements TlrApi {
   @Override
   public ResponseEntity<Void> deleteEcsTlrById(UUID requestId) {
     log.debug("deleteEcsTlrById:: parameters requestId: {}", requestId);
-    HttpStatus httpStatus = ecsTlrService.delete(requestId) ? NO_CONTENT : NOT_FOUND;
+    boolean requestDeleted = ecsTlrService.delete(requestId);
+    HttpStatus httpStatus = requestDeleted  ? NO_CONTENT : NOT_FOUND;
 
     return ResponseEntity.status(httpStatus).build();
   }

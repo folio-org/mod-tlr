@@ -4,8 +4,8 @@
     "requesterId": "4565999e-1994-4aab-9282-185731b4ce66",
     "requestType": "Hold",
     "requestLevel": "Title",
-    "requestExpirationDate": "2024-01-01T23:11:00-01:00",
-    "requestDate": "2024-01-01T00:12:00-01:00"
+    "requestExpirationDate": "2024-01-01T23:11:00-00:00",
+    "requestDate": "2024-01-01T00:12:00-00:00"
     "patronComments": "test comment",
     "fulfillmentPreference": "Hold Shelf",
     "pickupServicePointId": "71ff4b72-70a0-40f6-9f73-6db29ced80a3"
