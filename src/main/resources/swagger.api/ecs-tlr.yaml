@@ -99,7 +99,6 @@ components:
           example:
             errors:
               - message: Request is invalid
-                code: invalid.request
             total_records: 1
           schema:
             $ref: "#/components/schemas/errorResponse"
@@ -110,7 +109,6 @@ components:
           example:
             errors:
               - message: Request not found
-                code: notfound.request
             total_records: 1
           schema:
             $ref: "#/components/schemas/errorResponse"
@@ -121,7 +119,6 @@ components:
           example:
             errors:
               - message: Unexpected error
-                code: unexpected.error
             total_records: 1
           schema:
             $ref: "#/components/schemas/errorResponse"
