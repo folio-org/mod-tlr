@@ -35,7 +35,7 @@ public class EcsTlrController implements TlrApi {
 
   @Override
   public ResponseEntity<EcsTlr> postEcsTlr(EcsTlr ecsTlr) {
-    log.debug("postEcsTlr:: parameters ecsTlr: {}", ecsTlr);
+    log.debug("postEcsTlr:: parameters ecsTlr: {}", () -> ecsTlr);
 
     return ResponseEntity.status(CREATED).body(ecsTlrService.create(ecsTlr));
   }
@@ -44,7 +44,7 @@ public class EcsTlrController implements TlrApi {
   public ResponseEntity<Void> putEcsTlrById(UUID requestId, EcsTlr ecsTlr) {
     log.debug("putEcsTlrById:: parameters requestId: {}, ecsTlr: {}", () -> requestId, () -> ecsTlr);
     boolean requestUpdated = ecsTlrService.update(requestId, ecsTlr);
-    HttpStatus httpStatus = requestUpdated  ? NO_CONTENT : NOT_FOUND;
+    HttpStatus httpStatus = requestUpdated ? NO_CONTENT : NOT_FOUND;
 
     return ResponseEntity.status(httpStatus).build();
   }
@@ -53,7 +53,7 @@ public class EcsTlrController implements TlrApi {
   public ResponseEntity<Void> deleteEcsTlrById(UUID requestId) {
     log.debug("deleteEcsTlrById:: parameters requestId: {}", requestId);
     boolean requestDeleted = ecsTlrService.delete(requestId);
-    HttpStatus httpStatus = requestDeleted  ? NO_CONTENT : NOT_FOUND;
+    HttpStatus httpStatus = requestDeleted ? NO_CONTENT : NOT_FOUND;
 
     return ResponseEntity.status(httpStatus).build();
   }
