@@ -34,12 +34,34 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   }
 
   @Override
-  public EcsTlr post(EcsTlr ecsTlr) {
-    log.debug("post:: parameters ecsTlr: {}", () -> ecsTlr);
+  public EcsTlr create(EcsTlr ecsTlr) {
+    log.debug("create:: parameters ecsTlr: {}", () -> ecsTlr);
     createRemoteRequest(ecsTlr, "university"); // TODO: replace with real tenantId
 
     return requestsMapper.mapEntityToDto(ecsTlrRepository.save(
       requestsMapper.mapDtoToEntity(ecsTlr)));
+  }
+
+  @Override
+  public boolean update(UUID requestId, EcsTlr ecsTlr) {
+    log.debug("update:: parameters requestId: {}, ecsTlr: {}", () -> requestId, () -> ecsTlr);
+
+    if (ecsTlrRepository.existsById(requestId)) {
+      ecsTlrRepository.save(requestsMapper.mapDtoToEntity(ecsTlr));
+      return true;
+    }
+    return false;
+  }
+
+  @Override
+  public boolean delete(UUID requestId) {
+    log.debug("delete:: parameters requestId: {}", () -> requestId);
+
+    if (ecsTlrRepository.existsById(requestId)) {
+      ecsTlrRepository.deleteById(requestId);
+      return true;
+    }
+    return false;
   }
 
   private Request createRemoteRequest(EcsTlr ecsTlr, String tenantId) {

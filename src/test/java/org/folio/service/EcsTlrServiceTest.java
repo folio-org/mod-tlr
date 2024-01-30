@@ -1,10 +1,13 @@
 package org.folio.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import org.folio.domain.dto.EcsTlr;
@@ -41,7 +44,7 @@ class EcsTlrServiceTest {
   }
 
   @Test
-  void postEcsTlr() {
+  void ecsTlrShouldBeCreatedThenUpdatedAndDeleted() {
     var id = UUID.randomUUID();
     var instanceId = UUID.randomUUID();
     var requesterId = UUID.randomUUID();
@@ -80,7 +83,7 @@ class EcsTlrServiceTest {
     when(ecsTlrRepository.save(any(EcsTlrEntity.class))).thenReturn(mockEcsTlrEntity);
     when(tenantScopedExecutionService.execute(any(String.class), any()))
       .thenReturn(new Request().id(UUID.randomUUID().toString()));
-    var postEcsTlr = ecsTlrService.post(ecsTlr);
+    var postEcsTlr = ecsTlrService.create(ecsTlr);
 
     assertEquals(id.toString(), postEcsTlr.getId());
     assertEquals(instanceId.toString(), postEcsTlr.getInstanceId());
@@ -91,5 +94,13 @@ class EcsTlrServiceTest {
     assertEquals(patronComments, postEcsTlr.getPatronComments());
     assertEquals(fulfillmentPreference, postEcsTlr.getFulfillmentPreference());
     assertEquals(pickupServicePointId.toString(), postEcsTlr.getPickupServicePointId());
+
+    when(ecsTlrRepository.existsById(any(UUID.class))).thenReturn(true);
+    assertTrue(ecsTlrService.update(id, ecsTlr));
+    assertTrue(ecsTlrService.delete(id));
+
+    when(ecsTlrRepository.existsById(any(UUID.class))).thenReturn(false);
+    assertFalse(ecsTlrService.update(id, ecsTlr));
+    assertFalse(ecsTlrService.delete(id));
   }
 }
