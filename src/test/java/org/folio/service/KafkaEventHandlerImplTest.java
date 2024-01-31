@@ -34,7 +34,7 @@ class KafkaEventHandlerImplTest extends BaseIT {
   private KafkaEventListener eventListener;
 
   @Test
-  void handleCheckInEventInPickupFromOpenToAwaitingPickupTest() {
+  void handleRequestUpdateTest() {
     when(ecsTlrRepository.findByTlrId(any())).thenReturn(Optional.of(getEcsTlrEntity()));
     eventListener.handleRequestEvent(CHECK_IN_EVENT_SAMPLE);
     verify(ecsTlrRepository).save(any());
