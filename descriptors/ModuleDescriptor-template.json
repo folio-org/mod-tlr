@@ -19,6 +19,18 @@
           "modulePermissions": [
             "circulation.requests.item.post"
           ]
+        },
+        {
+          "methods": ["PUT"],
+          "pathPattern": "/tlr/ecs-tlr/{requestId}",
+          "permissionsRequired": ["tlr.ecs-tlr.item.put"],
+          "modulePermissions": []
+        },
+        {
+          "methods": ["DELETE"],
+          "pathPattern": "/tlr/ecs-tlr/{requestId}",
+          "permissionsRequired": ["tlr.ecs-tlr.item.delete"],
+          "modulePermissions": []
         }
       ]
     },
@@ -60,6 +72,16 @@
       "permissionName": "tlr.ecs-tlr.post",
       "displayName": "ecs-tlr - create ECS TLR",
       "description": "Create ECS TLR"
+    },
+    {
+      "permissionName": "tlr.ecs-tlr.put",
+      "displayName": "ecs-tlr - update ECS TLR",
+      "description": "Update ECS TLR"
+    },
+    {
+      "permissionName": "tlr.ecs-tlr.delete",
+      "displayName": "ecs-tlr - remove ECS TLR",
+      "description": "Remove ECS TLR"
     }
   ],
   "requires": [],

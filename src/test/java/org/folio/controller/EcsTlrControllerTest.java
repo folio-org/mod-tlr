@@ -5,8 +5,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.CREATED;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.NO_CONTENT;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import org.folio.domain.dto.EcsTlr;
 import org.folio.service.EcsTlrService;
@@ -43,11 +46,43 @@ class EcsTlrControllerTest {
   @Test
   void ecsTlrShouldSuccessfullyBeCreated() {
     var mockRequest = new EcsTlr();
-    when(requestsService.post(any(EcsTlr.class))).thenReturn(mockRequest);
+    when(requestsService.create(any(EcsTlr.class))).thenReturn(mockRequest);
 
     var response = requestsController.postEcsTlr(new EcsTlr());
 
     assertEquals(CREATED, response.getStatusCode());
     assertEquals(mockRequest, response.getBody());
+  }
+
+  @Test
+  void ecsTlrShouldSuccessfullyBeUpdated() {
+    var id = UUID.randomUUID();
+    var mockRequest = new EcsTlr();
+    mockRequest.setId(id.toString());
+    when(requestsService.update(any(UUID.class), any(EcsTlr.class))).thenReturn(true);
+
+    var response = requestsController.putEcsTlrById(id, mockRequest);
+    assertEquals(NO_CONTENT, response.getStatusCode());
+  }
+
+  @Test
+  void ecsTlrShouldSuccessfullyBeDeleted() {
+    when(requestsService.delete(any(UUID.class))).thenReturn(true);
+    assertEquals(NO_CONTENT, requestsController.deleteEcsTlrById(UUID.randomUUID()).getStatusCode());
+  }
+
+  @Test
+  void ecsTlrShouldNotBeFound() {
+    var id = UUID.randomUUID();
+    var mockRequest = new EcsTlr();
+    mockRequest.setId(UUID.randomUUID().toString());
+
+    when(requestsService.update(any(UUID.class), any(EcsTlr.class))).thenReturn(false);
+    var putResponse = requestsController.putEcsTlrById(id, mockRequest);
+    assertEquals(NOT_FOUND, putResponse.getStatusCode());
+
+    when(requestsService.delete(any(UUID.class))).thenReturn(false);
+    var deleteResponse = requestsController.deleteEcsTlrById(id);
+    assertEquals(NOT_FOUND, deleteResponse.getStatusCode());
   }
 }
