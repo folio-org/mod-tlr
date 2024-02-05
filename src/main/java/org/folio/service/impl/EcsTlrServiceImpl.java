@@ -65,14 +65,14 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   }
 
   @Override
-  public void updateRequestItem(UUID tlrRequestId, UUID itemId) {
-    log.debug("updateRequestItem:: parameters tlrRequestId: {}, itemId: {}", tlrRequestId, itemId);
-    ecsTlrRepository.findByTlrId(tlrRequestId).ifPresentOrElse(
+  public void updateRequestItem(UUID tlrId, UUID itemId) {
+    log.debug("updateRequestItem:: parameters tlrRequestId: {}, itemId: {}", tlrId, itemId);
+    ecsTlrRepository.findByTlrId(tlrId).ifPresentOrElse(
       ecsTlrEntity -> {
         ecsTlrEntity.setItemId(itemId);
         ecsTlrRepository.save(ecsTlrEntity);
       },
-      () -> log.error("updateRequestItem:: EcsTlr with tlrId: {} not found", tlrRequestId));
+      () -> log.error("updateRequestItem: ECS TLR with secondary TLR ID: {} not found", tlrId));
   }
 
   private Request createRemoteRequest(EcsTlr ecsTlr, String tenantId) {

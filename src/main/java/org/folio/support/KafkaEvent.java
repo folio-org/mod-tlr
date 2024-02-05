@@ -29,12 +29,12 @@ public class KafkaEvent {
     this.eventType = EventType.valueOf(eventType);
   }
   private void setNewNode(JsonNode dataNode) {
-    if(dataNode != null) {
+    if (dataNode != null) {
       this.newNode = dataNode.get("new");
     }
   }
   private void setOldNode(JsonNode dataNode) {
-    if(dataNode != null) {
+    if (dataNode != null) {
       this.oldNode = dataNode.get("old");
     }
   }
