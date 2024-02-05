@@ -23,13 +23,13 @@
         {
           "methods": ["PUT"],
           "pathPattern": "/tlr/ecs-tlr/{requestId}",
-          "permissionsRequired": ["tlr.ecs-tlr.item.put"],
+          "permissionsRequired": ["tlr.ecs-tlr.put"],
           "modulePermissions": []
         },
         {
           "methods": ["DELETE"],
           "pathPattern": "/tlr/ecs-tlr/{requestId}",
-          "permissionsRequired": ["tlr.ecs-tlr.item.delete"],
+          "permissionsRequired": ["tlr.ecs-tlr.delete"],
           "modulePermissions": []
         }
       ]
