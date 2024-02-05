@@ -67,10 +67,10 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   @Override
   public void updateRequestItem(UUID tlrId, UUID itemId) {
     log.debug("updateRequestItem:: parameters tlrRequestId: {}, itemId: {}", tlrId, itemId);
-    ecsTlrRepository.findByTlrId(tlrId).ifPresentOrElse(
-      ecsTlrEntity -> {
-        ecsTlrEntity.setItemId(itemId);
-        ecsTlrRepository.save(ecsTlrEntity);
+    ecsTlrRepository.findBySecondaryTlrId(tlrId).ifPresentOrElse(
+      ecsTlr -> {
+        ecsTlr.setItemId(itemId);
+        ecsTlrRepository.save(ecsTlr);
       },
       () -> log.error("updateRequestItem: ECS TLR with secondary TLR ID: {} not found", tlrId));
   }
