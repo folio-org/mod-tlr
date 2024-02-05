@@ -69,8 +69,12 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     log.debug("updateRequestItem:: parameters tlrRequestId: {}, itemId: {}", tlrId, itemId);
     ecsTlrRepository.findBySecondaryTlrId(tlrId).ifPresentOrElse(
       ecsTlr -> {
-        ecsTlr.setItemId(itemId);
-        ecsTlrRepository.save(ecsTlr);
+        if (!itemId.equals(ecsTlr.getItemId())) {
+          ecsTlr.setItemId(itemId);
+          ecsTlrRepository.save(ecsTlr);
+        } else {
+          log.info("updateRequestItem: ECS TLR with secondary TLR ID: {} is already updated", tlrId);
+        }
       },
       () -> log.error("updateRequestItem: ECS TLR with secondary TLR ID: {} not found", tlrId));
   }
