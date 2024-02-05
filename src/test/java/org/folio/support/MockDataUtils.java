@@ -18,7 +18,7 @@ public class MockDataUtils {
   public static EcsTlrEntity getEcsTlrEntity() {
     return EcsTlrEntity.builder()
       .id(UUID.randomUUID())
-      .tlrId(TLR_ID)
+      .secondaryTlrId(TLR_ID)
       .build();
   }
 
