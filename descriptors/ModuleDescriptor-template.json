@@ -17,7 +17,8 @@
           "pathPattern": "/tlr/ecs-tlr",
           "permissionsRequired": ["tlr.ecs-tlr.post"],
           "modulePermissions": [
-            "circulation.requests.item.post"
+            "circulation.requests.instances.item.post",
+            "search.instances.collection.get"
           ]
         },
         {

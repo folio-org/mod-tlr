@@ -2,6 +2,7 @@ package org.folio.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -15,6 +16,8 @@ import org.folio.domain.dto.Request;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.domain.mapper.EcsTlrMapper;
 import org.folio.domain.mapper.EcsTlrMapperImpl;
+import org.folio.domain.strategy.TenantPickingStrategy;
+import org.folio.exception.TenantPickingException;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.impl.EcsTlrServiceImpl;
 import org.joda.time.DateTime;
@@ -34,6 +37,8 @@ class EcsTlrServiceTest {
   private EcsTlrRepository ecsTlrRepository;
   @Mock
   private TenantScopedExecutionService tenantScopedExecutionService;
+  @Mock
+  private TenantPickingStrategy tenantPickingStrategy;
   @Spy
   private final EcsTlrMapper ecsTlrMapper = new EcsTlrMapperImpl();
 
@@ -81,6 +86,8 @@ class EcsTlrServiceTest {
     ecsTlr.setPickupServicePointId(pickupServicePointId.toString());
 
     when(ecsTlrRepository.save(any(EcsTlrEntity.class))).thenReturn(mockEcsTlrEntity);
+    when(tenantPickingStrategy.pickTenant(any(String.class)))
+      .thenReturn(Optional.of("random-tenant"));
     when(tenantScopedExecutionService.execute(any(String.class), any()))
       .thenReturn(new Request().id(UUID.randomUUID().toString()));
     var postEcsTlr = ecsTlrService.create(ecsTlr);
@@ -102,5 +109,17 @@ class EcsTlrServiceTest {
     when(ecsTlrRepository.existsById(any(UUID.class))).thenReturn(false);
     assertFalse(ecsTlrService.update(id, ecsTlr));
     assertFalse(ecsTlrService.delete(id));
+  }
+
+  @Test
+  void canNotCreateRemoteRequestWhenFailedToPickTenant() {
+    when(tenantPickingStrategy.pickTenant(any(String.class)))
+      .thenReturn(Optional.empty());
+    String instanceId = UUID.randomUUID().toString();
+
+    TenantPickingException exception = assertThrows(TenantPickingException.class,
+      () -> ecsTlrService.create(new EcsTlr().instanceId(instanceId)));
+
+    assertEquals("Failed to pick tenant for instance " + instanceId, exception.getMessage());
   }
 }
