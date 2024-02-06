@@ -49,6 +49,9 @@ public class KafkaEvent {
   }
 
   public static UUID getUUIDFromNode(JsonNode node, String fieldName) {
+    if (node == null || !node.has(fieldName)) {
+      return null;
+    }
     return UUID.fromString(node.get(fieldName).asText());
   }
 }

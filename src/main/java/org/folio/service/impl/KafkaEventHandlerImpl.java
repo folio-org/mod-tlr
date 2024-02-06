@@ -8,8 +8,6 @@ import org.springframework.stereotype.Service;
 
 import lombok.extern.log4j.Log4j2;
 
-import java.util.UUID;
-
 import static org.folio.support.KafkaEvent.ITEM_ID;
 import static org.folio.support.KafkaEvent.getUUIDFromNode;
 
@@ -24,7 +22,7 @@ public class KafkaEventHandlerImpl implements KafkaEventHandler {
     log.info("handle:: request event consumed: {}", event);
     KafkaEvent kafkaEvent = new KafkaEvent(event);
     if (kafkaEvent.getEventType() == KafkaEvent.EventType.UPDATED && kafkaEvent.getNewNode().has(ITEM_ID)) {
-        ecsTlrService.updateRequestItem(getUUIDFromNode(kafkaEvent.getNewNode(), ITEM_ID),
+        ecsTlrService.updateRequestItem(getUUIDFromNode(kafkaEvent.getNewNode(), "id"),
           getUUIDFromNode(kafkaEvent.getNewNode(), ITEM_ID));
     }
   }
