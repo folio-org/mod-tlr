@@ -23,6 +23,7 @@ import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.Instance;
 import org.folio.domain.dto.Item;
 import org.folio.domain.dto.ItemStatus;
+import org.folio.domain.dto.Request;
 import org.folio.domain.dto.SearchInstancesResponse;
 import org.folio.spring.FolioExecutionContext;
 import org.folio.spring.FolioModuleMetadata;
@@ -31,7 +32,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.MediaType;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -48,8 +48,6 @@ class EcsTlrApiTest extends BaseIT {
   private FolioExecutionContext context;
   @Autowired
   private FolioModuleMetadata moduleMetadata;
-  @Autowired
-  private TestRestTemplate restTemplate;
   private FolioExecutionContextSetter contextSetter;
 
   @BeforeEach
@@ -73,6 +71,8 @@ class EcsTlrApiTest extends BaseIT {
 
   @Test
   void titleLevelRequestIsCreatedForDifferentTenant() {
+    String instanceRequestId = randomId();
+    String availableItemId = randomId();
     EcsTlr ecsTlr = buildEcsTlr(INSTANCE_ID);
     String ecsTlrJson = asJsonString(ecsTlr);
 
@@ -80,38 +80,46 @@ class EcsTlrApiTest extends BaseIT {
       .totalRecords(2)
       .instances(List.of(
         new Instance().id(INSTANCE_ID)
-          .tenantId("college")
+          .tenantId(TENANT_ID_UNIVERSITY)
           .items(List.of(
-            buildItem("Available"),
-            buildItem("Checked out"),
-            buildItem("In transit"),
-            buildItem("Paged"))),
+            buildItem(randomId(), "Checked out"),
+            buildItem(randomId(), "In transit"))),
         new Instance().id(INSTANCE_ID)
-          .tenantId("university")
+          .tenantId(TENANT_ID_COLLEGE)
           .items(List.of(
-            buildItem("Available"),
-            buildItem("Checked out"),
-            buildItem("Available"),
-            buildItem("In transit")))
+            buildItem(randomId(), "Checked out"),
+            buildItem(availableItemId, "Available")))
       ));
+
+    Request mockInstanceRequestResponse = new Request()
+      .id(instanceRequestId)
+      .requestLevel(Request.RequestLevelEnum.TITLE)
+      .requestType(Request.RequestTypeEnum.PAGE)
+      .instanceId(INSTANCE_ID)
+      .itemId(availableItemId);
 
     wireMockServer.stubFor(WireMock.get(urlMatching(".*" + SEARCH_INSTANCES_URL))
       .willReturn(jsonResponse(mockSearchInstancesResponse, HttpStatus.SC_OK)));
 
     wireMockServer.stubFor(WireMock.post(urlMatching(".*" + INSTANCE_REQUESTS_URL))
-      .willReturn(jsonResponse(ecsTlrJson, HttpStatus.SC_CREATED)));
+      .willReturn(jsonResponse(asJsonString(mockInstanceRequestResponse), HttpStatus.SC_CREATED)));
 
-    assertEquals(TENANT, getCurrentTenantId());
+    EcsTlr expectedPostEcsTlrResponse = fromJsonString(ecsTlrJson, EcsTlr.class)
+      .secondaryRequestId(instanceRequestId)
+      .secondaryRequestTenantId(TENANT_ID_COLLEGE)
+      .itemId(availableItemId);
+
+    assertEquals(TENANT_ID_DIKU, getCurrentTenantId());
     doPost(TLR_URL, ecsTlr)
       .expectStatus().isCreated()
-      .expectBody().json(ecsTlrJson);
-    assertEquals(TENANT, getCurrentTenantId());
+      .expectBody().json(asJsonString(expectedPostEcsTlrResponse), true);
+    assertEquals(TENANT_ID_DIKU, getCurrentTenantId());
 
     wireMockServer.verify(getRequestedFor(urlMatching(".*" + SEARCH_INSTANCES_URL))
-      .withHeader(TENANT_HEADER, equalTo(TENANT)));
+      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_DIKU)));
 
     wireMockServer.verify(postRequestedFor(urlMatching(".*" + INSTANCE_REQUESTS_URL))
-      .withHeader(TENANT_HEADER, equalTo("university")) // because it has most available items
+      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE)) // because this tenant has available item
       .withRequestBody(equalToJson(ecsTlrJson)));
   }
 
@@ -129,7 +137,7 @@ class EcsTlrApiTest extends BaseIT {
       .expectStatus().isEqualTo(500);
 
     wireMockServer.verify(getRequestedFor(urlMatching(".*" + SEARCH_INSTANCES_URL))
-      .withHeader(TENANT_HEADER, equalTo(TENANT)));
+      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_DIKU)));
   }
 
   private String getCurrentTenantId() {
@@ -149,20 +157,17 @@ class EcsTlrApiTest extends BaseIT {
   private static EcsTlr buildEcsTlr(String instanceId) {
     return new EcsTlr()
       .id(randomId())
-      .itemId(randomId())
       .instanceId(instanceId)
       .requesterId(randomId())
       .pickupServicePointId(randomId())
       .fulfillmentPreference(EcsTlr.FulfillmentPreferenceEnum.DELIVERY)
       .patronComments("random comment")
-      .requestExpirationDate(new Date())
-      .requestType(EcsTlr.RequestTypeEnum.PAGE)
-      .requestLevel(EcsTlr.RequestLevelEnum.TITLE);
+      .requestExpirationDate(new Date());
   }
 
-  private static Item buildItem(String status) {
+  private static Item buildItem(String id, String status) {
     return new Item()
-      .id(randomId())
+      .id(id)
       .status(new ItemStatus().name(status));
   }
 

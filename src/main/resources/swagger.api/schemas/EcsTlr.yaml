@@ -40,26 +40,12 @@ EcsTlr:
     itemId:
       description: "ID of the item being requested"
       $ref: "uuid.yaml"
-    secondaryRequest:
-      description: "Secondary request"
-      type: object
-      properties:
-        id:
-          description: "ID of the secondary request"
-          $ref: "uuid.yaml"
-        tenantId:
-          description: "ID of the tenant secondary request was created in"
-          $ref: "uuid.yaml"
-        item:
-          description: "Requested item"
-          type: object
-          properties:
-            id:
-              description: "ID of the requested item"
-              $ref: "uuid.yaml"
-            status:
-              description: "Status of the requested item"
-              type: string
+    secondaryRequestId:
+      description: "Secondary request ID"
+      $ref: "uuid.yaml"
+    secondaryRequestTenantId:
+      description: "ID of the tenant secondary request was created in"
+      type: string
 
   required:
     - instanceId

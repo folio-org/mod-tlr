@@ -39,10 +39,11 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   @Override
   public EcsTlr create(EcsTlr ecsTlr) {
     log.debug("create:: parameters ecsTlr: {}", () -> ecsTlr);
-    createRemoteRequest(ecsTlr);
+    final String instanceId = ecsTlr.getInstanceId();
 
-    return requestsMapper.mapEntityToDto(ecsTlrRepository.save(
-      requestsMapper.mapDtoToEntity(ecsTlr)));
+    return tenantPickingStrategy.pickTenant(instanceId)
+      .map(tenantId -> createRequest(ecsTlr, tenantId))
+      .orElseThrow(() -> new TenantPickingException("Failed to pick tenant for instance " + instanceId));
   }
 
   @Override
@@ -67,22 +68,23 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     return false;
   }
 
-  private Request createRemoteRequest(EcsTlr ecsTlr) {
-    log.info("createRemoteRequest:: creating remote request for ECS TLR {}", ecsTlr.getId());
-    String instanceId = ecsTlr.getInstanceId();
+  private EcsTlr createRequest(EcsTlr ecsTlr, String tenantId) {
+    log.info("createRemoteRequest:: creating request for ECS TLR {}", ecsTlr.getId());
 
-    return tenantPickingStrategy.pickTenant(instanceId)
-      .map(tenantId -> createRemoteRequest(ecsTlr, tenantId))
-      .orElseThrow(() -> new TenantPickingException("Failed to pick tenant for instance " + instanceId));
-  }
-
-  private Request createRemoteRequest(EcsTlr ecsTlr, String tenantId) {
     Request mappedRequest = requestsMapper.mapDtoToRequest(ecsTlr);
     Request createdRequest = tenantScopedExecutionService.execute(tenantId,
       () -> circulationClient.createInstanceRequest(mappedRequest));
+
     log.info("createRemoteRequest:: request created: {}", createdRequest.getId());
     log.debug("createRemoteRequest:: request: {}", () -> createdRequest);
 
-    return createdRequest;
+    ecsTlr.secondaryRequestTenantId(tenantId)
+      .secondaryRequestId(createdRequest.getId())
+      .itemId(createdRequest.getItemId());
+
+    log.debug("createRequest:: updating ECS TLR: {}", ecsTlr);
+
+    return requestsMapper.mapEntityToDto(ecsTlrRepository.save(
+      requestsMapper.mapDtoToEntity(ecsTlr)));
   }
 }
