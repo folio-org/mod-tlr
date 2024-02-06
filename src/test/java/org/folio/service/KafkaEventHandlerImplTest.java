@@ -19,7 +19,7 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class KafkaEventHandlerImplTest extends BaseIT {
-  private static final String CHECK_IN_EVENT_SAMPLE = getMockDataAsString("mockdata/kafka/check_in.json");
+  private static final String REQUEST_UPDATE_EVENT_SAMPLE = getMockDataAsString("mockdata/kafka/secondary_request_update_event.json");
 
   @InjectMocks
   private KafkaEventHandlerImpl eventHandler;
@@ -36,7 +36,14 @@ class KafkaEventHandlerImplTest extends BaseIT {
   @Test
   void handleRequestUpdateTest() {
     when(ecsTlrRepository.findBySecondaryTlrId(any())).thenReturn(Optional.of(getEcsTlrEntity()));
-    eventListener.handleRequestEvent(CHECK_IN_EVENT_SAMPLE);
+    eventListener.handleRequestEvent(REQUEST_UPDATE_EVENT_SAMPLE);
+    verify(ecsTlrRepository).save(any());
+  }
+
+  @Test
+  void handleRequestEventWithoutItemIdTest() {
+    when(ecsTlrRepository.findBySecondaryTlrId(any())).thenReturn(Optional.of(getEcsTlrEntity()));
+    eventListener.handleRequestEvent(REQUEST_UPDATE_EVENT_SAMPLE);
     verify(ecsTlrRepository).save(any());
   }
 }

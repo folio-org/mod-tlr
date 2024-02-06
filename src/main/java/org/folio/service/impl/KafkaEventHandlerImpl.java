@@ -10,6 +10,9 @@ import lombok.extern.log4j.Log4j2;
 
 import java.util.UUID;
 
+import static org.folio.support.KafkaEvent.ITEM_ID;
+import static org.folio.support.KafkaEvent.getUUIDFromNode;
+
 @AllArgsConstructor
 @Service
 @Log4j2
@@ -20,11 +23,9 @@ public class KafkaEventHandlerImpl implements KafkaEventHandler {
   public void handleRequestEvent(String event) {
     log.info("handle:: request event consumed: {}", event);
     KafkaEvent kafkaEvent = new KafkaEvent(event);
-    if (kafkaEvent.getEventType() == KafkaEvent.EventType.UPDATED) {
-      if (kafkaEvent.getNewNode().has("itemId")) {
-        ecsTlrService.updateRequestItem(UUID.fromString(kafkaEvent.getNewNode().get("id").asText()),
-          UUID.fromString(kafkaEvent.getNewNode().get("itemId").asText()));
-      }
+    if (kafkaEvent.getEventType() == KafkaEvent.EventType.UPDATED && kafkaEvent.getNewNode().has(ITEM_ID)) {
+        ecsTlrService.updateRequestItem(getUUIDFromNode(kafkaEvent.getNewNode(), ITEM_ID),
+          getUUIDFromNode(kafkaEvent.getNewNode(), ITEM_ID));
     }
   }
 }

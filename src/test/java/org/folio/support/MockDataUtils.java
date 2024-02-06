@@ -13,12 +13,12 @@ import java.util.stream.Stream;
 
 public class MockDataUtils {
 
-  public static final UUID TLR_ID = UUID.fromString("100d10bf-2f06-4aa0-be15-0b95b2d9f9e3");
+  public static final UUID SECONDARY_TLR_ID = UUID.fromString("100d10bf-2f06-4aa0-be15-0b95b2d9f9e3");
 
   public static EcsTlrEntity getEcsTlrEntity() {
     return EcsTlrEntity.builder()
       .id(UUID.randomUUID())
-      .secondaryTlrId(TLR_ID)
+      .secondaryTlrId(SECONDARY_TLR_ID)
       .build();
   }
 
