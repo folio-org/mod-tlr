@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import org.folio.client.feign.SearchClient;
 import org.folio.domain.dto.Instance;
@@ -22,8 +23,6 @@ import org.folio.domain.dto.Item;
 import org.folio.domain.dto.ItemStatus;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
-
-import com.google.common.base.Predicate;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -97,7 +96,7 @@ public class ItemBasedTenantPickingStrategy implements TenantPickingStrategy {
       .collect(toMap(Entry::getKey, entry -> entry.getValue()
         .entrySet()
         .stream()
-        .filter(subMapEntry -> statusFilter.apply(subMapEntry.getKey()))
+        .filter(subMapEntry -> statusFilter.test(subMapEntry.getKey()))
         .map(Entry::getValue)
         .reduce(0L, Long::sum)
       ))

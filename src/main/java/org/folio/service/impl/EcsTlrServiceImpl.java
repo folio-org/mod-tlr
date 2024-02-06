@@ -69,14 +69,14 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   }
 
   private EcsTlr createRequest(EcsTlr ecsTlr, String tenantId) {
-    log.info("createRemoteRequest:: creating request for ECS TLR {}", ecsTlr.getId());
+    log.info("createRequest:: creating request for ECS TLR {}", ecsTlr.getId());
 
     Request mappedRequest = requestsMapper.mapDtoToRequest(ecsTlr);
     Request createdRequest = tenantScopedExecutionService.execute(tenantId,
       () -> circulationClient.createInstanceRequest(mappedRequest));
 
-    log.info("createRemoteRequest:: request created: {}", createdRequest.getId());
-    log.debug("createRemoteRequest:: request: {}", () -> createdRequest);
+    log.info("createRequest:: request created: {}", createdRequest.getId());
+    log.debug("createRequest:: request: {}", () -> createdRequest);
 
     ecsTlr.secondaryRequestTenantId(tenantId)
       .secondaryRequestId(createdRequest.getId())

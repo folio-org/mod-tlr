@@ -116,9 +116,10 @@ class EcsTlrServiceTest {
     when(tenantPickingStrategy.pickTenant(any(String.class)))
       .thenReturn(Optional.empty());
     String instanceId = UUID.randomUUID().toString();
+    EcsTlr ecsTlr = new EcsTlr().instanceId(instanceId);
 
     TenantPickingException exception = assertThrows(TenantPickingException.class,
-      () -> ecsTlrService.create(new EcsTlr().instanceId(instanceId)));
+      () -> ecsTlrService.create(ecsTlr));
 
     assertEquals("Failed to pick tenant for instance " + instanceId, exception.getMessage());
   }

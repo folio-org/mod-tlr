@@ -42,16 +42,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Testcontainers
 public class BaseIT {
-  @Autowired
-  protected MockMvc mockMvc;
-  protected static WireMockServer wireMockServer;
   protected static final String TOKEN = "test_token";
   protected static final String TENANT_ID_DIKU = "diku";
   protected static final String TENANT_ID_UNIVERSITY = "university";
   protected static final String TENANT_ID_COLLEGE = "college";
+
+  @Autowired
+  protected MockMvc mockMvc;
+  protected static WireMockServer wireMockServer;
   private static final PostgreSQLContainer<?> postgresDBContainer = new PostgreSQLContainer<>("postgres:12-alpine");
   private static final int WIRE_MOCK_PORT = TestSocketUtils.findAvailableTcpPort();
-  protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL)
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL)
     .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
     .configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true)
     .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
