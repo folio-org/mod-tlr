@@ -41,19 +41,13 @@ public class ItemBasedTenantPickingStrategy implements TenantPickingStrategy {
   public Optional<String> pickTenant(String instanceId) {
     log.info("pickTenant:: picking tenant for a TLR for instance {}", instanceId);
 
-    Map<String, Map<String, Long>> statusOccurrencesByTenant = searchClient.searchInstance(instanceId)
-      .getInstances()
-      .stream()
-      .filter(instance -> instance.getTenantId() != null)
-      .collect(collectingAndThen(groupingBy(Instance::getTenantId),
-        ItemBasedTenantPickingStrategy::mapInstancesToItemStatusOccurrences));
-
-    log.info("pickTenant:: item status occurrences by tenant: {}", statusOccurrencesByTenant);
+    var itemStatusOccurrencesByTenant = getItemStatusOccurrencesByTenant(instanceId);
+    log.info("pickTenant:: item status occurrences by tenant: {}", itemStatusOccurrencesByTenant);
 
     Optional<String> tenantId = Optional.<String>empty()
-      .or(() -> pickTenant(statusOccurrencesByTenant, Set.of(STATUS_AVAILABLE)))
-      .or(() -> pickTenant(statusOccurrencesByTenant, Set.of(STATUS_CHECKED_OUT, STATUS_IN_TRANSIT)))
-      .or(() -> pickTenant(statusOccurrencesByTenant, alwaysTrue())); // any status
+      .or(() -> pickTenant(itemStatusOccurrencesByTenant, Set.of(STATUS_AVAILABLE)))
+      .or(() -> pickTenant(itemStatusOccurrencesByTenant, Set.of(STATUS_CHECKED_OUT, STATUS_IN_TRANSIT)))
+      .or(() -> pickTenant(itemStatusOccurrencesByTenant, alwaysTrue())); // any status
 
     tenantId.ifPresentOrElse(
       id -> log.info("pickTenant:: tenant for instance {} found: {}", instanceId, id),
@@ -62,16 +56,26 @@ public class ItemBasedTenantPickingStrategy implements TenantPickingStrategy {
     return tenantId;
   }
 
-  @NotNull
-  private static Map<String, Map<String, Long>> mapInstancesToItemStatusOccurrences(
-    Map<String, List<Instance>> instancesByTenant) {
+  private Map<String, Map<String, Long>> getItemStatusOccurrencesByTenant(String instanceId) {
+    return searchClient.searchInstance(instanceId)
+      .getInstances()
+      .stream()
+      .filter(notNull())
+      .map(Instance::getItems)
+      .flatMap(Collection::stream)
+      .filter(item -> item.getTenantId() != null)
+      .collect(collectingAndThen(groupingBy(Item::getTenantId),
+        ItemBasedTenantPickingStrategy::mapItemsToItemStatusOccurrences));
+  }
 
-    return instancesByTenant.entrySet()
+  @NotNull
+  private static Map<String, Map<String, Long>> mapItemsToItemStatusOccurrences(
+    Map<String, List<Item>> itemsByTenant) {
+
+    return itemsByTenant.entrySet()
       .stream()
       .collect(toMap(Entry::getKey, entry -> entry.getValue()
         .stream()
-        .map(Instance::getItems)
-        .flatMap(Collection::stream)
         .distinct()
         .map(Item::getStatus)
         .filter(notNull())

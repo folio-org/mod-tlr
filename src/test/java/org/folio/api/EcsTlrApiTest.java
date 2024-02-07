@@ -80,15 +80,11 @@ class EcsTlrApiTest extends BaseIT {
       .totalRecords(2)
       .instances(List.of(
         new Instance().id(INSTANCE_ID)
-          .tenantId(TENANT_ID_UNIVERSITY)
+          .tenantId(TENANT_ID_DIKU)
           .items(List.of(
-            buildItem(randomId(), "Checked out"),
-            buildItem(randomId(), "In transit"))),
-        new Instance().id(INSTANCE_ID)
-          .tenantId(TENANT_ID_COLLEGE)
-          .items(List.of(
-            buildItem(randomId(), "Checked out"),
-            buildItem(availableItemId, "Available")))
+            buildItem(randomId(), TENANT_ID_UNIVERSITY, "Checked out"),
+            buildItem(randomId(), TENANT_ID_UNIVERSITY, "In transit"),
+            buildItem(availableItemId, TENANT_ID_COLLEGE, "Available")))
       ));
 
     Request mockInstanceRequestResponse = new Request()
@@ -165,9 +161,10 @@ class EcsTlrApiTest extends BaseIT {
       .requestExpirationDate(new Date());
   }
 
-  private static Item buildItem(String id, String status) {
+  private static Item buildItem(String id, String tenantId, String status) {
     return new Item()
       .id(id)
+      .tenantId(tenantId)
       .status(new ItemStatus().name(status));
   }
 
