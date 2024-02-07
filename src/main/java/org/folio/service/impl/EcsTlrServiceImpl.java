@@ -69,7 +69,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   }
 
   private EcsTlr createRequest(EcsTlr ecsTlr, String tenantId) {
-    log.info("createRequest:: creating request for ECS TLR {}", ecsTlr.getId());
+    log.info("createRequest:: creating request for ECS TLR {} in tenant {}", ecsTlr.getId(), tenantId);
 
     Request mappedRequest = requestsMapper.mapDtoToRequest(ecsTlr);
     Request createdRequest = tenantScopedExecutionService.execute(tenantId,
