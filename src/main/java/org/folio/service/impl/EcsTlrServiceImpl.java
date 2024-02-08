@@ -76,7 +76,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
           log.info("updateRequestItem: ECS TLR with secondary request ID: {} is already updated", secondaryRequestId);
         }
       },
-      () -> log.error("updateRequestItem: ECS TLR with secondary request ID: {} not found", secondaryRequestId));
+      () -> log.error("updateRequestItem: ECS TLR with secondary request ID {} not found", secondaryRequestId));
   }
 
   private Request createRemoteRequest(EcsTlr ecsTlr, String tenantId) {
