@@ -44,6 +44,10 @@ public class KafkaEvent {
     }
   }
 
+  public boolean hasNewNode() {
+    return newNode != null;
+  }
+
   public enum EventType {
     UPDATED, CREATED
   }

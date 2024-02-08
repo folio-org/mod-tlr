@@ -19,9 +19,10 @@ public class KafkaEventHandlerImpl implements KafkaEventHandler {
   private final EcsTlrService ecsTlrService;
   @Override
   public void handleRequestEvent(String event) {
-    log.info("handle:: request event consumed: {}", event);
+    log.info("handleRequestEvent:: request event consumed: {}", event);
     KafkaEvent kafkaEvent = new KafkaEvent(event);
-    if (kafkaEvent.getEventType() == KafkaEvent.EventType.UPDATED && kafkaEvent.getNewNode().has(ITEM_ID)) {
+    if (kafkaEvent.getEventType() == KafkaEvent.EventType.UPDATED && kafkaEvent.hasNewNode()
+      && kafkaEvent.getNewNode().has(ITEM_ID)) {
         ecsTlrService.updateRequestItem(getUUIDFromNode(kafkaEvent.getNewNode(), "id"),
           getUUIDFromNode(kafkaEvent.getNewNode(), ITEM_ID));
     }

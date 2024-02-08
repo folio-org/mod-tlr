@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.folio.client.CirculationClient;
 import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.Request;
+import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.domain.mapper.EcsTlrMapper;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.TenantScopedExecutionService;
@@ -67,16 +68,19 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   @Override
   public void updateRequestItem(UUID secondaryRequestId, UUID itemId) {
     log.debug("updateRequestItem:: parameters secondaryRequestId: {}, itemId: {}", secondaryRequestId, itemId);
-    ecsTlrRepository.findBySecondaryTlrId(secondaryRequestId).ifPresentOrElse(
-      ecsTlr -> {
-        if (!itemId.equals(ecsTlr.getItemId())) {
-          ecsTlr.setItemId(itemId);
-          ecsTlrRepository.save(ecsTlr);
-        } else {
-          log.info("updateRequestItem: ECS TLR with secondary request ID: {} is already updated", secondaryRequestId);
-        }
-      },
+    ecsTlrRepository.findBySecondaryRequestId(secondaryRequestId).ifPresentOrElse(
+      ecsTlr -> updateItemIfChanged(ecsTlr, itemId),
       () -> log.error("updateRequestItem: ECS TLR with secondary request ID {} not found", secondaryRequestId));
+  }
+
+  private void updateItemIfChanged(EcsTlrEntity ecsTlr, UUID itemId) {
+    if (!itemId.equals(ecsTlr.getItemId())) {
+      ecsTlr.setItemId(itemId);
+      ecsTlrRepository.save(ecsTlr);
+      log.info("updateItemIfChanged: ECS TLR with secondary request ID: {} is updated", ecsTlr.getSecondaryRequestId());
+    } else {
+      log.info("updateItemIfChanged: ECS TLR with secondary request ID: {} is already updated", ecsTlr.getSecondaryRequestId());
+    }
   }
 
   private Request createRemoteRequest(EcsTlr ecsTlr, String tenantId) {
