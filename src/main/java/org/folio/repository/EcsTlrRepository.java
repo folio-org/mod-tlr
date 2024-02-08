@@ -9,5 +9,5 @@ import java.util.UUID;
 
 @Repository
 public interface EcsTlrRepository extends JpaRepository<EcsTlrEntity, UUID> {
-  Optional<EcsTlrEntity> findBySecondaryTlrId(UUID secondaryTlrId);
+  Optional<EcsTlrEntity> findBySecondaryRequestId(UUID secondaryRequestId);
 }
