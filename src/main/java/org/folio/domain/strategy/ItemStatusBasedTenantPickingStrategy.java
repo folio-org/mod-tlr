@@ -8,19 +8,23 @@ import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toMap;
+import static org.folio.domain.dto.ItemStatusEnum.AVAILABLE;
+import static org.folio.domain.dto.ItemStatusEnum.CHECKED_OUT;
+import static org.folio.domain.dto.ItemStatusEnum.IN_TRANSIT;
 
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Predicate;
 
 import org.folio.client.feign.SearchClient;
 import org.folio.domain.dto.Instance;
 import org.folio.domain.dto.Item;
 import org.folio.domain.dto.ItemStatus;
+import org.folio.domain.dto.ItemStatusEnum;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
@@ -30,11 +34,7 @@ import lombok.extern.log4j.Log4j2;
 @Component
 @RequiredArgsConstructor
 @Log4j2
-public class ItemBasedTenantPickingStrategy implements TenantPickingStrategy {
-  private static final String STATUS_AVAILABLE = "Available";
-  private static final String STATUS_CHECKED_OUT = "Checked out";
-  private static final String STATUS_IN_TRANSIT = "In transit";
-
+public class ItemStatusBasedTenantPickingStrategy implements TenantPickingStrategy {
   private final SearchClient searchClient;
 
   @Override
@@ -45,8 +45,8 @@ public class ItemBasedTenantPickingStrategy implements TenantPickingStrategy {
     log.info("pickTenant:: item status occurrences by tenant: {}", itemStatusOccurrencesByTenant);
 
     Optional<String> tenantId = Optional.<String>empty()
-      .or(() -> pickTenant(itemStatusOccurrencesByTenant, Set.of(STATUS_AVAILABLE)))
-      .or(() -> pickTenant(itemStatusOccurrencesByTenant, Set.of(STATUS_CHECKED_OUT, STATUS_IN_TRANSIT)))
+      .or(() -> pickTenant(itemStatusOccurrencesByTenant, EnumSet.of(AVAILABLE)))
+      .or(() -> pickTenant(itemStatusOccurrencesByTenant, EnumSet.of(CHECKED_OUT, IN_TRANSIT)))
       .or(() -> pickTenant(itemStatusOccurrencesByTenant, alwaysTrue())); // any status
 
     tenantId.ifPresentOrElse(
@@ -65,7 +65,7 @@ public class ItemBasedTenantPickingStrategy implements TenantPickingStrategy {
       .flatMap(Collection::stream)
       .filter(item -> item.getTenantId() != null)
       .collect(collectingAndThen(groupingBy(Item::getTenantId),
-        ItemBasedTenantPickingStrategy::mapItemsToItemStatusOccurrences));
+        ItemStatusBasedTenantPickingStrategy::mapItemsToItemStatusOccurrences));
   }
 
   @NotNull
@@ -86,10 +86,14 @@ public class ItemBasedTenantPickingStrategy implements TenantPickingStrategy {
   }
 
   private static Optional<String> pickTenant(Map<String, Map<String, Long>> statusOccurrencesByTenant,
-    Set<String> desiredStatuses) {
+    EnumSet<ItemStatusEnum> desiredStatuses) {
+
+    List<String> desiredStatusValues = desiredStatuses.stream()
+      .map(ItemStatusEnum::getValue)
+      .toList();
 
     log.info("pickTenant:: looking for tenant with most items in statuses {}", desiredStatuses);
-    return pickTenant(statusOccurrencesByTenant, desiredStatuses::contains);
+    return pickTenant(statusOccurrencesByTenant, desiredStatusValues::contains);
   }
 
   private static Optional<String> pickTenant(Map<String, Map<String, Long>> statusOccurrencesByTenant,

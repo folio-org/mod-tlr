@@ -82,7 +82,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       .secondaryRequestId(createdRequest.getId())
       .itemId(createdRequest.getItemId());
 
-    log.debug("createRequest:: updating ECS TLR: {}", ecsTlr);
+    log.debug("createRequest:: updating ECS TLR: {}", () -> ecsTlr);
 
     return requestsMapper.mapEntityToDto(ecsTlrRepository.save(
       requestsMapper.mapDtoToEntity(ecsTlr)));

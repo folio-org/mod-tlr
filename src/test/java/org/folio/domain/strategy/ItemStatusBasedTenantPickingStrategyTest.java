@@ -23,13 +23,13 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class ItemBasedTenantPickingStrategyTest {
+class ItemStatusBasedTenantPickingStrategyTest {
   private static final String INSTANCE_ID = UUID.randomUUID().toString();
 
   @Mock
   private SearchClient searchClient;
   @InjectMocks
-  private ItemBasedTenantPickingStrategy strategy;
+  private ItemStatusBasedTenantPickingStrategy strategy;
 
   @ParameterizedTest
   @MethodSource("parametersForPickTenant")
