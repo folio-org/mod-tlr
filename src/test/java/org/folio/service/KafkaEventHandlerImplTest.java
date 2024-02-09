@@ -35,14 +35,14 @@ class KafkaEventHandlerImplTest extends BaseIT {
 
   @Test
   void handleRequestUpdateTest() {
-    when(ecsTlrRepository.findBySecondaryTlrId(any())).thenReturn(Optional.of(getEcsTlrEntity()));
+    when(ecsTlrRepository.findBySecondaryRequestId(any())).thenReturn(Optional.of(getEcsTlrEntity()));
     eventListener.handleRequestEvent(REQUEST_UPDATE_EVENT_SAMPLE);
     verify(ecsTlrRepository).save(any());
   }
 
   @Test
   void handleRequestEventWithoutItemIdTest() {
-    when(ecsTlrRepository.findBySecondaryTlrId(any())).thenReturn(Optional.of(getEcsTlrEntity()));
+    when(ecsTlrRepository.findBySecondaryRequestId(any())).thenReturn(Optional.of(getEcsTlrEntity()));
     eventListener.handleRequestEvent(REQUEST_UPDATE_EVENT_SAMPLE);
     verify(ecsTlrRepository).save(any());
   }
