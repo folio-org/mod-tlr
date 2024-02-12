@@ -3,13 +3,15 @@ package org.folio.service.impl;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.folio.client.CirculationClient;
+import org.folio.client.feign.CirculationClient;
 import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.Request;
 import org.folio.domain.mapper.EcsTlrMapper;
+import org.folio.domain.strategy.TenantPickingStrategy;
+import org.folio.exception.TenantPickingException;
 import org.folio.repository.EcsTlrRepository;
-import org.folio.service.TenantScopedExecutionService;
 import org.folio.service.EcsTlrService;
+import org.folio.service.TenantScopedExecutionService;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   private final EcsTlrMapper requestsMapper;
   private final CirculationClient circulationClient;
   private final TenantScopedExecutionService tenantScopedExecutionService;
+  private final TenantPickingStrategy tenantPickingStrategy;
 
   @Override
   public Optional<EcsTlr> get(UUID id) {
@@ -36,10 +39,11 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   @Override
   public EcsTlr create(EcsTlr ecsTlr) {
     log.debug("create:: parameters ecsTlr: {}", () -> ecsTlr);
-    createRemoteRequest(ecsTlr, "university"); // TODO: replace with real tenantId
+    final String instanceId = ecsTlr.getInstanceId();
 
-    return requestsMapper.mapEntityToDto(ecsTlrRepository.save(
-      requestsMapper.mapDtoToEntity(ecsTlr)));
+    return tenantPickingStrategy.pickTenant(instanceId)
+      .map(tenantId -> createRequest(ecsTlr, tenantId))
+      .orElseThrow(() -> new TenantPickingException("Failed to pick tenant for instance " + instanceId));
   }
 
   @Override
@@ -64,14 +68,23 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     return false;
   }
 
-  private Request createRemoteRequest(EcsTlr ecsTlr, String tenantId) {
-    log.info("createRemoteRequest:: creating remote request for ECS TLR {} and tenant {}", ecsTlr.getId(), tenantId);
+  private EcsTlr createRequest(EcsTlr ecsTlr, String tenantId) {
+    log.info("createRequest:: creating request for ECS TLR {} in tenant {}", ecsTlr.getId(), tenantId);
+
     Request mappedRequest = requestsMapper.mapDtoToRequest(ecsTlr);
     Request createdRequest = tenantScopedExecutionService.execute(tenantId,
-      () -> circulationClient.createRequest(mappedRequest));
-    log.info("createRemoteRequest:: request created: {}", createdRequest.getId());
-    log.debug("createRemoteRequest:: request: {}", () -> createdRequest);
+      () -> circulationClient.createInstanceRequest(mappedRequest));
 
-    return createdRequest;
+    log.info("createRequest:: request created: {}", createdRequest.getId());
+    log.debug("createRequest:: request: {}", () -> createdRequest);
+
+    ecsTlr.secondaryRequestTenantId(tenantId)
+      .secondaryRequestId(createdRequest.getId())
+      .itemId(createdRequest.getItemId());
+
+    log.debug("createRequest:: updating ECS TLR: {}", () -> ecsTlr);
+
+    return requestsMapper.mapEntityToDto(ecsTlrRepository.save(
+      requestsMapper.mapDtoToEntity(ecsTlr)));
   }
 }
