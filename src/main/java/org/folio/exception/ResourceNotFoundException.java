@@ -6,7 +6,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Getter
 public class ResourceNotFoundException extends RuntimeException {
-  private final static String MESSAGE_TEMPLATE = "%s with ID %s was not found";
+  private static final String MESSAGE_TEMPLATE = "%s with ID %s was not found";
   private final ResourceType resourceType;
   private final String resourceId;
 
