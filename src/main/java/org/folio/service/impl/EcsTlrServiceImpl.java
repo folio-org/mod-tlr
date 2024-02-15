@@ -12,6 +12,7 @@ import org.folio.exception.TenantPickingException;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.EcsTlrService;
 import org.folio.service.TenantScopedExecutionService;
+import org.folio.service.UserService;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -21,12 +22,12 @@ import lombok.extern.log4j.Log4j2;
 @RequiredArgsConstructor
 @Log4j2
 public class EcsTlrServiceImpl implements EcsTlrService {
-
   private final EcsTlrRepository ecsTlrRepository;
   private final EcsTlrMapper requestsMapper;
   private final CirculationClient circulationClient;
   private final TenantScopedExecutionService tenantScopedExecutionService;
   private final TenantPickingStrategy tenantPickingStrategy;
+  private final UserService userService;
 
   @Override
   public Optional<EcsTlr> get(UUID id) {
@@ -71,6 +72,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   private EcsTlr createRequest(EcsTlr ecsTlr, String tenantId) {
     log.info("createRequest:: creating request for ECS TLR {} in tenant {}", ecsTlr.getId(), tenantId);
 
+    userService.createShadowUser(ecsTlr, tenantId);
     Request mappedRequest = requestsMapper.mapDtoToRequest(ecsTlr);
     Request createdRequest = tenantScopedExecutionService.execute(tenantId,
       () -> circulationClient.createInstanceRequest(mappedRequest));
@@ -87,4 +89,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     return requestsMapper.mapEntityToDto(ecsTlrRepository.save(
       requestsMapper.mapDtoToEntity(ecsTlr)));
   }
+
+
+
 }

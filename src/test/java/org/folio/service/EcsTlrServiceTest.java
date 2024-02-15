@@ -34,6 +34,8 @@ class EcsTlrServiceTest {
   @InjectMocks
   private EcsTlrServiceImpl ecsTlrService;
   @Mock
+  private UserService userService;
+  @Mock
   private EcsTlrRepository ecsTlrRepository;
   @Mock
   private TenantScopedExecutionService tenantScopedExecutionService;
