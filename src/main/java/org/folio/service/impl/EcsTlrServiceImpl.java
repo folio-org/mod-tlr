@@ -22,6 +22,7 @@ import lombok.extern.log4j.Log4j2;
 @RequiredArgsConstructor
 @Log4j2
 public class EcsTlrServiceImpl implements EcsTlrService {
+
   private final EcsTlrRepository ecsTlrRepository;
   private final EcsTlrMapper requestsMapper;
   private final CirculationClient circulationClient;
@@ -89,7 +90,4 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     return requestsMapper.mapEntityToDto(ecsTlrRepository.save(
       requestsMapper.mapDtoToEntity(ecsTlr)));
   }
-
-
-
 }
