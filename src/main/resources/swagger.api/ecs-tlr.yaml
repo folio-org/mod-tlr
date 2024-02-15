@@ -73,6 +73,8 @@ components:
   schemas:
     ecs-tlr:
       $ref: 'schemas/EcsTlr.yaml#/EcsTlr'
+    ecs-tlr-dcb-transaction:
+      $ref: 'schemas/DcbTransaction.yaml#/DcbTransaction'
     errorResponse:
       $ref: 'schemas/errors.json'
     request:
