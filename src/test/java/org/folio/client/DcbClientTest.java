@@ -34,11 +34,29 @@ public class DcbClientTest {
   }
 
   @Test
+  void canGetDcbTransactionStatus() {
+    String requestId = UUID.randomUUID().toString();
+    String transactionId = UUID.randomUUID().toString();
+    DcbTransaction dcbTransaction = new DcbTransaction()
+      .role(DcbTransaction.RoleEnum.BORROWER)
+      .requestId(requestId);
+    TransactionStatusResponse transactionStatusResponse = new TransactionStatusResponse()
+      .status(TransactionStatusResponse.StatusEnum.CANCELLED)
+      .message("test message")
+      .item(dcbTransaction.getItem())
+      .patron(dcbTransaction.getPatron())
+      .pickup(dcbTransaction.getPickup())
+      .requestId(requestId);
+    when(dcbClient.getDcbTransactionStatus(transactionId)).thenReturn(transactionStatusResponse);
+    var response = dcbClient.getDcbTransactionStatus(transactionId);
+    assertNotNull(response);
+    assertEquals(response.getStatus(), TransactionStatusResponse.StatusEnum.CANCELLED);
+  }
+
+  @Test
   void canChangeDcbTransactionStatus() {
     String requestId = UUID.randomUUID().toString();
     String transactionId = UUID.randomUUID().toString();
-    TransactionStatus initialStatus = new TransactionStatus()
-      .status(TransactionStatus.StatusEnum.AWAITING_PICKUP);
     TransactionStatus targetStatus = new TransactionStatus()
       .status(TransactionStatus.StatusEnum.CANCELLED)
       .message("test message");
