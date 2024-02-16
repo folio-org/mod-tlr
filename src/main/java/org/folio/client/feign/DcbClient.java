@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 @FeignClient(name = "dcb", url = "${folio.okapi-url}", configuration = FeignClientConfiguration.class)
 public interface DcbClient {
 
-  @PostMapping("/ecs-tlr-transaction")
+  @PostMapping("/ecs-tlr-transactions")
   DcbTransaction createDcbTransaction(DcbTransaction dcbTransaction);
 
 }
