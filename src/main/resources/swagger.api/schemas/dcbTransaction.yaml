@@ -2,11 +2,11 @@ DcbTransaction:
   type: object
   properties:
     item:
-      $ref: 'DcbItem.yaml#/DcbItem'
+      $ref: 'dcbItem.yaml#/DcbItem'
     patron:
-      $ref: 'DcbPatron.yaml#/DcbPatron'
+      $ref: 'dcbPatron.yaml#/DcbPatron'
     pickup:
-      $ref: 'DcbPickup.yaml#/DcbPickup'
+      $ref: 'dcbPickup.yaml#/DcbPickup'
     role:
       type: string
       enum:
