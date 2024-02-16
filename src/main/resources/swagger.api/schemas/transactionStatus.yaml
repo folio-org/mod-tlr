@@ -1,0 +1,16 @@
+TransactionStatus:
+  type: object
+  properties:
+    status:
+      type: string
+      enum:
+        - CREATED #Created by DCB
+        - OPEN #Item checked in at lending library
+        - AWAITING_PICKUP #Item checked in at borrowing/Pickup library
+        - ITEM_CHECKED_OUT #Item checkout by patron. Request is fulfilled and loan is created
+        - ITEM_CHECKED_IN #Item returned to borrowing/Pickup library
+        - CLOSED #Item returned to lending library
+        - CANCELLED #Request was cancelled
+        - ERROR #Error occurred
+    message:
+      type: string
