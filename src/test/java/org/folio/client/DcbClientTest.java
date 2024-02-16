@@ -8,6 +8,8 @@ import java.util.UUID;
 
 import org.folio.client.feign.DcbClient;
 import org.folio.domain.dto.DcbTransaction;
+import org.folio.domain.dto.TransactionStatus;
+import org.folio.domain.dto.TransactionStatusResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -29,5 +31,31 @@ public class DcbClientTest {
     assertNotNull(response);
     assertEquals(response.getRole(), DcbTransaction.RoleEnum.BORROWER);
     assertEquals(response.getRequestId(), requestId);
+  }
+
+  @Test
+  void canChangeDcbTransactionStatus() {
+    String requestId = UUID.randomUUID().toString();
+    String transactionId = UUID.randomUUID().toString();
+    TransactionStatus initialStatus = new TransactionStatus()
+      .status(TransactionStatus.StatusEnum.AWAITING_PICKUP);
+    TransactionStatus targetStatus = new TransactionStatus()
+      .status(TransactionStatus.StatusEnum.CANCELLED)
+      .message("test message");
+    DcbTransaction dcbTransaction = new DcbTransaction()
+      .role(DcbTransaction.RoleEnum.BORROWER)
+      .requestId(requestId);
+    TransactionStatusResponse transactionStatusResponse = new TransactionStatusResponse()
+      .status(TransactionStatusResponse.StatusEnum.CANCELLED)
+      .message("test message")
+      .item(dcbTransaction.getItem())
+      .patron(dcbTransaction.getPatron())
+      .pickup(dcbTransaction.getPickup())
+      .requestId(requestId);
+    when(dcbClient.changeDcbTransactionStatus(transactionId, targetStatus))
+      .thenReturn(transactionStatusResponse);
+    var response = dcbClient.changeDcbTransactionStatus(transactionId, targetStatus);
+    assertNotNull(response);
+    assertEquals(response.getStatus(), TransactionStatusResponse.StatusEnum.CANCELLED);
   }
 }
