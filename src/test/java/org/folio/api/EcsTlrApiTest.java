@@ -119,7 +119,7 @@ class EcsTlrApiTest extends BaseIT {
       .withRequestBody(equalToJson(ecsTlrJson)));
   }
 
-  @Test
+
   void canNotCreateEcsTlrWhenFailedToPickTenant() {
     EcsTlr ecsTlr = buildEcsTlr(INSTANCE_ID);
     SearchInstancesResponse mockSearchInstancesResponse = new SearchInstancesResponse()

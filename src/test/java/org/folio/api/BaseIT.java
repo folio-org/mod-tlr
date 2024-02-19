@@ -44,7 +44,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Testcontainers
 public class BaseIT {
   protected static final String TOKEN = "test_token";
-  protected static final String TENANT_ID_DIKU = "diku";
+  public static final String TENANT_ID_DIKU = "diku";
   protected static final String TENANT_ID_UNIVERSITY = "university";
   protected static final String TENANT_ID_COLLEGE = "college";
 

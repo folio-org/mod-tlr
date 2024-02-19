@@ -3,13 +3,19 @@ package org.folio.support;
 import lombok.SneakyThrows;
 import org.folio.EcsTlrApplication;
 import org.folio.domain.entity.EcsTlrEntity;
+import org.folio.spring.integration.XOkapiHeaders;
+import org.springframework.messaging.MessageHeaders;
 import org.testcontainers.shaded.org.apache.commons.io.IOUtils;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
+
+import static org.folio.api.BaseIT.TENANT_ID_DIKU;
 
 public class MockDataUtils {
 
@@ -36,5 +42,11 @@ public class MockDataUtils {
         return sb.toString();
       }
     }
+  }
+
+  public static MessageHeaders getMessageHeaders() {
+    Map<String, Object> header = new HashMap<>();
+    header.put(XOkapiHeaders.TENANT, TENANT_ID_DIKU.getBytes());
+    return new MessageHeaders(header);
   }
 }
