@@ -14,7 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class DcbClientTest {
+class DcbClientTest {
   @Mock
   private DcbClient dcbClient;
 
@@ -27,7 +27,7 @@ public class DcbClientTest {
     when(dcbClient.createDcbTransaction(dcbTransaction)).thenReturn(dcbTransaction);
     var response = dcbClient.createDcbTransaction(dcbTransaction);
     assertNotNull(response);
-    assertEquals(response.getRole(), DcbTransaction.RoleEnum.BORROWER);
-    assertEquals(response.getRequestId(), requestId);
+    assertEquals(DcbTransaction.RoleEnum.BORROWER, response.getRole());
+    assertEquals(requestId, response.getRequestId());
   }
 }
