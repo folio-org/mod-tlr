@@ -43,11 +43,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Testcontainers
 public class BaseIT {
+  protected static final String TOKEN = "test_token";
+  protected static final String TENANT_ID_DIKU = "diku";
+  protected static final String TENANT_ID_UNIVERSITY = "university";
+  protected static final String TENANT_ID_COLLEGE = "college";
+
   @Autowired
   protected MockMvc mockMvc;
   protected static WireMockServer wireMockServer;
-  protected static final String TOKEN = "test_token";
-  protected static final String TENANT = "diku";
   private static final PostgreSQLContainer<?> postgresDBContainer = new PostgreSQLContainer<>("postgres:12-alpine");
   private static final int WIRE_MOCK_PORT = TestSocketUtils.findAvailableTcpPort();
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL)
@@ -91,7 +94,7 @@ public class BaseIT {
     final HttpHeaders httpHeaders = new HttpHeaders();
 
     httpHeaders.setContentType(APPLICATION_JSON);
-    httpHeaders.put(XOkapiHeaders.TENANT, List.of(TENANT));
+    httpHeaders.put(XOkapiHeaders.TENANT, List.of(TENANT_ID_DIKU));
     httpHeaders.add(XOkapiHeaders.URL, wireMockServer.baseUrl());
     httpHeaders.add(XOkapiHeaders.TOKEN, TOKEN);
     httpHeaders.add(XOkapiHeaders.USER_ID, "08d51c7a-0f36-4f3d-9e35-d285612a23df");
@@ -102,6 +105,11 @@ public class BaseIT {
   @SneakyThrows
   public static String asJsonString(Object value) {
     return OBJECT_MAPPER.writeValueAsString(value);
+  }
+
+  @SneakyThrows
+  public static <T> T fromJsonString(String json, Class<T> objectType) {
+    return OBJECT_MAPPER.readValue(json, objectType);
   }
 
   public static class DockerPostgresDataSourceInitializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
@@ -127,7 +135,7 @@ public class BaseIT {
       .uri(uri)
       .accept(APPLICATION_JSON)
       .contentType(APPLICATION_JSON)
-      .header(XOkapiHeaders.TENANT, TENANT)
+      .header(XOkapiHeaders.TENANT, TENANT_ID_DIKU)
       .header(XOkapiHeaders.URL, wireMockServer.baseUrl())
       .header(XOkapiHeaders.TOKEN, TOKEN)
       .header(XOkapiHeaders.USER_ID, randomId());

@@ -77,6 +77,8 @@ components:
       $ref: 'schemas/errors.json'
     request:
       $ref: 'schemas/request.json'
+    searchInstancesResponse:
+      $ref: schemas/response/searchInstancesResponse.json
   parameters:
     requestId:
       name: requestId
