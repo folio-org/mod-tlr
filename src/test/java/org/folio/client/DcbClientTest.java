@@ -50,7 +50,7 @@ class DcbClientTest {
     when(dcbClient.getDcbTransactionStatus(transactionId)).thenReturn(transactionStatusResponse);
     var response = dcbClient.getDcbTransactionStatus(transactionId);
     assertNotNull(response);
-    assertEquals(response.getStatus(), TransactionStatusResponse.StatusEnum.CANCELLED);
+    assertEquals(TransactionStatusResponse.StatusEnum.CANCELLED, response.getStatus());
   }
 
   @Test
@@ -74,6 +74,6 @@ class DcbClientTest {
       .thenReturn(transactionStatusResponse);
     var response = dcbClient.changeDcbTransactionStatus(transactionId, targetStatus);
     assertNotNull(response);
-    assertEquals(response.getStatus(), TransactionStatusResponse.StatusEnum.CANCELLED);
+    assertEquals(TransactionStatusResponse.StatusEnum.CANCELLED, response.getStatus());
   }
 }
