@@ -28,8 +28,7 @@ public class KafkaEventListener {
   public void handleRequestEvent(String event, MessageHeaders messageHeaders) {
     log.info("handleRequestEvent:: message received: {}", event);
     String tenantId = getHeaderValue(messageHeaders, XOkapiHeaders.TENANT, null).get(0);
-    systemUserScopedExecutionService.executeAsyncSystemUserScoped(tenantId, () -> {
-      eventHandler.handleRequestEvent(event);
-    });
+    systemUserScopedExecutionService.executeAsyncSystemUserScoped(tenantId, () ->
+      eventHandler.handleRequestEvent(event));
   }
 }
