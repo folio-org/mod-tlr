@@ -26,7 +26,12 @@ class DcbClientTest {
     DcbTransaction dcbTransaction = new DcbTransaction()
       .role(DcbTransaction.RoleEnum.BORROWER)
       .requestId(requestId);
-    when(dcbClient.createDcbTransaction(dcbTransaction)).thenReturn(dcbTransaction);
+    TransactionStatusResponse transactionStatusResponse = new TransactionStatusResponse()
+      .status(TransactionStatusResponse.StatusEnum.CANCELLED)
+      .message("test message")
+      .item(dcbTransaction.getItem())
+      .requestId(requestId);
+    when(dcbClient.createDcbTransaction(dcbTransaction)).thenReturn(transactionStatusResponse);
     var response = dcbClient.createDcbTransaction(dcbTransaction);
     assertNotNull(response);
     assertEquals(DcbTransaction.RoleEnum.BORROWER, response.getRole());
@@ -44,8 +49,6 @@ class DcbClientTest {
       .status(TransactionStatusResponse.StatusEnum.CANCELLED)
       .message("test message")
       .item(dcbTransaction.getItem())
-      .patron(dcbTransaction.getPatron())
-      .pickup(dcbTransaction.getPickup())
       .requestId(requestId);
     when(dcbClient.getDcbTransactionStatus(transactionId)).thenReturn(transactionStatusResponse);
     var response = dcbClient.getDcbTransactionStatus(transactionId);
@@ -67,8 +70,6 @@ class DcbClientTest {
       .status(TransactionStatusResponse.StatusEnum.CANCELLED)
       .message("test message")
       .item(dcbTransaction.getItem())
-      .patron(dcbTransaction.getPatron())
-      .pickup(dcbTransaction.getPickup())
       .requestId(requestId);
     when(dcbClient.changeDcbTransactionStatus(transactionId, targetStatus))
       .thenReturn(transactionStatusResponse);

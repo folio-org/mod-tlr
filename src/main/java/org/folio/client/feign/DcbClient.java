@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 public interface DcbClient {
 
   @PostMapping("/ecs-tlr-transactions")
-  DcbTransaction createDcbTransaction(DcbTransaction dcbTransaction);
+  TransactionStatusResponse createDcbTransaction(DcbTransaction dcbTransaction);
 
   @GetMapping("/transactions/{dcbTransactionId}/status")
   TransactionStatusResponse getDcbTransactionStatus(@PathVariable String dcbTransactionId);
