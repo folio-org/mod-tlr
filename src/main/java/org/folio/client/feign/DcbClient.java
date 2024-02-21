@@ -1,6 +1,7 @@
 package org.folio.client.feign;
 
 import org.folio.domain.dto.DcbTransaction;
+import org.folio.domain.dto.TransactionStatusResponse;
 import org.folio.spring.config.FeignClientConfiguration;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -9,6 +10,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 public interface DcbClient {
 
   @PostMapping("/ecs-tlr-transactions")
-  DcbTransaction createDcbTransaction(DcbTransaction dcbTransaction);
+  TransactionStatusResponse createDcbTransaction(DcbTransaction dcbTransaction);
 
 }

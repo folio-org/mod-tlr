@@ -3,10 +3,6 @@ DcbTransaction:
   properties:
     item:
       $ref: 'dcbItem.yaml#/DcbItem'
-    patron:
-      $ref: 'dcbPatron.yaml#/DcbPatron'
-    pickup:
-      $ref: 'dcbPickup.yaml#/DcbPickup'
     role:
       type: string
       enum:

@@ -75,6 +75,10 @@ components:
       $ref: 'schemas/EcsTlr.yaml#/EcsTlr'
     dcbTransaction:
       $ref: 'schemas/dcbTransaction.yaml#/DcbTransaction'
+    transactionStatus:
+      $ref: 'schemas/transactionStatus.yaml#/TransactionStatus'
+    transactionStatusResponse:
+        $ref: 'schemas/transactionStatusResponse.yaml#/TransactionStatusResponse'
     errorResponse:
       $ref: 'schemas/errors.json'
     request:

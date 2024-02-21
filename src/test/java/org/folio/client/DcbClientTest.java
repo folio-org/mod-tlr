@@ -8,6 +8,7 @@ import java.util.UUID;
 
 import org.folio.client.feign.DcbClient;
 import org.folio.domain.dto.DcbTransaction;
+import org.folio.domain.dto.TransactionStatusResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -24,7 +25,12 @@ class DcbClientTest {
     DcbTransaction dcbTransaction = new DcbTransaction()
       .role(DcbTransaction.RoleEnum.BORROWER)
       .requestId(requestId);
-    when(dcbClient.createDcbTransaction(dcbTransaction)).thenReturn(dcbTransaction);
+    TransactionStatusResponse transactionStatusResponse = new TransactionStatusResponse()
+      .status(TransactionStatusResponse.StatusEnum.CANCELLED)
+      .message("test message")
+      .item(dcbTransaction.getItem())
+      .requestId(requestId);
+    when(dcbClient.createDcbTransaction(dcbTransaction)).thenReturn(transactionStatusResponse);
     var response = dcbClient.createDcbTransaction(dcbTransaction);
     assertNotNull(response);
     assertEquals(DcbTransaction.RoleEnum.BORROWER, response.getRole());
