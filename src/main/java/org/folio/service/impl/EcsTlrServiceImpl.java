@@ -1,7 +1,7 @@
 package org.folio.service.impl;
 
-import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.folio.client.feign.CirculationClient;
@@ -43,7 +43,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     log.debug("create:: parameters ecsTlr: {}", () -> ecsTlr);
     final String instanceId = ecsTlr.getInstanceId();
 
-    List<String> tenantIds = tenantPickingStrategy.pickTenants(instanceId);
+    Set<String> tenantIds = tenantPickingStrategy.pickTenants(instanceId);
     for (String tenantId : tenantIds) {
       try {
         return createRequest(ecsTlr, tenantId);

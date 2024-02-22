@@ -1,8 +1,7 @@
 package org.folio.domain.strategy;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.Set;
 
 public interface TenantPickingStrategy {
-  List<String> pickTenants(String instanceId);
+  Set<String> pickTenants(String instanceId);
 }
