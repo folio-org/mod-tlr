@@ -12,6 +12,7 @@ import static org.folio.domain.dto.ItemStatusEnum.AVAILABLE;
 import static org.folio.domain.dto.ItemStatusEnum.CHECKED_OUT;
 import static org.folio.domain.dto.ItemStatusEnum.IN_TRANSIT;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
@@ -38,22 +39,28 @@ public class ItemStatusBasedTenantPickingStrategy implements TenantPickingStrate
   private final SearchClient searchClient;
 
   @Override
-  public Optional<String> pickTenant(String instanceId) {
+  public List<String> pickTenants(String instanceId) {
     log.info("pickTenant:: picking tenant for a TLR for instance {}", instanceId);
 
     var itemStatusOccurrencesByTenant = getItemStatusOccurrencesByTenant(instanceId);
     log.info("pickTenant:: item status occurrences by tenant: {}", itemStatusOccurrencesByTenant);
 
-    Optional<String> tenantId = Optional.<String>empty()
-      .or(() -> pickTenant(itemStatusOccurrencesByTenant, EnumSet.of(AVAILABLE)))
-      .or(() -> pickTenant(itemStatusOccurrencesByTenant, EnumSet.of(CHECKED_OUT, IN_TRANSIT)))
-      .or(() -> pickTenant(itemStatusOccurrencesByTenant, alwaysTrue())); // any status
+    List<String> tenantIds = new ArrayList<>();
+    addTenantIfPresent(tenantIds, pickTenant(itemStatusOccurrencesByTenant, EnumSet.of(AVAILABLE)));
+    addTenantIfPresent(tenantIds, pickTenant(itemStatusOccurrencesByTenant, EnumSet.of(CHECKED_OUT, IN_TRANSIT)));
+    addTenantIfPresent(tenantIds, pickTenant(itemStatusOccurrencesByTenant, alwaysTrue()));
 
-    tenantId.ifPresentOrElse(
-      id -> log.info("pickTenant:: tenant for instance {} found: {}", instanceId, id),
-      () -> log.warn("pickTenant:: failed to pick tenant for instance {}", instanceId));
+    if (tenantIds.isEmpty()) {
+      log.warn("pickTenant:: failed to pick tenant for instance {}", instanceId);
+    } else {
+      log.info("pickTenant:: tenant for instance {} found: {}", instanceId, tenantIds);
+    }
 
-    return tenantId;
+    return tenantIds;
+  }
+
+  private void addTenantIfPresent(List<String> tenants, Optional<String> tenant) {
+    tenant.ifPresent(tenants::add);
   }
 
   private Map<String, Map<String, Long>> getItemStatusOccurrencesByTenant(String instanceId) {

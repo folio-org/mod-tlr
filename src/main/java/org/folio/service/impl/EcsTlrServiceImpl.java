@@ -1,5 +1,6 @@
 package org.folio.service.impl;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -9,6 +10,7 @@ import org.folio.domain.dto.Request;
 import org.folio.domain.mapper.EcsTlrMapper;
 import org.folio.domain.strategy.TenantPickingStrategy;
 import org.folio.exception.TenantPickingException;
+import org.folio.exception.TenantScopedExecutionException;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.EcsTlrService;
 import org.folio.service.TenantScopedExecutionService;
@@ -41,9 +43,16 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     log.debug("create:: parameters ecsTlr: {}", () -> ecsTlr);
     final String instanceId = ecsTlr.getInstanceId();
 
-    return tenantPickingStrategy.pickTenant(instanceId)
-      .map(tenantId -> createRequest(ecsTlr, tenantId))
-      .orElseThrow(() -> new TenantPickingException("Failed to pick tenant for instance " + instanceId));
+    List<String> tenantIds = tenantPickingStrategy.pickTenants(instanceId);
+    for (String tenantId : tenantIds) {
+      try {
+        return createRequest(ecsTlr, tenantId);
+      } catch (TenantScopedExecutionException e) {
+        log.error("create:: cannot create a request for tenantId: {}", tenantId);
+      }
+    }
+    log.error("create:: failed to pick tenant for instance: {}", instanceId);
+    throw new TenantPickingException("Failed to pick tenant for instance " + instanceId);
   }
 
   @Override

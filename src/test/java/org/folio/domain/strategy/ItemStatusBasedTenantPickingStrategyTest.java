@@ -36,7 +36,7 @@ class ItemStatusBasedTenantPickingStrategyTest {
   void pickTenant(String expectedTenantId, Instance instance) {
     Mockito.when(searchClient.searchInstance(Mockito.any()))
       .thenReturn(new SearchInstancesResponse().instances(singletonList(instance)));
-    assertEquals(ofNullable(expectedTenantId), strategy.pickTenant(INSTANCE_ID));
+    assertEquals(ofNullable(expectedTenantId), strategy.pickTenants(INSTANCE_ID));
   }
 
   private static Stream<Arguments> parametersForPickTenant() {
