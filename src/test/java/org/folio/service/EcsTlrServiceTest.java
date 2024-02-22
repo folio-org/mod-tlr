@@ -10,6 +10,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -138,8 +140,10 @@ class EcsTlrServiceTest {
     String secondTenantId = UUID.randomUUID().toString();
     String thirdTenantId = UUID.randomUUID().toString();
 
+    Set<String> mockTenantIds = new LinkedHashSet<>(List.of(
+      firstTenantId, secondTenantId, thirdTenantId));
     when(tenantPickingStrategy.pickTenants(any(String.class)))
-      .thenReturn(Set.of(firstTenantId, secondTenantId, thirdTenantId));
+      .thenReturn(mockTenantIds);
     when(tenantScopedExecutionService.execute(any(), any()))
       .thenThrow(new TenantScopedExecutionException(new RuntimeException("Test failure"), firstTenantId))
       .thenReturn(new Request().id(UUID.randomUUID().toString()))
