@@ -10,4 +10,7 @@ public interface CirculationClient {
 
   @PostMapping("/requests/instances")
   Request createInstanceRequest(Request request);
+
+  @PostMapping("/requests")
+  Request createRequest(Request request);
 }

@@ -13,6 +13,7 @@ import org.folio.domain.dto.Instance;
 import org.folio.domain.dto.Item;
 import org.folio.domain.dto.ItemStatus;
 import org.folio.domain.dto.SearchInstancesResponse;
+import org.folio.service.impl.TenantServiceImpl;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -23,23 +24,23 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class ItemStatusBasedTenantPickingStrategyTest {
+class TenantServiceTest {
   private static final String INSTANCE_ID = UUID.randomUUID().toString();
 
   @Mock
   private SearchClient searchClient;
   @InjectMocks
-  private ItemStatusBasedTenantPickingStrategy strategy;
+  private TenantServiceImpl tenantService;
 
   @ParameterizedTest
-  @MethodSource("parametersForPickTenant")
-  void pickTenant(String expectedTenantId, Instance instance) {
+  @MethodSource("parametersForGetLendingTenant")
+  void getLendingTenant(String expectedTenantId, Instance instance) {
     Mockito.when(searchClient.searchInstance(Mockito.any()))
       .thenReturn(new SearchInstancesResponse().instances(singletonList(instance)));
-    assertEquals(ofNullable(expectedTenantId), strategy.pickTenant(INSTANCE_ID));
+    assertEquals(ofNullable(expectedTenantId), tenantService.getLendingTenant(INSTANCE_ID));
   }
 
-  private static Stream<Arguments> parametersForPickTenant() {
+  private static Stream<Arguments> parametersForGetLendingTenant() {
     return Stream.of(
       Arguments.of(null, null),
 

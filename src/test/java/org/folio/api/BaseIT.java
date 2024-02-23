@@ -8,6 +8,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import lombok.SneakyThrows;
 import org.folio.spring.integration.XOkapiHeaders;
 import org.folio.tenant.domain.dto.TenantAttributes;
+import org.folio.util.TestUtils;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -140,7 +141,16 @@ public class BaseIT {
   }
 
   protected WebTestClient.ResponseSpec doPost(String url, Object payload) {
+    return doPostWithTenant(url, payload, TENANT_ID_DIKU);
+  }
+
+  protected WebTestClient.ResponseSpec doPostWithTenant(String url, Object payload, String tenantId) {
+    return doPostWithToken(url, payload, TestUtils.buildToken(tenantId));
+  }
+
+  protected WebTestClient.ResponseSpec doPostWithToken(String url, Object payload, String token) {
     return buildRequest(HttpMethod.POST, url)
+      .cookie("folioAccessToken", token)
       .body(BodyInserters.fromValue(payload))
       .exchange();
   }

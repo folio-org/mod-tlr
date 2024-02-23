@@ -49,6 +49,7 @@ class EcsTlrApiTest extends BaseIT {
   private static final String TENANT_HEADER = "x-okapi-tenant";
   private static final String INSTANCE_ID = randomId();
   private static final String INSTANCE_REQUESTS_URL = "/circulation/requests/instances";
+  private static final String REQUESTS_URL = "/circulation/requests";
   private static final String USERS_URL = "/users";
   private static final String SEARCH_INSTANCES_URL =
     "/search/instances\\?query=id==" + INSTANCE_ID + "&expandAll=true";
@@ -62,6 +63,7 @@ class EcsTlrApiTest extends BaseIT {
   @BeforeEach
   public void beforeEach() {
     contextSetter = initContext();
+    wireMockServer.resetAll();
   }
 
   @AfterEach
@@ -102,10 +104,20 @@ class EcsTlrApiTest extends BaseIT {
 
     Request mockInstanceRequestResponse = new Request()
       .id(instanceRequestId)
+      .requesterId(requesterId)
       .requestLevel(Request.RequestLevelEnum.TITLE)
       .requestType(Request.RequestTypeEnum.PAGE)
       .instanceId(INSTANCE_ID)
       .itemId(availableItemId);
+
+    Request mockRequestResponse = new Request()
+      .id(mockInstanceRequestResponse.getId())
+      .instanceId(INSTANCE_ID)
+      .requesterId(requesterId)
+      .requestDate(mockInstanceRequestResponse.getRequestDate())
+      .requestLevel(Request.RequestLevelEnum.TITLE)
+      .requestType(Request.RequestTypeEnum.HOLD)
+      .fulfillmentPreference(Request.FulfillmentPreferenceEnum.HOLD_SHELF);
 
     User mockUser = buildUser(requesterId);
     User mockShadowUser = buildShadowUser(mockUser);
@@ -133,7 +145,12 @@ class EcsTlrApiTest extends BaseIT {
       .willReturn(jsonResponse(mockShadowUser, HttpStatus.SC_CREATED)));
 
     wireMockServer.stubFor(WireMock.post(urlMatching(INSTANCE_REQUESTS_URL))
+      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE))
       .willReturn(jsonResponse(asJsonString(mockInstanceRequestResponse), HttpStatus.SC_CREATED)));
+
+    wireMockServer.stubFor(WireMock.post(urlMatching(REQUESTS_URL))
+      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_DIKU))
+      .willReturn(jsonResponse(asJsonString(mockRequestResponse), HttpStatus.SC_CREATED)));
 
     // 3. Create ECS TLR
 
@@ -143,7 +160,7 @@ class EcsTlrApiTest extends BaseIT {
       .itemId(availableItemId);
 
     assertEquals(TENANT_ID_DIKU, getCurrentTenantId());
-    doPost(TLR_URL, ecsTlr)
+    doPostWithTenant(TLR_URL, ecsTlr, TENANT_ID_DIKU)
       .expectStatus().isCreated()
       .expectBody().json(asJsonString(expectedPostEcsTlrResponse), true);
     assertEquals(TENANT_ID_DIKU, getCurrentTenantId());
@@ -163,6 +180,10 @@ class EcsTlrApiTest extends BaseIT {
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE)) // because this tenant has available item
       .withRequestBody(equalToJson(ecsTlrJson)));
 
+    wireMockServer.verify(postRequestedFor(urlMatching(REQUESTS_URL))
+      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_DIKU))
+      .withRequestBody(equalToJson(asJsonString(mockRequestResponse))));
+
     if (shadowUserExists) {
       wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(USERS_URL)));
     } else {
@@ -173,7 +194,16 @@ class EcsTlrApiTest extends BaseIT {
   }
 
   @Test
-  void canNotCreateEcsTlrWhenFailedToPickTenant() {
+  void canNotCreateEcsTlrWhenFailedToExtractBorrowingTenantIdFromToken() {
+    EcsTlr ecsTlr = buildEcsTlr(INSTANCE_ID, randomId());
+    doPostWithToken(TLR_URL, ecsTlr, "not_a_token")
+      .expectStatus().isEqualTo(500);
+
+    wireMockServer.verify(exactly(0), getRequestedFor(urlMatching(SEARCH_INSTANCES_URL)));
+  }
+
+  @Test
+  void canNotCreateEcsTlrWhenFailedToPickLendingTenant() {
     EcsTlr ecsTlr = buildEcsTlr(INSTANCE_ID, randomId());
     SearchInstancesResponse mockSearchInstancesResponse = new SearchInstancesResponse()
       .totalRecords(0)
@@ -187,10 +217,12 @@ class EcsTlrApiTest extends BaseIT {
 
     wireMockServer.verify(getRequestedFor(urlMatching(SEARCH_INSTANCES_URL))
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_DIKU)));
+
+    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(USERS_URL)));
   }
 
   @Test
-  void canNotCreateEcsTlrWhenFailedToFindRealRequester() {
+  void canNotCreateEcsTlrWhenFailedToFindRequesterInBorrowingTenant() {
     String requesterId = randomId();
     EcsTlr ecsTlr = buildEcsTlr(INSTANCE_ID, requesterId);
     SearchInstancesResponse mockSearchInstancesResponse = new SearchInstancesResponse()
@@ -217,6 +249,7 @@ class EcsTlrApiTest extends BaseIT {
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_DIKU)));
   }
 
+
   private String getCurrentTenantId() {
     return context.getTenantId();
   }
@@ -239,6 +272,7 @@ class EcsTlrApiTest extends BaseIT {
       .pickupServicePointId(randomId())
       .fulfillmentPreference(EcsTlr.FulfillmentPreferenceEnum.DELIVERY)
       .patronComments("random comment")
+      .requestDate(new Date())
       .requestExpirationDate(new Date());
   }
 

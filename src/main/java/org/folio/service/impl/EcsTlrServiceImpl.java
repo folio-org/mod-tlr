@@ -3,15 +3,15 @@ package org.folio.service.impl;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.folio.client.feign.CirculationClient;
 import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.Request;
+import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.domain.mapper.EcsTlrMapper;
-import org.folio.domain.strategy.TenantPickingStrategy;
+import org.folio.service.TenantService;
 import org.folio.exception.TenantPickingException;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.EcsTlrService;
-import org.folio.service.TenantScopedExecutionService;
+import org.folio.service.RequestService;
 import org.folio.service.UserService;
 import org.springframework.stereotype.Service;
 
@@ -25,10 +25,9 @@ public class EcsTlrServiceImpl implements EcsTlrService {
 
   private final EcsTlrRepository ecsTlrRepository;
   private final EcsTlrMapper requestsMapper;
-  private final CirculationClient circulationClient;
-  private final TenantScopedExecutionService tenantScopedExecutionService;
-  private final TenantPickingStrategy tenantPickingStrategy;
+  private final TenantService tenantService;
   private final UserService userService;
+  private final RequestService requestService;
 
   @Override
   public Optional<EcsTlr> get(UUID id) {
@@ -40,12 +39,26 @@ public class EcsTlrServiceImpl implements EcsTlrService {
 
   @Override
   public EcsTlr create(EcsTlr ecsTlr) {
-    log.debug("create:: parameters ecsTlr: {}", () -> ecsTlr);
+    log.info("create:: creating ECS TLR {}", ecsTlr.getId());
     final String instanceId = ecsTlr.getInstanceId();
+    final String borrowingTenantId = tenantService.getBorrowingTenant().orElseThrow(
+      () -> new TenantPickingException("Failed to extract borrowing tenant ID from token"));
+    final String lendingTenantId = tenantService.getLendingTenant(instanceId).orElseThrow(
+      () -> new TenantPickingException("Failed to pick lending tenant for instance " + instanceId));
 
-    return tenantPickingStrategy.pickTenant(instanceId)
-      .map(tenantId -> createRequest(ecsTlr, tenantId))
-      .orElseThrow(() -> new TenantPickingException("Failed to pick tenant for instance " + instanceId));
+    userService.createShadowUser(ecsTlr, borrowingTenantId, lendingTenantId);
+    Request secondaryRequest = requestService.createSecondaryRequest(
+      requestsMapper.mapDtoToRequest(ecsTlr), lendingTenantId);
+    Request primaryRequest = requestService.createPrimaryRequest(
+      buildPrimaryRequest(secondaryRequest), borrowingTenantId);
+
+    ecsTlr.primaryRequestTenantId(borrowingTenantId)
+      .primaryRequestId(primaryRequest.getId())
+      .secondaryRequestTenantId(lendingTenantId)
+      .secondaryRequestId(secondaryRequest.getId())
+      .itemId(secondaryRequest.getItemId());
+
+    return save(ecsTlr);
   }
 
   @Override
@@ -70,24 +83,24 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     return false;
   }
 
-  private EcsTlr createRequest(EcsTlr ecsTlr, String tenantId) {
-    log.info("createRequest:: creating request for ECS TLR {} in tenant {}", ecsTlr.getId(), tenantId);
+  private EcsTlr save(EcsTlr ecsTlr) {
+    log.info("save:: saving ECS TLR {}", ecsTlr.getId());
+    EcsTlrEntity updatedEcsTlr = ecsTlrRepository.save(requestsMapper.mapDtoToEntity(ecsTlr));
+    log.info("save:: ECS TLR {} saved", ecsTlr.getId());
+    log.debug("save:: ECS TLR: {}", () -> ecsTlr);
 
-    userService.createShadowUser(ecsTlr, tenantId);
-    Request mappedRequest = requestsMapper.mapDtoToRequest(ecsTlr);
-    Request createdRequest = tenantScopedExecutionService.execute(tenantId,
-      () -> circulationClient.createInstanceRequest(mappedRequest));
-
-    log.info("createRequest:: request created: {}", createdRequest.getId());
-    log.debug("createRequest:: request: {}", () -> createdRequest);
-
-    ecsTlr.secondaryRequestTenantId(tenantId)
-      .secondaryRequestId(createdRequest.getId())
-      .itemId(createdRequest.getItemId());
-
-    log.debug("createRequest:: updating ECS TLR: {}", () -> ecsTlr);
-
-    return requestsMapper.mapEntityToDto(ecsTlrRepository.save(
-      requestsMapper.mapDtoToEntity(ecsTlr)));
+    return requestsMapper.mapEntityToDto(updatedEcsTlr);
   }
+
+  private static Request buildPrimaryRequest(Request secondaryRequest) {
+    return new Request()
+      .id(secondaryRequest.getId())
+      .instanceId(secondaryRequest.getInstanceId())
+      .requesterId(secondaryRequest.getRequesterId())
+      .requestDate(secondaryRequest.getRequestDate())
+      .requestLevel(Request.RequestLevelEnum.TITLE)
+      .requestType(Request.RequestTypeEnum.HOLD)
+      .fulfillmentPreference(Request.FulfillmentPreferenceEnum.HOLD_SHELF);
+  }
+
 }
