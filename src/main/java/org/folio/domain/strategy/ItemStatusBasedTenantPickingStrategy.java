@@ -3,7 +3,6 @@ package org.folio.domain.strategy;
 import static com.google.common.base.Predicates.alwaysTrue;
 import static com.google.common.base.Predicates.notNull;
 import static java.util.Comparator.comparingLong;
-import static java.util.Map.Entry.comparingByValue;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.counting;
@@ -47,11 +46,11 @@ public class ItemStatusBasedTenantPickingStrategy implements TenantPickingStrate
       .sorted(
         comparingLong(
           (Map.Entry<String, Map<String, Long>> entry) -> countItems(entry, Set.of("Available")::contains))
-        .thenComparingLong(
-          (Map.Entry<String, Map<String, Long>> entry) -> countItems(entry,
-            Set.of("Checked out", "In transit")::contains))
-        .thenComparingLong((Map.Entry<String, Map<String, Long>> entry) -> countItems(
-          entry, alwaysTrue())))
+          .thenComparingLong(
+            (Map.Entry<String, Map<String, Long>> entry) -> countItems(entry,
+              Set.of("Checked out", "In transit")::contains))
+          .thenComparingLong((Map.Entry<String, Map<String, Long>> entry) -> countItems(
+            entry, alwaysTrue())))
       .map(Entry::getKey)
       .collect(Collectors.toCollection(LinkedHashSet::new));
 
@@ -91,17 +90,6 @@ public class ItemStatusBasedTenantPickingStrategy implements TenantPickingStrate
         .filter(notNull())
         .collect(groupingBy(identity(), counting()))
       ));
-  }
-
-  private static long countItems(Map.Entry<String, Map<String, Long>> itemStatuses,
-    Predicate<String> statusPredicate) {
-
-    return itemStatuses.getValue()
-      .entrySet()
-      .stream()
-      .filter(entry -> statusPredicate.test(entry.getKey()))
-      .map(Map.Entry::getValue)
-      .reduce(0L, Long::sum);
   }
 
   private static long countItems(Map.Entry<String, Map<String, Long>> itemStatuses,

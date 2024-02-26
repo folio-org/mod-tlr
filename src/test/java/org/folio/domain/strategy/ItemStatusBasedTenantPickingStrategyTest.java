@@ -62,7 +62,7 @@ class ItemStatusBasedTenantPickingStrategyTest {
       Arguments.of(Set.of("a"), buildInstance(buildItem("a", "In transit"))),
       Arguments.of(Set.of("a"), buildInstance(buildItem("a", "Paged"))),
 
-      // multiple tenants, same item status, tenant should be sorted by number of items
+      // multiple tenants, same item status, tenants should be sorted by number of items
       Arguments.of(Set.of("b", "c", "a"), buildInstance(
         buildItem("a", "Available"),
         buildItem("b", "Available"),
