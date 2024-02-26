@@ -2,15 +2,13 @@ package org.folio.domain.strategy;
 
 import static com.google.common.base.Predicates.alwaysTrue;
 import static com.google.common.base.Predicates.notNull;
+import static java.util.Comparator.comparingLong;
 import static java.util.Map.Entry.comparingByValue;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toMap;
-import static org.folio.domain.dto.ItemStatusEnum.AVAILABLE;
-import static org.folio.domain.dto.ItemStatusEnum.CHECKED_OUT;
-import static org.folio.domain.dto.ItemStatusEnum.IN_TRANSIT;
 
 import java.util.Collection;
 import java.util.EnumSet;
@@ -21,6 +19,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.folio.client.feign.SearchClient;
 import org.folio.domain.dto.Instance;
@@ -46,18 +45,26 @@ public class ItemStatusBasedTenantPickingStrategy implements TenantPickingStrate
     var itemStatusOccurrencesByTenant = getItemStatusOccurrencesByTenant(instanceId);
     log.info("pickTenant:: item status occurrences by tenant: {}", itemStatusOccurrencesByTenant);
 
-    Set<String> tenantIds = new LinkedHashSet<>();
-    pickTenant(itemStatusOccurrencesByTenant, EnumSet.of(AVAILABLE)).ifPresent(tenantIds::add);
-    pickTenant(itemStatusOccurrencesByTenant, EnumSet.of(CHECKED_OUT, IN_TRANSIT)).ifPresent(tenantIds::add);
-    pickTenant(itemStatusOccurrencesByTenant, alwaysTrue()).ifPresent(tenantIds::add);
+    Set<String> sortedTenantIds = itemStatusOccurrencesByTenant.entrySet()
+      .stream()
+      .sorted(
+        comparingLong(
+          (Map.Entry<String, Map<String, Long>> entry) -> countItems(entry, Set.of("Available")::contains))
+        .thenComparingLong(
+          (Map.Entry<String, Map<String, Long>> entry) -> countItems(entry,
+            Set.of("Checked out", "In transit")::contains))
+        .thenComparingLong((Map.Entry<String, Map<String, Long>> entry) -> countItems(
+          entry, alwaysTrue())))
+      .map(Entry::getKey)
+      .collect(Collectors.toCollection(LinkedHashSet::new));
 
-    if (tenantIds.isEmpty()) {
+    if (sortedTenantIds.isEmpty()) {
       log.warn("pickTenant:: failed to pick tenant for instance {}", instanceId);
     } else {
-      log.info("pickTenant:: tenant for instance {} found: {}", instanceId, tenantIds);
+      log.info("pickTenant:: tenant for instance {} found: {}", instanceId, sortedTenantIds);
     }
 
-    return tenantIds;
+    return sortedTenantIds;
   }
 
   private Map<String, Map<String, Long>> getItemStatusOccurrencesByTenant(String instanceId) {
@@ -117,6 +124,17 @@ public class ItemStatusBasedTenantPickingStrategy implements TenantPickingStrate
       .filter(entry -> entry.getValue() > 0)
       .max(comparingByValue())
       .map(Entry::getKey);
+  }
+
+  private static long countItems(Map.Entry<String, Map<String, Long>> itemStatuses,
+    Predicate<String> statusPredicate) {
+
+    return itemStatuses.getValue()
+      .entrySet()
+      .stream()
+      .filter(entry -> statusPredicate.test(entry.getKey()))
+      .map(Map.Entry::getValue)
+      .reduce(0L, Long::sum);
   }
 
 }
