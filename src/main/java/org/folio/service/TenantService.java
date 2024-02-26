@@ -2,8 +2,10 @@ package org.folio.service;
 
 import java.util.Optional;
 
-public interface TenantService {
-  Optional<String> getBorrowingTenant();
+import org.folio.domain.dto.EcsTlr;
 
-  Optional<String> getLendingTenant(String instanceId);
+public interface TenantService {
+  Optional<String> pickBorrowingTenant(EcsTlr ecsTlr);
+
+  Optional<String> pickLendingTenant(EcsTlr ecsTlr);
 }

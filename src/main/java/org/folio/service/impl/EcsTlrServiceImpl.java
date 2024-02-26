@@ -39,12 +39,11 @@ public class EcsTlrServiceImpl implements EcsTlrService {
 
   @Override
   public EcsTlr create(EcsTlr ecsTlr) {
-    log.info("create:: creating ECS TLR {}", ecsTlr.getId());
-    final String instanceId = ecsTlr.getInstanceId();
-    final String borrowingTenantId = tenantService.getBorrowingTenant().orElseThrow(
-      () -> new TenantPickingException("Failed to extract borrowing tenant ID from token"));
-    final String lendingTenantId = tenantService.getLendingTenant(instanceId).orElseThrow(
-      () -> new TenantPickingException("Failed to pick lending tenant for instance " + instanceId));
+    log.info("create:: creating ECS TLR {} for instance {} and requester {}", ecsTlr.getId(),
+      ecsTlr.getInstanceId(), ecsTlr.getRequesterId());
+
+    final String borrowingTenantId = pickBorrowingTenant(ecsTlr);
+    final String lendingTenantId = pickLendingTenant(ecsTlr);
 
     userService.createShadowUser(ecsTlr, borrowingTenantId, lendingTenantId);
     Request secondaryRequest = requestService.createSecondaryRequest(
@@ -83,10 +82,28 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     return false;
   }
 
+  private String pickBorrowingTenant(EcsTlr ecsTlr) {
+    log.info("pickBorrowingTenant:: picking borrowing tenant");
+    final String borrowingTenantId = tenantService.pickBorrowingTenant(ecsTlr).orElseThrow(
+      () -> new TenantPickingException("Failed to pick borrowing tenant"));
+    log.info("pickBorrowingTenant:: borrowing tenant picked: {}", borrowingTenantId);
+
+    return borrowingTenantId;
+  }
+
+  private String pickLendingTenant(EcsTlr ecsTlr) {
+    log.info("pickLendingTenant:: picking lending tenant");
+    final String lendingTenantId = tenantService.pickLendingTenant(ecsTlr).orElseThrow(
+      () -> new TenantPickingException("Failed to pick lending tenant"));
+    log.info("pickLendingTenant:: lending tenant picked: {}", lendingTenantId);
+
+    return lendingTenantId;
+  }
+
   private EcsTlr save(EcsTlr ecsTlr) {
     log.info("save:: saving ECS TLR {}", ecsTlr.getId());
     EcsTlrEntity updatedEcsTlr = ecsTlrRepository.save(requestsMapper.mapDtoToEntity(ecsTlr));
-    log.info("save:: ECS TLR {} saved", ecsTlr.getId());
+    log.info("save:: saved ECS TLR {}", ecsTlr.getId());
     log.debug("save:: ECS TLR: {}", () -> ecsTlr);
 
     return requestsMapper.mapEntityToDto(updatedEcsTlr);

@@ -31,11 +31,11 @@ public class RequestServiceImpl implements RequestService {
   @Override
   public Request createSecondaryRequest(Request request, String tenantId) {
     final String requestId = request.getId();
-    log.info("createPrimaryRequest:: creating secondary request {} in tenant {}", requestId, tenantId);
+    log.info("createSecondaryRequest:: creating secondary request {} in tenant {}", requestId, tenantId);
     Request secondaryRequest = tenantScopedExecutionService.execute(tenantId,
       () -> circulationClient.createInstanceRequest(request));
-    log.info("createPrimaryRequest:: secondary request {} created in tenant {}", requestId, tenantId);
-    log.debug("createPrimaryRequest:: request: {}", () -> secondaryRequest);
+    log.info("createSecondaryRequest:: secondary request {} created in tenant {}", requestId, tenantId);
+    log.debug("createSecondaryRequest:: request: {}", () -> secondaryRequest);
 
     return secondaryRequest;
   }

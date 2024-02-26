@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.function.Predicate;
 
 import org.folio.client.feign.SearchClient;
+import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.Instance;
 import org.folio.domain.dto.Item;
 import org.folio.domain.dto.ItemStatus;
@@ -40,16 +41,18 @@ public class TenantServiceImpl implements TenantService {
   private final SearchClient searchClient;
 
   @Override
-  public Optional<String> getBorrowingTenant() {
+  public Optional<String> pickBorrowingTenant(EcsTlr ecsTlr) {
+    log.info("pickBorrowingTenant:: picking borrowing tenant");
     return HttpUtils.getTenantFromToken();
   }
 
   @Override
-  public Optional<String> getLendingTenant(String instanceId) {
-    log.info("pickTenant:: picking lending tenant for a TLR for instance {}", instanceId);
+  public Optional<String> pickLendingTenant(EcsTlr ecsTlr) {
+    final String instanceId = ecsTlr.getInstanceId();
+    log.info("pickLendingTenant:: picking lending tenant for instance {}", instanceId);
 
     var itemStatusOccurrencesByTenant = getItemStatusOccurrencesByTenant(instanceId);
-    log.info("pickTenant:: item status occurrences by tenant: {}", itemStatusOccurrencesByTenant);
+    log.info("pickLendingTenant:: item status occurrences by tenant: {}", itemStatusOccurrencesByTenant);
 
     Optional<String> tenantId = Optional.<String>empty()
       .or(() -> pickLendingTenant(itemStatusOccurrencesByTenant, EnumSet.of(AVAILABLE)))
@@ -57,8 +60,8 @@ public class TenantServiceImpl implements TenantService {
       .or(() -> pickLendingTenant(itemStatusOccurrencesByTenant, alwaysTrue())); // any status
 
     tenantId.ifPresentOrElse(
-      id -> log.info("pickTenant:: lending tenant for instance {} found: {}", instanceId, id),
-      () -> log.warn("pickTenant:: failed to pick lending tenant for instance {}", instanceId));
+      id -> log.info("pickLendingTenant:: lending tenant for instance {} picked: {}", instanceId, id),
+      () -> log.warn("pickLendingTenant:: failed to pick lending tenant for instance {}", instanceId));
 
     return tenantId;
   }
@@ -99,7 +102,7 @@ public class TenantServiceImpl implements TenantService {
       .map(ItemStatusEnum::getValue)
       .toList();
 
-    log.info("pickTenant:: looking for tenant with most items in statuses {}", desiredStatuses);
+    log.info("pickLendingTenant:: looking for tenant with most items in statuses {}", desiredStatuses);
     return pickLendingTenant(statusOccurrencesByTenant, desiredStatusValues::contains);
   }
 

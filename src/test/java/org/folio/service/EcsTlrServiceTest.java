@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -14,6 +13,7 @@ import java.util.UUID;
 
 import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.Request;
+import org.folio.domain.dto.User;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.domain.mapper.EcsTlrMapper;
 import org.folio.domain.mapper.EcsTlrMapperImpl;
@@ -64,6 +64,8 @@ class EcsTlrServiceTest {
     var requestExpirationDate = DateTime.now().plusDays(7).toDate();
     var requestDate = DateTime.now().toDate();
     var patronComments = "Test comment";
+    var borrowingTenant = "borrowing-tenant";
+    var lendingTenant = "lending-tenant";
 
     var mockEcsTlrEntity = new EcsTlrEntity();
     mockEcsTlrEntity.setId(id);
@@ -90,12 +92,12 @@ class EcsTlrServiceTest {
     ecsTlr.setPickupServicePointId(pickupServicePointId.toString());
 
     when(ecsTlrRepository.save(any(EcsTlrEntity.class))).thenReturn(mockEcsTlrEntity);
-    when(tenantService.getBorrowingTenant())
-      .thenReturn(Optional.of("borrowing_tenant"));
-    when(tenantService.getLendingTenant(instanceId.toString()))
-      .thenReturn(Optional.of("lending_tenant"));
-    doNothing().when(userService)
-      .createShadowUser(any(EcsTlr.class), any(String.class), any(String.class));
+    when(tenantService.pickBorrowingTenant(any(EcsTlr.class)))
+      .thenReturn(Optional.of(borrowingTenant));
+    when(tenantService.pickLendingTenant(any(EcsTlr.class)))
+      .thenReturn(Optional.of(lendingTenant));
+    when(userService.createShadowUser(ecsTlr, borrowingTenant, lendingTenant))
+      .thenReturn(new User());
     when(requestService.createPrimaryRequest(any(Request.class), any(String.class)))
       .thenReturn(new Request());
     when(requestService.createSecondaryRequest(any(Request.class), any(String.class)))
@@ -124,29 +126,29 @@ class EcsTlrServiceTest {
 
   @Test
   void canNotCreateRemoteRequestWhenFailedToGetBorrowingTenantId() {
-    when(tenantService.getBorrowingTenant())
-      .thenReturn(Optional.empty());
     String instanceId = UUID.randomUUID().toString();
     EcsTlr ecsTlr = new EcsTlr().instanceId(instanceId);
+    when(tenantService.pickBorrowingTenant(ecsTlr))
+      .thenReturn(Optional.empty());
 
     TenantPickingException exception = assertThrows(TenantPickingException.class,
       () -> ecsTlrService.create(ecsTlr));
 
-    assertEquals("Failed to extract borrowing tenant ID from token", exception.getMessage());
+    assertEquals("Failed to pick borrowing tenant", exception.getMessage());
   }
 
   @Test
   void canNotCreateRemoteRequestWhenFailedToGetLendingTenantId() {
     String instanceId = UUID.randomUUID().toString();
-    when(tenantService.getBorrowingTenant())
-      .thenReturn(Optional.of("borrowing_tenant"));
-    when(tenantService.getLendingTenant(instanceId))
-      .thenReturn(Optional.empty());
     EcsTlr ecsTlr = new EcsTlr().instanceId(instanceId);
+    when(tenantService.pickBorrowingTenant(ecsTlr))
+      .thenReturn(Optional.of("borrowing_tenant"));
+    when(tenantService.pickLendingTenant(ecsTlr))
+      .thenReturn(Optional.empty());
 
     TenantPickingException exception = assertThrows(TenantPickingException.class,
       () -> ecsTlrService.create(ecsTlr));
 
-    assertEquals("Failed to pick lending tenant for instance " + instanceId, exception.getMessage());
+    assertEquals("Failed to pick lending tenant", exception.getMessage());
   }
 }

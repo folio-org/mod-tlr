@@ -1,14 +1,13 @@
 package org.folio.service.impl;
 
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import org.folio.client.feign.UsersClient;
 import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.User;
 import org.folio.domain.dto.UserPersonal;
 import org.folio.domain.dto.UserType;
-import org.folio.exception.ResourceNotFoundException;
-import org.folio.exception.ResourceType;
 import org.folio.exception.TenantScopedExecutionException;
 import org.folio.service.TenantScopedExecutionService;
 import org.folio.service.UserService;
@@ -26,39 +25,44 @@ public class UserServiceImpl implements UserService {
   private final UsersClient usersClient;
   private final TenantScopedExecutionService tenantScopedExecutionService;
 
-  public void createShadowUser(EcsTlr ecsTlr, String borrowingTenantId, String lendingTenantId) {
+  public User createShadowUser(EcsTlr ecsTlr, String borrowingTenantId, String lendingTenantId) {
+    final String requesterId = ecsTlr.getRequesterId();
     log.info("createShadowUser:: attempting to create shadow user for ECS TLR {}: " +
-        "borrowingTenantId={}, lendingTenantId={}", ecsTlr.getId(), borrowingTenantId, lendingTenantId);
-    final String userId = ecsTlr.getRequesterId();
+        "requesterId={}, borrowingTenantId={}, lendingTenantId={}", ecsTlr.getId(), requesterId,
+      borrowingTenantId, lendingTenantId);
 
-    log.info("createShadowUser:: looking up user {} in borrowing tenant ({})", userId, borrowingTenantId);
-    User realUser = findUser(userId, borrowingTenantId)
-      .orElseThrow(() -> new ResourceNotFoundException(ResourceType.USER, userId)); // TODO: losing cause here
+    log.info("createShadowUser:: looking up user {} in borrowing tenant ({})", requesterId, borrowingTenantId);
+    User realUser = findUser(requesterId, borrowingTenantId);
 
-    log.info("createShadowUser:: looking up user {} in lending tenant ({})", userId, lendingTenantId);
-    findUser(userId, lendingTenantId).ifPresentOrElse(
-      u -> log.info("createShadowUser:: user {} already exists in lending tenant ({})", userId, lendingTenantId),
-      () -> createUser(buildShadowUser(realUser), lendingTenantId));
+    log.info("createShadowUser:: looking up user {} in lending tenant ({})", requesterId, lendingTenantId);
+    return findOrCreateUser(requesterId, lendingTenantId, () -> buildShadowUser(realUser));
   }
 
-  private Optional<User> findUser(String userId, String tenantId) {
-    log.info("createShadowUser:: looking up user {} in tenant {}", userId, tenantId);
+  private User findOrCreateUser(String userId, String tenantId, Supplier<User> userSupplier) {
     try {
-      User user = tenantScopedExecutionService.execute(tenantId, () -> usersClient.getUser(userId));
-      log.info("fetchUser:: user {} found in tenant {}", userId, tenantId);
-      log.debug("fetchUser:: user: {}", () -> user);
-      return Optional.of(user);
+      User user = findUser(userId, tenantId);
+      log.info("findOrCreateUser:: user {} already exists in tenant {}", userId, tenantId);
+      return user;
     } catch (TenantScopedExecutionException e) {
-      log.warn("fetchUser:: user {} not found in tenant {}", userId, tenantId, e);
+      log.warn("findOrCreateUser:: failed to find user {} in tenant {}", userId, tenantId);
       return Optional.ofNullable(e.getCause())
-        .filter(cause -> cause instanceof FeignException.NotFound)
-        .map(cause -> Optional.<User>empty())
+        .filter(FeignException.NotFound.class::isInstance)
+        .map(cause -> createUser(userSupplier.get(), tenantId))
         .orElseThrow(() -> e);
     }
   }
 
+  private User findUser(String userId, String tenantId) {
+    log.info("findUser:: looking up user {} in tenant {}", userId, tenantId);
+    User user = tenantScopedExecutionService.execute(tenantId, () -> usersClient.getUser(userId));
+    log.info("findUser:: user {} found in tenant {}", userId, tenantId);
+    log.debug("findUser:: user: {}", () -> user);
+
+    return user;
+  }
+
   private User createUser(User user, String tenantId) {
-    log.info("createShadowUser:: creating user {} in tenant {}", user.getId(), tenantId);
+    log.info("createUser:: creating user {} in tenant {}", user.getId(), tenantId);
     User newUser = tenantScopedExecutionService.execute(tenantId, () -> usersClient.postUser(user));
     log.info("createUser:: user {} was created in tenant {}", user.getId(), tenantId);
     log.debug("createUser:: user: {}", () -> newUser);

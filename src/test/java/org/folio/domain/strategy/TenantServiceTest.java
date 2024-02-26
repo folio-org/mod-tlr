@@ -9,6 +9,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.folio.client.feign.SearchClient;
+import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.Instance;
 import org.folio.domain.dto.Item;
 import org.folio.domain.dto.ItemStatus;
@@ -37,7 +38,8 @@ class TenantServiceTest {
   void getLendingTenant(String expectedTenantId, Instance instance) {
     Mockito.when(searchClient.searchInstance(Mockito.any()))
       .thenReturn(new SearchInstancesResponse().instances(singletonList(instance)));
-    assertEquals(ofNullable(expectedTenantId), tenantService.getLendingTenant(INSTANCE_ID));
+    assertEquals(ofNullable(expectedTenantId), tenantService.pickLendingTenant(
+      new EcsTlr().instanceId(INSTANCE_ID)));
   }
 
   private static Stream<Arguments> parametersForGetLendingTenant() {
