@@ -44,7 +44,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Testcontainers
 public class BaseIT {
   protected static final String TOKEN = "test_token";
-  protected static final String TENANT_ID_DIKU = "diku";
+  protected static final String TENANT_ID_CONSORTIUM = "consortium"; // central tenant
   protected static final String TENANT_ID_UNIVERSITY = "university";
   protected static final String TENANT_ID_COLLEGE = "college";
 
@@ -93,7 +93,7 @@ public class BaseIT {
     final HttpHeaders httpHeaders = new HttpHeaders();
 
     httpHeaders.setContentType(APPLICATION_JSON);
-    httpHeaders.put(XOkapiHeaders.TENANT, List.of(TENANT_ID_DIKU));
+    httpHeaders.put(XOkapiHeaders.TENANT, List.of(TENANT_ID_CONSORTIUM));
     httpHeaders.add(XOkapiHeaders.URL, wireMockServer.baseUrl());
     httpHeaders.add(XOkapiHeaders.TOKEN, TOKEN);
     httpHeaders.add(XOkapiHeaders.USER_ID, "08d51c7a-0f36-4f3d-9e35-d285612a23df");
@@ -134,14 +134,14 @@ public class BaseIT {
       .uri(uri)
       .accept(APPLICATION_JSON)
       .contentType(APPLICATION_JSON)
-      .header(XOkapiHeaders.TENANT, TENANT_ID_DIKU)
+      .header(XOkapiHeaders.TENANT, TENANT_ID_CONSORTIUM)
       .header(XOkapiHeaders.URL, wireMockServer.baseUrl())
       .header(XOkapiHeaders.TOKEN, TOKEN)
       .header(XOkapiHeaders.USER_ID, randomId());
   }
 
   protected WebTestClient.ResponseSpec doPost(String url, Object payload) {
-    return doPostWithTenant(url, payload, TENANT_ID_DIKU);
+    return doPostWithTenant(url, payload, TENANT_ID_CONSORTIUM);
   }
 
   protected WebTestClient.ResponseSpec doPostWithTenant(String url, Object payload, String tenantId) {

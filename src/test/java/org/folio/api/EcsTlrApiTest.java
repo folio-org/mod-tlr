@@ -95,7 +95,7 @@ class EcsTlrApiTest extends BaseIT {
       .totalRecords(2)
       .instances(List.of(
         new Instance().id(INSTANCE_ID)
-          .tenantId(TENANT_ID_DIKU)
+          .tenantId(TENANT_ID_CONSORTIUM)
           .items(List.of(
             buildItem(randomId(), TENANT_ID_UNIVERSITY, "Checked out"),
             buildItem(randomId(), TENANT_ID_UNIVERSITY, "In transit"),
@@ -129,7 +129,7 @@ class EcsTlrApiTest extends BaseIT {
 
     // requester exists in local tenant
     wireMockServer.stubFor(WireMock.get(urlMatching(USERS_URL + "/" + requesterId))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_DIKU))
+      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM))
       .willReturn(jsonResponse(mockUser, HttpStatus.SC_OK)));
 
     ResponseDefinitionBuilder mockGetShadowUserResponse = shadowUserExists
@@ -149,7 +149,7 @@ class EcsTlrApiTest extends BaseIT {
       .willReturn(jsonResponse(asJsonString(mockInstanceRequestResponse), HttpStatus.SC_CREATED)));
 
     wireMockServer.stubFor(WireMock.post(urlMatching(REQUESTS_URL))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_DIKU))
+      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM))
       .willReturn(jsonResponse(asJsonString(mockRequestResponse), HttpStatus.SC_CREATED)));
 
     // 3. Create ECS TLR
@@ -159,19 +159,19 @@ class EcsTlrApiTest extends BaseIT {
       .secondaryRequestTenantId(TENANT_ID_COLLEGE)
       .itemId(availableItemId);
 
-    assertEquals(TENANT_ID_DIKU, getCurrentTenantId());
-    doPostWithTenant(TLR_URL, ecsTlr, TENANT_ID_DIKU)
+    assertEquals(TENANT_ID_CONSORTIUM, getCurrentTenantId());
+    doPostWithTenant(TLR_URL, ecsTlr, TENANT_ID_CONSORTIUM)
       .expectStatus().isCreated()
       .expectBody().json(asJsonString(expectedPostEcsTlrResponse), true);
-    assertEquals(TENANT_ID_DIKU, getCurrentTenantId());
+    assertEquals(TENANT_ID_CONSORTIUM, getCurrentTenantId());
 
     // 4. Verify calls to other modules
 
     wireMockServer.verify(getRequestedFor(urlMatching(SEARCH_INSTANCES_URL))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_DIKU)));
+      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM)));
 
     wireMockServer.verify(getRequestedFor(urlMatching(USERS_URL + "/" + requesterId))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_DIKU)));
+      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM)));
 
     wireMockServer.verify(getRequestedFor(urlMatching(USERS_URL + "/" + requesterId))
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE)));
@@ -181,7 +181,7 @@ class EcsTlrApiTest extends BaseIT {
       .withRequestBody(equalToJson(ecsTlrJson)));
 
     wireMockServer.verify(postRequestedFor(urlMatching(REQUESTS_URL))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_DIKU))
+      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM))
       .withRequestBody(equalToJson(asJsonString(mockRequestResponse))));
 
     if (shadowUserExists) {
@@ -216,7 +216,7 @@ class EcsTlrApiTest extends BaseIT {
       .expectStatus().isEqualTo(500);
 
     wireMockServer.verify(getRequestedFor(urlMatching(SEARCH_INSTANCES_URL))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_DIKU)));
+      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM)));
 
     wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(USERS_URL)));
   }
@@ -229,7 +229,7 @@ class EcsTlrApiTest extends BaseIT {
       .totalRecords(2)
       .instances(List.of(
         new Instance().id(INSTANCE_ID)
-          .tenantId(TENANT_ID_DIKU)
+          .tenantId(TENANT_ID_CONSORTIUM)
           .items(List.of(buildItem(randomId(), TENANT_ID_UNIVERSITY, "Available")))
       ));
 
@@ -243,10 +243,10 @@ class EcsTlrApiTest extends BaseIT {
       .expectStatus().isEqualTo(500);
 
     wireMockServer.verify(getRequestedFor(urlMatching(SEARCH_INSTANCES_URL))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_DIKU)));
+      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM)));
 
     wireMockServer.verify(getRequestedFor(urlMatching(USERS_URL + "/" + requesterId))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_DIKU)));
+      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM)));
   }
 
 
