@@ -49,7 +49,7 @@ public class ItemStatusBasedTenantPickingStrategy implements TenantPickingStrate
           .thenComparing(comparingLong((Entry<String, Map<String, Long>> entry) -> countItems(
             entry, s -> true)).reversed()))
       .map(Entry::getKey)
-      .collect(Collectors.toList());
+      .toList();
 
     if (sortedTenantIds.isEmpty()) {
       log.warn("pickTenant:: failed to pick tenant for instance {}", instanceId);
