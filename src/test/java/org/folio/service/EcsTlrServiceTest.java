@@ -10,9 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 import org.folio.domain.dto.EcsTlr;
@@ -93,7 +91,7 @@ class EcsTlrServiceTest {
 
     when(ecsTlrRepository.save(any(EcsTlrEntity.class))).thenReturn(mockEcsTlrEntity);
     when(tenantPickingStrategy.pickTenants(any(String.class)))
-      .thenReturn(Set.of("random-tenant"));
+      .thenReturn(List.of("random-tenant"));
     when(tenantScopedExecutionService.execute(any(String.class), any()))
       .thenReturn(new Request().id(UUID.randomUUID().toString()));
     var postEcsTlr = ecsTlrService.create(ecsTlr);
@@ -120,7 +118,7 @@ class EcsTlrServiceTest {
   @Test
   void canNotCreateRemoteRequestWhenFailedToPickTenant() {
     when(tenantPickingStrategy.pickTenants(any(String.class)))
-      .thenReturn(Collections.emptySet());
+      .thenReturn(Collections.emptyList());
     String instanceId = UUID.randomUUID().toString();
     EcsTlr ecsTlr = new EcsTlr().instanceId(instanceId);
 
@@ -140,8 +138,8 @@ class EcsTlrServiceTest {
     String secondTenantId = UUID.randomUUID().toString();
     String thirdTenantId = UUID.randomUUID().toString();
 
-    Set<String> mockTenantIds = new LinkedHashSet<>(List.of(
-      firstTenantId, secondTenantId, thirdTenantId));
+    List<String> mockTenantIds = List.of(
+      firstTenantId, secondTenantId, thirdTenantId);
     when(tenantPickingStrategy.pickTenants(any(String.class)))
       .thenReturn(mockTenantIds);
     when(tenantScopedExecutionService.execute(any(), any()))
