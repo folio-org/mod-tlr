@@ -62,8 +62,8 @@ class ItemStatusBasedTenantPickingStrategyTest {
       Arguments.of(Set.of("a"), buildInstance(buildItem("a", "In transit"))),
       Arguments.of(Set.of("a"), buildInstance(buildItem("a", "Paged"))),
 
-      // multiple tenants, same item status, tenant with most items wins
-      Arguments.of(Set.of("b"), buildInstance(
+      // multiple tenants, same item status, tenant should be sorted by number of items
+      Arguments.of(Set.of("b", "c", "a"), buildInstance(
         buildItem("a", "Available"),
         buildItem("b", "Available"),
         buildItem("b", "Available"),
@@ -71,15 +71,15 @@ class ItemStatusBasedTenantPickingStrategyTest {
         buildItem("c", "Available"),
         buildItem("c", "Available")
       )),
-      Arguments.of(Set.of("b"), buildInstance(
+      Arguments.of(Set.of("a", "c", "b"), buildInstance(
         buildItem("a", "Checked out"),
-        buildItem("b", "Checked out"),
-        buildItem("b", "Checked out"),
+        buildItem("a", "Checked out"),
+        buildItem("a", "Checked out"),
         buildItem("b", "Checked out"),
         buildItem("c", "Checked out"),
         buildItem("c", "Checked out")
       )),
-      Arguments.of(Set.of("b"), buildInstance(
+      Arguments.of(Set.of("b", "c", "a"), buildInstance(
         buildItem("a", "In transit"),
         buildItem("b", "In transit"),
         buildItem("b", "In transit"),
@@ -87,11 +87,11 @@ class ItemStatusBasedTenantPickingStrategyTest {
         buildItem("c", "In transit"),
         buildItem("c", "In transit")
       )),
-      Arguments.of(Set.of("b"), buildInstance(
+      Arguments.of(Set.of("c", "b", "a"), buildInstance(
         buildItem("a", "Paged"),
         buildItem("b", "Paged"),
         buildItem("b", "Paged"),
-        buildItem("b", "Paged"),
+        buildItem("c", "Paged"),
         buildItem("c", "Paged"),
         buildItem("c", "Paged")
       )),
@@ -105,7 +105,7 @@ class ItemStatusBasedTenantPickingStrategyTest {
         buildItem("c", "Checked out"),
         buildItem("c", "In transit")
       )),
-      Arguments.of(new LinkedHashSet<>(List.of("c", "a")), buildInstance(
+      Arguments.of(new LinkedHashSet<>(List.of("b", "c", "a")), buildInstance(
         buildItem("a", "Paged"),
         buildItem("a", "Awaiting pickup"),
         buildItem("a", "Awaiting delivery"),
@@ -119,7 +119,7 @@ class ItemStatusBasedTenantPickingStrategyTest {
         buildItem("c", "In transit"),
         buildItem("c", "In transit")
       )),
-      Arguments.of(Set.of("a"), buildInstance(
+      Arguments.of(Set.of("a", "c", "b"), buildInstance(
         buildItem("a", "Paged"),
         buildItem("a", "Awaiting pickup"),
         buildItem("a", "Awaiting delivery"),
