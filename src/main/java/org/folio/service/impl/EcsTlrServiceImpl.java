@@ -48,7 +48,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
         return createRequest(ecsTlr, tenantId);
       } catch (Exception e) {
         log.error("create:: cannot create a request for tenantId: {}, {}", tenantId, e.getMessage());
-        log.debug("create:: cannot create a request for tenantId: {}, {}", tenantId, e);
+        log.debug("create:: cannot create a request for tenantId: {}", tenantId, e);
       }
     }
     log.error("create:: failed to find tenants for instance: {}", instanceId);
