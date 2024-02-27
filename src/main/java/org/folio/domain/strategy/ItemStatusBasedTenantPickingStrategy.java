@@ -41,7 +41,7 @@ public class ItemStatusBasedTenantPickingStrategy implements TenantPickingStrate
 
   @Override
   public List<String> findTenants(String instanceId) {
-    log.info("findTenants:: picking tenants for a TLR for instance {}", instanceId);
+    log.info("findTenants:: find tenants for a TLR for instance {}", instanceId);
 
     var itemStatusOccurrencesByTenant = getItemStatusOccurrencesByTenant(instanceId);
     log.info("findTenants:: item status occurrences by tenant: {}", itemStatusOccurrencesByTenant);
@@ -55,7 +55,7 @@ public class ItemStatusBasedTenantPickingStrategy implements TenantPickingStrate
       .toList();
 
     if (sortedTenantIds.isEmpty()) {
-      log.warn("findTenants:: failed to pick tenant for instance {}", instanceId);
+      log.warn("findTenants:: failed to find tenant for instance {}", instanceId);
     } else {
       log.info("findTenants:: tenant for instance {} found: {}", instanceId, sortedTenantIds);
     }

@@ -10,7 +10,6 @@ import org.folio.domain.dto.Request;
 import org.folio.domain.mapper.EcsTlrMapper;
 import org.folio.domain.strategy.TenantPickingStrategy;
 import org.folio.exception.TenantPickingException;
-import org.folio.exception.TenantScopedExecutionException;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.EcsTlrService;
 import org.folio.service.TenantScopedExecutionService;
@@ -47,12 +46,13 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     for (String tenantId : tenantIds) {
       try {
         return createRequest(ecsTlr, tenantId);
-      } catch (TenantScopedExecutionException e) {
-        log.error("create:: cannot create a request for tenantId: {}", tenantId);
+      } catch (Exception e) {
+        log.error("create:: cannot create a request for tenantId: {}, {}", tenantId, e.getMessage());
+        log.debug("create:: cannot create a request for tenantId: {}, {}", tenantId, e);
       }
     }
-    log.error("create:: failed to pick tenant for instance: {}", instanceId);
-    throw new TenantPickingException("Failed to pick tenant for instance " + instanceId);
+    log.error("create:: failed to find tenants for instance: {}", instanceId);
+    throw new TenantPickingException("Failed to find tenants for instance " + instanceId);
   }
 
   @Override

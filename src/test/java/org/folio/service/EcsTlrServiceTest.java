@@ -125,7 +125,7 @@ class EcsTlrServiceTest {
     TenantPickingException exception = assertThrows(TenantPickingException.class,
       () -> ecsTlrService.create(ecsTlr));
 
-    assertEquals("Failed to pick tenant for instance " + instanceId, exception.getMessage());
+    assertEquals("Failed to find tenants for instance " + instanceId, exception.getMessage());
   }
 
   @Test
