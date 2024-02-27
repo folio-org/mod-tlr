@@ -43,7 +43,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     log.debug("create:: parameters ecsTlr: {}", () -> ecsTlr);
     final String instanceId = ecsTlr.getInstanceId();
 
-    List<String> tenantIds = tenantPickingStrategy.pickTenants(instanceId);
+    List<String> tenantIds = tenantPickingStrategy.findTenants(instanceId);
     for (String tenantId : tenantIds) {
       try {
         return createRequest(ecsTlr, tenantId);

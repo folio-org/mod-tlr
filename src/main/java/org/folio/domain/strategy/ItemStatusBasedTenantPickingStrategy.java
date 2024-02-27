@@ -1,5 +1,6 @@
 package org.folio.domain.strategy;
 
+import static com.google.common.base.Predicates.alwaysTrue;
 import static com.google.common.base.Predicates.notNull;
 import static java.util.Comparator.comparingLong;
 import static java.util.function.Function.identity;
@@ -7,19 +8,25 @@ import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.counting;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Collectors.toSet;
+import static org.folio.domain.dto.ItemStatusEnum.AVAILABLE;
+import static org.folio.domain.dto.ItemStatusEnum.CHECKED_OUT;
+import static org.folio.domain.dto.ItemStatusEnum.IN_TRANSIT;
 
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import org.folio.client.feign.SearchClient;
 import org.folio.domain.dto.Instance;
 import org.folio.domain.dto.Item;
 import org.folio.domain.dto.ItemStatus;
+import org.folio.domain.dto.ItemStatusEnum;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
@@ -33,28 +40,24 @@ public class ItemStatusBasedTenantPickingStrategy implements TenantPickingStrate
   private final SearchClient searchClient;
 
   @Override
-  public List<String> pickTenants(String instanceId) {
-    log.info("pickTenant:: picking tenant for a TLR for instance {}", instanceId);
+  public List<String> findTenants(String instanceId) {
+    log.info("findTenants:: picking tenants for a TLR for instance {}", instanceId);
 
     var itemStatusOccurrencesByTenant = getItemStatusOccurrencesByTenant(instanceId);
-    log.info("pickTenant:: item status occurrences by tenant: {}", itemStatusOccurrencesByTenant);
+    log.info("findTenants:: item status occurrences by tenant: {}", itemStatusOccurrencesByTenant);
 
     List<String> sortedTenantIds = itemStatusOccurrencesByTenant.entrySet()
       .stream()
-      .sorted(
-        comparingLong((Entry<String, Map<String, Long>> entry) -> countItems(
-            entry, Set.of("Available")::contains)).reversed()
-          .thenComparing(comparingLong((Entry<String, Map<String, Long>> entry) -> countItems(
-            entry, Set.of("Checked out", "In transit")::contains)).reversed())
-          .thenComparing(comparingLong((Entry<String, Map<String, Long>> entry) -> countItems(
-            entry, s -> true)).reversed()))
+      .sorted(compareByItemCount(AVAILABLE)
+        .thenComparing(compareByItemCount(CHECKED_OUT, IN_TRANSIT))
+        .thenComparing(compareByItemCount(alwaysTrue())))
       .map(Entry::getKey)
       .toList();
 
     if (sortedTenantIds.isEmpty()) {
-      log.warn("pickTenant:: failed to pick tenant for instance {}", instanceId);
+      log.warn("findTenants:: failed to pick tenant for instance {}", instanceId);
     } else {
-      log.info("pickTenant:: tenant for instance {} found: {}", instanceId, sortedTenantIds);
+      log.info("findTenants:: tenant for instance {} found: {}", instanceId, sortedTenantIds);
     }
 
     return sortedTenantIds;
@@ -89,15 +92,26 @@ public class ItemStatusBasedTenantPickingStrategy implements TenantPickingStrate
       ));
   }
 
-  private static long countItems(Entry<String, Map<String, Long>> itemStatuses,
-    Predicate<String> statusPredicate) {
+  private static Comparator<Entry<String, Map<String, Long>>> compareByItemCount(
+    ItemStatusEnum... desiredStatuses) {
 
-    return itemStatuses.getValue()
+    Set<String> statusStrings = Arrays.stream(desiredStatuses)
+      .map(ItemStatusEnum::getValue)
+      .collect(toSet());
+
+    return compareByItemCount(statusStrings::contains);
+  }
+
+  private static Comparator<Entry<String, Map<String, Long>>> compareByItemCount(
+    Predicate<String> statusFilter) {
+
+    return comparingLong((Entry<String, Map<String, Long>> entry) -> entry.getValue()
       .entrySet()
       .stream()
-      .filter(entry -> statusPredicate.test(entry.getKey()))
-      .map(Map.Entry::getValue)
-      .reduce(0L, Long::sum);
+      .filter(e -> statusFilter.test(e.getKey()))
+      .map(Entry::getValue)
+      .reduce(0L, Long::sum))
+      .reversed();
   }
 
 }

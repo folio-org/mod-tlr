@@ -90,7 +90,7 @@ class EcsTlrServiceTest {
     ecsTlr.setPickupServicePointId(pickupServicePointId.toString());
 
     when(ecsTlrRepository.save(any(EcsTlrEntity.class))).thenReturn(mockEcsTlrEntity);
-    when(tenantPickingStrategy.pickTenants(any(String.class)))
+    when(tenantPickingStrategy.findTenants(any(String.class)))
       .thenReturn(List.of("random-tenant"));
     when(tenantScopedExecutionService.execute(any(String.class), any()))
       .thenReturn(new Request().id(UUID.randomUUID().toString()));
@@ -117,7 +117,7 @@ class EcsTlrServiceTest {
 
   @Test
   void canNotCreateRemoteRequestWhenFailedToPickTenant() {
-    when(tenantPickingStrategy.pickTenants(any(String.class)))
+    when(tenantPickingStrategy.findTenants(any(String.class)))
       .thenReturn(Collections.emptyList());
     String instanceId = UUID.randomUUID().toString();
     EcsTlr ecsTlr = new EcsTlr().instanceId(instanceId);
@@ -140,7 +140,7 @@ class EcsTlrServiceTest {
 
     List<String> mockTenantIds = List.of(
       firstTenantId, secondTenantId, thirdTenantId);
-    when(tenantPickingStrategy.pickTenants(any(String.class)))
+    when(tenantPickingStrategy.findTenants(any(String.class)))
       .thenReturn(mockTenantIds);
     when(tenantScopedExecutionService.execute(any(), any()))
       .thenThrow(new TenantScopedExecutionException(new RuntimeException("Test failure"), firstTenantId))
