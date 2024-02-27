@@ -55,9 +55,9 @@ public class ItemStatusBasedTenantPickingStrategy implements TenantPickingStrate
       .toList();
 
     if (sortedTenantIds.isEmpty()) {
-      log.warn("findTenants:: failed to find tenant for instance {}", instanceId);
+      log.warn("findTenants:: failed to find tenants for instance {}", instanceId);
     } else {
-      log.info("findTenants:: tenant for instance {} found: {}", instanceId, sortedTenantIds);
+      log.info("findTenants:: tenants for instance {} found: {}", instanceId, sortedTenantIds);
     }
 
     return sortedTenantIds;

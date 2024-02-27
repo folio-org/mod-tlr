@@ -1,5 +1,7 @@
 package org.folio.service.impl;
 
+import static java.lang.String.format;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -9,6 +11,7 @@ import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.Request;
 import org.folio.domain.mapper.EcsTlrMapper;
 import org.folio.domain.strategy.TenantPickingStrategy;
+import org.folio.exception.RequestCreatingException;
 import org.folio.exception.TenantPickingException;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.EcsTlrService;
@@ -43,16 +46,20 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     final String instanceId = ecsTlr.getInstanceId();
 
     List<String> tenantIds = tenantPickingStrategy.findTenants(instanceId);
+    if (tenantIds.isEmpty()) {
+      log.error("create:: failed to find tenants for instance: {}", instanceId);
+      throw new TenantPickingException("Failed to find tenants for instance " + instanceId);
+    }
     for (String tenantId : tenantIds) {
       try {
         return createRequest(ecsTlr, tenantId);
       } catch (Exception e) {
-        log.error("create:: cannot create a request for tenantId: {}, {}", tenantId, e.getMessage());
-        log.debug("create:: cannot create a request for tenantId: {}", tenantId, e);
+        log.error("create:: failed create a request for tenant {}: {}", tenantId, e.getMessage());
+        log.debug("create:: ", e);
       }
     }
-    log.error("create:: failed to find tenants for instance: {}", instanceId);
-    throw new TenantPickingException("Failed to find tenants for instance " + instanceId);
+    throw new RequestCreatingException(format(
+      "Failed to create a request for instanceId: %s in tenants: %s", instanceId, tenantIds));
   }
 
   @Override
