@@ -54,12 +54,12 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       try {
         return createRequest(ecsTlr, tenantId);
       } catch (Exception e) {
-        log.error("create:: failed create a request for tenant {}: {}", tenantId, e.getMessage());
+        log.error("create:: failed to create a request for tenant {}: {}", tenantId, e.getMessage());
         log.debug("create:: ", e);
       }
     }
     throw new RequestCreatingException(format(
-      "Failed to create a request for instanceId: %s in tenants: %s", instanceId, tenantIds));
+      "Failed to create a request for instanceId %s in tenants %s", instanceId, tenantIds));
   }
 
   @Override
