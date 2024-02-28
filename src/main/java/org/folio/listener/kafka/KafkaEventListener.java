@@ -16,7 +16,8 @@ public class KafkaEventListener {
   private final KafkaEventHandler eventHandler;
   private final SystemUserScopedExecutionService systemUserScopedExecutionService;
 
-  public KafkaEventListener(@Autowired KafkaEventHandler eventHandler, @Autowired SystemUserScopedExecutionService systemUserScopedExecutionService) {
+  public KafkaEventListener(@Autowired KafkaEventHandler eventHandler,
+                            @Autowired SystemUserScopedExecutionService systemUserScopedExecutionService) {
     this.eventHandler = eventHandler;
     this.systemUserScopedExecutionService = systemUserScopedExecutionService;
   }

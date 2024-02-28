@@ -27,7 +27,7 @@ public class KafkaEvent {
       setNewNode(jsonNode.get("data"));
       setOldNode(jsonNode.get("data"));
     } catch (Exception e) {
-      log.error("Could not parse input payload for processing event", e);
+      log.error("KafkaEvent:: could not parse input payload for processing event", e);
     }
   }
 
@@ -51,10 +51,6 @@ public class KafkaEvent {
     return newNode != null;
   }
 
-  public enum EventType {
-    UPDATED, CREATED
-  }
-
   public static UUID getUUIDFromNode(JsonNode node, String fieldName) {
     if (node == null || !node.has(fieldName)) {
       return null;
@@ -62,11 +58,16 @@ public class KafkaEvent {
     return UUID.fromString(node.get(fieldName).asText());
   }
 
-  public static List<String> getHeaderValue(MessageHeaders headers, String headerName, String defaultValue) {
+  public static List<String> getHeaderValue(MessageHeaders headers, String headerName,
+                                            String defaultValue) {
     var headerValue = headers.get(headerName);
     var value = headerValue == null
       ? defaultValue
       : new String((byte[]) headerValue, StandardCharsets.UTF_8);
     return value == null ? Collections.emptyList() : Collections.singletonList(value);
+  }
+
+  public enum EventType {
+    UPDATED, CREATED
   }
 }

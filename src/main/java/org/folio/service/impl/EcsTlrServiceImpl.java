@@ -71,24 +71,30 @@ public class EcsTlrServiceImpl implements EcsTlrService {
 
   @Override
   public void updateRequestItem(UUID secondaryRequestId, UUID itemId) {
-    log.debug("updateRequestItem:: parameters secondaryRequestId: {}, itemId: {}", secondaryRequestId, itemId);
+    log.debug("updateRequestItem:: parameters secondaryRequestId: {}, itemId: {}",
+      secondaryRequestId, itemId);
     ecsTlrRepository.findBySecondaryRequestId(secondaryRequestId).ifPresentOrElse(
       ecsTlr -> updateItemIfChanged(ecsTlr, itemId),
-      () -> log.error("updateRequestItem: ECS TLR with secondary request ID {} not found", secondaryRequestId));
+      () -> log.info("updateRequestItem: ECS TLR with secondary request ID {} not found",
+        secondaryRequestId));
   }
 
   private void updateItemIfChanged(EcsTlrEntity ecsTlr, UUID itemId) {
     if (!itemId.equals(ecsTlr.getItemId())) {
       ecsTlr.setItemId(itemId);
       ecsTlrRepository.save(ecsTlr);
-      log.info("updateItemIfChanged: ECS TLR with secondary request ID: {} is updated", ecsTlr.getSecondaryRequestId());
+      log.info("updateItemIfChanged: ECS TLR with secondary request ID: {} is updated",
+        ecsTlr.getSecondaryRequestId());
     } else {
-      log.info("updateItemIfChanged: ECS TLR with secondary request ID: {} is already updated", ecsTlr.getSecondaryRequestId());
+      log.info(
+        "updateItemIfChanged: ECS TLR with secondary request ID: {} is already updated",
+        ecsTlr.getSecondaryRequestId());
     }
   }
 
   private EcsTlr createRequest(EcsTlr ecsTlr, String tenantId) {
-    log.info("createRequest:: creating request for ECS TLR {} in tenant {}", ecsTlr.getId(), tenantId);
+    log.info("createRequest:: creating request for ECS TLR {} in tenant {}",
+      ecsTlr.getId(), tenantId);
 
     Request mappedRequest = requestsMapper.mapDtoToRequest(ecsTlr);
     Request createdRequest = tenantScopedExecutionService.execute(tenantId,

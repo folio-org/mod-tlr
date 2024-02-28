@@ -18,7 +18,8 @@ public class CustomTenantService extends TenantService {
   private final PrepareSystemUserService systemUserService;
 
   public CustomTenantService(JdbcTemplate jdbcTemplate, FolioExecutionContext context,
-                             FolioSpringLiquibase folioSpringLiquibase, PrepareSystemUserService systemUserService) {
+                             FolioSpringLiquibase folioSpringLiquibase,
+                             PrepareSystemUserService systemUserService) {
     super(jdbcTemplate, context, folioSpringLiquibase);
     this.systemUserService = systemUserService;
   }
