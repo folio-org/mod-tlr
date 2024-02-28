@@ -40,9 +40,8 @@ public class EcsTlrServiceImpl implements EcsTlrService {
 
   @Override
   public EcsTlr create(EcsTlr ecsTlr) {
-    final String requesterId = ecsTlr.getRequesterId();
     log.info("create:: creating ECS TLR {} for instance {} and requester {}", ecsTlr.getId(),
-      ecsTlr.getInstanceId(), requesterId);
+      ecsTlr.getInstanceId(), ecsTlr.getRequesterId());
 
     String borrowingTenantId = getBorrowingTenant(ecsTlr);
     Collection<String> lendingTenantIds = getLendingTenants(ecsTlr);
@@ -79,8 +78,8 @@ public class EcsTlrServiceImpl implements EcsTlrService {
 
   private String getBorrowingTenant(EcsTlr ecsTlr) {
     log.info("getBorrowingTenant:: getting borrowing tenant");
-    final String borrowingTenantId = tenantService.getBorrowingTenant(ecsTlr).orElseThrow(
-      () -> new TenantPickingException("Failed to get borrowing tenant"));
+    final String borrowingTenantId = tenantService.getBorrowingTenant(ecsTlr)
+      .orElseThrow(() -> new TenantPickingException("Failed to get borrowing tenant"));
     log.info("getBorrowingTenant:: borrowing tenant: {}", borrowingTenantId);
 
     return borrowingTenantId;
@@ -130,7 +129,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       .itemId(secondaryRequest.request().getItemId());
 
     log.info("updateEcsTlr:: ECS TLR updated in memory");
-    log.debug("updateEcsTlr:: ECS TLR: {}", ecsTlr);
+    log.debug("updateEcsTlr:: ECS TLR: {}", () -> ecsTlr);
   }
 
 }
