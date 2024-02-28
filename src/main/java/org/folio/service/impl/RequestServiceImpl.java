@@ -34,7 +34,7 @@ public class RequestServiceImpl implements RequestService {
       () -> circulationClient.createRequest(request));
     log.info("createPrimaryRequest:: primary request {} created in borrowing tenant {}",
       requestId, borrowingTenantId);
-    log.debug("createPrimaryRequest:: request: {}", () -> primaryRequest);
+    log.debug("createPrimaryRequest:: primary request: {}", () -> primaryRequest);
 
     return new RequestWrapper(primaryRequest, borrowingTenantId);
   }
@@ -58,14 +58,14 @@ public class RequestServiceImpl implements RequestService {
         userService.createShadowUser(realRequester, lendingTenantId);
         return createSecondaryRequest(request, lendingTenantId);
       } catch (Exception e) {
-        log.error("create:: failed to create secondary request in lending tenant {}: {}",
+        log.error("createSecondaryRequest:: failed to create secondary request in lending tenant {}: {}",
           lendingTenantId, e.getMessage());
-        log.debug("create:: ", e);
+        log.debug("createSecondaryRequest:: ", e);
       }
     }
 
     String errorMessage = format(
-      "Failed to create secondary request for instanceId %s in all potential lending tenants: %s",
+      "Failed to create secondary request for instance %s in all potential lending tenants: %s",
       request.getInstanceId(), lendingTenantIds);
     log.error("createSecondaryRequest:: {}", errorMessage);
     throw new RequestCreatingException(errorMessage);
@@ -79,7 +79,7 @@ public class RequestServiceImpl implements RequestService {
       () -> circulationClient.createInstanceRequest(request));
     log.info("createSecondaryRequest:: secondary request {} created in lending tenant {}",
       requestId, lendingTenantId);
-    log.debug("createSecondaryRequest:: request: {}", () -> secondaryRequest);
+    log.debug("createSecondaryRequest:: secondary request: {}", () -> secondaryRequest);
 
     return new RequestWrapper(secondaryRequest, lendingTenantId);
   }

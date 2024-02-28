@@ -1,7 +1,6 @@
 package org.folio.service.impl;
 
 import java.util.Optional;
-import java.util.function.Supplier;
 
 import org.folio.client.feign.UsersClient;
 import org.folio.domain.dto.User;
@@ -32,7 +31,7 @@ public class UserServiceImpl implements UserService {
       log.info("createShadowUser:: user {} already exists in tenant {}", userId, tenantId);
       return user;
     } catch (TenantScopedExecutionException e) {
-      log.warn("findOrCreateUser:: failed to find user {} in tenant {}", userId, tenantId);
+      log.warn("createShadowUser:: failed to find user {} in tenant {}", userId, tenantId);
       return Optional.ofNullable(e.getCause())
         .filter(FeignException.NotFound.class::isInstance)
         .map(ignored -> createUser(buildShadowUser(realUser), tenantId))
