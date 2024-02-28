@@ -4,7 +4,6 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 import org.folio.client.feign.UsersClient;
-import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.User;
 import org.folio.domain.dto.UserPersonal;
 import org.folio.domain.dto.UserType;
@@ -25,34 +24,23 @@ public class UserServiceImpl implements UserService {
   private final UsersClient usersClient;
   private final TenantScopedExecutionService tenantScopedExecutionService;
 
-  public User createShadowUser(EcsTlr ecsTlr, String borrowingTenantId, String lendingTenantId) {
-    final String requesterId = ecsTlr.getRequesterId();
-    log.info("createShadowUser:: attempting to create shadow user for ECS TLR {}: " +
-        "requesterId={}, borrowingTenantId={}, lendingTenantId={}", ecsTlr.getId(), requesterId,
-      borrowingTenantId, lendingTenantId);
-
-    log.info("createShadowUser:: looking up user {} in borrowing tenant ({})", requesterId, borrowingTenantId);
-    User realUser = findUser(requesterId, borrowingTenantId);
-
-    log.info("createShadowUser:: looking up user {} in lending tenant ({})", requesterId, lendingTenantId);
-    return findOrCreateUser(requesterId, lendingTenantId, () -> buildShadowUser(realUser));
-  }
-
-  private User findOrCreateUser(String userId, String tenantId, Supplier<User> userSupplier) {
+  public User createShadowUser(User realUser, String tenantId) {
+    final String userId = realUser.getId();
+    log.info("createShadowUser:: creating shadow user {} in tenant {}", userId, tenantId);
     try {
       User user = findUser(userId, tenantId);
-      log.info("findOrCreateUser:: user {} already exists in tenant {}", userId, tenantId);
+      log.info("createShadowUser:: user {} already exists in tenant {}", userId, tenantId);
       return user;
     } catch (TenantScopedExecutionException e) {
       log.warn("findOrCreateUser:: failed to find user {} in tenant {}", userId, tenantId);
       return Optional.ofNullable(e.getCause())
         .filter(FeignException.NotFound.class::isInstance)
-        .map(cause -> createUser(userSupplier.get(), tenantId))
+        .map(ignored -> createUser(buildShadowUser(realUser), tenantId))
         .orElseThrow(() -> e);
     }
   }
 
-  private User findUser(String userId, String tenantId) {
+  public User findUser(String userId, String tenantId) {
     log.info("findUser:: looking up user {} in tenant {}", userId, tenantId);
     User user = tenantScopedExecutionService.execute(tenantId, () -> usersClient.getUser(userId));
     log.info("findUser:: user {} found in tenant {}", userId, tenantId);

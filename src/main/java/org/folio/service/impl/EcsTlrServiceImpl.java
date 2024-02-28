@@ -1,18 +1,20 @@
 package org.folio.service.impl;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.Request;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.domain.mapper.EcsTlrMapper;
-import org.folio.service.TenantService;
 import org.folio.exception.TenantPickingException;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.EcsTlrService;
 import org.folio.service.RequestService;
-import org.folio.service.UserService;
+import org.folio.service.TenantService;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -26,7 +28,6 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   private final EcsTlrRepository ecsTlrRepository;
   private final EcsTlrMapper requestsMapper;
   private final TenantService tenantService;
-  private final UserService userService;
   private final RequestService requestService;
 
   @Override
@@ -39,23 +40,17 @@ public class EcsTlrServiceImpl implements EcsTlrService {
 
   @Override
   public EcsTlr create(EcsTlr ecsTlr) {
+    final String requesterId = ecsTlr.getRequesterId();
     log.info("create:: creating ECS TLR {} for instance {} and requester {}", ecsTlr.getId(),
-      ecsTlr.getInstanceId(), ecsTlr.getRequesterId());
+      ecsTlr.getInstanceId(), requesterId);
 
-    final String borrowingTenantId = pickBorrowingTenant(ecsTlr);
-    final String lendingTenantId = pickLendingTenant(ecsTlr);
-
-    userService.createShadowUser(ecsTlr, borrowingTenantId, lendingTenantId);
-    Request secondaryRequest = requestService.createSecondaryRequest(
-      requestsMapper.mapDtoToRequest(ecsTlr), lendingTenantId);
-    Request primaryRequest = requestService.createPrimaryRequest(
-      buildPrimaryRequest(secondaryRequest), borrowingTenantId);
-
-    ecsTlr.primaryRequestTenantId(borrowingTenantId)
-      .primaryRequestId(primaryRequest.getId())
-      .secondaryRequestTenantId(lendingTenantId)
-      .secondaryRequestId(secondaryRequest.getId())
-      .itemId(secondaryRequest.getItemId());
+    String borrowingTenantId = getBorrowingTenant(ecsTlr);
+    Collection<String> lendingTenantIds = getLendingTenants(ecsTlr);
+    RequestWrapper secondaryRequest = requestService.createSecondaryRequest(
+      requestsMapper.mapDtoToRequest(ecsTlr), borrowingTenantId, lendingTenantIds);
+    RequestWrapper primaryRequest = requestService.createPrimaryRequest(
+      buildPrimaryRequest(secondaryRequest.request()), borrowingTenantId);
+    updateEcsTlr(ecsTlr, primaryRequest, secondaryRequest);
 
     return save(ecsTlr);
   }
@@ -82,22 +77,26 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     return false;
   }
 
-  private String pickBorrowingTenant(EcsTlr ecsTlr) {
-    log.info("pickBorrowingTenant:: picking borrowing tenant");
-    final String borrowingTenantId = tenantService.pickBorrowingTenant(ecsTlr).orElseThrow(
-      () -> new TenantPickingException("Failed to pick borrowing tenant"));
-    log.info("pickBorrowingTenant:: borrowing tenant picked: {}", borrowingTenantId);
+  private String getBorrowingTenant(EcsTlr ecsTlr) {
+    log.info("getBorrowingTenant:: getting borrowing tenant");
+    final String borrowingTenantId = tenantService.getBorrowingTenant(ecsTlr).orElseThrow(
+      () -> new TenantPickingException("Failed to get borrowing tenant"));
+    log.info("getBorrowingTenant:: borrowing tenant: {}", borrowingTenantId);
 
     return borrowingTenantId;
   }
 
-  private String pickLendingTenant(EcsTlr ecsTlr) {
-    log.info("pickLendingTenant:: picking lending tenant");
-    final String lendingTenantId = tenantService.pickLendingTenant(ecsTlr).orElseThrow(
-      () -> new TenantPickingException("Failed to pick lending tenant"));
-    log.info("pickLendingTenant:: lending tenant picked: {}", lendingTenantId);
+  private Collection<String> getLendingTenants(EcsTlr ecsTlr) {
+    final String instanceId = ecsTlr.getInstanceId();
+    log.info("getLendingTenants:: looking for lending tenants for instance {}", instanceId);
+    List<String> tenantIds = tenantService.getLendingTenants(ecsTlr);
+    if (tenantIds.isEmpty()) {
+      log.error("getLendingTenants:: failed to find lending tenants for instance: {}", instanceId);
+      throw new TenantPickingException("Failed to find lending tenants for instance " + instanceId);
+    }
 
-    return lendingTenantId;
+    log.info("getLendingTenants:: lending tenants found: {}", tenantIds);
+    return tenantIds;
   }
 
   private EcsTlr save(EcsTlr ecsTlr) {
@@ -118,6 +117,20 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       .requestLevel(Request.RequestLevelEnum.TITLE)
       .requestType(Request.RequestTypeEnum.HOLD)
       .fulfillmentPreference(Request.FulfillmentPreferenceEnum.HOLD_SHELF);
+  }
+
+  private static void updateEcsTlr(EcsTlr ecsTlr, RequestWrapper primaryRequest,
+    RequestWrapper secondaryRequest) {
+
+    log.info("updateEcsTlr:: updating ECS TLR in memory");
+    ecsTlr.primaryRequestTenantId(primaryRequest.tenantId())
+      .primaryRequestId(primaryRequest.request().getId())
+      .secondaryRequestTenantId(secondaryRequest.tenantId())
+      .secondaryRequestId(secondaryRequest.request().getId())
+      .itemId(secondaryRequest.request().getItemId());
+
+    log.info("updateEcsTlr:: ECS TLR updated in memory");
+    log.debug("updateEcsTlr:: ECS TLR: {}", ecsTlr);
   }
 
 }
