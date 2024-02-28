@@ -16,6 +16,7 @@ public class KafkaEvent {
   private static final ObjectMapper objectMapper = new ObjectMapper();
   public static final String STATUS = "status";
   public static final String ITEM_ID = "itemId";
+  private String eventId;
   private EventType eventType;
   private JsonNode newNode;
   private JsonNode oldNode;
@@ -23,6 +24,7 @@ public class KafkaEvent {
   public KafkaEvent(String eventPayload) {
     try {
       JsonNode jsonNode = objectMapper.readTree(eventPayload);
+      setEventId(jsonNode.get("id").asText());
       setEventType(jsonNode.get("type").asText());
       setNewNode(jsonNode.get("data"));
       setOldNode(jsonNode.get("data"));
@@ -65,6 +67,10 @@ public class KafkaEvent {
       ? defaultValue
       : new String((byte[]) headerValue, StandardCharsets.UTF_8);
     return value == null ? Collections.emptyList() : Collections.singletonList(value);
+  }
+
+  public void setEventId(String eventId) {
+    this.eventId = eventId;
   }
 
   public enum EventType {
