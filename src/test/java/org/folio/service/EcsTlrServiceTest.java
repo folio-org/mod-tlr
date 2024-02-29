@@ -5,10 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Optional;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 import org.folio.domain.dto.EcsTlr;
@@ -18,11 +20,13 @@ import org.folio.domain.mapper.EcsTlrMapper;
 import org.folio.domain.mapper.EcsTlrMapperImpl;
 import org.folio.domain.strategy.TenantPickingStrategy;
 import org.folio.exception.TenantPickingException;
+import org.folio.exception.TenantScopedExecutionException;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.impl.EcsTlrServiceImpl;
 import org.joda.time.DateTime;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -86,8 +90,8 @@ class EcsTlrServiceTest {
     ecsTlr.setPickupServicePointId(pickupServicePointId.toString());
 
     when(ecsTlrRepository.save(any(EcsTlrEntity.class))).thenReturn(mockEcsTlrEntity);
-    when(tenantPickingStrategy.pickTenant(any(String.class)))
-      .thenReturn(Optional.of("random-tenant"));
+    when(tenantPickingStrategy.findTenants(any(String.class)))
+      .thenReturn(List.of("random-tenant"));
     when(tenantScopedExecutionService.execute(any(String.class), any()))
       .thenReturn(new Request().id(UUID.randomUUID().toString()));
     var postEcsTlr = ecsTlrService.create(ecsTlr);
@@ -113,14 +117,39 @@ class EcsTlrServiceTest {
 
   @Test
   void canNotCreateRemoteRequestWhenFailedToPickTenant() {
-    when(tenantPickingStrategy.pickTenant(any(String.class)))
-      .thenReturn(Optional.empty());
+    when(tenantPickingStrategy.findTenants(any(String.class)))
+      .thenReturn(Collections.emptyList());
     String instanceId = UUID.randomUUID().toString();
     EcsTlr ecsTlr = new EcsTlr().instanceId(instanceId);
 
     TenantPickingException exception = assertThrows(TenantPickingException.class,
       () -> ecsTlrService.create(ecsTlr));
 
-    assertEquals("Failed to pick tenant for instance " + instanceId, exception.getMessage());
+    assertEquals("Failed to find tenants for instance " + instanceId, exception.getMessage());
+  }
+
+  @Test
+  void canCreateRemoteRequestOnlyForSecondTenantId() {
+    String instanceId = UUID.randomUUID().toString();
+    EcsTlr ecsTlr = new EcsTlr()
+      .instanceId(instanceId)
+      .id(UUID.randomUUID().toString());
+    String firstTenantId = UUID.randomUUID().toString();
+    String secondTenantId = UUID.randomUUID().toString();
+    String thirdTenantId = UUID.randomUUID().toString();
+
+    List<String> mockTenantIds = List.of(
+      firstTenantId, secondTenantId, thirdTenantId);
+    when(tenantPickingStrategy.findTenants(any(String.class)))
+      .thenReturn(mockTenantIds);
+    when(tenantScopedExecutionService.execute(any(), any()))
+      .thenThrow(new TenantScopedExecutionException(new RuntimeException("Test failure"), firstTenantId))
+      .thenReturn(new Request().id(UUID.randomUUID().toString()))
+      .thenReturn(new Request().id(UUID.randomUUID().toString()));
+    ecsTlrService.create(ecsTlr);
+
+    ArgumentCaptor<EcsTlrEntity> captor = ArgumentCaptor.forClass(EcsTlrEntity.class);
+    verify(ecsTlrRepository, times(1)).save(captor.capture());
+    assertEquals(secondTenantId, captor.getValue().getSecondaryRequestTenantId());
   }
 }
