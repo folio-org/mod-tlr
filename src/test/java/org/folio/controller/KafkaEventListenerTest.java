@@ -14,29 +14,42 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.awaitility.Awaitility;
+import org.folio.api.BaseIT;
+import org.folio.repository.EcsTlrRepository;
+import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-
 import lombok.SneakyThrows;
+import static org.folio.support.MockDataUtils.ITEM_ID;
+import static org.folio.support.MockDataUtils.SECONDARY_REQUEST_ID;
+import static org.folio.support.MockDataUtils.getEcsTlrEntity;
+import static org.folio.support.MockDataUtils.getMockDataAsString;
 
-@SpringBootTest
-@Testcontainers
-class KafkaEventListenerTest {
+class KafkaEventListenerTest extends BaseIT {
   private static final String ENV = "folio";
-  private static final String TENANT = "test_tenant";
   private static final String REQUEST_TOPIC_NAME = buildTopicName("circulation", "request");
   private static final String CONSUMER_GROUP_ID = "folio-mod-tlr-group";
-
   private static KafkaProducer<String, String> kafkaProducer;
   private static AdminClient kafkaAdminClient;
+
+  private static final String REQUEST_UPDATE_EVENT_SAMPLE = getMockDataAsString("mockdata/kafka/secondary_request_update_event.json");
+
+  private final EcsTlrRepository ecsTlrRepository;
+  private final SystemUserScopedExecutionService systemUserScopedExecutionService;
+
+  public KafkaEventListenerTest(@Autowired EcsTlrRepository ecsTlrRepository,
+                                @Autowired SystemUserScopedExecutionService systemUserScopedExecutionService) {
+    this.ecsTlrRepository = ecsTlrRepository;
+    this.systemUserScopedExecutionService = systemUserScopedExecutionService;
+  }
 
   @Container
   private static final KafkaContainer kafka = new KafkaContainer(
@@ -70,6 +83,23 @@ class KafkaEventListenerTest {
     publishEventAndWait(REQUEST_TOPIC_NAME, CONSUMER_GROUP_ID, "test message");
   }
 
+  @Test
+  void requestUpdateEventIsConsumed() {
+    systemUserScopedExecutionService.executeAsyncSystemUserScoped(
+      TENANT_ID_DIKU,
+      () -> {
+        ecsTlrRepository.save(getEcsTlrEntity());
+      });
+    publishEventAndWait(REQUEST_TOPIC_NAME, CONSUMER_GROUP_ID, REQUEST_UPDATE_EVENT_SAMPLE);
+    systemUserScopedExecutionService.executeAsyncSystemUserScoped(
+      TENANT_ID_DIKU,
+      () -> {
+        var updatedEcsTlr = ecsTlrRepository.findById(SECONDARY_REQUEST_ID);
+        assert(updatedEcsTlr).isPresent();
+        Assertions.assertEquals(updatedEcsTlr.get().getItemId(), ITEM_ID);
+      });
+  }
+
   @SneakyThrows
   private static int getOffset(String topic, String consumerGroup) {
     return kafkaAdminClient.listConsumerGroupOffsets(consumerGroup)
@@ -98,7 +128,7 @@ class KafkaEventListenerTest {
   }
 
   private static String buildTopicName(String module, String objectType) {
-    return buildTopicName(ENV, TENANT, module, objectType);
+    return buildTopicName(ENV, TENANT_ID_DIKU, module, objectType);
   }
 
   private static String buildTopicName(String env, String tenant, String module, String objectType) {
