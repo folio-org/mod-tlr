@@ -102,22 +102,24 @@ class EcsTlrApiTest extends BaseIT {
             buildItem(availableItemId, TENANT_ID_COLLEGE, "Available")))
       ));
 
-    Request mockInstanceRequestResponse = new Request()
+    Request mockSecondaryRequestResponse = new Request()
       .id(instanceRequestId)
       .requesterId(requesterId)
       .requestLevel(Request.RequestLevelEnum.TITLE)
       .requestType(Request.RequestTypeEnum.PAGE)
       .instanceId(INSTANCE_ID)
-      .itemId(availableItemId);
+      .itemId(availableItemId)
+      .pickupServicePointId(randomId());
 
-    Request mockRequestResponse = new Request()
-      .id(mockInstanceRequestResponse.getId())
+    Request mockPrimaryRequestResponse = new Request()
+      .id(mockSecondaryRequestResponse.getId())
       .instanceId(INSTANCE_ID)
       .requesterId(requesterId)
-      .requestDate(mockInstanceRequestResponse.getRequestDate())
+      .requestDate(mockSecondaryRequestResponse.getRequestDate())
       .requestLevel(Request.RequestLevelEnum.TITLE)
       .requestType(Request.RequestTypeEnum.HOLD)
-      .fulfillmentPreference(Request.FulfillmentPreferenceEnum.HOLD_SHELF);
+      .fulfillmentPreference(Request.FulfillmentPreferenceEnum.HOLD_SHELF)
+      .pickupServicePointId(mockSecondaryRequestResponse.getPickupServicePointId());
 
     User mockUser = buildUser(requesterId);
     User mockShadowUser = buildShadowUser(mockUser);
@@ -146,11 +148,11 @@ class EcsTlrApiTest extends BaseIT {
 
     wireMockServer.stubFor(WireMock.post(urlMatching(INSTANCE_REQUESTS_URL))
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE))
-      .willReturn(jsonResponse(asJsonString(mockInstanceRequestResponse), HttpStatus.SC_CREATED)));
+      .willReturn(jsonResponse(asJsonString(mockSecondaryRequestResponse), HttpStatus.SC_CREATED)));
 
     wireMockServer.stubFor(WireMock.post(urlMatching(REQUESTS_URL))
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM))
-      .willReturn(jsonResponse(asJsonString(mockRequestResponse), HttpStatus.SC_CREATED)));
+      .willReturn(jsonResponse(asJsonString(mockPrimaryRequestResponse), HttpStatus.SC_CREATED)));
 
     // 3. Create ECS TLR
 
@@ -182,7 +184,7 @@ class EcsTlrApiTest extends BaseIT {
 
     wireMockServer.verify(postRequestedFor(urlMatching(REQUESTS_URL))
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM))
-      .withRequestBody(equalToJson(asJsonString(mockRequestResponse))));
+      .withRequestBody(equalToJson(asJsonString(mockPrimaryRequestResponse))));
 
     if (shadowUserExists) {
       wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(USERS_URL)));

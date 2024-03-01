@@ -115,7 +115,8 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       .requestDate(secondaryRequest.getRequestDate())
       .requestLevel(Request.RequestLevelEnum.TITLE)
       .requestType(Request.RequestTypeEnum.HOLD)
-      .fulfillmentPreference(Request.FulfillmentPreferenceEnum.HOLD_SHELF);
+      .fulfillmentPreference(Request.FulfillmentPreferenceEnum.HOLD_SHELF)
+      .pickupServicePointId(secondaryRequest.getPickupServicePointId());
   }
 
   private static void updateEcsTlr(EcsTlr ecsTlr, RequestWrapper primaryRequest,
