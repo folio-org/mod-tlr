@@ -1,4 +1,4 @@
-package org.folio.domain.strategy;
+package org.folio.service.impl;
 
 import static com.google.common.base.Predicates.alwaysTrue;
 import static com.google.common.base.Predicates.notNull;
@@ -19,14 +19,18 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
 import org.folio.client.feign.SearchClient;
+import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.Instance;
 import org.folio.domain.dto.Item;
 import org.folio.domain.dto.ItemStatus;
 import org.folio.domain.dto.ItemStatusEnum;
+import org.folio.service.TenantService;
+import org.folio.util.HttpUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
@@ -36,17 +40,23 @@ import lombok.extern.log4j.Log4j2;
 @Component
 @RequiredArgsConstructor
 @Log4j2
-public class ItemStatusBasedTenantPickingStrategy implements TenantPickingStrategy {
+public class TenantServiceImpl implements TenantService {
   private final SearchClient searchClient;
 
   @Override
-  public List<String> findTenants(String instanceId) {
-    log.info("findTenants:: find tenants for a TLR for instance {}", instanceId);
+  public Optional<String> getBorrowingTenant(EcsTlr ecsTlr) {
+    log.info("getBorrowingTenant:: getting borrowing tenant");
+    return HttpUtils.getTenantFromToken();
+  }
 
+  @Override
+  public List<String> getLendingTenants(EcsTlr ecsTlr) {
+    final String instanceId = ecsTlr.getInstanceId();
+    log.info("getLendingTenants:: looking for potential lending tenants for instance {}", instanceId);
     var itemStatusOccurrencesByTenant = getItemStatusOccurrencesByTenant(instanceId);
-    log.info("findTenants:: item status occurrences by tenant: {}", itemStatusOccurrencesByTenant);
+    log.info("getLendingTenants:: item status occurrences by tenant: {}", itemStatusOccurrencesByTenant);
 
-    List<String> sortedTenantIds = itemStatusOccurrencesByTenant.entrySet()
+    List<String> lendingTenantIds = itemStatusOccurrencesByTenant.entrySet()
       .stream()
       .sorted(compareByItemCount(AVAILABLE)
         .thenComparing(compareByItemCount(CHECKED_OUT, IN_TRANSIT))
@@ -54,13 +64,13 @@ public class ItemStatusBasedTenantPickingStrategy implements TenantPickingStrate
       .map(Entry::getKey)
       .toList();
 
-    if (sortedTenantIds.isEmpty()) {
-      log.warn("findTenants:: failed to find tenants for instance {}", instanceId);
+    if (lendingTenantIds.isEmpty()) {
+      log.warn("getLendingTenants:: failed to find lending tenants for instance {}", instanceId);
     } else {
-      log.info("findTenants:: tenants for instance {} found: {}", instanceId, sortedTenantIds);
+      log.info("getLendingTenants:: found tenants for instance {}: {}", instanceId, lendingTenantIds);
     }
 
-    return sortedTenantIds;
+    return lendingTenantIds;
   }
 
   private Map<String, Map<String, Long>> getItemStatusOccurrencesByTenant(String instanceId) {
@@ -72,7 +82,7 @@ public class ItemStatusBasedTenantPickingStrategy implements TenantPickingStrate
       .flatMap(Collection::stream)
       .filter(item -> item.getTenantId() != null)
       .collect(collectingAndThen(groupingBy(Item::getTenantId),
-        ItemStatusBasedTenantPickingStrategy::mapItemsToItemStatusOccurrences));
+        TenantServiceImpl::mapItemsToItemStatusOccurrences));
   }
 
   @NotNull
