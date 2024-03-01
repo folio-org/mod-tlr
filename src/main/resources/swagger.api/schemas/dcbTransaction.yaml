@@ -1,0 +1,15 @@
+DcbTransaction:
+  type: object
+  properties:
+    item:
+      $ref: 'dcbItem.yaml#/DcbItem'
+    role:
+      type: string
+      enum:
+        - LENDER
+        - BORROWER
+        - PICKUP
+        - BORROWING-PICKUP
+    requestId:
+      description: ID of the existing request
+      $ref: "uuid.yaml"
