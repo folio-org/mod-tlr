@@ -1,131 +1,108 @@
 package org.folio.controller;
 
-import java.util.Map;
-import java.util.Optional;
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.KafkaAdminClient;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerConfig;
+import java.time.Duration;
+import java.util.UUID;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.serialization.StringSerializer;
-import org.awaitility.Awaitility;
 import org.folio.api.BaseIT;
+import org.folio.listener.kafka.KafkaEventListener;
 import org.folio.repository.EcsTlrRepository;
+import org.folio.spring.integration.XOkapiHeaders;
 import org.folio.spring.service.SystemUserScopedExecutionService;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.utility.DockerImageName;
-import lombok.SneakyThrows;
-
-import static java.util.concurrent.TimeUnit.SECONDS;
+import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.kafka.test.EmbeddedKafkaBroker;
+import org.springframework.kafka.test.context.EmbeddedKafka;
+import org.springframework.kafka.test.utils.KafkaTestUtils;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.support.MessageBuilder;
+import static org.awaitility.Awaitility.await;
 import static org.folio.support.MockDataUtils.ITEM_ID;
 import static org.folio.support.MockDataUtils.SECONDARY_REQUEST_ID;
 import static org.folio.support.MockDataUtils.getEcsTlrEntity;
 import static org.folio.support.MockDataUtils.getMockDataAsString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.verify;
 
+@EmbeddedKafka(
+  topics = {KafkaEventListenerTest.REQUEST_TOPIC_NAME},
+  brokerProperties = {
+    "listeners=PLAINTEXT://localhost:9092",
+    "port=9092"
+  }
+)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class KafkaEventListenerTest extends BaseIT {
   private static final String ENV = "folio";
-  private static final String REQUEST_TOPIC_NAME = buildTopicName("circulation", "request");
-  private static final String CONSUMER_GROUP_ID = "folio-mod-tlr-group";
-  private static KafkaProducer<String, String> kafkaProducer;
-  private static AdminClient kafkaAdminClient;
-
+  private static final Duration ASYNC_AWAIT_TIMEOUT = Duration.ofSeconds(60);
+  public static final String REQUEST_TOPIC_NAME = "folio.diku.circulation.request";
   private static final String REQUEST_UPDATE_EVENT_SAMPLE = getMockDataAsString("mockdata/kafka/secondary_request_update_event.json");
+  protected EmbeddedKafkaBroker embeddedKafkaBroker;
+  @SpyBean
+  private KafkaEventListener listener;
+  protected KafkaTemplate<String, String> kafkaTemplate;
 
-  private final EcsTlrRepository ecsTlrRepository;
+  @SpyBean
+  private EcsTlrRepository ecsTlrRepository;
+
   private final SystemUserScopedExecutionService systemUserScopedExecutionService;
 
-  public KafkaEventListenerTest(@Autowired EcsTlrRepository ecsTlrRepository,
-                                @Autowired SystemUserScopedExecutionService systemUserScopedExecutionService) {
-    this.ecsTlrRepository = ecsTlrRepository;
+  public KafkaEventListenerTest(
+    //@Autowired EcsTlrRepository ecsTlrRepository,
+                                @Autowired SystemUserScopedExecutionService systemUserScopedExecutionService,
+                                @Autowired EmbeddedKafkaBroker embeddedKafkaBroker) {
+    //this.ecsTlrRepository = ecsTlrRepository;
     this.systemUserScopedExecutionService = systemUserScopedExecutionService;
-  }
-
-  @Container
-  private static final KafkaContainer kafka = new KafkaContainer(
-    DockerImageName.parse("confluentinc/cp-kafka:7.5.3"));
-
-  @DynamicPropertySource
-  static void overrideProperties(DynamicPropertyRegistry registry) {
-    registry.add("kafka.bootstrap-servers", kafka::getBootstrapServers);
+    this.embeddedKafkaBroker = embeddedKafkaBroker;
   }
 
   @BeforeAll
-  public static void beforeClass() {
-    kafkaProducer = new KafkaProducer<>(Map.of(
-      ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers(),
-      ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
-      ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class
-    ));
-
-    kafkaAdminClient = KafkaAdminClient.create(Map.of(
-      ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafka.getBootstrapServers()));
+  public void setUp() {
+    kafkaTemplate = buildKafkaTemplate();
   }
 
-  @AfterAll
-  public static void afterClass() {
-    kafkaProducer.close();
-    kafkaAdminClient.close();
+  private KafkaTemplate<String, String> buildKafkaTemplate() {
+    var senderProps = KafkaTestUtils.producerProps(embeddedKafkaBroker);
+    senderProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+    senderProps.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+    return new KafkaTemplate<>(new DefaultKafkaProducerFactory<>(senderProps));
   }
 
-//  @Test
-//  void requestEventIsConsumed() {
-//    publishEventAndWait(REQUEST_TOPIC_NAME, CONSUMER_GROUP_ID, "test message");
-//  }
+  @Test
+  void requestEventIsConsumed() {
+    kafkaTemplate.send(new ProducerRecord(REQUEST_TOPIC_NAME, String.valueOf(UUID.randomUUID()), "test_message"));
+    await().atMost(ASYNC_AWAIT_TIMEOUT).untilAsserted(() ->
+      verify(listener).handleRequestEvent(anyString(), any()));
+  }
 
   @Test
   void requestUpdateEventIsConsumed() {
-    systemUserScopedExecutionService.executeAsyncSystemUserScoped(
-      TENANT_ID_DIKU,
-      () -> {
-        ecsTlrRepository.save(getEcsTlrEntity());
-      });
-    publishEventAndWait(REQUEST_TOPIC_NAME, CONSUMER_GROUP_ID, REQUEST_UPDATE_EVENT_SAMPLE);
-    systemUserScopedExecutionService.executeAsyncSystemUserScoped(
-      TENANT_ID_DIKU,
-      () -> {
+    systemUserScopedExecutionService.executeAsyncSystemUserScoped(TENANT_ID_DIKU, () ->
+        ecsTlrRepository.save(getEcsTlrEntity()));
+
+    Message<String> message = MessageBuilder.withPayload(REQUEST_UPDATE_EVENT_SAMPLE)
+      .setHeader(KafkaHeaders.TOPIC, REQUEST_TOPIC_NAME)
+      .setHeader(XOkapiHeaders.TENANT, TENANT_ID_DIKU.getBytes())
+      .build();
+
+    kafkaTemplate.send(message);
+    await().atMost(ASYNC_AWAIT_TIMEOUT).untilAsserted(() ->
+        verify(ecsTlrRepository).save(any())
+    );
+
+    await().atMost(ASYNC_AWAIT_TIMEOUT).untilAsserted(() ->
+      systemUserScopedExecutionService.executeAsyncSystemUserScoped(TENANT_ID_DIKU, () -> {
         var updatedEcsTlr = ecsTlrRepository.findBySecondaryRequestId(SECONDARY_REQUEST_ID);
         assert(updatedEcsTlr).isPresent();
         Assertions.assertEquals(updatedEcsTlr.get().getItemId(), ITEM_ID);
-      });
-  }
-
-  @SneakyThrows
-  private static int getOffset(String topic, String consumerGroup) {
-    return kafkaAdminClient.listConsumerGroupOffsets(consumerGroup)
-      .partitionsToOffsetAndMetadata()
-      .thenApply(partitions -> Optional.ofNullable(partitions.get(new TopicPartition(topic, 0)))
-        .map(OffsetAndMetadata::offset)
-        .map(Long::intValue)
-        .orElse(0))
-      .get(10, SECONDS);
-  }
-
-  private static void publishEventAndWait(String topic, String consumerGroupId, String payload) {
-    final int initialOffset = getOffset(topic, consumerGroupId);
-    publishEvent(topic, payload);
-    waitForOffset(topic, consumerGroupId, initialOffset + 1);
-  }
-
-  private static void publishEvent(String topic, String payload) {
-    kafkaProducer.send(new ProducerRecord<>(topic, payload));
-  }
-
-  private static void waitForOffset(String topic, String consumerGroupId, int expectedOffset) {
-    Awaitility.await()
-      .timeout(66, SECONDS)
-      .pollDelay(65, SECONDS)
-      .untilAsserted(() -> Assertions.assertTrue(true));
+      }));
   }
 
   private static String buildTopicName(String module, String objectType) {
