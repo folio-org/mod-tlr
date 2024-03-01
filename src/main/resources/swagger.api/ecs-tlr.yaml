@@ -78,7 +78,7 @@ components:
     transactionStatus:
       $ref: 'schemas/transactionStatus.yaml#/TransactionStatus'
     transactionStatusResponse:
-        $ref: 'schemas/transactionStatusResponse.yaml#/TransactionStatusResponse'
+      $ref: 'schemas/transactionStatusResponse.yaml#/TransactionStatusResponse'
     errorResponse:
       $ref: 'schemas/errors.json'
     request:
