@@ -1,5 +1,6 @@
 package org.folio.service;
 
+import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -8,15 +9,19 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.Request;
+import org.folio.domain.dto.User;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.domain.mapper.EcsTlrMapper;
 import org.folio.domain.mapper.EcsTlrMapperImpl;
-import org.folio.domain.strategy.TenantPickingStrategy;
 import org.folio.exception.TenantPickingException;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.impl.EcsTlrServiceImpl;
@@ -34,11 +39,15 @@ class EcsTlrServiceTest {
   @InjectMocks
   private EcsTlrServiceImpl ecsTlrService;
   @Mock
+  private UserService userService;
+  @Mock
+  private RequestService requestService;
+  @Mock
   private EcsTlrRepository ecsTlrRepository;
   @Mock
   private TenantScopedExecutionService tenantScopedExecutionService;
   @Mock
-  private TenantPickingStrategy tenantPickingStrategy;
+  private TenantService tenantService;
   @Spy
   private final EcsTlrMapper ecsTlrMapper = new EcsTlrMapperImpl();
 
@@ -60,6 +69,8 @@ class EcsTlrServiceTest {
     var requestExpirationDate = DateTime.now().plusDays(7).toDate();
     var requestDate = DateTime.now().toDate();
     var patronComments = "Test comment";
+    var borrowingTenant = "borrowing-tenant";
+    var lendingTenant = "lending-tenant";
 
     var mockEcsTlrEntity = new EcsTlrEntity();
     mockEcsTlrEntity.setId(id);
@@ -86,10 +97,15 @@ class EcsTlrServiceTest {
     ecsTlr.setPickupServicePointId(pickupServicePointId.toString());
 
     when(ecsTlrRepository.save(any(EcsTlrEntity.class))).thenReturn(mockEcsTlrEntity);
-    when(tenantPickingStrategy.pickTenant(any(String.class)))
-      .thenReturn(Optional.of("random-tenant"));
-    when(tenantScopedExecutionService.execute(any(String.class), any()))
-      .thenReturn(new Request().id(UUID.randomUUID().toString()));
+    when(tenantService.getBorrowingTenant(any(EcsTlr.class)))
+      .thenReturn(Optional.of(borrowingTenant));
+    when(tenantService.getLendingTenants(any(EcsTlr.class)))
+      .thenReturn(List.of(lendingTenant));
+    when(requestService.createPrimaryRequest(any(Request.class), any(String.class)))
+      .thenReturn(new RequestWrapper(new Request(), borrowingTenant));
+    when(requestService.createSecondaryRequest(any(Request.class), any(String.class), any()))
+      .thenReturn(new RequestWrapper(new Request(), borrowingTenant));
+
     var postEcsTlr = ecsTlrService.create(ecsTlr);
 
     assertEquals(id.toString(), postEcsTlr.getId());
@@ -112,15 +128,30 @@ class EcsTlrServiceTest {
   }
 
   @Test
-  void canNotCreateRemoteRequestWhenFailedToPickTenant() {
-    when(tenantPickingStrategy.pickTenant(any(String.class)))
-      .thenReturn(Optional.empty());
+  void canNotCreateEcsTlrWhenFailedToGetBorrowingTenantId() {
     String instanceId = UUID.randomUUID().toString();
     EcsTlr ecsTlr = new EcsTlr().instanceId(instanceId);
+    when(tenantService.getBorrowingTenant(ecsTlr))
+      .thenReturn(Optional.empty());
 
     TenantPickingException exception = assertThrows(TenantPickingException.class,
       () -> ecsTlrService.create(ecsTlr));
 
-    assertEquals("Failed to pick tenant for instance " + instanceId, exception.getMessage());
+    assertEquals("Failed to get borrowing tenant", exception.getMessage());
+  }
+
+  @Test
+  void canNotCreateEcsTlrWhenFailedToGetLendingTenants() {
+    String instanceId = UUID.randomUUID().toString();
+    EcsTlr ecsTlr = new EcsTlr().instanceId(instanceId);
+    when(tenantService.getBorrowingTenant(ecsTlr))
+      .thenReturn(Optional.of("borrowing_tenant"));
+    when(tenantService.getLendingTenants(ecsTlr))
+      .thenReturn(emptyList());
+
+    TenantPickingException exception = assertThrows(TenantPickingException.class,
+      () -> ecsTlrService.create(ecsTlr));
+
+    assertEquals("Failed to find lending tenants for instance " + instanceId, exception.getMessage());
   }
 }
