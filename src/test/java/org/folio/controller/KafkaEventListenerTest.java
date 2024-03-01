@@ -105,7 +105,7 @@ class KafkaEventListenerTest extends BaseIT {
       systemUserScopedExecutionService.executeAsyncSystemUserScoped(TENANT_ID_CONSORTIUM, () -> {
         var updatedEcsTlr = ecsTlrRepository.findBySecondaryRequestId(SECONDARY_REQUEST_ID);
         assert(updatedEcsTlr).isPresent();
-        Assertions.assertEquals(updatedEcsTlr.get().getItemId(), ITEM_ID);
+        Assertions.assertEquals(ITEM_ID, updatedEcsTlr.get().getItemId());
       });
     });
   }
