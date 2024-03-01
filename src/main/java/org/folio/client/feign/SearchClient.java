@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
-@FeignClient(name = "search", configuration = FeignClientConfiguration.class)
+@FeignClient(name = "search", url = "search", configuration = FeignClientConfiguration.class)
 public interface SearchClient {
 
   @GetMapping("/instances")

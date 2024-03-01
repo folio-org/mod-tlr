@@ -18,7 +18,10 @@
           "permissionsRequired": ["tlr.ecs-tlr.post"],
           "modulePermissions": [
             "circulation.requests.instances.item.post",
-            "search.instances.collection.get"
+            "search.instances.collection.get",
+            "users.item.get",
+            "users.collection.get",
+            "users.item.post"
           ]
         },
         {

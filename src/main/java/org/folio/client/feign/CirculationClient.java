@@ -5,9 +5,10 @@ import org.folio.spring.config.FeignClientConfiguration;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 
-@FeignClient(name = "circulation", url = "${folio.okapi-url}", configuration = FeignClientConfiguration.class)
+@FeignClient(name = "circulation", url = "circulation", configuration = FeignClientConfiguration.class)
 public interface CirculationClient {
 
-  @PostMapping("/circulation/requests/instances")
+  @PostMapping("/requests/instances")
   Request createInstanceRequest(Request request);
+
 }
