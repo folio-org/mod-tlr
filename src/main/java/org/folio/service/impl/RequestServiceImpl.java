@@ -26,6 +26,20 @@ public class RequestServiceImpl implements RequestService {
   private final UserService userService;
 
   @Override
+  public RequestWrapper createPrimaryRequest(Request request, String borrowingTenantId) {
+    final String requestId = request.getId();
+    log.info("createPrimaryRequest:: creating primary request {} in borrowing tenant {}",
+      requestId, borrowingTenantId);
+    Request primaryRequest = tenantScopedExecutionService.execute(borrowingTenantId,
+      () -> circulationClient.createRequest(request));
+    log.info("createPrimaryRequest:: primary request {} created in borrowing tenant {}",
+      requestId, borrowingTenantId);
+    log.debug("createPrimaryRequest:: primary request: {}", () -> primaryRequest);
+
+    return new RequestWrapper(primaryRequest, borrowingTenantId);
+  }
+
+  @Override
   public RequestWrapper createSecondaryRequest(Request request, String borrowingTenantId,
     Collection<String> lendingTenantIds) {
 

@@ -9,6 +9,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -16,6 +18,7 @@ import java.util.UUID;
 import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.Request;
+import org.folio.domain.dto.User;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.domain.mapper.EcsTlrMapper;
 import org.folio.domain.mapper.EcsTlrMapperImpl;
@@ -98,6 +101,8 @@ class EcsTlrServiceTest {
       .thenReturn(Optional.of(borrowingTenant));
     when(tenantService.getLendingTenants(any(EcsTlr.class)))
       .thenReturn(List.of(lendingTenant));
+    when(requestService.createPrimaryRequest(any(Request.class), any(String.class)))
+      .thenReturn(new RequestWrapper(new Request(), borrowingTenant));
     when(requestService.createSecondaryRequest(any(Request.class), any(String.class), any()))
       .thenReturn(new RequestWrapper(new Request(), borrowingTenant));
 

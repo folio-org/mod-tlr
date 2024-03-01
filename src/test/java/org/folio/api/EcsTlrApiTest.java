@@ -49,6 +49,7 @@ class EcsTlrApiTest extends BaseIT {
   private static final String TENANT_HEADER = "x-okapi-tenant";
   private static final String INSTANCE_ID = randomId();
   private static final String INSTANCE_REQUESTS_URL = "/circulation/requests/instances";
+  private static final String REQUESTS_URL = "/circulation/requests";
   private static final String USERS_URL = "/users";
   private static final String SEARCH_INSTANCES_URL =
     "/search/instances\\?query=id==" + INSTANCE_ID + "&expandAll=true";
@@ -149,6 +150,10 @@ class EcsTlrApiTest extends BaseIT {
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE))
       .willReturn(jsonResponse(asJsonString(mockSecondaryRequestResponse), HttpStatus.SC_CREATED)));
 
+    wireMockServer.stubFor(WireMock.post(urlMatching(REQUESTS_URL))
+      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(jsonResponse(asJsonString(mockPrimaryRequestResponse), HttpStatus.SC_CREATED)));
+
     // 3. Create ECS TLR
 
     EcsTlr expectedPostEcsTlrResponse = fromJsonString(ecsTlrJson, EcsTlr.class)
@@ -176,6 +181,10 @@ class EcsTlrApiTest extends BaseIT {
     wireMockServer.verify(postRequestedFor(urlMatching(INSTANCE_REQUESTS_URL))
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE)) // because this tenant has available item
       .withRequestBody(equalToJson(ecsTlrJson)));
+
+    wireMockServer.verify(postRequestedFor(urlMatching(REQUESTS_URL))
+      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM))
+      .withRequestBody(equalToJson(asJsonString(mockPrimaryRequestResponse))));
 
     if (shadowUserExists) {
       wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(USERS_URL)));

@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.EcsTlr;
+import org.folio.domain.dto.Request;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.domain.mapper.EcsTlrMapper;
 import org.folio.exception.TenantPickingException;
@@ -46,7 +47,9 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     Collection<String> lendingTenantIds = getLendingTenants(ecsTlr);
     RequestWrapper secondaryRequest = requestService.createSecondaryRequest(
       requestsMapper.mapDtoToRequest(ecsTlr), borrowingTenantId, lendingTenantIds);
-    updateEcsTlr(ecsTlr, secondaryRequest);
+    RequestWrapper primaryRequest = requestService.createPrimaryRequest(
+      buildPrimaryRequest(secondaryRequest.request()), borrowingTenantId);
+    updateEcsTlr(ecsTlr, primaryRequest, secondaryRequest);
 
     return save(ecsTlr);
   }
@@ -104,11 +107,25 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     return requestsMapper.mapEntityToDto(updatedEcsTlr);
   }
 
-  private static void updateEcsTlr(EcsTlr ecsTlr,
+  private static Request buildPrimaryRequest(Request secondaryRequest) {
+    return new Request()
+      .id(secondaryRequest.getId())
+      .instanceId(secondaryRequest.getInstanceId())
+      .requesterId(secondaryRequest.getRequesterId())
+      .requestDate(secondaryRequest.getRequestDate())
+      .requestLevel(Request.RequestLevelEnum.TITLE)
+      .requestType(Request.RequestTypeEnum.HOLD)
+      .fulfillmentPreference(Request.FulfillmentPreferenceEnum.HOLD_SHELF)
+      .pickupServicePointId(secondaryRequest.getPickupServicePointId());
+  }
+
+  private static void updateEcsTlr(EcsTlr ecsTlr, RequestWrapper primaryRequest,
     RequestWrapper secondaryRequest) {
 
     log.info("updateEcsTlr:: updating ECS TLR in memory");
-    ecsTlr.secondaryRequestTenantId(secondaryRequest.tenantId())
+    ecsTlr.primaryRequestTenantId(primaryRequest.tenantId())
+      .primaryRequestId(primaryRequest.request().getId())
+      .secondaryRequestTenantId(secondaryRequest.tenantId())
       .secondaryRequestId(secondaryRequest.request().getId())
       .itemId(secondaryRequest.request().getItemId());
 
