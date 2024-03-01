@@ -82,7 +82,7 @@ public class TenantServiceImpl implements TenantService {
       .flatMap(Collection::stream)
       .filter(item -> item.getTenantId() != null)
       .collect(collectingAndThen(groupingBy(Item::getTenantId),
-        org.folio.service.impl.TenantServiceImpl::mapItemsToItemStatusOccurrences));
+        TenantServiceImpl::mapItemsToItemStatusOccurrences));
   }
 
   @NotNull
