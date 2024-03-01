@@ -76,7 +76,11 @@ class KafkaEventListenerTest extends BaseIT {
 
   @Test
   void requestEventIsConsumed() {
-    kafkaTemplate.send(new ProducerRecord(REQUEST_TOPIC_NAME, String.valueOf(UUID.randomUUID()), "test_message"));
+    Message<String> message = MessageBuilder.withPayload("test_message")
+      .setHeader(KafkaHeaders.TOPIC, REQUEST_TOPIC_NAME)
+      .setHeader(XOkapiHeaders.TENANT, TENANT_ID_CONSORTIUM.getBytes())
+      .build();
+    kafkaTemplate.send(message);
     await().atMost(ASYNC_AWAIT_TIMEOUT).untilAsserted(() ->
       verify(listener).handleRequestEvent(any(), any()));
   }
