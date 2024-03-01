@@ -28,7 +28,6 @@ import static org.folio.support.MockDataUtils.SECONDARY_REQUEST_ID;
 import static org.folio.support.MockDataUtils.getEcsTlrEntity;
 import static org.folio.support.MockDataUtils.getMockDataAsString;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 
 @EmbeddedKafka(
@@ -54,11 +53,8 @@ class KafkaEventListenerTest extends BaseIT {
 
   private final SystemUserScopedExecutionService systemUserScopedExecutionService;
 
-  public KafkaEventListenerTest(
-    //@Autowired EcsTlrRepository ecsTlrRepository,
-                                @Autowired SystemUserScopedExecutionService systemUserScopedExecutionService,
+  public KafkaEventListenerTest(@Autowired SystemUserScopedExecutionService systemUserScopedExecutionService,
                                 @Autowired EmbeddedKafkaBroker embeddedKafkaBroker) {
-    //this.ecsTlrRepository = ecsTlrRepository;
     this.systemUserScopedExecutionService = systemUserScopedExecutionService;
     this.embeddedKafkaBroker = embeddedKafkaBroker;
   }
@@ -79,17 +75,17 @@ class KafkaEventListenerTest extends BaseIT {
   void requestEventIsConsumed() {
     kafkaTemplate.send(new ProducerRecord(REQUEST_TOPIC_NAME, String.valueOf(UUID.randomUUID()), "test_message"));
     await().atMost(ASYNC_AWAIT_TIMEOUT).untilAsserted(() ->
-      verify(listener).handleRequestEvent(anyString(), any()));
+      verify(listener).handleRequestEvent(any(), any()));
   }
 
   @Test
   void requestUpdateEventIsConsumed() {
-    systemUserScopedExecutionService.executeAsyncSystemUserScoped(TENANT_ID_DIKU, () ->
+    systemUserScopedExecutionService.executeAsyncSystemUserScoped(TENANT_ID_CONSORTIUM, () ->
         ecsTlrRepository.save(getEcsTlrEntity()));
 
     Message<String> message = MessageBuilder.withPayload(REQUEST_UPDATE_EVENT_SAMPLE)
       .setHeader(KafkaHeaders.TOPIC, REQUEST_TOPIC_NAME)
-      .setHeader(XOkapiHeaders.TENANT, TENANT_ID_DIKU.getBytes())
+      .setHeader(XOkapiHeaders.TENANT, TENANT_ID_CONSORTIUM.getBytes())
       .build();
 
     kafkaTemplate.send(message);
@@ -98,7 +94,7 @@ class KafkaEventListenerTest extends BaseIT {
     );
 
     await().atMost(ASYNC_AWAIT_TIMEOUT).untilAsserted(() ->
-      systemUserScopedExecutionService.executeAsyncSystemUserScoped(TENANT_ID_DIKU, () -> {
+      systemUserScopedExecutionService.executeAsyncSystemUserScoped(TENANT_ID_CONSORTIUM, () -> {
         var updatedEcsTlr = ecsTlrRepository.findBySecondaryRequestId(SECONDARY_REQUEST_ID);
         assert(updatedEcsTlr).isPresent();
         Assertions.assertEquals(updatedEcsTlr.get().getItemId(), ITEM_ID);
@@ -106,7 +102,7 @@ class KafkaEventListenerTest extends BaseIT {
   }
 
   private static String buildTopicName(String module, String objectType) {
-    return buildTopicName(ENV, TENANT_ID_DIKU, module, objectType);
+    return buildTopicName(ENV, TENANT_ID_CONSORTIUM, module, objectType);
   }
 
   private static String buildTopicName(String env, String tenant, String module, String objectType) {
