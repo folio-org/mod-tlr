@@ -2,6 +2,8 @@ package org.folio.controller;
 
 import java.time.Duration;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.folio.api.BaseIT;
 import org.folio.listener.kafka.KafkaEventListener;
@@ -17,6 +19,7 @@ import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
@@ -88,17 +91,19 @@ class KafkaEventListenerTest extends BaseIT {
       .setHeader(XOkapiHeaders.TENANT, TENANT_ID_CONSORTIUM.getBytes())
       .build();
 
-    kafkaTemplate.send(message);
+    CompletableFuture<SendResult<String, String>> future = kafkaTemplate.send(message);
+
     await().atMost(ASYNC_AWAIT_TIMEOUT).untilAsserted(() ->
         verify(ecsTlrRepository).save(any())
     );
 
-    await().atMost(ASYNC_AWAIT_TIMEOUT).untilAsserted(() ->
+    future.thenAccept(sendResult -> {
       systemUserScopedExecutionService.executeAsyncSystemUserScoped(TENANT_ID_CONSORTIUM, () -> {
         var updatedEcsTlr = ecsTlrRepository.findBySecondaryRequestId(SECONDARY_REQUEST_ID);
         assert(updatedEcsTlr).isPresent();
         Assertions.assertEquals(updatedEcsTlr.get().getItemId(), ITEM_ID);
-      }));
+      });
+    });
   }
 
   private static String buildTopicName(String module, String objectType) {
