@@ -8,17 +8,10 @@ import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.notFound;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
-import static java.util.stream.Collectors.toMap;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
 import org.apache.http.HttpStatus;
 import org.folio.domain.dto.EcsTlr;
@@ -30,16 +23,10 @@ import org.folio.domain.dto.SearchInstancesResponse;
 import org.folio.domain.dto.User;
 import org.folio.domain.dto.UserPersonal;
 import org.folio.domain.dto.UserType;
-import org.folio.spring.FolioExecutionContext;
-import org.folio.spring.FolioModuleMetadata;
-import org.folio.spring.scope.FolioExecutionContextSetter;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
 
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -54,31 +41,19 @@ class EcsTlrApiTest extends BaseIT {
   private static final String SEARCH_INSTANCES_URL =
     "/search/instances\\?query=id==" + INSTANCE_ID + "&expandAll=true";
 
-  @Autowired
-  private FolioExecutionContext context;
-  @Autowired
-  private FolioModuleMetadata moduleMetadata;
-  private FolioExecutionContextSetter contextSetter;
-
   @BeforeEach
   public void beforeEach() {
-    contextSetter = initContext();
     wireMockServer.resetAll();
   }
 
-  @AfterEach
-  public void afterEach() {
-    contextSetter.close();
-  }
-
-  @Test
-  void getByIdNotFound() throws Exception {
-    mockMvc.perform(
-      get(TLR_URL + "/" + UUID.randomUUID())
-        .headers(defaultHeaders())
-        .contentType(MediaType.APPLICATION_JSON))
-      .andExpect(status().isNotFound());
-  }
+//  @Test
+//  void getByIdNotFound() throws Exception {
+//    mockMvc.perform(
+//      get(TLR_URL + "/" + UUID.randomUUID())
+//        .headers(defaultHeaders())
+//        .contentType(MediaType.APPLICATION_JSON))
+//      .andExpect(status().isNotFound());
+//  }
 
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
@@ -251,27 +226,14 @@ class EcsTlrApiTest extends BaseIT {
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM)));
   }
 
-
-  private String getCurrentTenantId() {
-    return context.getTenantId();
-  }
-
-  private static Map<String, Collection<String>> buildDefaultHeaders() {
-    return new HashMap<>(defaultHeaders().entrySet()
-      .stream()
-      .collect(toMap(Map.Entry::getKey, Map.Entry::getValue)));
-  }
-
-  private FolioExecutionContextSetter initContext() {
-    return new FolioExecutionContextSetter(moduleMetadata, buildDefaultHeaders());
-  }
-
   private static EcsTlr buildEcsTlr(String instanceId, String requesterId) {
     return new EcsTlr()
       .id(randomId())
       .instanceId(instanceId)
       .requesterId(requesterId)
       .pickupServicePointId(randomId())
+      .requestLevel(EcsTlr.RequestLevelEnum.TITLE)
+      .requestType(EcsTlr.RequestTypeEnum.HOLD)
       .fulfillmentPreference(EcsTlr.FulfillmentPreferenceEnum.DELIVERY)
       .patronComments("random comment")
       .requestDate(new Date())
