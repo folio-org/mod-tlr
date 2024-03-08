@@ -18,8 +18,11 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public class DcbServiceImpl implements DcbService {
 
-  @Autowired
-  private DcbClient dcbClient;
+  private final DcbClient dcbClient;
+
+  public DcbServiceImpl(@Autowired DcbClient dcbClient) {
+    this.dcbClient = dcbClient;
+  }
 
   public void createTransactions(EcsTlrEntity ecsTlr) {
     log.info("createTransaction:: creating DCB transactions for ECS TLR {}", ecsTlr.getId());

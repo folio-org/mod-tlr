@@ -59,13 +59,11 @@ class KafkaEventListenerTest extends BaseIT {
   @Test
   void requestUpdateEventIsConsumed() {
     EcsTlrEntity initialEcsTlr = getEcsTlrEntity();
-
     executionService.executeAsyncSystemUserScoped(TENANT_ID_CONSORTIUM,
       () ->  ecsTlrRepository.save(initialEcsTlr));
 
     var mockEcsDcbTransactionResponse = new TransactionStatusResponse()
       .status(TransactionStatusResponse.StatusEnum.CREATED);
-
     wireMockServer.stubFor(WireMock.post(urlMatching(".*" + POST_ECS_TLR_TRANSACTION_URL_PATTERN))
       .willReturn(jsonResponse(mockEcsDcbTransactionResponse, HttpStatus.SC_CREATED)));
 
@@ -99,7 +97,7 @@ class KafkaEventListenerTest extends BaseIT {
       .build();
 
     executionService.executeAsyncSystemUserScoped(TENANT_ID_CONSORTIUM,
-      () ->  ecsTlrRepository.save(initialEcsTlr));
+      () -> ecsTlrRepository.save(initialEcsTlr));
 
     var mockEcsDcbTransactionResponse = new TransactionStatusResponse()
       .status(TransactionStatusResponse.StatusEnum.CREATED);
@@ -110,7 +108,7 @@ class KafkaEventListenerTest extends BaseIT {
     publishEventAndWait(REQUEST_TOPIC_NAME, CONSUMER_GROUP_ID, REQUEST_UPDATE_EVENT_SAMPLE);
 
     EcsTlrEntity ecsTlr = executionService.executeSystemUserScoped(TENANT_ID_CONSORTIUM,
-      () -> ecsTlrRepository.findById(ecsTlrId).orElseThrow());
+      () -> ecsTlrRepository.findById(ecsTlrId)).orElseThrow();
     assertEquals(ITEM_ID, ecsTlr.getItemId());
     assertNull(ecsTlr.getPrimaryRequestDcbTransactionId());
     assertNull(ecsTlr.getSecondaryRequestDcbTransactionId());
