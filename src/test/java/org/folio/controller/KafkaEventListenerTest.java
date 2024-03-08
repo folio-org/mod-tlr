@@ -58,9 +58,9 @@ class KafkaEventListenerTest extends BaseIT {
 
   @Test
   void requestUpdateEventIsConsumed() {
-    EcsTlrEntity initialEcsTlr = getEcsTlrEntity();
-    executionService.executeAsyncSystemUserScoped(TENANT_ID_CONSORTIUM,
-      () ->  ecsTlrRepository.save(initialEcsTlr));
+    EcsTlrEntity initialEcsTlr = executionService.executeSystemUserScoped(TENANT_ID_CONSORTIUM,
+      () -> ecsTlrRepository.save(getTlrEntity()));
+    assertNull(initialEcsTlr.getItemId());
 
     var mockEcsDcbTransactionResponse = new TransactionStatusResponse()
       .status(TransactionStatusResponse.StatusEnum.CREATED);
@@ -84,6 +84,10 @@ class KafkaEventListenerTest extends BaseIT {
       ".*" + ECS_TLR_TRANSACTIONS_URL + "/" + primaryRequestDcbTransactionId)));
     wireMockServer.verify(postRequestedFor(urlMatching(
       ".*" + ECS_TLR_TRANSACTIONS_URL + "/" + secondaryRequestDcbTransactionId)));
+  }
+
+  private static EcsTlrEntity getTlrEntity() {
+    return getEcsTlrEntity();
   }
 
   @Test
