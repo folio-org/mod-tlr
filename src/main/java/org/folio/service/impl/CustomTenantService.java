@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 @Log4j2
 @Service
 @Primary
-
 public class CustomTenantService extends TenantService {
   private final PrepareSystemUserService systemUserService;
 

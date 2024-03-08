@@ -31,6 +31,10 @@ public class EcsTlrEntity {
   private String fulfillmentPreference;
   private UUID pickupServicePointId;
   private UUID itemId;
+  private UUID primaryRequestId;
+  private String primaryRequestTenantId;
+  private UUID primaryRequestDcbTransactionId;
   private UUID secondaryRequestId;
   private String secondaryRequestTenantId;
+  private UUID secondaryRequestDcbTransactionId;
 }

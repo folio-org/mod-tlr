@@ -116,6 +116,7 @@ public class BaseIT {
       .expectStatus().isNoContent();
 
     contextSetter = initFolioContext();
+    wireMockServer.resetAll();
   }
 
   @AfterEach
