@@ -1,0 +1,13 @@
+DcbPatron:
+  description: Patron metadata required for the transaction
+  type: object
+  properties:
+    id:
+      description: The unique identifier for the patron making the request as known in the requesting library
+      $ref: "uuid.yaml"
+    group:
+      description: The patron group associated with the requesting patron
+      type: string
+    barcode:
+      description: The barcode of the patron
+      type: string
