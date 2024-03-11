@@ -1,15 +1,16 @@
 package org.folio.service.impl;
 
-import lombok.AllArgsConstructor;
+import static org.folio.support.KafkaEvent.EventType.UPDATED;
+import static org.folio.support.KafkaEvent.ITEM_ID;
+import static org.folio.support.KafkaEvent.getUUIDFromNode;
+
 import org.folio.service.EcsTlrService;
 import org.folio.service.KafkaEventHandler;
 import org.folio.support.KafkaEvent;
 import org.springframework.stereotype.Service;
 
+import lombok.AllArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-
-import static org.folio.support.KafkaEvent.ITEM_ID;
-import static org.folio.support.KafkaEvent.getUUIDFromNode;
 
 @AllArgsConstructor
 @Service
@@ -17,14 +18,14 @@ import static org.folio.support.KafkaEvent.getUUIDFromNode;
 public class KafkaEventHandlerImpl implements KafkaEventHandler {
 
   private final EcsTlrService ecsTlrService;
+
   @Override
-  public void handleRequestEvent(String event) {
-    KafkaEvent kafkaEvent = new KafkaEvent(event);
-    if (kafkaEvent.getEventType() == KafkaEvent.EventType.UPDATED && kafkaEvent.hasNewNode()
-      && kafkaEvent.getNewNode().has(ITEM_ID)) {
-        ecsTlrService.updateRequestItem(getUUIDFromNode(kafkaEvent.getNewNode(), "id"),
-          getUUIDFromNode(kafkaEvent.getNewNode(), ITEM_ID));
+  public void handleRequestEvent(KafkaEvent event) {
+    log.info("handleRequestEvent:: processing request event: {}", event.getEventId());
+    if (event.getEventType() == UPDATED && event.hasNewNode() && event.getNewNode().has(ITEM_ID)) {
+      ecsTlrService.updateRequestItem(getUUIDFromNode(event.getNewNode(), "id"),
+        getUUIDFromNode(event.getNewNode(), ITEM_ID));
     }
-    log.info("handleRequestEvent:: request event consumed eventId: {}", kafkaEvent.getEventId());
+    log.info("handleRequestEvent:: request event processed: {}", event.getEventId());
   }
 }

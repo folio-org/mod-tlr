@@ -1,5 +1,6 @@
 package org.folio.support;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
@@ -17,20 +18,18 @@ public class KafkaEvent {
   public static final String STATUS = "status";
   public static final String ITEM_ID = "itemId";
   private String eventId;
+  private String tenant;
   private EventType eventType;
   private JsonNode newNode;
   private JsonNode oldNode;
 
-  public KafkaEvent(String eventPayload) {
-    try {
+  public KafkaEvent(String eventPayload) throws JsonProcessingException {
       JsonNode jsonNode = objectMapper.readTree(eventPayload);
       setEventId(jsonNode.get("id").asText());
       setEventType(jsonNode.get("type").asText());
       setNewNode(jsonNode.get("data"));
       setOldNode(jsonNode.get("data"));
-    } catch (Exception e) {
-      log.error("KafkaEvent:: could not parse input payload for processing event", e);
-    }
+      this.tenant = jsonNode.get("tenant").asText();
   }
 
   private void setEventType(String eventType) {

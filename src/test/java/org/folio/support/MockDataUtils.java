@@ -14,7 +14,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
-import static org.folio.api.BaseIT.TENANT_ID_CONSORTIUM;
 
 public class MockDataUtils {
 
@@ -45,7 +44,7 @@ public class MockDataUtils {
 
   public static MessageHeaders getMessageHeaders() {
     Map<String, Object> header = new HashMap<>();
-    header.put(XOkapiHeaders.TENANT, TENANT_ID_CONSORTIUM.getBytes());
+    header.put(XOkapiHeaders.TENANT, "test-tenant".getBytes());
     return new MessageHeaders(header);
   }
 }

@@ -1,14 +1,13 @@
 package org.folio.listener.kafka;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.folio.service.KafkaEventHandler;
-import org.folio.spring.integration.XOkapiHeaders;
 import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.support.KafkaEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Component;
 import lombok.extern.log4j.Log4j2;
-import static org.folio.support.KafkaEvent.getHeaderValue;
 
 @Component
 @Log4j2
@@ -24,12 +23,18 @@ public class KafkaEventListener {
 
   @KafkaListener(
     topicPattern = "${folio.environment}\\.\\w+\\.circulation\\.request",
-    groupId = "${kafka.consumer.group-id}"
+    groupId = "${spring.kafka.consumer.group-id}"
   )
-  public void handleRequestEvent(String event, MessageHeaders messageHeaders) {
-    log.info("handleRequestEvent:: message received: {}", event);
-    String tenantId = getHeaderValue(messageHeaders, XOkapiHeaders.TENANT, null).get(0);
-    systemUserScopedExecutionService.executeAsyncSystemUserScoped(tenantId, () ->
-      eventHandler.handleRequestEvent(event));
+  public void handleRequestEvent(String event) {
+    try {
+      KafkaEvent kafkaEvent = new KafkaEvent(event);
+      log.info("handleRequestEvent:: event received: {}", kafkaEvent.getEventId());
+      log.debug("handleRequestEvent:: event: {}", event);
+      systemUserScopedExecutionService.executeAsyncSystemUserScoped(kafkaEvent.getTenant(), () ->
+        eventHandler.handleRequestEvent(kafkaEvent));
+      log.info("handleRequestEvent:: event consumed: {}", kafkaEvent.getEventId());
+    } catch (JsonProcessingException e) {
+      log.error("KafkaEvent:: could not parse input payload for processing event", e);
+    }
   }
 }

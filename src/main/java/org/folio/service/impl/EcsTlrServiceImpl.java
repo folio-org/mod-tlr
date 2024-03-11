@@ -145,14 +145,14 @@ public class EcsTlrServiceImpl implements EcsTlrService {
 
   private void updateItemIfChanged(EcsTlrEntity ecsTlr, UUID itemId) {
     if (!itemId.equals(ecsTlr.getItemId())) {
+      log.info("updateItemIfChanged:: updating ECS TLR {}, new itemId is {}", ecsTlr, itemId);
       ecsTlr.setItemId(itemId);
       ecsTlrRepository.save(ecsTlr);
-      log.info("updateItemIfChanged: ECS TLR with secondary request ID: {} is updated",
-        ecsTlr.getSecondaryRequestId());
+      log.info("updateItemIfChanged: ECS TLR {} with secondary request ID {} is updated",
+        ecsTlr.getId(), ecsTlr.getSecondaryRequestId());
     } else {
-      log.info(
-        "updateItemIfChanged: ECS TLR with secondary request ID: {} is already updated",
-        ecsTlr.getSecondaryRequestId());
+      log.info("updateItemIfChanged: ECS TLR {} with secondary request ID {} is already updated",
+        ecsTlr.getId(), ecsTlr.getSecondaryRequestId());
     }
   }
 
