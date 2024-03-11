@@ -7,6 +7,6 @@ class OpenRequestsProcessingApiTest extends BaseIT {
 
   @Test
   void getByIdNotFound() {
-    doPost(PROCESS_OPEN_REQUESTS_URL, null).expectStatus().is2xxSuccessful();
+    doPost(PROCESS_OPEN_REQUESTS_URL, "").expectStatus().is2xxSuccessful();
   }
 }
