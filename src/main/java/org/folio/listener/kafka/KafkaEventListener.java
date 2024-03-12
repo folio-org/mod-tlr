@@ -34,7 +34,7 @@ public class KafkaEventListener {
         eventHandler.handleRequestEvent(kafkaEvent));
       log.info("handleRequestEvent:: event consumed: {}", kafkaEvent.getEventId());
     } catch (JsonProcessingException e) {
-      log.error("KafkaEvent:: could not parse input payload for processing event", e);
+      log.error("handleRequestEvent:: could not parse input payload for processing event", e);
     }
   }
 }
