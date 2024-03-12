@@ -7,15 +7,20 @@ import static org.folio.support.MockDataUtils.getEcsTlrEntity;
 import static org.folio.support.MockDataUtils.getMockDataAsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.internals.RecordHeader;
 import org.awaitility.Awaitility;
 import org.folio.api.BaseIT;
 import org.folio.repository.EcsTlrRepository;
+import org.folio.spring.integration.XOkapiHeaders;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-
 import lombok.SneakyThrows;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 class KafkaEventListenerTest extends BaseIT {
   private static final String REQUEST_TOPIC_NAME = buildTopicName("circulation", "request");
@@ -47,8 +52,11 @@ class KafkaEventListenerTest extends BaseIT {
 
   @SneakyThrows
   private void publishEvent(String topic, String payload) {
-    kafkaTemplate.send(topic, randomId(), payload)
-      .get(10, SECONDS);
+    List<Header> headers = new ArrayList<>();
+    headers.add(new RecordHeader(XOkapiHeaders.TENANT,
+      TENANT_ID_CONSORTIUM.getBytes(StandardCharsets.UTF_8)));
+    ProducerRecord<String, String> record = new ProducerRecord<>(topic, null,
+      randomId(), payload, headers);
+    kafkaTemplate.send(record).get(10, SECONDS);
   }
-
 }
