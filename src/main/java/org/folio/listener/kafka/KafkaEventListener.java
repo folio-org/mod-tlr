@@ -28,10 +28,10 @@ public class KafkaEventListener {
   )
   public void handleRequestEvent(String event) {
     KafkaEvent kafkaEvent = new KafkaEvent(event);
-      log.info("handleRequestEvent:: event received: {}", kafkaEvent.getEventId());
-      log.debug("handleRequestEvent:: event: {}", () -> event);
-      systemUserScopedExecutionService.executeAsyncSystemUserScoped(CENTRAL_TENANT_ID, () ->
-        eventHandler.handleRequestEvent(kafkaEvent));
-      log.info("handleRequestEvent:: event consumed: {}", kafkaEvent.getEventId());
+    log.info("handleRequestEvent:: event received: {}", kafkaEvent.getEventId());
+    log.debug("handleRequestEvent:: event: {}", () -> event);
+    systemUserScopedExecutionService.executeAsyncSystemUserScoped(CENTRAL_TENANT_ID, () ->
+      eventHandler.handleRequestEvent(kafkaEvent));
+    log.info("handleRequestEvent:: event consumed: {}", kafkaEvent.getEventId());
   }
 }
