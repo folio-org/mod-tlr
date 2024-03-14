@@ -87,6 +87,8 @@ components:
       $ref: schemas/response/searchInstancesResponse.json
     user:
       $ref: schemas/user.json
+    servicePoint:
+      $ref: schemas/service-point.json
   parameters:
     requestId:
       name: requestId
