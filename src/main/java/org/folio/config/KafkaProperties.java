@@ -7,7 +7,7 @@ import lombok.Data;
 
 @Data
 @Configuration
-@ConfigurationProperties("kafka")
+@ConfigurationProperties("spring.kafka")
 public class KafkaProperties {
   private String bootstrapServers;
   private KafkaConsumerProperties consumer;

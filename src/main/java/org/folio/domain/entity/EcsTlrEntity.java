@@ -23,6 +23,7 @@ public class EcsTlrEntity {
   private UUID id;
   private UUID instanceId;
   private UUID requesterId;
+  private UUID secondaryRequestId;
   private String requestType;
   private String requestLevel;
   private Date requestExpirationDate;
@@ -31,6 +32,5 @@ public class EcsTlrEntity {
   private String fulfillmentPreference;
   private UUID pickupServicePointId;
   private UUID itemId;
-  private UUID secondaryRequestId;
   private String secondaryRequestTenantId;
 }

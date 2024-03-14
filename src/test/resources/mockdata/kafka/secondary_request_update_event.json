@@ -1,0 +1,112 @@
+{
+  "id": "7034faf8-ef8c-47e4-b3bb-32dad1f7259b",
+  "type": "UPDATED",
+  "tenant": "consortium",
+  "timestamp": 1706684034764,
+  "data": {
+    "old": {
+      "id": "398501a2-5c97-4ba6-9ee7-d1cd6433cb98",
+      "requestLevel": "Title",
+      "requestType": "Page",
+      "requestDate": "2024-01-30T13:45:29.644+00:00",
+      "requesterId": "2205005b-ca51-4a04-87fd-938eefa8f6de",
+      "instanceId": "5bf370e0-8cca-4d9c-82e4-5170ab2a0a39",
+      "holdingsRecordId": "e3ff6133-b9a2-4d4c-a1c9-dc1867d4df19",
+      "itemId": "100d10bf-2f06-4aa0-be15-0b95b2d9f9e3",
+      "status": "Open - In transit",
+      "position": 1,
+      "instance": {
+        "title": "A semantic web primer",
+        "identifiers": [
+          {
+            "value": "0262012103",
+            "identifierTypeId": "8261054f-be78-422d-bd51-4ed9f33c3422"
+          },
+          {
+            "value": "9780262012102",
+            "identifierTypeId": "8261054f-be78-422d-bd51-4ed9f33c3422"
+          },
+          {
+            "value": "2003065165",
+            "identifierTypeId": "c858e4f2-2b6b-4385-842b-60732ee14abb"
+          }
+        ]
+      },
+      "item": {
+        "barcode": "90000"
+      },
+      "requester": {
+        "firstName": "psych",
+        "lastName": "rick",
+        "barcode": "123"
+      },
+      "fulfillmentPreference": "Hold Shelf",
+      "pickupServicePointId": "c4c90014-c8c9-4ade-8f24-b5e313319f4b",
+      "metadata": {
+        "createdDate": "2024-01-30T13:46:14.597+00:00",
+        "createdByUserId": "7187c6f3-41ec-5731-b551-7f0092abb4c6",
+        "updatedDate": "2024-01-30T13:47:19.594+00:00",
+        "updatedByUserId": "7187c6f3-41ec-5731-b551-7f0092abb4c6"
+      },
+      "searchIndex": {
+        "callNumberComponents": {
+          "callNumber": "TK5105.88815 . A58 2004 FT MEADE"
+        },
+        "shelvingOrder": "TK5105.88815 . A58 2004 FT MEADE",
+        "pickupServicePointName": "Circ Desk 2"
+      }
+    },
+    "new": {
+      "id": "398501a2-5c97-4ba6-9ee7-d1cd6433cb98",
+      "requestLevel": "Title",
+      "requestType": "Page",
+      "requestDate": "2024-01-30T13:45:29.644+00:00",
+      "requesterId": "2205005b-ca51-4a04-87fd-938eefa8f6de",
+      "instanceId": "5bf370e0-8cca-4d9c-82e4-5170ab2a0a39",
+      "holdingsRecordId": "e3ff6133-b9a2-4d4c-a1c9-dc1867d4df19",
+      "itemId": "100d10bf-2f06-4aa0-be15-0b95b2d9f9e3",
+      "status": "Open - In transit",
+      "position": 1,
+      "instance": {
+        "title": "A semantic web primer",
+        "identifiers": [
+          {
+            "value": "0262012103",
+            "identifierTypeId": "8261054f-be78-422d-bd51-4ed9f33c3422"
+          },
+          {
+            "value": "9780262012102",
+            "identifierTypeId": "8261054f-be78-422d-bd51-4ed9f33c3422"
+          },
+          {
+            "value": "2003065165",
+            "identifierTypeId": "c858e4f2-2b6b-4385-842b-60732ee14abb"
+          }
+        ]
+      },
+      "item": {
+        "barcode": "90000"
+      },
+      "requester": {
+        "firstName": "psych",
+        "lastName": "rick",
+        "barcode": "123"
+      },
+      "fulfillmentPreference": "Hold Shelf",
+      "pickupServicePointId": "c4c90014-c8c9-4ade-8f24-b5e313319f4b",
+      "metadata": {
+        "createdDate": "2024-01-30T13:46:14.597+00:00",
+        "createdByUserId": "7187c6f3-41ec-5731-b551-7f0092abb4c6",
+        "updatedDate": "2024-01-31T06:53:54.533+00:00",
+        "updatedByUserId": "7187c6f3-41ec-5731-b551-7f0092abb4c6"
+      },
+      "searchIndex": {
+        "callNumberComponents": {
+          "callNumber": "TK5105.88815 . A58 2004 FT MEADE"
+        },
+        "shelvingOrder": "TK5105.88815 . A58 2004 FT MEADE",
+        "pickupServicePointName": "Circ Desk 2"
+      }
+    }
+  }
+}

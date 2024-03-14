@@ -120,7 +120,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   }
 
   private static void updateEcsTlr(EcsTlr ecsTlr, RequestWrapper primaryRequest,
-    RequestWrapper secondaryRequest) {
+                                   RequestWrapper secondaryRequest) {
 
     log.info("updateEcsTlr:: updating ECS TLR in memory");
     ecsTlr.primaryRequestTenantId(primaryRequest.tenantId())
@@ -131,6 +131,30 @@ public class EcsTlrServiceImpl implements EcsTlrService {
 
     log.info("updateEcsTlr:: ECS TLR updated in memory");
     log.debug("updateEcsTlr:: ECS TLR: {}", () -> ecsTlr);
+  }
+
+  @Override
+  public void updateRequestItem(UUID secondaryRequestId, UUID itemId) {
+    log.debug("updateRequestItem:: parameters secondaryRequestId: {}, itemId: {}",
+      secondaryRequestId, itemId);
+    ecsTlrRepository.findBySecondaryRequestId(secondaryRequestId).ifPresentOrElse(
+      ecsTlr -> updateItemIfChanged(ecsTlr, itemId),
+      () -> log.info("updateRequestItem: ECS TLR with secondary request ID {} not found",
+        secondaryRequestId));
+  }
+
+  private void updateItemIfChanged(EcsTlrEntity ecsTlr, UUID itemId) {
+    if (!itemId.equals(ecsTlr.getItemId())) {
+      log.info("updateItemIfChanged:: updating ECS TLR {}, new itemId is {}",
+        ecsTlr.getId(), itemId);
+      ecsTlr.setItemId(itemId);
+      ecsTlrRepository.save(ecsTlr);
+      log.info("updateItemIfChanged:: ECS TLR {} with secondary request ID {} is updated",
+        ecsTlr.getId(), ecsTlr.getSecondaryRequestId());
+    } else {
+      log.info("updateItemIfChanged:: ECS TLR {} with secondary request ID {} is already updated",
+        ecsTlr.getId(), ecsTlr.getSecondaryRequestId());
+    }
   }
 
 }

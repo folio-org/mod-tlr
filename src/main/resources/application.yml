@@ -11,6 +11,8 @@ spring:
     init:
       # to boot up application despite of any DB connection issues
       continue-on-error: true
+  main:
+    allow-bean-definition-overriding: true
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQL10Dialect
     properties:
@@ -32,17 +34,22 @@ spring:
     openfeign:
       okhttp:
         enabled: true
-kafka:
-  bootstrap-servers: ${KAFKA_HOST:localhost}:${KAFKA_PORT:9092}
-  consumer:
-    auto-offset-reset: earliest
-    group-id: ${ENV:folio}-mod-tlr-group
+  kafka:
+    bootstrap-servers: ${KAFKA_HOST:localhost}:${KAFKA_PORT:9092}
+    consumer:
+      auto-offset-reset: latest
+      group-id: ${ENV:folio}-mod-tlr-group
 folio:
   tenant:
     validation:
       enabled: true
   environment: ${ENV:folio}
   okapi-url: ${OKAPI_URL:http://okapi:9130}
+  system-user:
+    username: ${SYSTEM_USER_NAME:mod-tlr}
+    password: ${SYSTEM_USER_PASSWORD:mod-tlr}
+    lastname: System
+    permissionsFilePath: permissions/mod-tlr.csv
   logging:
     feign:
       enabled: true
