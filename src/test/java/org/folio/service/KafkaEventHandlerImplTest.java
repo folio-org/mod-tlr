@@ -1,7 +1,6 @@
 package org.folio.service;
 
 import static org.folio.support.MockDataUtils.getEcsTlrEntity;
-import static org.folio.support.MockDataUtils.getMessageHeaders;
 import static org.folio.support.MockDataUtils.getMockDataAsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -35,14 +34,14 @@ class KafkaEventHandlerImplTest extends BaseIT {
   @Test
   void handleRequestUpdateTest() {
     when(ecsTlrRepository.findBySecondaryRequestId(any())).thenReturn(Optional.of(getEcsTlrEntity()));
-    eventListener.handleRequestEvent(REQUEST_UPDATE_EVENT_SAMPLE, getMessageHeaders());
+    eventListener.handleRequestEvent(REQUEST_UPDATE_EVENT_SAMPLE);
     verify(ecsTlrRepository).save(any());
   }
 
   @Test
   void handleRequestEventWithoutItemIdTest() {
     when(ecsTlrRepository.findBySecondaryRequestId(any())).thenReturn(Optional.of(getEcsTlrEntity()));
-    eventListener.handleRequestEvent(REQUEST_UPDATE_EVENT_SAMPLE, getMessageHeaders());
+    eventListener.handleRequestEvent(REQUEST_UPDATE_EVENT_SAMPLE);
     verify(ecsTlrRepository).save(any());
   }
 }
