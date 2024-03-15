@@ -59,7 +59,7 @@ class KafkaEventListenerTest extends BaseIT {
   @Test
   void requestUpdateEventIsConsumed() {
     EcsTlrEntity initialEcsTlr = executionService.executeSystemUserScoped(TENANT_ID_CONSORTIUM,
-      () -> ecsTlrRepository.save(getTlrEntity()));
+      () -> ecsTlrRepository.save(getEcsTlrEntity()));
     assertNull(initialEcsTlr.getItemId());
 
     var mockEcsDcbTransactionResponse = new TransactionStatusResponse()
@@ -69,12 +69,13 @@ class KafkaEventListenerTest extends BaseIT {
 
     publishEvent(REQUEST_TOPIC_NAME, REQUEST_UPDATE_EVENT_SAMPLE);
 
-    EcsTlrEntity updatedEcsTlr = executionService.executeSystemUserScoped(TENANT_ID_CONSORTIUM, () ->
+    EcsTlrEntity updatedEcsTlr = executionService.executeSystemUserScoped(TENANT_ID_CONSORTIUM,
+      () ->
         Awaitility.await()
           .atMost(30, SECONDS)
           .until(() -> ecsTlrRepository.findById(initialEcsTlr.getId()),
             ecsTlr -> ecsTlr.isPresent() && ITEM_ID.equals(ecsTlr.get().getItemId()))
-      ).orElseThrow();
+    ).orElseThrow();
 
     UUID primaryRequestDcbTransactionId = updatedEcsTlr.getPrimaryRequestDcbTransactionId();
     UUID secondaryRequestDcbTransactionId = updatedEcsTlr.getSecondaryRequestDcbTransactionId();
@@ -84,10 +85,6 @@ class KafkaEventListenerTest extends BaseIT {
       ".*" + ECS_TLR_TRANSACTIONS_URL + "/" + primaryRequestDcbTransactionId)));
     wireMockServer.verify(postRequestedFor(urlMatching(
       ".*" + ECS_TLR_TRANSACTIONS_URL + "/" + secondaryRequestDcbTransactionId)));
-  }
-
-  private static EcsTlrEntity getTlrEntity() {
-    return getEcsTlrEntity();
   }
 
   @Test
@@ -121,6 +118,12 @@ class KafkaEventListenerTest extends BaseIT {
   }
 
   @SneakyThrows
+  private void publishEvent(String topic, String payload) {
+    kafkaTemplate.send(topic, randomId(), payload)
+      .get(10, SECONDS);
+  }
+
+  @SneakyThrows
   private static int getOffset(String topic, String consumerGroup) {
     return kafkaAdminClient.listConsumerGroupOffsets(consumerGroup)
       .partitionsToOffsetAndMetadata()
@@ -137,17 +140,11 @@ class KafkaEventListenerTest extends BaseIT {
     waitForOffset(topic, consumerGroupId, initialOffset + 1);
   }
 
-
   private void waitForOffset(String topic, String consumerGroupId, int expectedOffset) {
     Awaitility.await()
       .atMost(60, TimeUnit.SECONDS)
       .until(() -> getOffset(topic, consumerGroupId), offset -> offset.equals(expectedOffset));
   }
 
-  @SneakyThrows
-  private void publishEvent(String topic, String payload) {
-    kafkaTemplate.send(topic, randomId(), payload)
-      .get(10, SECONDS);
-  }
 
 }

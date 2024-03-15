@@ -12,6 +12,7 @@ import lombok.extern.log4j.Log4j2;
 @Component
 @Log4j2
 public class KafkaEventListener {
+  public static final String CENTRAL_TENANT_ID = "consortium";
   private final KafkaEventHandler eventHandler;
   private final SystemUserScopedExecutionService systemUserScopedExecutionService;
 
@@ -29,10 +30,9 @@ public class KafkaEventListener {
   public void handleRequestEvent(String event) {
     KafkaEvent kafkaEvent = new KafkaEvent(event);
     log.info("handleRequestEvent:: event received: {}", kafkaEvent.getEventId());
-    log.debug("handleRequestEvent:: event: {}", event);
-    systemUserScopedExecutionService.executeAsyncSystemUserScoped(kafkaEvent.getTenant(), () ->
+    log.debug("handleRequestEvent:: event: {}", () -> event);
+    systemUserScopedExecutionService.executeAsyncSystemUserScoped(CENTRAL_TENANT_ID, () ->
       eventHandler.handleRequestEvent(kafkaEvent));
     log.info("handleRequestEvent:: event consumed: {}", kafkaEvent.getEventId());
-
   }
 }

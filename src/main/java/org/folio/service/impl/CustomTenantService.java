@@ -17,16 +17,16 @@ public class CustomTenantService extends TenantService {
   private final PrepareSystemUserService systemUserService;
 
   public CustomTenantService(JdbcTemplate jdbcTemplate, FolioExecutionContext context,
-                             FolioSpringLiquibase folioSpringLiquibase,
-                             PrepareSystemUserService systemUserService) {
+    FolioSpringLiquibase folioSpringLiquibase, PrepareSystemUserService systemUserService) {
+
     super(jdbcTemplate, context, folioSpringLiquibase);
     this.systemUserService = systemUserService;
   }
 
   @Override
   protected void afterTenantUpdate(TenantAttributes tenantAttributes) {
+    log.debug("afterTenantUpdate:: parameters tenantAttributes: {}", () -> tenantAttributes);
     log.info("afterTenantUpdate:: start");
-    log.debug("afterTenantUpdate:: parameters tenantAttributes: {}", tenantAttributes);
     systemUserService.setupSystemUser();
     log.info("afterTenantUpdate:: finished");
   }

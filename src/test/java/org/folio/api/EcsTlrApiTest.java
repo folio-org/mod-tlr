@@ -9,9 +9,12 @@ import static com.github.tomakehurst.wiremock.client.WireMock.notFound;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.http.HttpStatus;
 import org.folio.domain.dto.EcsTlr;
@@ -46,14 +49,11 @@ class EcsTlrApiTest extends BaseIT {
     wireMockServer.resetAll();
   }
 
-//  @Test
-//  void getByIdNotFound() throws Exception {
-//    mockMvc.perform(
-//      get(TLR_URL + "/" + UUID.randomUUID())
-//        .headers(defaultHeaders())
-//        .contentType(MediaType.APPLICATION_JSON))
-//      .andExpect(status().isNotFound());
-//  }
+  @Test
+  void getByIdNotFound() {
+    doGet(TLR_URL + "/" + UUID.randomUUID())
+      .expectStatus().isEqualTo(NOT_FOUND);
+  }
 
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
@@ -191,7 +191,7 @@ class EcsTlrApiTest extends BaseIT {
       .willReturn(jsonResponse(mockSearchInstancesResponse, HttpStatus.SC_OK)));
 
     doPost(TLR_URL, ecsTlr)
-      .expectStatus().isEqualTo(500);
+      .expectStatus().isEqualTo(INTERNAL_SERVER_ERROR);
 
     wireMockServer.verify(getRequestedFor(urlMatching(SEARCH_INSTANCES_URL))
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM)));
@@ -218,7 +218,7 @@ class EcsTlrApiTest extends BaseIT {
       .willReturn(notFound()));
 
     doPost(TLR_URL, ecsTlr)
-      .expectStatus().isEqualTo(500);
+      .expectStatus().isEqualTo(INTERNAL_SERVER_ERROR);
 
     wireMockServer.verify(getRequestedFor(urlMatching(SEARCH_INSTANCES_URL))
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM)));
