@@ -41,7 +41,7 @@ public class DcbServiceImpl implements DcbService {
       .role(role);
     var response = dcbClient.createDcbTransaction(transactionId.toString(), transaction);
     log.info("createTransaction:: {} transaction {} created", role, transactionId);
-    log.debug("createTransaction:: {}", response);
+    log.debug("createTransaction:: {}", () -> response);
 
     return transactionId;
   }

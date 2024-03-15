@@ -70,11 +70,10 @@ class KafkaEventListenerTest extends BaseIT {
     publishEvent(REQUEST_TOPIC_NAME, REQUEST_UPDATE_EVENT_SAMPLE);
 
     EcsTlrEntity updatedEcsTlr = executionService.executeSystemUserScoped(TENANT_ID_CONSORTIUM,
-      () ->
-        Awaitility.await()
-          .atMost(30, SECONDS)
-          .until(() -> ecsTlrRepository.findById(initialEcsTlr.getId()),
-            ecsTlr -> ecsTlr.isPresent() && ITEM_ID.equals(ecsTlr.get().getItemId()))
+      () -> Awaitility.await()
+        .atMost(30, SECONDS)
+        .until(() -> ecsTlrRepository.findById(initialEcsTlr.getId()),
+          ecsTlr -> ecsTlr.isPresent() && ITEM_ID.equals(ecsTlr.get().getItemId()))
     ).orElseThrow();
 
     UUID primaryRequestDcbTransactionId = updatedEcsTlr.getPrimaryRequestDcbTransactionId();
@@ -145,6 +144,5 @@ class KafkaEventListenerTest extends BaseIT {
       .atMost(60, TimeUnit.SECONDS)
       .until(() -> getOffset(topic, consumerGroupId), offset -> offset.equals(expectedOffset));
   }
-
 
 }
