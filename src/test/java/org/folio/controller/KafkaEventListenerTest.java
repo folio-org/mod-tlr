@@ -38,9 +38,9 @@ import lombok.SneakyThrows;
 class KafkaEventListenerTest extends BaseIT {
   private static final String UUID_PATTERN =
     "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}";
-  private static final String ECS_TLR_TRANSACTIONS_URL = "/ecs-tlr-transactions";
-  private static final String POST_ECS_TLR_TRANSACTION_URL_PATTERN =
-    ECS_TLR_TRANSACTIONS_URL + "/" + UUID_PATTERN;
+  private static final String ECS_REQUEST_TRANSACTIONS_URL = "/ecs-request-transactions";
+  private static final String POST_ECS_REQUEST_TRANSACTION_URL_PATTERN =
+    ECS_REQUEST_TRANSACTIONS_URL + "/" + UUID_PATTERN;
   private static final String REQUEST_TOPIC_NAME = buildTopicName("circulation", "request");
   private static final String REQUEST_UPDATE_EVENT_SAMPLE =
     getMockDataAsString("mockdata/kafka/secondary_request_update_event.json");
@@ -64,7 +64,7 @@ class KafkaEventListenerTest extends BaseIT {
 
     var mockEcsDcbTransactionResponse = new TransactionStatusResponse()
       .status(TransactionStatusResponse.StatusEnum.CREATED);
-    wireMockServer.stubFor(WireMock.post(urlMatching(".*" + POST_ECS_TLR_TRANSACTION_URL_PATTERN))
+    wireMockServer.stubFor(WireMock.post(urlMatching(".*" + POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
       .willReturn(jsonResponse(mockEcsDcbTransactionResponse, HttpStatus.SC_CREATED)));
 
     publishEvent(REQUEST_TOPIC_NAME, REQUEST_UPDATE_EVENT_SAMPLE);
@@ -81,9 +81,9 @@ class KafkaEventListenerTest extends BaseIT {
     assertNotNull(primaryRequestDcbTransactionId);
     assertNotNull(secondaryRequestDcbTransactionId);
     wireMockServer.verify(postRequestedFor(urlMatching(
-      ".*" + ECS_TLR_TRANSACTIONS_URL + "/" + primaryRequestDcbTransactionId)));
+      ".*" + ECS_REQUEST_TRANSACTIONS_URL + "/" + primaryRequestDcbTransactionId)));
     wireMockServer.verify(postRequestedFor(urlMatching(
-      ".*" + ECS_TLR_TRANSACTIONS_URL + "/" + secondaryRequestDcbTransactionId)));
+      ".*" + ECS_REQUEST_TRANSACTIONS_URL + "/" + secondaryRequestDcbTransactionId)));
   }
 
   @Test
@@ -102,7 +102,7 @@ class KafkaEventListenerTest extends BaseIT {
     var mockEcsDcbTransactionResponse = new TransactionStatusResponse()
       .status(TransactionStatusResponse.StatusEnum.CREATED);
 
-    wireMockServer.stubFor(WireMock.post(urlMatching(".*" + POST_ECS_TLR_TRANSACTION_URL_PATTERN))
+    wireMockServer.stubFor(WireMock.post(urlMatching(".*" + POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
       .willReturn(jsonResponse(mockEcsDcbTransactionResponse, HttpStatus.SC_CREATED)));
 
     publishEventAndWait(REQUEST_TOPIC_NAME, CONSUMER_GROUP_ID, REQUEST_UPDATE_EVENT_SAMPLE);
@@ -113,7 +113,7 @@ class KafkaEventListenerTest extends BaseIT {
     assertNull(ecsTlr.getPrimaryRequestDcbTransactionId());
     assertNull(ecsTlr.getSecondaryRequestDcbTransactionId());
     wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(
-      ".*" + POST_ECS_TLR_TRANSACTION_URL_PATTERN)));
+      ".*" + POST_ECS_REQUEST_TRANSACTION_URL_PATTERN)));
   }
 
   @SneakyThrows
