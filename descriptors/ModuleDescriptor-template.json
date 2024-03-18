@@ -36,6 +36,18 @@
           "pathPattern": "/tlr/ecs-tlr/{requestId}",
           "permissionsRequired": ["tlr.ecs-tlr.delete"],
           "modulePermissions": []
+        },
+        {
+          "methods": ["GET"],
+          "pathPattern": "/tlr/ecs-tlr/settings",
+          "permissionsRequired": ["tlr.ecs-tlr.settings.get"],
+          "modulePermissions": []
+        },
+        {
+          "methods": ["PUT"],
+          "pathPattern": "/tlr/ecs-tlr/settings",
+          "permissionsRequired": ["tlr.ecs-tlr.settings.put"],
+          "modulePermissions": []
         }
       ]
     },
@@ -87,6 +99,33 @@
       "permissionName": "tlr.ecs-tlr.delete",
       "displayName": "ecs-tlr - remove ECS TLR",
       "description": "Remove ECS TLR"
+    },
+    {
+      "permissionName": "tlr.ecs-tlr.settings.get",
+      "displayName": "Settings (Circulation): Consortium title level requests view",
+      "description": "Entire set of permissions needed to use the circulation",
+      "subPermissions": [
+        "settings.circulation.enabled",
+        "mod-settings.global.read.circulation",
+        "mod-settings.entries.collection.get",
+        "mod-settings.entries.item.get"
+      ],
+      "visible": true
+    },
+    {
+      "permissionName": "tlr.ecs-tlr.settings.put",
+      "displayName": "Settings (Circulation): Consortium title level requests edit",
+      "description": "Entire set of permissions needed to use the circulation",
+      "subPermissions": [
+        "settings.circulation.enabled",
+        "mod-settings.global.read.circulation",
+        "mod-settings.entries.collection.get",`
+        "mod-settings.entries.item.get",
+        "mod-settings.global.write.circulation",
+        "mod-settings.entries.item.put",
+        "mod-settings.entries.item.post"
+      ],
+      "visible": true
     }
   ],
   "requires": [],

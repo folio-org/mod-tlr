@@ -7,14 +7,19 @@ import java.util.UUID;
 
 import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.EcsTlr;
+import org.folio.domain.dto.EcsTlrSettings;
 import org.folio.domain.dto.Request;
 import org.folio.domain.entity.EcsTlrEntity;
+import org.folio.domain.entity.EcsTlrSettingsEntity;
 import org.folio.domain.mapper.EcsTlrMapper;
+import org.folio.domain.mapper.EcsTlrSettingsMapper;
 import org.folio.exception.TenantPickingException;
 import org.folio.repository.EcsTlrRepository;
+import org.folio.repository.EcsTlrSettingsRepository;
 import org.folio.service.EcsTlrService;
 import org.folio.service.RequestService;
 import org.folio.service.TenantService;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -26,7 +31,9 @@ import lombok.extern.log4j.Log4j2;
 public class EcsTlrServiceImpl implements EcsTlrService {
 
   private final EcsTlrRepository ecsTlrRepository;
+  private final EcsTlrSettingsRepository ecsTlrSettingsRepository;
   private final EcsTlrMapper requestsMapper;
+  private final EcsTlrSettingsMapper ecsTlrSettingsMapper;
   private final TenantService tenantService;
   private final RequestService requestService;
 
@@ -74,6 +81,44 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       return true;
     }
     return false;
+  }
+
+  @Override
+  public Optional<EcsTlrSettings> getEcsTlrSettings() {
+    return ecsTlrSettingsRepository.findAll(PageRequest.of(0, 1))
+      .stream()
+      .findFirst()
+      .map(ecsTlrSettingsMapper::mapEntityToDto);
+  }
+
+//  @Override
+//  public EcsTlrSettings createEcsTlrSettings(EcsTlrSettings ecsTlrSettings) {
+//    log.info("createEcsTlrSettings:: parameters: {} ", () -> ecsTlrSettings);
+//
+//    if (ecsTlrSettings.getId() == null) {
+//      ecsTlrSettings.setId(UUID.randomUUID().toString());
+//    }
+//    if (ecsTlrSettingsRepository.count() == 0) {
+//      return ecsTlrSettingsMapper.mapEntityToDto(
+//        ecsTlrSettingsRepository.save(ecsTlrSettingsMapper.mapDtoToEntity(ecsTlrSettings)));
+//    }
+//    throw new RequestCreatingException("Settings already exist");
+//  }
+
+  @Override
+  public Optional<EcsTlrSettingsEntity> updateEcsTlrSettings(EcsTlrSettings ecsTlrSettings) {
+    log.info("updateEcsTlrSettings:: parameters: {} ", () -> ecsTlrSettings);
+
+    Optional<EcsTlrSettingsEntity> existentSettings = ecsTlrSettingsRepository.findAll(PageRequest.of(0, 1))
+      .stream()
+      .findFirst();
+
+    existentSettings.ifPresent(entity -> {
+      ecsTlrSettings.setId(entity.getId().toString());
+      ecsTlrSettingsRepository.save(ecsTlrSettingsMapper.mapDtoToEntity(ecsTlrSettings));
+    });
+
+    return existentSettings;
   }
 
   private String getBorrowingTenant(EcsTlr ecsTlr) {

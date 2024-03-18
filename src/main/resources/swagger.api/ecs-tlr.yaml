@@ -20,6 +20,37 @@ paths:
           $ref: '#/components/responses/badRequestResponse'
         '500':
           $ref: '#/components/responses/internalServerErrorResponse'
+  /tlr/ecs-tlr/settings:
+    get:
+      description: Retrieve ECS TLR Settings
+      operationId: getEcsTlrSettings
+      responses:
+        '200':
+          $ref: '#/components/responses/ecs-tlr-settings'
+        '400':
+          $ref: '#/components/responses/badRequestResponse'
+        '404':
+          $ref: '#/components/responses/notFoundResponse'
+        '500':
+          $ref: '#/components/responses/internalServerErrorResponse'
+    put:
+      description: Update ECS TLR Settings
+      operationId: putEcsTlrSettings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ecs-tlr-settings"
+        required: true
+      responses:
+        '204':
+          description: Request successfully updated
+        '400':
+          $ref: '#/components/responses/badRequestResponse'
+        '404':
+          $ref: '#/components/responses/notFoundResponse'
+        '500':
+          $ref: '#/components/responses/internalServerErrorResponse'
   /tlr/ecs-tlr/{requestId}:
     get:
       description: Retrieve ECS TLR by ID
@@ -73,6 +104,8 @@ components:
   schemas:
     ecs-tlr:
       $ref: 'schemas/EcsTlr.yaml#/EcsTlr'
+    ecs-tlr-settings:
+      $ref: 'schemas/EcsTlrSettings.yaml#/EcsTlrSettings'
     dcbTransaction:
       $ref: 'schemas/dcbTransaction.yaml#/DcbTransaction'
     transactionStatus:
@@ -102,6 +135,12 @@ components:
         application/json:
           schema:
             $ref: 'schemas/EcsTlr.yaml#/EcsTlr'
+    ecs-tlr-settings:
+      description: ECS TLR settings
+      content:
+        application/json:
+          schema:
+            $ref: 'schemas/EcsTlrSettings.yaml#/EcsTlrSettings'
     badRequestResponse:
       description: Validation errors
       content:

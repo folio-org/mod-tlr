@@ -1,0 +1,12 @@
+EcsTlrSettings:
+  description: ECS TLR Settings in a multi-tenant environment with Сonsortia support enabled
+  type: "object"
+  properties:
+    id:
+      description: "ID of the ECS TLR Settings"
+      $ref: "uuid.yaml"
+    ecsTlrFeatureEnabled:
+      description: "Indicates if TLR feature is enabled"
+      type: boolean
+  required:
+    - ecsTlrFeatureEnabled
