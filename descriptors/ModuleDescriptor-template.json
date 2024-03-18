@@ -41,13 +41,13 @@
           "methods": ["GET"],
           "pathPattern": "/tlr/ecs-tlr/settings",
           "permissionsRequired": ["tlr.ecs-tlr.settings.get"],
-          "modulePermissions": ["tlr.ecs-tlr.settings.get"]
+          "modulePermissions": []
         },
         {
           "methods": ["PUT"],
           "pathPattern": "/tlr/ecs-tlr/settings",
           "permissionsRequired": ["tlr.ecs-tlr.settings.put"],
-          "modulePermissions": ["tlr.ecs-tlr.settings.put"]
+          "modulePermissions": []
         }
       ]
     },
@@ -118,7 +118,7 @@
         "mod-settings.entries.collection.get",
         "mod-settings.entries.item.get"
       ],
-      "visible": true
+      "visible": false
     },
     {
       "permissionName": "tlr.ecs-tlr.settings.put",
