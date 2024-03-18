@@ -41,13 +41,13 @@
           "methods": ["GET"],
           "pathPattern": "/tlr/ecs-tlr/settings",
           "permissionsRequired": ["tlr.ecs-tlr.settings.get"],
-          "modulePermissions": []
+          "modulePermissions": ["tlr.ecs-tlr.settings.get"]
         },
         {
           "methods": ["PUT"],
           "pathPattern": "/tlr/ecs-tlr/settings",
           "permissionsRequired": ["tlr.ecs-tlr.settings.put"],
-          "modulePermissions": []
+          "modulePermissions": ["tlr.ecs-tlr.settings.put"]
         }
       ]
     },
