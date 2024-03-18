@@ -127,7 +127,7 @@
       "subPermissions": [
         "settings.circulation.enabled",
         "mod-settings.global.read.circulation",
-        "mod-settings.entries.collection.get",`
+        "mod-settings.entries.collection.get",
         "mod-settings.entries.item.get",
         "mod-settings.global.write.circulation",
         "mod-settings.entries.item.put",

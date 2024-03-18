@@ -91,20 +91,6 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       .map(ecsTlrSettingsMapper::mapEntityToDto);
   }
 
-//  @Override
-//  public EcsTlrSettings createEcsTlrSettings(EcsTlrSettings ecsTlrSettings) {
-//    log.info("createEcsTlrSettings:: parameters: {} ", () -> ecsTlrSettings);
-//
-//    if (ecsTlrSettings.getId() == null) {
-//      ecsTlrSettings.setId(UUID.randomUUID().toString());
-//    }
-//    if (ecsTlrSettingsRepository.count() == 0) {
-//      return ecsTlrSettingsMapper.mapEntityToDto(
-//        ecsTlrSettingsRepository.save(ecsTlrSettingsMapper.mapDtoToEntity(ecsTlrSettings)));
-//    }
-//    throw new RequestCreatingException("Settings already exist");
-//  }
-
   @Override
   public Optional<EcsTlrSettingsEntity> updateEcsTlrSettings(EcsTlrSettings ecsTlrSettings) {
     log.info("updateEcsTlrSettings:: parameters: {} ", () -> ecsTlrSettings);
