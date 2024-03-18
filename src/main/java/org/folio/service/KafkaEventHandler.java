@@ -1,5 +1,7 @@
 package org.folio.service;
 
+import org.folio.support.KafkaEvent;
+
 public interface KafkaEventHandler {
-  void handle(String event);
+  void handleRequestEvent(KafkaEvent event);
 }
