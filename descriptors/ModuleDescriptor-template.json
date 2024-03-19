@@ -41,13 +41,13 @@
           "methods": ["GET"],
           "pathPattern": "/tlr/ecs-tlr/settings",
           "permissionsRequired": ["tlr.ecs-tlr.settings.get"],
-          "modulePermissions": []
+          "modulePermissions": ["tlr.settings.ecs-tlr.get"]
         },
         {
           "methods": ["PUT"],
           "pathPattern": "/tlr/ecs-tlr/settings",
           "permissionsRequired": ["tlr.ecs-tlr.settings.put"],
-          "modulePermissions": []
+          "modulePermissions": ["tlr.settings.ecs-tlr.put"]
         }
       ]
     },
@@ -110,6 +110,16 @@
     },
     {
       "permissionName": "tlr.ecs-tlr.settings.get",
+      "displayName": "ecs-tlr-settings - get ECS TLR Settings",
+      "description": "Get ECS TLR Settings"
+    },
+    {
+      "permissionName": "tlr.ecs-tlr.settings.put",
+      "displayName": "ecs-tlr-settings - update ECS TLR Settings",
+      "description": "Update ECS TLR"
+    },
+    {
+      "permissionName": "tlr.settings.ecs-tlr.get",
       "displayName": "Settings (Circulation): Consortium title level requests view",
       "description": "Entire set of permissions needed to use the circulation",
       "subPermissions": [
@@ -121,7 +131,7 @@
       "visible": false
     },
     {
-      "permissionName": "tlr.ecs-tlr.settings.put",
+      "permissionName": "tlr.settings.ecs-tlr.put",
       "displayName": "Settings (Circulation): Consortium title level requests edit",
       "description": "Entire set of permissions needed to use the circulation",
       "subPermissions": [

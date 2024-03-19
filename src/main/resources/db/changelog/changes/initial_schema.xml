@@ -31,16 +31,16 @@
           <column name="updated_date" type="timestamp without time zone"/>
         </createTable>
     </changeSet>
-  <changeSet id="insert_default_ecs_tlr_settings" author="RomanBarannyk">
+  <changeSet id="insertDefaultEcsTlrSettings" author="RomanBarannyk">
     <createTable tableName="ecs_tlr_settings">
       <column name="id" type="uuid">
         <constraints primaryKey="true"/>
       </column>
-      <column name="ecsTlrFeatureEnabled" type="boolean"/>
+      <column name="ecs_tlr_feature_enabled" type="boolean"/>
     </createTable>
     <insert tableName="ecs_tlr_settings">
       <column name="id" value="b937cf15-da8b-4480-aa87-4bc32f17219b"/>
-      <column name="ecsTlrFeatureEnabled" valueBoolean="true"/>
+      <column name="ecs_tlr_feature_enabled" valueBoolean="true"/>
     </insert>
   </changeSet>
 </databaseChangeLog>
