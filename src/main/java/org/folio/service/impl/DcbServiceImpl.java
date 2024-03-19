@@ -26,9 +26,9 @@ public class DcbServiceImpl implements DcbService {
 
   public void createTransactions(EcsTlrEntity ecsTlr) {
     log.info("createTransaction:: creating DCB transactions for ECS TLR {}", ecsTlr.getId());
-    final UUID borrowerTransactionId = createTransaction(ecsTlr.getPrimaryRequestId(), BORROWER);
+//    final UUID borrowerTransactionId = createTransaction(ecsTlr.getPrimaryRequestId(), BORROWER);
     final UUID lenderTransactionId = createTransaction(ecsTlr.getSecondaryRequestId(), LENDER);
-    ecsTlr.setPrimaryRequestDcbTransactionId(borrowerTransactionId);
+//    ecsTlr.setPrimaryRequestDcbTransactionId(borrowerTransactionId);
     ecsTlr.setSecondaryRequestDcbTransactionId(lenderTransactionId);
     log.info("createTransaction:: DCB transactions for ECS TLR {} created", ecsTlr.getId());
   }
