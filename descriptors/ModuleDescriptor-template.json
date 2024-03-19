@@ -121,7 +121,7 @@
     {
       "permissionName": "tlr.settings.ecs-tlr.get",
       "displayName": "Settings (Circulation): Consortium title level requests view",
-      "description": "Entire set of permissions needed to use the circulation",
+      "description": "Entire set of permissions needed to use Consortium title level requests settings view",
       "subPermissions": [
         "settings.circulation.enabled",
         "mod-settings.global.read.circulation",
@@ -133,7 +133,7 @@
     {
       "permissionName": "tlr.settings.ecs-tlr.put",
       "displayName": "Settings (Circulation): Consortium title level requests edit",
-      "description": "Entire set of permissions needed to use the circulation",
+      "description": "Entire set of permissions needed to use Consortium title level requests settings edit",
       "subPermissions": [
         "settings.circulation.enabled",
         "mod-settings.global.read.circulation",
