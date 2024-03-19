@@ -1,5 +1,6 @@
 package org.folio.controller;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.exactly;
 import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
@@ -8,7 +9,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.folio.support.MockDataUtils.ITEM_ID;
 import static org.folio.support.MockDataUtils.PRIMARY_REQUEST_ID;
 import static org.folio.support.MockDataUtils.SECONDARY_REQUEST_ID;
-import static org.folio.support.MockDataUtils.getEcsTlrEntity;
 import static org.folio.support.MockDataUtils.getMockDataAsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -58,8 +58,16 @@ class KafkaEventListenerTest extends BaseIT {
 
   @Test
   void requestUpdateEventIsConsumed() {
+    EcsTlrEntity newEcsTlr = EcsTlrEntity.builder()
+      .id(UUID.randomUUID())
+      .primaryRequestId(PRIMARY_REQUEST_ID)
+      .primaryRequestTenantId(TENANT_ID_CONSORTIUM)
+      .secondaryRequestId(SECONDARY_REQUEST_ID)
+      .secondaryRequestTenantId(TENANT_ID_COLLEGE)
+      .build();
+
     EcsTlrEntity initialEcsTlr = executionService.executeSystemUserScoped(TENANT_ID_CONSORTIUM,
-      () -> ecsTlrRepository.save(getEcsTlrEntity()));
+      () -> ecsTlrRepository.save(newEcsTlr));
     assertNull(initialEcsTlr.getItemId());
 
     var mockEcsDcbTransactionResponse = new TransactionStatusResponse()
@@ -80,10 +88,14 @@ class KafkaEventListenerTest extends BaseIT {
     UUID secondaryRequestDcbTransactionId = updatedEcsTlr.getSecondaryRequestDcbTransactionId();
 //    assertNotNull(primaryRequestDcbTransactionId);
     assertNotNull(secondaryRequestDcbTransactionId);
+
 //    wireMockServer.verify(postRequestedFor(urlMatching(
-//      ".*" + ECS_REQUEST_TRANSACTIONS_URL + "/" + primaryRequestDcbTransactionId)));
+//      ".*" + ECS_REQUEST_TRANSACTIONS_URL + "/" + primaryRequestDcbTransactionId))
+//      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
+
     wireMockServer.verify(postRequestedFor(urlMatching(
-      ".*" + ECS_REQUEST_TRANSACTIONS_URL + "/" + secondaryRequestDcbTransactionId)));
+      ".*" + ECS_REQUEST_TRANSACTIONS_URL + "/" + secondaryRequestDcbTransactionId))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)));
   }
 
   @Test
