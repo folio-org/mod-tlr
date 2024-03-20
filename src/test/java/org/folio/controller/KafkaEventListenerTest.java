@@ -1,6 +1,7 @@
 package org.folio.controller;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.exactly;
 import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
@@ -23,6 +24,7 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.awaitility.Awaitility;
 import org.folio.api.BaseIT;
+import org.folio.domain.dto.DcbTransaction;
 import org.folio.domain.dto.TransactionStatusResponse;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
@@ -84,18 +86,7 @@ class KafkaEventListenerTest extends BaseIT {
           ecsTlr -> ecsTlr.isPresent() && ITEM_ID.equals(ecsTlr.get().getItemId()))
     ).orElseThrow();
 
-    UUID primaryRequestDcbTransactionId = updatedEcsTlr.getPrimaryRequestDcbTransactionId();
-    UUID secondaryRequestDcbTransactionId = updatedEcsTlr.getSecondaryRequestDcbTransactionId();
-//    assertNotNull(primaryRequestDcbTransactionId);
-    assertNotNull(secondaryRequestDcbTransactionId);
-
-//    wireMockServer.verify(postRequestedFor(urlMatching(
-//      ".*" + ECS_REQUEST_TRANSACTIONS_URL + "/" + primaryRequestDcbTransactionId))
-//      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
-
-    wireMockServer.verify(postRequestedFor(urlMatching(
-      ".*" + ECS_REQUEST_TRANSACTIONS_URL + "/" + secondaryRequestDcbTransactionId))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)));
+    verifyDcbTransactions(updatedEcsTlr);
   }
 
   @Test
@@ -126,6 +117,33 @@ class KafkaEventListenerTest extends BaseIT {
     assertNull(ecsTlr.getSecondaryRequestDcbTransactionId());
     wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(
       ".*" + POST_ECS_REQUEST_TRANSACTION_URL_PATTERN)));
+  }
+
+  private static void verifyDcbTransactions(EcsTlrEntity ecsTlr) {
+//    UUID primaryRequestDcbTransactionId = ecsTlr.getPrimaryRequestDcbTransactionId();
+    UUID secondaryRequestDcbTransactionId = ecsTlr.getSecondaryRequestDcbTransactionId();
+//    assertNotNull(primaryRequestDcbTransactionId);
+    assertNotNull(secondaryRequestDcbTransactionId);
+
+//    DcbTransaction expectedBorrowerTransaction = new DcbTransaction()
+//      .role(DcbTransaction.RoleEnum.BORROWER)
+//      .requestId(ecsTlr.getPrimaryRequestId().toString());
+
+    DcbTransaction expectedLenderTransaction = new DcbTransaction()
+      .role(DcbTransaction.RoleEnum.LENDER)
+      .requestId(ecsTlr.getSecondaryRequestId().toString());
+
+//    wireMockServer.verify(
+//      postRequestedFor(urlMatching(
+//        ".*" + ECS_REQUEST_TRANSACTIONS_URL + "/" + primaryRequestDcbTransactionId))
+//        .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+//        .withRequestBody(equalToJson(asJsonString(expectedBorrowerTransaction))));
+
+    wireMockServer.verify(
+      postRequestedFor(urlMatching(
+        ".*" + ECS_REQUEST_TRANSACTIONS_URL + "/" + secondaryRequestDcbTransactionId))
+        .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
+        .withRequestBody(equalToJson(asJsonString(expectedLenderTransaction))));
   }
 
   @SneakyThrows
