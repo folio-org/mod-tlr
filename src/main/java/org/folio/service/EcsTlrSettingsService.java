@@ -1,9 +1,7 @@
 package org.folio.service;
 
 import java.util.Optional;
-import java.util.UUID;
 
-import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.EcsTlrSettings;
 import org.folio.domain.entity.EcsTlrSettingsEntity;
 

@@ -4,8 +4,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.folio.domain.dto.EcsTlr;
-import org.folio.domain.dto.EcsTlrSettings;
-import org.folio.domain.entity.EcsTlrSettingsEntity;
 
 public interface EcsTlrService {
   Optional<EcsTlr> get(UUID requestId);
