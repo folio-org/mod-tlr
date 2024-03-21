@@ -2,6 +2,7 @@ package org.folio.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.CREATED;
@@ -15,6 +16,7 @@ import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.EcsTlrSettings;
 import org.folio.domain.entity.EcsTlrSettingsEntity;
 import org.folio.service.EcsTlrService;
+import org.folio.service.EcsTlrSettingsService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -26,7 +28,8 @@ import org.springframework.http.HttpStatusCode;
 class EcsTlrControllerTest {
   @Mock
   private EcsTlrService ecsTlrService;
-
+  @Mock
+  private EcsTlrSettingsService ecsTlrSettingsService;
   @InjectMocks
   private EcsTlrController ecsTlrController;
 
@@ -90,45 +93,23 @@ class EcsTlrControllerTest {
 
   @Test
   void getSettingsNotFoundWhenNull() {
-    when(ecsTlrService.getEcsTlrSettings()).thenReturn(Optional.empty());
+    when(ecsTlrSettingsService.getEcsTlrSettings()).thenReturn(Optional.empty());
     var response = ecsTlrController.getEcsTlrSettings();
-    verify(ecsTlrService).getEcsTlrSettings();
+    verify(ecsTlrSettingsService, times(1)).getEcsTlrSettings();
     assertEquals(response.getStatusCode(), HttpStatusCode.valueOf(404));
   }
 
   @Test
   void getSettings() {
-    when(ecsTlrService.getEcsTlrSettings()).thenReturn(Optional.of(new EcsTlrSettings()));
+    when(ecsTlrSettingsService.getEcsTlrSettings()).thenReturn(Optional.of(new EcsTlrSettings()));
     var response = ecsTlrController.getEcsTlrSettings();
-    verify(ecsTlrService).getEcsTlrSettings();
+    verify(ecsTlrSettingsService, times(1)).getEcsTlrSettings();
     assertEquals(response.getStatusCode(), HttpStatusCode.valueOf(200));
   }
 
-//  @Test
-//  void ecsTlrSettingsShouldSuccessfullyBeCreated() {
-//    var mockEcsTlrSettings = new EcsTlrSettings();
-//    when(ecsTlrService.createEcsTlrSettings(any(EcsTlrSettings.class))).thenReturn(mockEcsTlrSettings);
-//
-//    var response = ecsTlrController.postEcsTlrSettings(new EcsTlrSettings());
-//
-//    assertEquals(CREATED, response.getStatusCode());
-//    assertEquals(mockEcsTlrSettings, response.getBody());
-//  }
-//
-//  @Test
-//  void ecsTlrSettingsShouldSuccessfullyBeCreated() {
-//    var mockEcsTlrSettings = new EcsTlrSettings();
-//    when(ecsTlrService.createEcsTlrSettings(any(EcsTlrSettings.class))).thenReturn(mockEcsTlrSettings);
-//
-//    var response = ecsTlrController.postEcsTlrSettings(new EcsTlrSettings());
-//
-//    assertEquals(CREATED, response.getStatusCode());
-//    assertEquals(mockEcsTlrSettings, response.getBody());
-//  }
-
   @Test
   void ecsTlrSettingsShouldSuccessfullyBeUpdated() {
-    when(ecsTlrService.updateEcsTlrSettings(any(EcsTlrSettings.class)))
+    when(ecsTlrSettingsService.updateEcsTlrSettings(any(EcsTlrSettings.class)))
       .thenReturn(Optional.of(new EcsTlrSettingsEntity()));
 
     var response = ecsTlrController.putEcsTlrSettings(new EcsTlrSettings());
@@ -137,7 +118,7 @@ class EcsTlrControllerTest {
 
   @Test
   void ecsTlrSettingsShouldNotBeUpdated() {
-    when(ecsTlrService.updateEcsTlrSettings(any(EcsTlrSettings.class)))
+    when(ecsTlrSettingsService.updateEcsTlrSettings(any(EcsTlrSettings.class)))
       .thenReturn(Optional.empty());
 
     var response = ecsTlrController.putEcsTlrSettings(new EcsTlrSettings());

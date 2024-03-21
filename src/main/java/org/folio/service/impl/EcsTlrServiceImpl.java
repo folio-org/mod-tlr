@@ -31,9 +31,7 @@ import lombok.extern.log4j.Log4j2;
 public class EcsTlrServiceImpl implements EcsTlrService {
 
   private final EcsTlrRepository ecsTlrRepository;
-  private final EcsTlrSettingsRepository ecsTlrSettingsRepository;
   private final EcsTlrMapper requestsMapper;
-  private final EcsTlrSettingsMapper ecsTlrSettingsMapper;
   private final TenantService tenantService;
   private final RequestService requestService;
 
@@ -83,30 +81,6 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     return false;
   }
 
-  @Override
-  public Optional<EcsTlrSettings> getEcsTlrSettings() {
-    return ecsTlrSettingsRepository.findAll(PageRequest.of(0, 1))
-      .stream()
-      .findFirst()
-      .map(ecsTlrSettingsMapper::mapEntityToDto);
-  }
-
-  @Override
-  public Optional<EcsTlrSettingsEntity> updateEcsTlrSettings(EcsTlrSettings ecsTlrSettings) {
-    log.info("updateEcsTlrSettings:: parameters: {} ", () -> ecsTlrSettings);
-
-    Optional<EcsTlrSettingsEntity> existentSettings = ecsTlrSettingsRepository.findAll(PageRequest.of(0, 1))
-      .stream()
-      .findFirst();
-
-    existentSettings.ifPresent(entity -> {
-      ecsTlrSettings.setId(entity.getId().toString());
-      ecsTlrSettingsRepository.save(ecsTlrSettingsMapper.mapDtoToEntity(ecsTlrSettings));
-    });
-
-    return existentSettings;
-  }
-
   private String getBorrowingTenant(EcsTlr ecsTlr) {
     log.info("getBorrowingTenant:: getting borrowing tenant");
     final String borrowingTenantId = tenantService.getBorrowingTenant(ecsTlr)
@@ -151,7 +125,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   }
 
   private static void updateEcsTlr(EcsTlr ecsTlr, RequestWrapper primaryRequest,
-                                   RequestWrapper secondaryRequest) {
+    RequestWrapper secondaryRequest) {
 
     log.info("updateEcsTlr:: updating ECS TLR in memory");
     ecsTlr.primaryRequestTenantId(primaryRequest.tenantId())
@@ -187,5 +161,4 @@ public class EcsTlrServiceImpl implements EcsTlrService {
         ecsTlr.getId(), ecsTlr.getSecondaryRequestId());
     }
   }
-
 }

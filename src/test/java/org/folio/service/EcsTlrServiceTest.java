@@ -51,15 +51,11 @@ class EcsTlrServiceTest {
   @Mock
   private EcsTlrRepository ecsTlrRepository;
   @Mock
-  private EcsTlrSettingsRepository ecsTlrSettingsRepository;
-  @Mock
   private TenantScopedExecutionService tenantScopedExecutionService;
   @Mock
   private TenantService tenantService;
   @Spy
   private final EcsTlrMapper ecsTlrMapper = new EcsTlrMapperImpl();
-  @Spy
-  private final EcsTlrSettingsMapper ecsTlrSettingsMapper = new EcsTlrSettingsMapperImpl();
 
   @Test
   void getById() {
@@ -163,49 +159,5 @@ class EcsTlrServiceTest {
       () -> ecsTlrService.create(ecsTlr));
 
     assertEquals("Failed to find lending tenants for instance " + instanceId, exception.getMessage());
-  }
-
-  @Test
-  void getEcsTlrSettings() {
-    when(ecsTlrSettingsRepository.findAll(any(PageRequest.class)))
-      .thenReturn(new PageImpl<>(List.of(new EcsTlrSettingsEntity(UUID.randomUUID(), true))));
-
-    Optional<EcsTlrSettings> ecsTlrSettings = ecsTlrService.getEcsTlrSettings();
-    verify(ecsTlrSettingsRepository).findAll(any(PageRequest.class));
-    assertTrue(ecsTlrSettings.isPresent());
-    assertTrue(ecsTlrSettings.map(EcsTlrSettings::getEcsTlrFeatureEnabled).orElse(false));
-  }
-
-  @Test
-  void getEcsTlrSettingsWithEmptyValue() {
-    when(ecsTlrSettingsRepository.findAll(any(PageRequest.class)))
-      .thenReturn(new PageImpl<>(Collections.emptyList()));
-
-    Optional<EcsTlrSettings> ecsTlrSettings = ecsTlrService.getEcsTlrSettings();
-    verify(ecsTlrSettingsRepository).findAll(any(PageRequest.class));
-    assertFalse(ecsTlrSettings.isPresent());
-  }
-
-  @Test
-  void updateEcsTlrSettings() {
-    when(ecsTlrSettingsRepository.findAll(any(PageRequest.class)))
-      .thenReturn(new PageImpl<>(List.of(new EcsTlrSettingsEntity(UUID.randomUUID(), true))));
-
-    Optional<EcsTlrSettingsEntity> ecsTlrSettings = ecsTlrService.updateEcsTlrSettings(new EcsTlrSettings());
-    verify(ecsTlrSettingsRepository, times(1)).findAll(any(PageRequest.class));
-    verify(ecsTlrSettingsRepository, times(1)).save(any(EcsTlrSettingsEntity.class));
-    assertTrue(ecsTlrSettings.isPresent());
-    assertTrue(ecsTlrSettings.map(EcsTlrSettingsEntity::isEcsTlrFeatureEnabled).orElse(false));
-  }
-
-  @Test
-  void cannotUpdateEcsTlrSettingsIfItDoesNotExist() {
-    when(ecsTlrSettingsRepository.findAll(any(PageRequest.class)))
-      .thenReturn(new PageImpl<>(Collections.emptyList()));
-
-    Optional<EcsTlrSettingsEntity> ecsTlrSettings = ecsTlrService.updateEcsTlrSettings(new EcsTlrSettings());
-    verify(ecsTlrSettingsRepository, times(1)).findAll(any(PageRequest.class));
-    verify(ecsTlrSettingsRepository, times(0)).save(any(EcsTlrSettingsEntity.class));
-    assertFalse(ecsTlrSettings.isPresent());
   }
 }

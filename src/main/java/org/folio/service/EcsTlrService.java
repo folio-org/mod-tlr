@@ -13,6 +13,4 @@ public interface EcsTlrService {
   boolean update(UUID requestId, EcsTlr ecsTlr);
   boolean delete(UUID requestId);
   void updateRequestItem(UUID secondaryRequestId, UUID itemId);
-  Optional<EcsTlrSettings> getEcsTlrSettings();
-  Optional<EcsTlrSettingsEntity> updateEcsTlrSettings(EcsTlrSettings ecsTlrSettings);
 }
