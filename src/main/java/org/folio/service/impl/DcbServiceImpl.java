@@ -29,14 +29,14 @@ public class DcbServiceImpl implements DcbService {
   }
 
   public void createTransactions(EcsTlrEntity ecsTlr) {
-    log.info("createTransaction:: creating DCB transactions for ECS TLR {}", ecsTlr.getId());
+    log.info("createTransactions:: creating DCB transactions for ECS TLR {}", ecsTlr.getId());
 //    final UUID borrowerTransactionId = createTransaction(ecsTlr.getPrimaryRequestId(), BORROWER,
 //      ecsTlr.getPrimaryRequestTenantId());
     final UUID lenderTransactionId = createTransaction(ecsTlr.getSecondaryRequestId(), LENDER,
       ecsTlr.getSecondaryRequestTenantId());
 //    ecsTlr.setPrimaryRequestDcbTransactionId(borrowerTransactionId);
     ecsTlr.setSecondaryRequestDcbTransactionId(lenderTransactionId);
-    log.info("createTransaction:: DCB transactions for ECS TLR {} created", ecsTlr.getId());
+    log.info("createTransactions:: DCB transactions for ECS TLR {} created", ecsTlr.getId());
   }
 
   private UUID createTransaction(UUID requestId, DcbTransaction.RoleEnum role, String tenantId) {
