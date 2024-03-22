@@ -38,10 +38,8 @@ public class EcsTlrSettingsServiceImpl implements EcsTlrSettingsService {
     return ecsTlrSettingsRepository.findAll(PageRequest.of(0, 1))
       .stream()
       .findFirst()
-      .map(entity -> {
-        EcsTlrSettingsEntity save = ecsTlrSettingsRepository.save(ecsTlrSettingsMapper.mapDtoToEntity(
-          ecsTlrSettings.id(entity.getId().toString())));
-        return ecsTlrSettingsMapper.mapEntityToDto(save);
-      });
+      .map(entity -> ecsTlrSettingsMapper.mapEntityToDto(
+        ecsTlrSettingsRepository.save(ecsTlrSettingsMapper.mapDtoToEntity(
+          ecsTlrSettings.id(entity.getId().toString())))));
   }
 }
