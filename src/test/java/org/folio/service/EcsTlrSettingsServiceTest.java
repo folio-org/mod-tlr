@@ -60,8 +60,11 @@ class EcsTlrSettingsServiceTest {
 
   @Test
   void updateEcsTlrSettings() {
+    var ecsTlrSettingsEntity = new EcsTlrSettingsEntity(UUID.randomUUID(), true);
     when(ecsTlrSettingsRepository.findAll(any(PageRequest.class)))
-      .thenReturn(new PageImpl<>(List.of(new EcsTlrSettingsEntity(UUID.randomUUID(), true))));
+      .thenReturn(new PageImpl<>(List.of(ecsTlrSettingsEntity)));
+    when(ecsTlrSettingsRepository.save(any(EcsTlrSettingsEntity.class)))
+      .thenReturn(ecsTlrSettingsEntity);
 
     Optional<EcsTlrSettings> ecsTlrSettings = ecsTlrSettingsService.updateEcsTlrSettings(new EcsTlrSettings());
     verify(ecsTlrSettingsRepository, times(1)).findAll(any(PageRequest.class));

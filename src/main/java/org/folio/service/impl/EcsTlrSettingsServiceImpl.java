@@ -3,6 +3,7 @@ package org.folio.service.impl;
 import java.util.Optional;
 
 import org.folio.domain.dto.EcsTlrSettings;
+import org.folio.domain.entity.EcsTlrSettingsEntity;
 import org.folio.domain.mapper.EcsTlrSettingsMapper;
 import org.folio.repository.EcsTlrSettingsRepository;
 import org.folio.service.EcsTlrSettingsService;
@@ -37,8 +38,10 @@ public class EcsTlrSettingsServiceImpl implements EcsTlrSettingsService {
     return ecsTlrSettingsRepository.findAll(PageRequest.of(0, 1))
       .stream()
       .findFirst()
-      .map(entity -> ecsTlrSettingsMapper.mapEntityToDto(
-        ecsTlrSettingsRepository.save(ecsTlrSettingsMapper.mapDtoToEntity(
-          ecsTlrSettings.id(entity.getId().toString())))));
+      .map(entity -> {
+        EcsTlrSettingsEntity save = ecsTlrSettingsRepository.save(ecsTlrSettingsMapper.mapDtoToEntity(
+          ecsTlrSettings.id(entity.getId().toString())));
+        return ecsTlrSettingsMapper.mapEntityToDto(save);
+      });
   }
 }
