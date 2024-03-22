@@ -6,28 +6,21 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.EcsTlr;
-import org.folio.domain.dto.EcsTlrSettings;
 import org.folio.domain.dto.Request;
 import org.folio.domain.entity.EcsTlrEntity;
-import org.folio.domain.entity.EcsTlrSettingsEntity;
 import org.folio.domain.mapper.EcsTlrMapper;
 import org.folio.domain.mapper.EcsTlrMapperImpl;
-import org.folio.domain.mapper.EcsTlrSettingsMapper;
-import org.folio.domain.mapper.EcsTlrSettingsMapperImpl;
 import org.folio.exception.TenantPickingException;
 import org.folio.repository.EcsTlrRepository;
-import org.folio.repository.EcsTlrSettingsRepository;
 import org.folio.service.impl.EcsTlrServiceImpl;
 import org.joda.time.DateTime;
 import org.junit.jupiter.api.Test;
@@ -36,8 +29,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 
 @ExtendWith(MockitoExtension.class)
 class EcsTlrServiceTest {

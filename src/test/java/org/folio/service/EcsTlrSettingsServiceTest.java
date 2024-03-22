@@ -63,11 +63,11 @@ class EcsTlrSettingsServiceTest {
     when(ecsTlrSettingsRepository.findAll(any(PageRequest.class)))
       .thenReturn(new PageImpl<>(List.of(new EcsTlrSettingsEntity(UUID.randomUUID(), true))));
 
-    Optional<EcsTlrSettingsEntity> ecsTlrSettings = ecsTlrSettingsService.updateEcsTlrSettings(new EcsTlrSettings());
+    Optional<EcsTlrSettings> ecsTlrSettings = ecsTlrSettingsService.updateEcsTlrSettings(new EcsTlrSettings());
     verify(ecsTlrSettingsRepository, times(1)).findAll(any(PageRequest.class));
     verify(ecsTlrSettingsRepository, times(1)).save(any(EcsTlrSettingsEntity.class));
     assertTrue(ecsTlrSettings.isPresent());
-    assertTrue(ecsTlrSettings.map(EcsTlrSettingsEntity::isEcsTlrFeatureEnabled).orElse(false));
+    assertTrue(ecsTlrSettings.map(EcsTlrSettings::getEcsTlrFeatureEnabled).orElse(false));
   }
 
   @Test
@@ -75,7 +75,7 @@ class EcsTlrSettingsServiceTest {
     when(ecsTlrSettingsRepository.findAll(any(PageRequest.class)))
       .thenReturn(new PageImpl<>(Collections.emptyList()));
 
-    Optional<EcsTlrSettingsEntity> ecsTlrSettings = ecsTlrSettingsService.updateEcsTlrSettings(new EcsTlrSettings());
+    Optional<EcsTlrSettings> ecsTlrSettings = ecsTlrSettingsService.updateEcsTlrSettings(new EcsTlrSettings());
     verify(ecsTlrSettingsRepository, times(1)).findAll(any(PageRequest.class));
     verify(ecsTlrSettingsRepository, times(0)).save(any(EcsTlrSettingsEntity.class));
     assertFalse(ecsTlrSettings.isPresent());

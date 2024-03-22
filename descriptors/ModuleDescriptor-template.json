@@ -36,7 +36,13 @@
           "pathPattern": "/tlr/ecs-tlr/{requestId}",
           "permissionsRequired": ["tlr.ecs-tlr.delete"],
           "modulePermissions": []
-        },
+        }
+      ]
+    },
+    {
+      "id": "ecs-tlr-settings",
+      "version": "1.0",
+      "handlers": [
         {
           "methods": ["GET"],
           "pathPattern": "/tlr/ecs-tlr/settings",
@@ -123,6 +129,7 @@
       "displayName": "Settings (Circulation): Consortium title level requests view",
       "description": "Entire set of permissions needed to use Consortium title level requests settings view",
       "subPermissions": [
+        "tlr.ecs-tlr.settings.get",
         "settings.circulation.enabled",
         "mod-settings.global.read.circulation",
         "mod-settings.entries.collection.get",
@@ -135,6 +142,7 @@
       "displayName": "Settings (Circulation): Consortium title level requests edit",
       "description": "Entire set of permissions needed to use Consortium title level requests settings edit",
       "subPermissions": [
+        "tlr.ecs-tlr.settings.put",
         "settings.circulation.enabled",
         "mod-settings.global.read.circulation",
         "mod-settings.entries.collection.get",

@@ -14,7 +14,6 @@ import java.util.UUID;
 
 import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.EcsTlrSettings;
-import org.folio.domain.entity.EcsTlrSettingsEntity;
 import org.folio.service.EcsTlrService;
 import org.folio.service.EcsTlrSettingsService;
 import org.junit.jupiter.api.Test;
@@ -110,7 +109,7 @@ class EcsTlrControllerTest {
   @Test
   void ecsTlrSettingsShouldSuccessfullyBeUpdated() {
     when(ecsTlrSettingsService.updateEcsTlrSettings(any(EcsTlrSettings.class)))
-      .thenReturn(Optional.of(new EcsTlrSettingsEntity()));
+      .thenReturn(Optional.of(new EcsTlrSettings()));
 
     var response = ecsTlrController.putEcsTlrSettings(new EcsTlrSettings());
     assertEquals(NO_CONTENT, response.getStatusCode());

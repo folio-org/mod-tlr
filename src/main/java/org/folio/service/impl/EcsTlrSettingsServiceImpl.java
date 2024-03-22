@@ -3,7 +3,6 @@ package org.folio.service.impl;
 import java.util.Optional;
 
 import org.folio.domain.dto.EcsTlrSettings;
-import org.folio.domain.entity.EcsTlrSettingsEntity;
 import org.folio.domain.mapper.EcsTlrSettingsMapper;
 import org.folio.repository.EcsTlrSettingsRepository;
 import org.folio.service.EcsTlrSettingsService;
@@ -32,18 +31,14 @@ public class EcsTlrSettingsServiceImpl implements EcsTlrSettingsService {
   }
 
   @Override
-  public Optional<EcsTlrSettingsEntity> updateEcsTlrSettings(EcsTlrSettings ecsTlrSettings) {
+  public Optional<EcsTlrSettings> updateEcsTlrSettings(EcsTlrSettings ecsTlrSettings) {
     log.debug("updateEcsTlrSettings:: parameters: {} ", () -> ecsTlrSettings);
 
-    Optional<EcsTlrSettingsEntity> existentSettings = ecsTlrSettingsRepository.findAll(PageRequest.of(0, 1))
+    return ecsTlrSettingsRepository.findAll(PageRequest.of(0, 1))
       .stream()
-      .findFirst();
-
-    existentSettings.ifPresent(entity -> {
-      ecsTlrSettings.setId(entity.getId().toString());
-      ecsTlrSettingsRepository.save(ecsTlrSettingsMapper.mapDtoToEntity(ecsTlrSettings));
-    });
-
-    return existentSettings;
+      .findFirst()
+      .map(entity -> ecsTlrSettingsMapper.mapEntityToDto(
+        ecsTlrSettingsRepository.save(ecsTlrSettingsMapper.mapDtoToEntity(
+          ecsTlrSettings.id(entity.getId().toString())))));
   }
 }
