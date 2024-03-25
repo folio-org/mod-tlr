@@ -45,14 +45,14 @@
       "handlers": [
         {
           "methods": ["GET"],
-          "pathPattern": "/tlr/ecs-tlr/settings",
-          "permissionsRequired": ["tlr.ecs-tlr.settings.get"],
+          "pathPattern": "/tlr/settings",
+          "permissionsRequired": ["tlr.settings.get"],
           "modulePermissions": ["tlr.settings.ecs-tlr.get"]
         },
         {
           "methods": ["PUT"],
-          "pathPattern": "/tlr/ecs-tlr/settings",
-          "permissionsRequired": ["tlr.ecs-tlr.settings.put"],
+          "pathPattern": "/tlr/settings",
+          "permissionsRequired": ["tlr.settings.put"],
           "modulePermissions": ["tlr.settings.ecs-tlr.put"]
         }
       ]
@@ -115,12 +115,12 @@
       "description": "Remove ECS TLR"
     },
     {
-      "permissionName": "tlr.ecs-tlr.settings.get",
+      "permissionName": "tlr.settings.get",
       "displayName": "ecs-tlr-settings - get ECS TLR Settings",
       "description": "Get ECS TLR Settings"
     },
     {
-      "permissionName": "tlr.ecs-tlr.settings.put",
+      "permissionName": "tlr.settings.put",
       "displayName": "ecs-tlr-settings - update ECS TLR Settings",
       "description": "Update ECS TLR"
     },

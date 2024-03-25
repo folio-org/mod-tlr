@@ -5,7 +5,7 @@ info:
 tags:
   - name: ecsTlrSettings
 paths:
-  /tlr/ecs-tlr/settings:
+  /tlr/settings:
     get:
       description: Retrieve ECS TLR Settings
       operationId: getEcsTlrSettings
