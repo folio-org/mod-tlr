@@ -123,6 +123,19 @@
       "permissionName": "tlr.settings.put",
       "displayName": "ecs-tlr-settings - update ECS TLR Settings",
       "description": "Update ECS TLR"
+    },
+    {
+      "permissionName": "title.level.requests.view",
+      "displayName": "Settings (Circulation): Consortium title level requests view",
+      "description": "Entire set of permissions needed to use Consortium title level requests settings view",
+      "subPermissions": [
+        "tlr.settings.get",
+        "settings.circulation.enabled",
+        "mod-settings.global.read.circulation",
+        "mod-settings.entries.collection.get",
+        "mod-settings.entries.item.get"
+      ],
+      "visible": false
     }
   ],
   "requires": [
