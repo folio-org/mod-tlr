@@ -58,7 +58,6 @@ class EcsTlrApiTest extends BaseIT {
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   void ecsTlrIsCreated(boolean shadowUserExists) {
-    String instanceRequestId = randomId();
     String availableItemId = randomId();
     String requesterId = randomId();
     EcsTlr ecsTlr = buildEcsTlr(INSTANCE_ID, requesterId);
@@ -78,7 +77,7 @@ class EcsTlrApiTest extends BaseIT {
       ));
 
     Request mockSecondaryRequestResponse = new Request()
-      .id(instanceRequestId)
+      .id(randomId())
       .requesterId(requesterId)
       .requestLevel(Request.RequestLevelEnum.TITLE)
       .requestType(Request.RequestTypeEnum.PAGE)
@@ -132,7 +131,9 @@ class EcsTlrApiTest extends BaseIT {
     // 3. Create ECS TLR
 
     EcsTlr expectedPostEcsTlrResponse = fromJsonString(ecsTlrJson, EcsTlr.class)
-      .secondaryRequestId(instanceRequestId)
+      .primaryRequestId(mockPrimaryRequestResponse.getId())
+      .primaryRequestTenantId(TENANT_ID_CONSORTIUM)
+      .secondaryRequestId(mockSecondaryRequestResponse.getId())
       .secondaryRequestTenantId(TENANT_ID_COLLEGE)
       .itemId(availableItemId);
 
