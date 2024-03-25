@@ -2,11 +2,15 @@ openapi: 3.0.0
 info:
   title: ECS TLR API
   version: v1
+tags:
+  - name: ecsTlr
 paths:
   /tlr/ecs-tlr:
     post:
       description: Create ECS TLR
       operationId: postEcsTlr
+      tags:
+        - ecsTlr
       requestBody:
         content:
           application/json:
@@ -24,6 +28,8 @@ paths:
     get:
       description: Retrieve ECS TLR by ID
       operationId: getEcsTlrById
+      tags:
+        - ecsTlr
       parameters:
         - $ref: '#/components/parameters/requestId'
       responses:
@@ -38,6 +44,8 @@ paths:
     put:
       description: Update ECS TLR by ID
       operationId: putEcsTlrById
+      tags:
+        - ecsTlr
       requestBody:
         content:
           application/json:
@@ -58,6 +66,8 @@ paths:
     delete:
       description: Remove ECS TLR by ID
       operationId: deleteEcsTlrById
+      tags:
+        - ecsTlr
       parameters:
         - $ref: '#/components/parameters/requestId'
       responses:

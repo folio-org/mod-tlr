@@ -162,5 +162,4 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     ecsTlrRepository.save(ecsTlr);
     log.info("handleSecondaryRequestUpdate: ECS TLR {} is updated", ecsTlrId);
   }
-
 }
