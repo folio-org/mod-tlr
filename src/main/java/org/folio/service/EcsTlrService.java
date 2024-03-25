@@ -10,5 +10,5 @@ public interface EcsTlrService {
   EcsTlr create(EcsTlr ecsTlr);
   boolean update(UUID requestId, EcsTlr ecsTlr);
   boolean delete(UUID requestId);
-  void updateRequestItem(UUID secondaryRequestId, UUID itemId);
+  void handleSecondaryRequestUpdate(UUID secondaryRequestId, UUID itemId);
 }
