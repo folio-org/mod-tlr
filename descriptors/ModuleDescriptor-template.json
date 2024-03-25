@@ -47,13 +47,13 @@
           "methods": ["GET"],
           "pathPattern": "/tlr/settings",
           "permissionsRequired": ["tlr.settings.get"],
-          "modulePermissions": ["tlr.settings.ecs-tlr.get"]
+          "modulePermissions": []
         },
         {
           "methods": ["PUT"],
           "pathPattern": "/tlr/settings",
           "permissionsRequired": ["tlr.settings.put"],
-          "modulePermissions": ["tlr.settings.ecs-tlr.put"]
+          "modulePermissions": []
         }
       ]
     },
@@ -123,35 +123,6 @@
       "permissionName": "tlr.settings.put",
       "displayName": "ecs-tlr-settings - update ECS TLR Settings",
       "description": "Update ECS TLR"
-    },
-    {
-      "permissionName": "tlr.settings.ecs-tlr.get",
-      "displayName": "Settings (Circulation): Consortium title level requests view",
-      "description": "Entire set of permissions needed to use Consortium title level requests settings view",
-      "subPermissions": [
-        "tlr.ecs-tlr.settings.get",
-        "settings.circulation.enabled",
-        "mod-settings.global.read.circulation",
-        "mod-settings.entries.collection.get",
-        "mod-settings.entries.item.get"
-      ],
-      "visible": false
-    },
-    {
-      "permissionName": "tlr.settings.ecs-tlr.put",
-      "displayName": "Settings (Circulation): Consortium title level requests edit",
-      "description": "Entire set of permissions needed to use Consortium title level requests settings edit",
-      "subPermissions": [
-        "tlr.ecs-tlr.settings.put",
-        "settings.circulation.enabled",
-        "mod-settings.global.read.circulation",
-        "mod-settings.entries.collection.get",
-        "mod-settings.entries.item.get",
-        "mod-settings.global.write.circulation",
-        "mod-settings.entries.item.put",
-        "mod-settings.entries.item.post"
-      ],
-      "visible": true
     }
   ],
   "requires": [
