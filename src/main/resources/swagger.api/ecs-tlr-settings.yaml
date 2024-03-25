@@ -1,0 +1,85 @@
+openapi: 3.0.0
+info:
+  title: ECS TLR Settings API
+  version: v1
+tags:
+  - name: ecsTlrSettings
+paths:
+  /tlr/ecs-tlr/settings:
+    get:
+      description: Retrieve ECS TLR Settings
+      operationId: getEcsTlrSettings
+      tags:
+        - ecsTlrSettings
+      responses:
+        '200':
+          $ref: '#/components/responses/ecs-tlr-settings'
+        '400':
+          $ref: '#/components/responses/badRequestResponse'
+        '404':
+          $ref: '#/components/responses/notFoundResponse'
+        '500':
+          $ref: '#/components/responses/internalServerErrorResponse'
+    put:
+      description: Update ECS TLR Settings
+      operationId: putEcsTlrSettings
+      tags:
+        - ecsTlrSettings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ecs-tlr-settings"
+        required: true
+      responses:
+        '204':
+          description: Request successfully updated
+        '400':
+          $ref: '#/components/responses/badRequestResponse'
+        '404':
+          $ref: '#/components/responses/notFoundResponse'
+        '500':
+          $ref: '#/components/responses/internalServerErrorResponse'
+components:
+  schemas:
+    ecs-tlr-settings:
+      $ref: 'schemas/EcsTlrSettings.yaml#/EcsTlrSettings'
+    errorResponse:
+      $ref: 'schemas/errors.json'
+  responses:
+    ecs-tlr-settings:
+      description: ECS TLR Settings
+      content:
+        application/json:
+          schema:
+            $ref: 'schemas/EcsTlrSettings.yaml#/EcsTlrSettings'
+    badRequestResponse:
+      description: Validation errors
+      content:
+        application/json:
+          example:
+            errors:
+              - message: Request is invalid
+            total_records: 1
+          schema:
+            $ref: "#/components/schemas/errorResponse"
+    notFoundResponse:
+      description: Not found
+      content:
+        application/json:
+          example:
+            errors:
+              - message: Request not found
+            total_records: 1
+          schema:
+            $ref: "#/components/schemas/errorResponse"
+    internalServerErrorResponse:
+      description: When unhandled exception occurred during code execution, e.g. NullPointerException
+      content:
+        application/json:
+          example:
+            errors:
+              - message: Unexpected error
+            total_records: 1
+          schema:
+            $ref: "#/components/schemas/errorResponse"

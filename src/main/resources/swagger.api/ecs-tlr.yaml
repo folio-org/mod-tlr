@@ -2,11 +2,15 @@ openapi: 3.0.0
 info:
   title: ECS TLR API
   version: v1
+tags:
+  - name: ecsTlr
 paths:
   /tlr/ecs-tlr:
     post:
       description: Create ECS TLR
       operationId: postEcsTlr
+      tags:
+        - ecsTlr
       requestBody:
         content:
           application/json:
@@ -20,41 +24,12 @@ paths:
           $ref: '#/components/responses/badRequestResponse'
         '500':
           $ref: '#/components/responses/internalServerErrorResponse'
-  /tlr/ecs-tlr/settings:
-    get:
-      description: Retrieve ECS TLR Settings
-      operationId: getEcsTlrSettings
-      responses:
-        '200':
-          $ref: '#/components/responses/ecs-tlr-settings'
-        '400':
-          $ref: '#/components/responses/badRequestResponse'
-        '404':
-          $ref: '#/components/responses/notFoundResponse'
-        '500':
-          $ref: '#/components/responses/internalServerErrorResponse'
-    put:
-      description: Update ECS TLR Settings
-      operationId: putEcsTlrSettings
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ecs-tlr-settings"
-        required: true
-      responses:
-        '204':
-          description: Request successfully updated
-        '400':
-          $ref: '#/components/responses/badRequestResponse'
-        '404':
-          $ref: '#/components/responses/notFoundResponse'
-        '500':
-          $ref: '#/components/responses/internalServerErrorResponse'
   /tlr/ecs-tlr/{requestId}:
     get:
       description: Retrieve ECS TLR by ID
       operationId: getEcsTlrById
+      tags:
+        - ecsTlr
       parameters:
         - $ref: '#/components/parameters/requestId'
       responses:
@@ -69,6 +44,8 @@ paths:
     put:
       description: Update ECS TLR by ID
       operationId: putEcsTlrById
+      tags:
+        - ecsTlr
       requestBody:
         content:
           application/json:
@@ -89,6 +66,8 @@ paths:
     delete:
       description: Remove ECS TLR by ID
       operationId: deleteEcsTlrById
+      tags:
+        - ecsTlr
       parameters:
         - $ref: '#/components/parameters/requestId'
       responses:
@@ -104,8 +83,6 @@ components:
   schemas:
     ecs-tlr:
       $ref: 'schemas/EcsTlr.yaml#/EcsTlr'
-    ecs-tlr-settings:
-      $ref: 'schemas/EcsTlrSettings.yaml#/EcsTlrSettings'
     dcbTransaction:
       $ref: 'schemas/dcbTransaction.yaml#/DcbTransaction'
     transactionStatus:
@@ -135,12 +112,6 @@ components:
         application/json:
           schema:
             $ref: 'schemas/EcsTlr.yaml#/EcsTlr'
-    ecs-tlr-settings:
-      description: ECS TLR settings
-      content:
-        application/json:
-          schema:
-            $ref: 'schemas/EcsTlrSettings.yaml#/EcsTlrSettings'
     badRequestResponse:
       description: Validation errors
       content:

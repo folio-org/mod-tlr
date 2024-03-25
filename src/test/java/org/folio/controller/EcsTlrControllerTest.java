@@ -2,7 +2,6 @@ package org.folio.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.CREATED;
@@ -13,7 +12,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.folio.domain.dto.EcsTlr;
-import org.folio.domain.dto.EcsTlrSettings;
 import org.folio.service.EcsTlrService;
 import org.folio.service.EcsTlrSettingsService;
 import org.junit.jupiter.api.Test;
@@ -88,39 +86,5 @@ class EcsTlrControllerTest {
     when(ecsTlrService.delete(any(UUID.class))).thenReturn(false);
     var deleteResponse = ecsTlrController.deleteEcsTlrById(id);
     assertEquals(NOT_FOUND, deleteResponse.getStatusCode());
-  }
-
-  @Test
-  void getSettingsNotFoundWhenNull() {
-    when(ecsTlrSettingsService.getEcsTlrSettings()).thenReturn(Optional.empty());
-    var response = ecsTlrController.getEcsTlrSettings();
-    verify(ecsTlrSettingsService, times(1)).getEcsTlrSettings();
-    assertEquals(response.getStatusCode(), HttpStatusCode.valueOf(404));
-  }
-
-  @Test
-  void getSettings() {
-    when(ecsTlrSettingsService.getEcsTlrSettings()).thenReturn(Optional.of(new EcsTlrSettings()));
-    var response = ecsTlrController.getEcsTlrSettings();
-    verify(ecsTlrSettingsService, times(1)).getEcsTlrSettings();
-    assertEquals(response.getStatusCode(), HttpStatusCode.valueOf(200));
-  }
-
-  @Test
-  void ecsTlrSettingsShouldSuccessfullyBeUpdated() {
-    when(ecsTlrSettingsService.updateEcsTlrSettings(any(EcsTlrSettings.class)))
-      .thenReturn(Optional.of(new EcsTlrSettings()));
-
-    var response = ecsTlrController.putEcsTlrSettings(new EcsTlrSettings());
-    assertEquals(NO_CONTENT, response.getStatusCode());
-  }
-
-  @Test
-  void ecsTlrSettingsShouldNotBeUpdated() {
-    when(ecsTlrSettingsService.updateEcsTlrSettings(any(EcsTlrSettings.class)))
-      .thenReturn(Optional.empty());
-
-    var response = ecsTlrController.putEcsTlrSettings(new EcsTlrSettings());
-    assertEquals(NOT_FOUND, response.getStatusCode());
   }
 }
