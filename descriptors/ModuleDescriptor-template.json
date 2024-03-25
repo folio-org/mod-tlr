@@ -125,7 +125,7 @@
       "description": "Update ECS TLR"
     },
     {
-      "permissionName": "title.level.requests.view",
+      "permissionName": "tlr.consortium-tlr.view",
       "displayName": "Settings (Circulation): Consortium title level requests view",
       "description": "Entire set of permissions needed to use Consortium title level requests settings view",
       "subPermissions": [
