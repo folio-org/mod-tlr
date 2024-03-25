@@ -4,9 +4,9 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.NO_CONTENT;
 import static org.springframework.http.HttpStatus.OK;
 
-import org.folio.domain.dto.EcsTlrSettings;
-import org.folio.rest.resource.EcsTlrSettingsApi;
-import org.folio.service.EcsTlrSettingsService;
+import org.folio.domain.dto.TlrSettings;
+import org.folio.rest.resource.TlrSettingsApi;
+import org.folio.service.TlrSettingsService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -16,25 +16,25 @@ import lombok.extern.log4j.Log4j2;
 @RestController
 @Log4j2
 @AllArgsConstructor
-public class EcsTlrSettingsController implements EcsTlrSettingsApi {
+public class TlrSettingsController implements TlrSettingsApi {
 
-  private final EcsTlrSettingsService ecsTlrSettingsService;
+  private final TlrSettingsService tlrSettingsService;
 
   @Override
-  public ResponseEntity<EcsTlrSettings> getEcsTlrSettings() {
-    log.debug("getEcsTlrSettings:: ");
+  public ResponseEntity<TlrSettings> getTlrSettings() {
+    log.debug("getTlrSettings:: ");
 
-    return ecsTlrSettingsService.getEcsTlrSettings()
+    return tlrSettingsService.getTlrSettings()
       .map(ResponseEntity.status(OK)::body)
       .orElseGet(() -> ResponseEntity.notFound().build());
   }
 
   @Override
-  public ResponseEntity<Void> putEcsTlrSettings(EcsTlrSettings ecsTlrSettings) {
-    log.debug("putEcsTlrSettings:: parameters: {}", () -> ecsTlrSettings);
+  public ResponseEntity<Void> putTlrSettings(TlrSettings tlrSettings) {
+    log.debug("putTlrSettings:: parameters: {}", () -> tlrSettings);
 
     return ResponseEntity.status(
-        ecsTlrSettingsService.updateEcsTlrSettings(ecsTlrSettings)
+        tlrSettingsService.updateTlrSettings(tlrSettings)
           .map(entity -> NO_CONTENT)
           .orElse(NOT_FOUND))
       .build();

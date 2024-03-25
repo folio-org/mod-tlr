@@ -1,19 +1,19 @@
 openapi: 3.0.0
 info:
-  title: ECS TLR Settings API
+  title: TLR Settings API
   version: v1
 tags:
-  - name: ecsTlrSettings
+  - name: tlrSettings
 paths:
   /tlr/settings:
     get:
-      description: Retrieve ECS TLR Settings
-      operationId: getEcsTlrSettings
+      description: Retrieve TLR Settings
+      operationId: getTlrSettings
       tags:
-        - ecsTlrSettings
+        - tlrSettings
       responses:
         '200':
-          $ref: '#/components/responses/ecs-tlr-settings'
+          $ref: '#/components/responses/tlr-settings'
         '400':
           $ref: '#/components/responses/badRequestResponse'
         '404':
@@ -21,15 +21,15 @@ paths:
         '500':
           $ref: '#/components/responses/internalServerErrorResponse'
     put:
-      description: Update ECS TLR Settings
-      operationId: putEcsTlrSettings
+      description: Update TLR Settings
+      operationId: putTlrSettings
       tags:
-        - ecsTlrSettings
+        - tlrSettings
       requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ecs-tlr-settings"
+              $ref: "#/components/schemas/tlr-settings"
         required: true
       responses:
         '204':
@@ -42,17 +42,17 @@ paths:
           $ref: '#/components/responses/internalServerErrorResponse'
 components:
   schemas:
-    ecs-tlr-settings:
-      $ref: 'schemas/EcsTlrSettings.yaml#/EcsTlrSettings'
+    tlr-settings:
+      $ref: 'schemas/TlrSettings.yaml#/TlrSettings'
     errorResponse:
       $ref: 'schemas/errors.json'
   responses:
-    ecs-tlr-settings:
-      description: ECS TLR Settings
+    tlr-settings:
+      description: TLR Settings
       content:
         application/json:
           schema:
-            $ref: 'schemas/EcsTlrSettings.yaml#/EcsTlrSettings'
+            $ref: 'schemas/TlrSettings.yaml#/TlrSettings'
     badRequestResponse:
       description: Validation errors
       content:

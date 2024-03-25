@@ -7,19 +7,14 @@ import java.util.UUID;
 
 import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.EcsTlr;
-import org.folio.domain.dto.EcsTlrSettings;
 import org.folio.domain.dto.Request;
 import org.folio.domain.entity.EcsTlrEntity;
-import org.folio.domain.entity.EcsTlrSettingsEntity;
 import org.folio.domain.mapper.EcsTlrMapper;
-import org.folio.domain.mapper.EcsTlrSettingsMapper;
 import org.folio.exception.TenantPickingException;
 import org.folio.repository.EcsTlrRepository;
-import org.folio.repository.EcsTlrSettingsRepository;
 import org.folio.service.EcsTlrService;
 import org.folio.service.RequestService;
 import org.folio.service.TenantService;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;

@@ -40,7 +40,7 @@
       ]
     },
     {
-      "id": "ecs-tlr-settings",
+      "id": "tlr-settings",
       "version": "1.0",
       "handlers": [
         {
@@ -116,12 +116,12 @@
     },
     {
       "permissionName": "tlr.settings.get",
-      "displayName": "ecs-tlr-settings - get ECS TLR Settings",
+      "displayName": "tlr-settings - get ECS TLR Settings",
       "description": "Get ECS TLR Settings"
     },
     {
       "permissionName": "tlr.settings.put",
-      "displayName": "ecs-tlr-settings - update ECS TLR Settings",
+      "displayName": "tlr-settings - update ECS TLR Settings",
       "description": "Update ECS TLR"
     },
     {

@@ -13,7 +13,7 @@ import java.util.UUID;
 
 import org.folio.domain.dto.EcsTlr;
 import org.folio.service.EcsTlrService;
-import org.folio.service.EcsTlrSettingsService;
+import org.folio.service.TlrSettingsService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -26,7 +26,7 @@ class EcsTlrControllerTest {
   @Mock
   private EcsTlrService ecsTlrService;
   @Mock
-  private EcsTlrSettingsService ecsTlrSettingsService;
+  private TlrSettingsService tlrSettingsService;
   @InjectMocks
   private EcsTlrController ecsTlrController;
 

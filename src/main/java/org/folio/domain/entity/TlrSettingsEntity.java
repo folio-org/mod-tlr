@@ -11,12 +11,12 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "ecs_tlr_settings")
+@Table(name = "tlr_settings")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class EcsTlrSettingsEntity {
+public class TlrSettingsEntity {
 
   @Id
   private UUID id;

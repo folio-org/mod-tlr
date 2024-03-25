@@ -10,7 +10,7 @@ import java.util.UUID;
 import org.folio.domain.dto.EcsTlr;
 import org.folio.rest.resource.EcsTlrApi;
 import org.folio.service.EcsTlrService;
-import org.folio.service.EcsTlrSettingsService;
+import org.folio.service.TlrSettingsService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,7 +24,7 @@ import lombok.extern.log4j.Log4j2;
 public class EcsTlrController implements EcsTlrApi {
 
   private final EcsTlrService ecsTlrService;
-  private final EcsTlrSettingsService ecsTlrSettingsService;
+  private final TlrSettingsService tlrSettingsService;
 
   @Override
   public ResponseEntity<EcsTlr> getEcsTlrById(UUID requestId) {

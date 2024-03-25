@@ -313,12 +313,12 @@
             </configuration>
           </execution>
           <execution>
-            <id>ecs-tlr-settings</id>
+            <id>tlr-settings</id>
             <goals>
               <goal>generate</goal>
             </goals>
             <configuration>
-              <inputSpec>${project.basedir}/src/main/resources/swagger.api/ecs-tlr-settings.yaml</inputSpec>
+              <inputSpec>${project.basedir}/src/main/resources/swagger.api/tlr-settings.yaml</inputSpec>
               <output>${project.build.directory}/generated-sources</output>
               <generatorName>spring</generatorName>
               <modelPackage>${project.groupId}.domain.dto</modelPackage>

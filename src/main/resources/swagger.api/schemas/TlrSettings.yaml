@@ -1,5 +1,5 @@
-EcsTlrSettings:
-  description: ECS TLR Settings in a multi-tenant environment with Сonsortia support enabled
+TlrSettings:
+  description: TLR Settings in a multi-tenant environment with Сonsortia support enabled
   type: "object"
   properties:
     id:

@@ -31,8 +31,8 @@
           <column name="updated_date" type="timestamp without time zone"/>
         </createTable>
     </changeSet>
-  <changeSet id="insertDefaultEcsTlrSettings" author="RomanBarannyk">
-    <createTable tableName="ecs_tlr_settings">
+  <changeSet id="insertDefaultTlrSettings" author="RomanBarannyk">
+    <createTable tableName="tlr_settings">
       <column name="id" type="uuid">
         <constraints primaryKey="true"/>
       </column>
