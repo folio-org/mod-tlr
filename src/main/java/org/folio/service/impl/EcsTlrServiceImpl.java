@@ -12,6 +12,7 @@ import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.domain.mapper.EcsTlrMapper;
 import org.folio.exception.TenantPickingException;
 import org.folio.repository.EcsTlrRepository;
+import org.folio.service.DcbService;
 import org.folio.service.EcsTlrService;
 import org.folio.service.RequestService;
 import org.folio.service.TenantService;
@@ -29,6 +30,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   private final EcsTlrMapper requestsMapper;
   private final TenantService tenantService;
   private final RequestService requestService;
+  private final DcbService dcbService;
 
   @Override
   public Optional<EcsTlr> get(UUID id) {
@@ -131,6 +133,34 @@ public class EcsTlrServiceImpl implements EcsTlrService {
 
     log.info("updateEcsTlr:: ECS TLR updated in memory");
     log.debug("updateEcsTlr:: ECS TLR: {}", () -> ecsTlr);
+  }
+
+  @Override
+  public void handleSecondaryRequestUpdate(UUID secondaryRequestId, UUID itemId) {
+    log.debug("handleSecondaryRequestUpdate:: parameters secondaryRequestId: {}, itemId: {}",
+      secondaryRequestId, itemId);
+    log.info("handleSecondaryRequestUpdate:: looking for ECS TLR for secondary request {}",
+      secondaryRequestId);
+    ecsTlrRepository.findBySecondaryRequestId(secondaryRequestId).ifPresentOrElse(
+      ecsTlr -> handleSecondaryRequestUpdate(ecsTlr, itemId),
+      () -> log.info("handleSecondaryRequestUpdate: ECS TLR with secondary request {} not found",
+        secondaryRequestId));
+  }
+
+  private void handleSecondaryRequestUpdate(EcsTlrEntity ecsTlr, UUID itemId) {
+    log.debug("handleSecondaryRequestUpdate:: parameters ecsTlr: {}, itemId: {}",
+      () -> ecsTlr, () -> itemId);
+    final UUID ecsTlrId = ecsTlr.getId();
+    final UUID ecsTlrItemId = ecsTlr.getItemId();
+    if (ecsTlrItemId != null) {
+      log.info("handleSecondaryRequestUpdate:: ECS TLR {} already has itemId: {}", ecsTlrId, ecsTlrItemId);
+      return;
+    }
+    dcbService.createTransactions(ecsTlr);
+    log.info("handleSecondaryRequestUpdate:: updating ECS TLR {}, new itemId is {}", ecsTlrId, itemId);
+    ecsTlr.setItemId(itemId);
+    ecsTlrRepository.save(ecsTlr);
+    log.info("handleSecondaryRequestUpdate: ECS TLR {} is updated", ecsTlrId);
   }
 
 }
