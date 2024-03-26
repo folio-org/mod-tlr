@@ -43,17 +43,11 @@ EcsTlr:
     primaryRequestId:
       description: "Primary request ID"
       $ref: "uuid.yaml"
-    primaryRequestDcbTransactionId:
-      description: "ID of DCB transaction created for primary request"
-      $ref: "uuid.yaml"
     primaryRequestTenantId:
       description: "ID of the tenant primary request was created in"
       type: string
     secondaryRequestId:
       description: "Secondary request ID"
-      $ref: "uuid.yaml"
-    secondaryRequestDcbTransactionId:
-      description: "ID of DCB transaction created for secondary request"
       $ref: "uuid.yaml"
     secondaryRequestTenantId:
       description: "ID of the tenant secondary request was created in"

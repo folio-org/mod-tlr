@@ -3,22 +3,16 @@ package org.folio.support;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
-import lombok.ToString;
 import lombok.extern.log4j.Log4j2;
 import java.util.UUID;
 
 @Log4j2
 @Getter
-@ToString(onlyExplicitlyIncluded = true)
 public class KafkaEvent {
   private static final ObjectMapper objectMapper = new ObjectMapper();
   public static final String STATUS = "status";
   public static final String ITEM_ID = "itemId";
-  @ToString.Include
   private String eventId;
-  @ToString.Include
-  private String tenant;
-  @ToString.Include
   private EventType eventType;
   private JsonNode newNode;
   private JsonNode oldNode;
@@ -30,7 +24,6 @@ public class KafkaEvent {
       setEventType(jsonNode.get("type").asText());
       setNewNode(jsonNode.get("data"));
       setOldNode(jsonNode.get("data"));
-      this.tenant = jsonNode.get("tenant").asText();
     } catch (Exception e) {
       log.error("KafkaEvent:: could not parse input payload for processing event", e);
     }
@@ -68,6 +61,6 @@ public class KafkaEvent {
   }
 
   public enum EventType {
-    UPDATED, CREATED, DELETED, ALL_DELETED
+    UPDATED, CREATED
   }
 }

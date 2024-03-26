@@ -13,14 +13,12 @@ import java.util.stream.Stream;
 
 public class MockDataUtils {
 
-  public static final UUID PRIMARY_REQUEST_ID = UUID.fromString("398501a2-5c97-4ba6-9ee7-d1cd64339999");
   public static final UUID SECONDARY_REQUEST_ID = UUID.fromString("398501a2-5c97-4ba6-9ee7-d1cd6433cb98");
   public static final UUID ITEM_ID = UUID.fromString("100d10bf-2f06-4aa0-be15-0b95b2d9f9e3");
 
   public static EcsTlrEntity getEcsTlrEntity() {
     return EcsTlrEntity.builder()
       .id(UUID.randomUUID())
-      .primaryRequestId(PRIMARY_REQUEST_ID)
       .secondaryRequestId(SECONDARY_REQUEST_ID)
       .build();
   }
