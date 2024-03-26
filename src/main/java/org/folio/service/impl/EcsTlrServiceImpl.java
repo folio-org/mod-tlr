@@ -12,7 +12,6 @@ import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.domain.mapper.EcsTlrMapper;
 import org.folio.exception.TenantPickingException;
 import org.folio.repository.EcsTlrRepository;
-import org.folio.service.DcbService;
 import org.folio.service.EcsTlrService;
 import org.folio.service.RequestService;
 import org.folio.service.TenantService;
@@ -30,7 +29,6 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   private final EcsTlrMapper requestsMapper;
   private final TenantService tenantService;
   private final RequestService requestService;
-  private final DcbService dcbService;
 
   @Override
   public Optional<EcsTlr> get(UUID id) {
@@ -122,7 +120,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   }
 
   private static void updateEcsTlr(EcsTlr ecsTlr, RequestWrapper primaryRequest,
-    RequestWrapper secondaryRequest) {
+                                   RequestWrapper secondaryRequest) {
 
     log.info("updateEcsTlr:: updating ECS TLR in memory");
     ecsTlr.primaryRequestTenantId(primaryRequest.tenantId())
@@ -136,30 +134,26 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   }
 
   @Override
-  public void handleSecondaryRequestUpdate(UUID secondaryRequestId, UUID itemId) {
-    log.debug("handleSecondaryRequestUpdate:: parameters secondaryRequestId: {}, itemId: {}",
+  public void updateRequestItem(UUID secondaryRequestId, UUID itemId) {
+    log.debug("updateRequestItem:: parameters secondaryRequestId: {}, itemId: {}",
       secondaryRequestId, itemId);
-    log.info("handleSecondaryRequestUpdate:: looking for ECS TLR for secondary request {}",
-      secondaryRequestId);
     ecsTlrRepository.findBySecondaryRequestId(secondaryRequestId).ifPresentOrElse(
-      ecsTlr -> handleSecondaryRequestUpdate(ecsTlr, itemId),
-      () -> log.info("handleSecondaryRequestUpdate: ECS TLR with secondary request {} not found",
+      ecsTlr -> updateItemIfChanged(ecsTlr, itemId),
+      () -> log.info("updateRequestItem: ECS TLR with secondary request ID {} not found",
         secondaryRequestId));
   }
 
-  private void handleSecondaryRequestUpdate(EcsTlrEntity ecsTlr, UUID itemId) {
-    log.debug("handleSecondaryRequestUpdate:: parameters ecsTlr: {}, itemId: {}",
-      () -> ecsTlr, () -> itemId);
-    final UUID ecsTlrId = ecsTlr.getId();
-    final UUID ecsTlrItemId = ecsTlr.getItemId();
-    if (ecsTlrItemId != null) {
-      log.info("handleSecondaryRequestUpdate:: ECS TLR {} already has itemId: {}", ecsTlrId, ecsTlrItemId);
-      return;
+  private void updateItemIfChanged(EcsTlrEntity ecsTlr, UUID itemId) {
+    if (!itemId.equals(ecsTlr.getItemId())) {
+      log.info("updateItemIfChanged:: updating ECS TLR {}, new itemId is {}",
+        ecsTlr.getId(), itemId);
+      ecsTlr.setItemId(itemId);
+      ecsTlrRepository.save(ecsTlr);
+      log.info("updateItemIfChanged:: ECS TLR {} with secondary request ID {} is updated",
+        ecsTlr.getId(), ecsTlr.getSecondaryRequestId());
+    } else {
+      log.info("updateItemIfChanged:: ECS TLR {} with secondary request ID {} is already updated",
+        ecsTlr.getId(), ecsTlr.getSecondaryRequestId());
     }
-    dcbService.createTransactions(ecsTlr);
-    log.info("handleSecondaryRequestUpdate:: updating ECS TLR {}, new itemId is {}", ecsTlrId, itemId);
-    ecsTlr.setItemId(itemId);
-    ecsTlrRepository.save(ecsTlr);
-    log.info("handleSecondaryRequestUpdate: ECS TLR {} is updated", ecsTlrId);
   }
 }
