@@ -69,9 +69,11 @@
             "users.collection.get",
             "users.item.post",
             "login.item.post",
-            "perms.users.item.post",
+            "login.item.delete",
             "perms.users.get",
-            "perms.users.assign.immutable"
+            "perms.users.item.post",
+            "perms.users.assign.immutable",
+            "perms.users.assign.mutable"
           ]
         }, {
           "methods": ["DELETE"],
