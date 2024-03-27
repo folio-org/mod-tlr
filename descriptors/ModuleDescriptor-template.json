@@ -142,12 +142,8 @@
       "displayName": "Settings (Circulation): Consortium title level requests edit",
       "description": "Entire set of permissions needed to use Consortium title level requests settings edit",
       "subPermissions": [
-        "tlr.settings.get",
         "tlr.settings.put",
-        "settings.circulation.enabled",
-        "mod-settings.global.read.circulation",
-        "mod-settings.entries.collection.get",
-        "mod-settings.entries.item.get",
+        "tlr.consortium-tlr.view",
         "mod-settings.global.write.circulation",
         "mod-settings.entries.item.put",
         "mod-settings.entries.item.post"
