@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 @FeignClient(name = "dcb", url = "${folio.okapi-url}", configuration = FeignClientConfiguration.class)
 public interface DcbClient {
 
-  @PostMapping("/ecs-request-transactions/{dcbTransactionId}")
+  @PostMapping("/ecs-tlr-transactions/{dcbTransactionId}")
   TransactionStatusResponse createDcbTransaction(@PathVariable String dcbTransactionId,
     @RequestBody DcbTransaction dcbTransaction);
 

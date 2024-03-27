@@ -15,12 +15,8 @@
           </column>
           <column name="instance_id" type="uuid"/>
           <column name="requester_id" type="uuid"/>
-          <column name="primary_request_id" type="uuid"/>
-          <column name="primary_request_tenant_id" type="varchar(255)"/>
-          <column name="primary_request_dcb_transaction_id" type="uuid"/>
           <column name="secondary_request_id" type="uuid"/>
           <column name="secondary_request_tenant_id" type="varchar(255)"/>
-          <column name="secondary_request_dcb_transaction_id" type="uuid"/>
           <column name="request_type" type="varchar(255)"/>
           <column name="request_level" type="varchar(255)"/>
           <column name="request_date" type="timestamp with time zone"/>
