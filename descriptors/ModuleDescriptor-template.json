@@ -72,9 +72,11 @@
             "users.collection.get",
             "users.item.post",
             "login.item.post",
-            "perms.users.item.post",
+            "login.item.delete",
             "perms.users.get",
-            "perms.users.assign.immutable"
+            "perms.users.item.post",
+            "perms.users.assign.immutable",
+            "perms.users.assign.mutable"
           ]
         }, {
           "methods": ["DELETE"],
@@ -145,12 +147,8 @@
       "displayName": "Settings (Circulation): Consortium title level requests edit",
       "description": "Entire set of permissions needed to use Consortium title level requests settings edit",
       "subPermissions": [
-        "tlr.settings.get",
         "tlr.settings.put",
-        "settings.circulation.enabled",
-        "mod-settings.global.read.circulation",
-        "mod-settings.entries.collection.get",
-        "mod-settings.entries.item.get",
+        "tlr.consortium-tlr.view",
         "mod-settings.global.write.circulation",
         "mod-settings.entries.item.put",
         "mod-settings.entries.item.post"
