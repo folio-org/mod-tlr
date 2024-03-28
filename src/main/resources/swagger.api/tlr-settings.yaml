@@ -34,6 +34,10 @@ paths:
       responses:
         '204':
           description: Request successfully updated
+          content:
+            text/plain:
+              schema:
+                type: string
         '400':
           $ref: '#/components/responses/badRequestResponse'
         '404':

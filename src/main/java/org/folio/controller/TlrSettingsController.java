@@ -30,7 +30,7 @@ public class TlrSettingsController implements TlrSettingsApi {
   }
 
   @Override
-  public ResponseEntity<Void> putTlrSettings(TlrSettings tlrSettings) {
+  public ResponseEntity<String> putTlrSettings(TlrSettings tlrSettings) {
     log.debug("putTlrSettings:: parameters: {}", () -> tlrSettings);
 
     return ResponseEntity.status(
