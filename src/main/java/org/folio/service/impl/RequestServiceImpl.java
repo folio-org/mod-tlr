@@ -4,6 +4,7 @@ import static java.lang.String.format;
 
 import java.util.Collection;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.folio.client.feign.CirculationClient;
 import org.folio.domain.RequestWrapper;
@@ -106,7 +107,7 @@ public class RequestServiceImpl implements RequestService {
   }
 
   public <T> T getOrCreate(String objectId, T object, Function<String, T> finder,
-    Function<T, T> creator) {
+    UnaryOperator<T> creator) {
 
     final String objectType = object.getClass().getSimpleName();
     log.info("getOrCreate:: looking for existing {} {}", objectType, objectId);
