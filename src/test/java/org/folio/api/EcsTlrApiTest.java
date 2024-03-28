@@ -377,10 +377,14 @@ class EcsTlrApiTest extends BaseIT {
       .pickupLocation(true);
   }
 
-  private static ServicePoint buildSecondaryRequestPickupServicePoint(ServicePoint realServicePoint) {
+  private static ServicePoint buildSecondaryRequestPickupServicePoint(
+    ServicePoint primaryRequestPickupServicePoint) {
+
     return new ServicePoint()
-      .id(realServicePoint.getId())
-      .name("DCB_" + realServicePoint.getName());
+      .id(primaryRequestPickupServicePoint.getId())
+      .name("DCB_" + primaryRequestPickupServicePoint.getName())
+      .code(primaryRequestPickupServicePoint.getCode())
+      .discoveryDisplayName(primaryRequestPickupServicePoint.getDiscoveryDisplayName());
   }
 
 }

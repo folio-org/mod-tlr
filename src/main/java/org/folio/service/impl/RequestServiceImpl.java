@@ -170,7 +170,10 @@ public class RequestServiceImpl implements RequestService {
 
     ServicePoint servicePoint = new ServicePoint()
       .id(primaryRequestPickupServicePoint.getId())
-      .name(SECONDARY_REQUEST_PICKUP_SERVICE_POINT_NAME_PREFIX + primaryRequestPickupServicePoint.getName());
+      .name(SECONDARY_REQUEST_PICKUP_SERVICE_POINT_NAME_PREFIX +
+        primaryRequestPickupServicePoint.getName())
+      .code(primaryRequestPickupServicePoint.getCode())
+      .discoveryDisplayName(primaryRequestPickupServicePoint.getDiscoveryDisplayName());
 
     log.debug("buildSecondaryRequestPickupServicePoint:: result: {}", () -> servicePoint);
     return servicePoint;
