@@ -27,7 +27,7 @@ paths:
         - tlrSettings
       requestBody:
         content:
-          application/json:
+          text/plain:
             schema:
               $ref: "#/components/schemas/tlr-settings"
         required: true
