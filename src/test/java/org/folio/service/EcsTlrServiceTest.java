@@ -42,8 +42,6 @@ class EcsTlrServiceTest {
   @Mock
   private EcsTlrRepository ecsTlrRepository;
   @Mock
-  private TenantScopedExecutionService tenantScopedExecutionService;
-  @Mock
   private TenantService tenantService;
   @Spy
   private final EcsTlrMapper ecsTlrMapper = new EcsTlrMapperImpl();

@@ -22,7 +22,10 @@
             "search.instances.collection.get",
             "users.item.get",
             "users.collection.get",
-            "users.item.post"
+            "users.item.post",
+            "inventory-storage.service-points.item.get",
+            "inventory-storage.service-points.collection.get",
+            "inventory-storage.service-points.item.post"
           ]
         },
         {
