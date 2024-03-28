@@ -106,11 +106,12 @@ class EcsTlrApiTest extends BaseIT {
       .fulfillmentPreference(Request.FulfillmentPreferenceEnum.HOLD_SHELF)
       .pickupServicePointId(mockSecondaryRequestResponse.getPickupServicePointId());
 
-    User primaryRequestRequester = buildPrimaryRequester(requesterId);
-    User secondaryRequestRequester = buildSecondaryRequester(primaryRequestRequester);
-    ServicePoint primaryRequestPickupServicePoint = buildPrimaryServicePoint(pickupServicePointId);
+    User primaryRequestRequester = buildPrimaryRequestRequester(requesterId);
+    User secondaryRequestRequester = buildSecondaryRequestRequester(primaryRequestRequester);
+    ServicePoint primaryRequestPickupServicePoint =
+      buildPrimaryRequestPickupServicePoint(pickupServicePointId);
     ServicePoint secondaryRequestPickupServicePoint =
-      buildSecondaryServicePoint(primaryRequestPickupServicePoint);
+      buildSecondaryRequestPickupServicePoint(primaryRequestPickupServicePoint);
 
     // 2. Create stubs for other modules
     // 2.1 Mock search endpoint
@@ -142,7 +143,7 @@ class EcsTlrApiTest extends BaseIT {
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM))
       .willReturn(jsonResponse(asJsonString(primaryRequestPickupServicePoint), HttpStatus.SC_OK)));
 
-    ResponseDefinitionBuilder mockGetSecondaryRequestPickupServicePointResponse = secondaryRequestPickupServicePointExists
+    var mockGetSecondaryRequestPickupServicePointResponse = secondaryRequestPickupServicePointExists
       ? jsonResponse(asJsonString(secondaryRequestPickupServicePoint), HttpStatus.SC_OK)
       : notFound();
 
@@ -293,7 +294,7 @@ class EcsTlrApiTest extends BaseIT {
       .willReturn(jsonResponse(mockSearchInstancesResponse, HttpStatus.SC_OK)));
 
     wireMockServer.stubFor(get(urlMatching(USERS_URL + "/" + requesterId))
-      .willReturn(jsonResponse(buildPrimaryRequester(requesterId), HttpStatus.SC_OK)));
+      .willReturn(jsonResponse(buildPrimaryRequestRequester(requesterId), HttpStatus.SC_OK)));
 
     wireMockServer.stubFor(get(urlMatching(SERVICE_POINTS_URL + "/" + pickupServicePointId))
       .willReturn(notFound()));
@@ -334,7 +335,7 @@ class EcsTlrApiTest extends BaseIT {
       .status(new ItemStatus().name(status));
   }
 
-  private static User buildPrimaryRequester(String userId) {
+  private static User buildPrimaryRequestRequester(String userId) {
     return new User()
       .id(userId)
       .username("test_user")
@@ -347,26 +348,26 @@ class EcsTlrApiTest extends BaseIT {
         .lastName("Last"));
   }
 
-  private static User buildSecondaryRequester(User realUser) {
-    User shadowUser = new User()
-      .id(realUser.getId())
-      .username(realUser.getUsername())
-      .patronGroup(realUser.getPatronGroup())
+  private static User buildSecondaryRequestRequester(User primaryRequestRequester) {
+    User secondaryRequestRequester = new User()
+      .id(primaryRequestRequester.getId())
+      .username(primaryRequestRequester.getUsername())
+      .patronGroup(primaryRequestRequester.getPatronGroup())
       .type(UserType.SHADOW.getValue())
       .active(true);
 
-    UserPersonal personal = realUser.getPersonal();
+    UserPersonal personal = primaryRequestRequester.getPersonal();
     if (personal != null) {
-      shadowUser.setPersonal(new UserPersonal()
+      secondaryRequestRequester.setPersonal(new UserPersonal()
         .firstName(personal.getFirstName())
         .lastName(personal.getLastName())
       );
     }
 
-    return shadowUser;
+    return secondaryRequestRequester;
   }
 
-  private static ServicePoint buildPrimaryServicePoint(String id) {
+  private static ServicePoint buildPrimaryRequestPickupServicePoint(String id) {
     return new ServicePoint()
       .id(id)
       .name("Service point")
@@ -376,7 +377,7 @@ class EcsTlrApiTest extends BaseIT {
       .pickupLocation(true);
   }
 
-  private static ServicePoint buildSecondaryServicePoint(ServicePoint realServicePoint) {
+  private static ServicePoint buildSecondaryRequestPickupServicePoint(ServicePoint realServicePoint) {
     return new ServicePoint()
       .id(realServicePoint.getId())
       .name("DCB_" + realServicePoint.getName());
