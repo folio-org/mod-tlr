@@ -15,7 +15,6 @@ import org.folio.domain.dto.UserType;
 import org.folio.exception.RequestCreatingException;
 import org.folio.service.RequestService;
 import org.folio.service.ServicePointService;
-import org.folio.service.TenantScopedExecutionService;
 import org.folio.service.UserService;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.springframework.stereotype.Service;
@@ -29,7 +28,6 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public class RequestServiceImpl implements RequestService {
   private static final String SECONDARY_REQUEST_PICKUP_SERVICE_POINT_NAME_PREFIX = "DCB_";
-  private final TenantScopedExecutionService tenantScopedExecutionService;
   private final SystemUserScopedExecutionService executionService;
   private final CirculationClient circulationClient;
   private final UserService userService;
