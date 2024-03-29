@@ -29,6 +29,7 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public class RequestServiceImpl implements RequestService {
   private static final String SECONDARY_REQUEST_PICKUP_SERVICE_POINT_NAME_PREFIX = "DCB_";
+
   private final SystemUserScopedExecutionService executionService;
   private final CirculationClient circulationClient;
   private final UserService userService;
@@ -113,10 +114,10 @@ public class RequestServiceImpl implements RequestService {
     log.info("getOrCreate:: looking for existing {} {}", objectType, objectId);
     try {
       T existingObject = finder.apply(objectId);
-      log.info("getOrCreate:: {} {} already exists, attempting to reuse it", objectType, objectId);
+      log.info("getOrCreate:: {} {} already exists, reusing it", objectType, objectId);
       return existingObject;
     } catch (FeignException.NotFound e) {
-      log.info("getOrCreate:: failed to find {} {}, attempting to create it", objectType, objectId);
+      log.info("getOrCreate:: failed to find {} {}, creating it", objectType, objectId);
       T createdObject = creator.apply(object);
       log.info("getOrCreate:: {} {} created", objectType, objectId);
       return createdObject;

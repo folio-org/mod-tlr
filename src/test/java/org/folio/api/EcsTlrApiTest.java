@@ -94,7 +94,7 @@ class EcsTlrApiTest extends BaseIT {
       .requestType(Request.RequestTypeEnum.PAGE)
       .instanceId(INSTANCE_ID)
       .itemId(availableItemId)
-      .pickupServicePointId(randomId());
+      .pickupServicePointId(pickupServicePointId);
 
     Request mockPrimaryRequestResponse = new Request()
       .id(mockSecondaryRequestResponse.getId())
@@ -275,6 +275,9 @@ class EcsTlrApiTest extends BaseIT {
 
     wireMockServer.verify(getRequestedFor(urlMatching(USERS_URL + "/" + requesterId))
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM)));
+
+    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(INSTANCE_REQUESTS_URL)));
+    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(REQUESTS_URL)));
   }
 
   @Test
@@ -310,6 +313,9 @@ class EcsTlrApiTest extends BaseIT {
 
     wireMockServer.verify(getRequestedFor(urlMatching(SERVICE_POINTS_URL + "/" + pickupServicePointId))
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM)));
+
+    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(INSTANCE_REQUESTS_URL)));
+    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(REQUESTS_URL)));
   }
 
   private static EcsTlr buildEcsTlr(String instanceId, String requesterId,
