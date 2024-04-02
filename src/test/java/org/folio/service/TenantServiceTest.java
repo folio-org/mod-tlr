@@ -1,4 +1,4 @@
-package org.folio.domain.strategy;
+package org.folio.service;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -26,7 +26,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class ItemStatusBasedTenantPickingStrategyTest {
+class TenantServiceTest {
   private static final String INSTANCE_ID = UUID.randomUUID().toString();
 
   @Mock
