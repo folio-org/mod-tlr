@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 @FeignClient(name = "service-points", url = "service-points", configuration = FeignClientConfiguration.class)
-public interface ServicePointsClient {
+public interface ServicePointClient {
 
   @PostMapping
   ServicePoint postServicePoint(@RequestBody ServicePoint servicePoint);

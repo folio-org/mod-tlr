@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 @FeignClient(name = "users", url = "users", configuration = FeignClientConfiguration.class)
-public interface UsersClient {
+public interface UserClient {
 
   @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
   User postUser(@RequestBody User user);
