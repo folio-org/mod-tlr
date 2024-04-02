@@ -16,8 +16,7 @@ import lombok.extern.log4j.Log4j2;
 @RequiredArgsConstructor
 public abstract class ReplicationServiceImpl<T> implements ReplicationService<T> {
 
-  @Autowired
-  private SystemUserScopedExecutionService executor;
+  private final SystemUserScopedExecutionService executor;
   private final Function<T, String> idExtractor;
 
   public T replicate(T original, String targetTenant) {

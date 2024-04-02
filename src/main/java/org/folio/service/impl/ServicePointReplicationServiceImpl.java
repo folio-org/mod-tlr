@@ -2,6 +2,7 @@ package org.folio.service.impl;
 
 import org.folio.domain.dto.ServicePoint;
 import org.folio.service.ServicePointService;
+import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -13,11 +14,13 @@ public class ServicePointReplicationServiceImpl extends ReplicationServiceImpl<S
 
   private static final String SECONDARY_REQUEST_PICKUP_SERVICE_POINT_NAME_PREFIX = "DCB_";
 
-  @Autowired
-  private ServicePointService servicePointService;
+  private final ServicePointService servicePointService;
 
-  public ServicePointReplicationServiceImpl() {
-    super(ServicePoint::getId);
+  public ServicePointReplicationServiceImpl(@Autowired ServicePointService servicePointService,
+    @Autowired SystemUserScopedExecutionService executionService) {
+
+    super(executionService, ServicePoint::getId);
+    this.servicePointService = servicePointService;
   }
 
   @Override

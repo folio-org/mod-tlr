@@ -4,6 +4,7 @@ import org.folio.domain.dto.User;
 import org.folio.domain.dto.UserPersonal;
 import org.folio.domain.dto.UserType;
 import org.folio.service.UserService;
+import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -13,11 +14,13 @@ import lombok.extern.log4j.Log4j2;
 @Service
 public class UserReplicationServiceImpl extends ReplicationServiceImpl<User> {
 
-  @Autowired
-  private UserService userService;
+  private final UserService userService;
 
-  public UserReplicationServiceImpl() {
-    super(User::getId);
+  public UserReplicationServiceImpl(@Autowired UserService userService,
+    @Autowired SystemUserScopedExecutionService executionService) {
+
+    super(executionService, User::getId);
+    this.userService = userService;
   }
 
   @Override
