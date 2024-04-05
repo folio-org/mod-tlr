@@ -4,8 +4,6 @@ import java.util.Optional;
 
 import org.folio.client.feign.UsersClient;
 import org.folio.domain.dto.User;
-import org.folio.domain.dto.UserPersonal;
-import org.folio.domain.dto.UserType;
 import org.folio.exception.TenantScopedExecutionException;
 import org.folio.service.TenantScopedExecutionService;
 import org.folio.service.UserService;
@@ -28,8 +26,9 @@ public class UserServiceImpl implements UserService {
     log.info("createShadowUser:: creating shadow user {} in tenant {}", userId, tenantId);
     try {
       User user = findUser(userId, tenantId);
+      user.setPatronGroup(realUser.getPatronGroup());
       log.info("createShadowUser:: user {} already exists in tenant {}", userId, tenantId);
-      return user;
+      return updateUser(user, tenantId);
     } catch (TenantScopedExecutionException e) {
       log.warn("createShadowUser:: failed to find user {} in tenant {}", userId, tenantId);
       return Optional.ofNullable(e.getCause())
@@ -37,6 +36,15 @@ public class UserServiceImpl implements UserService {
         .map(ignored -> createUser(buildShadowUser(realUser), tenantId))
         .orElseThrow(() -> e);
     }
+  }
+
+  private User updateUser(User user, String tenantId) {
+    log.info("updateUser:: updating shadow user {} in tenant {}", user, tenantId);
+    User newUser = tenantScopedExecutionService.execute(tenantId,
+      () -> usersClient.putUser(user.getId(), user));
+    log.info("updateUser:: user {} was updated in tenant {}", user.getId(), tenantId);
+    log.debug("updateUser:: user: {}", () -> newUser);
+   return newUser;
   }
 
   public User findUser(String userId, String tenantId) {
@@ -60,18 +68,9 @@ public class UserServiceImpl implements UserService {
   private static User buildShadowUser(User realUser) {
     User shadowUser = new User()
       .id(realUser.getId())
-      .username(realUser.getUsername())
       .patronGroup(realUser.getPatronGroup())
-      .type(UserType.SHADOW.getValue())
+      .barcode(realUser.getBarcode())
       .active(true);
-
-    UserPersonal personal = realUser.getPersonal();
-    if (personal != null) {
-      shadowUser.setPersonal(new UserPersonal()
-        .firstName(personal.getFirstName())
-        .lastName(personal.getLastName())
-      );
-    }
 
     log.debug("buildShadowUser:: result: {}", () -> shadowUser);
     return shadowUser;

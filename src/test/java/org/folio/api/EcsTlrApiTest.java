@@ -24,8 +24,6 @@ import org.folio.domain.dto.ItemStatus;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.SearchInstancesResponse;
 import org.folio.domain.dto.User;
-import org.folio.domain.dto.UserPersonal;
-import org.folio.domain.dto.UserType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -163,7 +161,7 @@ class EcsTlrApiTest extends BaseIT {
       .withRequestBody(equalToJson(asJsonString(mockPrimaryRequestResponse))));
 
     if (shadowUserExists) {
-      wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(USERS_URL)));
+      wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(USERS_URL + "/" + requesterId)));
     } else {
       wireMockServer.verify(postRequestedFor(urlMatching(USERS_URL))
         .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE))
@@ -251,33 +249,18 @@ class EcsTlrApiTest extends BaseIT {
   private static User buildUser(String userId) {
     return new User()
       .id(userId)
-      .username("test_user")
       .patronGroup(randomId())
-      .type("patron")
-      .active(true)
-      .personal(new UserPersonal()
-        .firstName("First")
-        .middleName("Middle")
-        .lastName("Last"));
+      .barcode("123")
+      .active(true);
   }
 
   private static User buildShadowUser(User realUser) {
-    User shadowUser = new User()
+
+    return new User()
       .id(realUser.getId())
-      .username(realUser.getUsername())
       .patronGroup(realUser.getPatronGroup())
-      .type(UserType.SHADOW.getValue())
+      .barcode(realUser.getBarcode())
       .active(true);
-
-    UserPersonal personal = realUser.getPersonal();
-    if (personal != null) {
-      shadowUser.setPersonal(new UserPersonal()
-        .firstName(personal.getFirstName())
-        .lastName(personal.getLastName())
-      );
-    }
-
-    return shadowUser;
   }
 
 }
