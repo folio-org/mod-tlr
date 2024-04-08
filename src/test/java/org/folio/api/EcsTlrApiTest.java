@@ -357,7 +357,6 @@ class EcsTlrApiTest extends BaseIT {
   private static User buildSecondaryRequestRequester(User primaryRequestRequester) {
     User secondaryRequestRequester = new User()
       .id(primaryRequestRequester.getId())
-      .username(primaryRequestRequester.getUsername())
       .patronGroup(primaryRequestRequester.getPatronGroup())
       .type(UserType.SHADOW.getValue())
       .active(true);

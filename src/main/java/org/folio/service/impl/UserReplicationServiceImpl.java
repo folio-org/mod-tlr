@@ -35,7 +35,6 @@ public class UserReplicationServiceImpl extends ReplicationServiceImpl<User> {
   protected User buildReplica(User original) {
     User replica = new User()
       .id(original.getId())
-      .username(original.getUsername())
       .patronGroup(original.getPatronGroup())
       .type(UserType.SHADOW.getValue())
       .active(true);
