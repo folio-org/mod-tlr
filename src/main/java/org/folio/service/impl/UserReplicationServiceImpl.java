@@ -4,7 +4,6 @@ import org.folio.domain.dto.User;
 import org.folio.domain.dto.UserPersonal;
 import org.folio.domain.dto.UserType;
 import org.folio.service.UserService;
-import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -16,10 +15,9 @@ public class UserReplicationServiceImpl extends ReplicationServiceImpl<User> {
 
   private final UserService userService;
 
-  public UserReplicationServiceImpl(@Autowired UserService userService,
-    @Autowired SystemUserScopedExecutionService executionService) {
+  public UserReplicationServiceImpl(@Autowired UserService userService) {
 
-    super(executionService, User::getId);
+    super(User::getId);
     this.userService = userService;
   }
 

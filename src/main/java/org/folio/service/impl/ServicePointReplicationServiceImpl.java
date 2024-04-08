@@ -2,7 +2,6 @@ package org.folio.service.impl;
 
 import org.folio.domain.dto.ServicePoint;
 import org.folio.service.ServicePointService;
-import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -16,10 +15,9 @@ public class ServicePointReplicationServiceImpl extends ReplicationServiceImpl<S
 
   private final ServicePointService servicePointService;
 
-  public ServicePointReplicationServiceImpl(@Autowired ServicePointService servicePointService,
-    @Autowired SystemUserScopedExecutionService executionService) {
+  public ServicePointReplicationServiceImpl(@Autowired ServicePointService servicePointService) {
 
-    super(executionService, ServicePoint::getId);
+    super(ServicePoint::getId);
     this.servicePointService = servicePointService;
   }
 

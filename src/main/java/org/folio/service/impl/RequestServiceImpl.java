@@ -67,11 +67,11 @@ public class RequestServiceImpl implements RequestService {
         return executionService.executeSystemUserScoped(lendingTenantId, () -> {
           log.info("createSecondaryRequest:: creating requester {} in lending tenant ({})",
             requesterId, lendingTenantId);
-          userReplicationService.replicate(primaryRequestRequester, lendingTenantId);
+          userReplicationService.replicate(primaryRequestRequester);
 
           log.info("createSecondaryRequest:: creating pickup service point {} in lending tenant ({})",
             pickupServicePointId, lendingTenantId);
-          servicePointReplicationService.replicate(primaryRequestPickupServicePoint, lendingTenantId);
+          servicePointReplicationService.replicate(primaryRequestPickupServicePoint);
 
           log.info("createSecondaryRequest:: creating secondary request {} in lending tenant ({})",
             requestId, lendingTenantId);
