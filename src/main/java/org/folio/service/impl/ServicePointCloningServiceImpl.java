@@ -9,13 +9,13 @@ import lombok.extern.log4j.Log4j2;
 
 @Log4j2
 @Service
-public class ServicePointReplicationServiceImpl extends ReplicationServiceImpl<ServicePoint> {
+public class ServicePointCloningServiceImpl extends CloningServiceImpl<ServicePoint> {
 
   private static final String SECONDARY_REQUEST_PICKUP_SERVICE_POINT_NAME_PREFIX = "DCB_";
 
   private final ServicePointService servicePointService;
 
-  public ServicePointReplicationServiceImpl(@Autowired ServicePointService servicePointService) {
+  public ServicePointCloningServiceImpl(@Autowired ServicePointService servicePointService) {
 
     super(ServicePoint::getId);
     this.servicePointService = servicePointService;
@@ -27,13 +27,13 @@ public class ServicePointReplicationServiceImpl extends ReplicationServiceImpl<S
   }
 
   @Override
-  protected ServicePoint create(ServicePoint replica) {
-    return servicePointService.create(replica);
+  protected ServicePoint create(ServicePoint clone) {
+    return servicePointService.create(clone);
   }
 
   @Override
-  protected ServicePoint buildReplica(ServicePoint original) {
-    ServicePoint servicePoint = new ServicePoint()
+  protected ServicePoint buildClone(ServicePoint original) {
+    ServicePoint clone = new ServicePoint()
       .id(original.getId())
       .name(SECONDARY_REQUEST_PICKUP_SERVICE_POINT_NAME_PREFIX + original.getName())
       .code(original.getCode())
@@ -41,7 +41,7 @@ public class ServicePointReplicationServiceImpl extends ReplicationServiceImpl<S
       .pickupLocation(original.getPickupLocation())
       .holdShelfExpiryPeriod(original.getHoldShelfExpiryPeriod());
 
-    log.debug("buildReplica:: result: {}", () -> servicePoint);
-    return servicePoint;
+    log.debug("buildClone:: result: {}", () -> clone);
+    return clone;
   }
 }

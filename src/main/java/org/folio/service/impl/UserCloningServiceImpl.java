@@ -11,11 +11,11 @@ import lombok.extern.log4j.Log4j2;
 
 @Log4j2
 @Service
-public class UserReplicationServiceImpl extends ReplicationServiceImpl<User> {
+public class UserCloningServiceImpl extends CloningServiceImpl<User> {
 
   private final UserService userService;
 
-  public UserReplicationServiceImpl(@Autowired UserService userService) {
+  public UserCloningServiceImpl(@Autowired UserService userService) {
 
     super(User::getId);
     this.userService = userService;
@@ -27,13 +27,13 @@ public class UserReplicationServiceImpl extends ReplicationServiceImpl<User> {
   }
 
   @Override
-  protected User create(User replica) {
-    return userService.create(replica);
+  protected User create(User clone) {
+    return userService.create(clone);
   }
 
   @Override
-  protected User buildReplica(User original) {
-    User replica = new User()
+  protected User buildClone(User original) {
+    User clone = new User()
       .id(original.getId())
       .patronGroup(original.getPatronGroup())
       .type(UserType.SHADOW.getValue())
@@ -41,12 +41,12 @@ public class UserReplicationServiceImpl extends ReplicationServiceImpl<User> {
 
     UserPersonal personal = original.getPersonal();
     if (personal != null) {
-      replica.setPersonal(new UserPersonal()
+      clone.setPersonal(new UserPersonal()
         .firstName(personal.getFirstName())
         .lastName(personal.getLastName())
       );
     }
-    log.debug("buildReplica:: result: {}", () -> replica);
-    return replica;
+    log.debug("buildClone:: result: {}", () -> clone);
+    return clone;
   }
 }

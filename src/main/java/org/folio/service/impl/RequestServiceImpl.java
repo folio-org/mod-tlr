@@ -10,7 +10,7 @@ import org.folio.domain.dto.Request;
 import org.folio.domain.dto.ServicePoint;
 import org.folio.domain.dto.User;
 import org.folio.exception.RequestCreatingException;
-import org.folio.service.ReplicationService;
+import org.folio.service.CloningService;
 import org.folio.service.RequestService;
 import org.folio.service.ServicePointService;
 import org.folio.service.UserService;
@@ -29,8 +29,8 @@ public class RequestServiceImpl implements RequestService {
   private final CirculationClient circulationClient;
   private final UserService userService;
   private final ServicePointService servicePointService;
-  private final ReplicationService<User> userReplicationService;
-  private final ReplicationService<ServicePoint> servicePointReplicationService;
+  private final CloningService<User> userCloningService;
+  private final CloningService<ServicePoint> servicePointCloningService;
 
   @Override
   public RequestWrapper createPrimaryRequest(Request request, String borrowingTenantId) {
@@ -67,11 +67,11 @@ public class RequestServiceImpl implements RequestService {
         return executionService.executeSystemUserScoped(lendingTenantId, () -> {
           log.info("createSecondaryRequest:: creating requester {} in lending tenant ({})",
             requesterId, lendingTenantId);
-          userReplicationService.replicate(primaryRequestRequester);
+          userCloningService.clone(primaryRequestRequester);
 
           log.info("createSecondaryRequest:: creating pickup service point {} in lending tenant ({})",
             pickupServicePointId, lendingTenantId);
-          servicePointReplicationService.replicate(primaryRequestPickupServicePoint);
+          servicePointCloningService.clone(primaryRequestPickupServicePoint);
 
           log.info("createSecondaryRequest:: creating secondary request {} in lending tenant ({})",
             requestId, lendingTenantId);
