@@ -3,9 +3,11 @@ package org.folio.api;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.exactly;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.notFound;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -23,16 +25,16 @@ import org.folio.domain.dto.Item;
 import org.folio.domain.dto.ItemStatus;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.SearchInstancesResponse;
+import org.folio.domain.dto.ServicePoint;
 import org.folio.domain.dto.User;
 import org.folio.domain.dto.UserPersonal;
 import org.folio.domain.dto.UserType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
-import com.github.tomakehurst.wiremock.client.WireMock;
 
 class EcsTlrApiTest extends BaseIT {
   private static final String TLR_URL = "/tlr/ecs-tlr";
@@ -41,6 +43,7 @@ class EcsTlrApiTest extends BaseIT {
   private static final String INSTANCE_REQUESTS_URL = "/circulation/requests/instances";
   private static final String REQUESTS_URL = "/circulation/requests";
   private static final String USERS_URL = "/users";
+  private static final String SERVICE_POINTS_URL = "/service-points";
   private static final String SEARCH_INSTANCES_URL =
     "/search/instances\\?query=id==" + INSTANCE_ID + "&expandAll=true";
 
@@ -56,11 +59,19 @@ class EcsTlrApiTest extends BaseIT {
   }
 
   @ParameterizedTest
-  @ValueSource(booleans = {true, false})
-  void ecsTlrIsCreated(boolean shadowUserExists) {
+  @CsvSource(value = {
+    "true, true",
+    "true, false",
+    "false, true",
+    "false, false"
+  })
+  void ecsTlrIsCreated(boolean secondaryRequestRequesterExists,
+    boolean secondaryRequestPickupServicePointExists) {
+
     String availableItemId = randomId();
     String requesterId = randomId();
-    EcsTlr ecsTlr = buildEcsTlr(INSTANCE_ID, requesterId);
+    String pickupServicePointId = randomId();
+    EcsTlr ecsTlr = buildEcsTlr(INSTANCE_ID, requesterId, pickupServicePointId);
     String ecsTlrJson = asJsonString(ecsTlr);
 
     // 1. Create mock responses from other modules
@@ -83,7 +94,7 @@ class EcsTlrApiTest extends BaseIT {
       .requestType(Request.RequestTypeEnum.PAGE)
       .instanceId(INSTANCE_ID)
       .itemId(availableItemId)
-      .pickupServicePointId(randomId());
+      .pickupServicePointId(pickupServicePointId);
 
     Request mockPrimaryRequestResponse = new Request()
       .id(mockSecondaryRequestResponse.getId())
@@ -95,36 +106,62 @@ class EcsTlrApiTest extends BaseIT {
       .fulfillmentPreference(Request.FulfillmentPreferenceEnum.HOLD_SHELF)
       .pickupServicePointId(mockSecondaryRequestResponse.getPickupServicePointId());
 
-    User mockUser = buildUser(requesterId);
-    User mockShadowUser = buildShadowUser(mockUser);
+    User primaryRequestRequester = buildPrimaryRequestRequester(requesterId);
+    User secondaryRequestRequester = buildSecondaryRequestRequester(primaryRequestRequester);
+    ServicePoint primaryRequestPickupServicePoint =
+      buildPrimaryRequestPickupServicePoint(pickupServicePointId);
+    ServicePoint secondaryRequestPickupServicePoint =
+      buildSecondaryRequestPickupServicePoint(primaryRequestPickupServicePoint);
 
     // 2. Create stubs for other modules
+    // 2.1 Mock search endpoint
 
-    wireMockServer.stubFor(WireMock.get(urlMatching(SEARCH_INSTANCES_URL))
+    wireMockServer.stubFor(get(urlMatching(SEARCH_INSTANCES_URL))
       .willReturn(jsonResponse(mockSearchInstancesResponse, HttpStatus.SC_OK)));
 
-    // requester exists in local tenant
-    wireMockServer.stubFor(WireMock.get(urlMatching(USERS_URL + "/" + requesterId))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM))
-      .willReturn(jsonResponse(mockUser, HttpStatus.SC_OK)));
+    // 2.2 Mock user endpoints
 
-    ResponseDefinitionBuilder mockGetShadowUserResponse = shadowUserExists
-      ? jsonResponse(mockShadowUser, HttpStatus.SC_OK)
+    wireMockServer.stubFor(get(urlMatching(USERS_URL + "/" + requesterId))
+      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(jsonResponse(primaryRequestRequester, HttpStatus.SC_OK)));
+
+    ResponseDefinitionBuilder mockGetSecondaryRequesterResponse = secondaryRequestRequesterExists
+      ? jsonResponse(secondaryRequestRequester, HttpStatus.SC_OK)
       : notFound();
 
-    wireMockServer.stubFor(WireMock.get(urlMatching(USERS_URL + "/" + requesterId))
+    wireMockServer.stubFor(get(urlMatching(USERS_URL + "/" + requesterId))
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE))
-      .willReturn(mockGetShadowUserResponse));
+      .willReturn(mockGetSecondaryRequesterResponse));
 
-    wireMockServer.stubFor(WireMock.post(urlMatching(USERS_URL))
+    wireMockServer.stubFor(post(urlMatching(USERS_URL))
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE))
-      .willReturn(jsonResponse(mockShadowUser, HttpStatus.SC_CREATED)));
+      .willReturn(jsonResponse(secondaryRequestRequester, HttpStatus.SC_CREATED)));
 
-    wireMockServer.stubFor(WireMock.post(urlMatching(INSTANCE_REQUESTS_URL))
+    // 2.3 Mock service point endpoints
+
+    wireMockServer.stubFor(get(urlMatching(SERVICE_POINTS_URL + "/" + pickupServicePointId))
+      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(jsonResponse(asJsonString(primaryRequestPickupServicePoint), HttpStatus.SC_OK)));
+
+    var mockGetSecondaryRequestPickupServicePointResponse = secondaryRequestPickupServicePointExists
+      ? jsonResponse(asJsonString(secondaryRequestPickupServicePoint), HttpStatus.SC_OK)
+      : notFound();
+
+    wireMockServer.stubFor(get(urlMatching(SERVICE_POINTS_URL + "/" + pickupServicePointId))
+      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE))
+      .willReturn(mockGetSecondaryRequestPickupServicePointResponse));
+
+    wireMockServer.stubFor(post(urlMatching(SERVICE_POINTS_URL))
+      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE))
+      .willReturn(jsonResponse(asJsonString(secondaryRequestPickupServicePoint), HttpStatus.SC_CREATED)));
+
+    // 2.4 Mock request endpoints
+
+    wireMockServer.stubFor(post(urlMatching(INSTANCE_REQUESTS_URL))
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE))
       .willReturn(jsonResponse(asJsonString(mockSecondaryRequestResponse), HttpStatus.SC_CREATED)));
 
-    wireMockServer.stubFor(WireMock.post(urlMatching(REQUESTS_URL))
+    wireMockServer.stubFor(post(urlMatching(REQUESTS_URL))
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM))
       .willReturn(jsonResponse(asJsonString(mockPrimaryRequestResponse), HttpStatus.SC_CREATED)));
 
@@ -144,7 +181,6 @@ class EcsTlrApiTest extends BaseIT {
     assertEquals(TENANT_ID_CONSORTIUM, getCurrentTenantId());
 
     // 4. Verify calls to other modules
-
     wireMockServer.verify(getRequestedFor(urlMatching(SEARCH_INSTANCES_URL))
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM)));
 
@@ -152,6 +188,12 @@ class EcsTlrApiTest extends BaseIT {
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM)));
 
     wireMockServer.verify(getRequestedFor(urlMatching(USERS_URL + "/" + requesterId))
+      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE)));
+
+    wireMockServer.verify(getRequestedFor(urlMatching(SERVICE_POINTS_URL + "/" + pickupServicePointId))
+      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM)));
+
+    wireMockServer.verify(getRequestedFor(urlMatching(SERVICE_POINTS_URL + "/" + pickupServicePointId))
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE)));
 
     wireMockServer.verify(postRequestedFor(urlMatching(INSTANCE_REQUESTS_URL))
@@ -162,18 +204,26 @@ class EcsTlrApiTest extends BaseIT {
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM))
       .withRequestBody(equalToJson(asJsonString(mockPrimaryRequestResponse))));
 
-    if (shadowUserExists) {
+    if (secondaryRequestRequesterExists) {
       wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(USERS_URL)));
     } else {
       wireMockServer.verify(postRequestedFor(urlMatching(USERS_URL))
         .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE))
-        .withRequestBody(equalToJson(asJsonString(mockShadowUser))));
+        .withRequestBody(equalToJson(asJsonString(secondaryRequestRequester))));
+    }
+
+    if (secondaryRequestPickupServicePointExists) {
+      wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(SERVICE_POINTS_URL)));
+    } else {
+      wireMockServer.verify(postRequestedFor(urlMatching(SERVICE_POINTS_URL))
+        .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE))
+        .withRequestBody(equalToJson(asJsonString(secondaryRequestPickupServicePoint))));
     }
   }
 
   @Test
   void canNotCreateEcsTlrWhenFailedToExtractBorrowingTenantIdFromToken() {
-    EcsTlr ecsTlr = buildEcsTlr(INSTANCE_ID, randomId());
+    EcsTlr ecsTlr = buildEcsTlr(INSTANCE_ID, randomId(), randomId());
     doPostWithToken(TLR_URL, ecsTlr, "not_a_token")
       .expectStatus().isEqualTo(500);
 
@@ -182,12 +232,12 @@ class EcsTlrApiTest extends BaseIT {
 
   @Test
   void canNotCreateEcsTlrWhenFailedToPickLendingTenant() {
-    EcsTlr ecsTlr = buildEcsTlr(INSTANCE_ID, randomId());
+    EcsTlr ecsTlr = buildEcsTlr(INSTANCE_ID, randomId(), randomId());
     SearchInstancesResponse mockSearchInstancesResponse = new SearchInstancesResponse()
       .totalRecords(0)
       .instances(List.of());
 
-    wireMockServer.stubFor(WireMock.get(urlMatching(SEARCH_INSTANCES_URL))
+    wireMockServer.stubFor(get(urlMatching(SEARCH_INSTANCES_URL))
       .willReturn(jsonResponse(mockSearchInstancesResponse, HttpStatus.SC_OK)));
 
     doPost(TLR_URL, ecsTlr)
@@ -202,7 +252,7 @@ class EcsTlrApiTest extends BaseIT {
   @Test
   void canNotCreateEcsTlrWhenFailedToFindRequesterInBorrowingTenant() {
     String requesterId = randomId();
-    EcsTlr ecsTlr = buildEcsTlr(INSTANCE_ID, requesterId);
+    EcsTlr ecsTlr = buildEcsTlr(INSTANCE_ID, requesterId, randomId());
     SearchInstancesResponse mockSearchInstancesResponse = new SearchInstancesResponse()
       .totalRecords(2)
       .instances(List.of(
@@ -211,10 +261,10 @@ class EcsTlrApiTest extends BaseIT {
           .items(List.of(buildItem(randomId(), TENANT_ID_UNIVERSITY, "Available")))
       ));
 
-    wireMockServer.stubFor(WireMock.get(urlMatching(SEARCH_INSTANCES_URL))
+    wireMockServer.stubFor(get(urlMatching(SEARCH_INSTANCES_URL))
       .willReturn(jsonResponse(mockSearchInstancesResponse, HttpStatus.SC_OK)));
 
-    wireMockServer.stubFor(WireMock.get(urlMatching(USERS_URL + "/" + requesterId))
+    wireMockServer.stubFor(get(urlMatching(USERS_URL + "/" + requesterId))
       .willReturn(notFound()));
 
     doPost(TLR_URL, ecsTlr)
@@ -225,14 +275,57 @@ class EcsTlrApiTest extends BaseIT {
 
     wireMockServer.verify(getRequestedFor(urlMatching(USERS_URL + "/" + requesterId))
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM)));
+
+    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(INSTANCE_REQUESTS_URL)));
+    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(REQUESTS_URL)));
   }
 
-  private static EcsTlr buildEcsTlr(String instanceId, String requesterId) {
+  @Test
+  void canNotCreateEcsTlrWhenFailedToFindPickupServicePointInBorrowingTenant() {
+    String requesterId = randomId();
+    String pickupServicePointId = randomId();
+    EcsTlr ecsTlr = buildEcsTlr(INSTANCE_ID, requesterId, pickupServicePointId);
+    SearchInstancesResponse mockSearchInstancesResponse = new SearchInstancesResponse()
+      .totalRecords(2)
+      .instances(List.of(
+        new Instance().id(INSTANCE_ID)
+          .tenantId(TENANT_ID_CONSORTIUM)
+          .items(List.of(buildItem(randomId(), TENANT_ID_UNIVERSITY, "Available")))
+      ));
+
+    wireMockServer.stubFor(get(urlMatching(SEARCH_INSTANCES_URL))
+      .willReturn(jsonResponse(mockSearchInstancesResponse, HttpStatus.SC_OK)));
+
+    wireMockServer.stubFor(get(urlMatching(USERS_URL + "/" + requesterId))
+      .willReturn(jsonResponse(buildPrimaryRequestRequester(requesterId), HttpStatus.SC_OK)));
+
+    wireMockServer.stubFor(get(urlMatching(SERVICE_POINTS_URL + "/" + pickupServicePointId))
+      .willReturn(notFound()));
+
+    doPost(TLR_URL, ecsTlr)
+      .expectStatus().isEqualTo(INTERNAL_SERVER_ERROR);
+
+    wireMockServer.verify(getRequestedFor(urlMatching(SEARCH_INSTANCES_URL))
+      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM)));
+
+    wireMockServer.verify(getRequestedFor(urlMatching(USERS_URL + "/" + requesterId))
+      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM)));
+
+    wireMockServer.verify(getRequestedFor(urlMatching(SERVICE_POINTS_URL + "/" + pickupServicePointId))
+      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM)));
+
+    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(INSTANCE_REQUESTS_URL)));
+    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(REQUESTS_URL)));
+  }
+
+  private static EcsTlr buildEcsTlr(String instanceId, String requesterId,
+    String pickupServicePointId) {
+
     return new EcsTlr()
       .id(randomId())
       .instanceId(instanceId)
       .requesterId(requesterId)
-      .pickupServicePointId(randomId())
+      .pickupServicePointId(pickupServicePointId)
       .requestLevel(EcsTlr.RequestLevelEnum.TITLE)
       .requestType(EcsTlr.RequestTypeEnum.HOLD)
       .fulfillmentPreference(EcsTlr.FulfillmentPreferenceEnum.DELIVERY)
@@ -248,7 +341,7 @@ class EcsTlrApiTest extends BaseIT {
       .status(new ItemStatus().name(status));
   }
 
-  private static User buildUser(String userId) {
+  private static User buildPrimaryRequestRequester(String userId) {
     return new User()
       .id(userId)
       .username("test_user")
@@ -261,23 +354,43 @@ class EcsTlrApiTest extends BaseIT {
         .lastName("Last"));
   }
 
-  private static User buildShadowUser(User realUser) {
-    User shadowUser = new User()
-      .id(realUser.getId())
-      .username(realUser.getUsername())
-      .patronGroup(realUser.getPatronGroup())
+  private static User buildSecondaryRequestRequester(User primaryRequestRequester) {
+    User secondaryRequestRequester = new User()
+      .id(primaryRequestRequester.getId())
+      .patronGroup(primaryRequestRequester.getPatronGroup())
       .type(UserType.SHADOW.getValue())
       .active(true);
 
-    UserPersonal personal = realUser.getPersonal();
+    UserPersonal personal = primaryRequestRequester.getPersonal();
     if (personal != null) {
-      shadowUser.setPersonal(new UserPersonal()
+      secondaryRequestRequester.setPersonal(new UserPersonal()
         .firstName(personal.getFirstName())
         .lastName(personal.getLastName())
       );
     }
 
-    return shadowUser;
+    return secondaryRequestRequester;
+  }
+
+  private static ServicePoint buildPrimaryRequestPickupServicePoint(String id) {
+    return new ServicePoint()
+      .id(id)
+      .name("Service point")
+      .code("TSP")
+      .description("Test service point")
+      .discoveryDisplayName("Test service point")
+      .pickupLocation(true);
+  }
+
+  private static ServicePoint buildSecondaryRequestPickupServicePoint(
+    ServicePoint primaryRequestPickupServicePoint) {
+
+    return new ServicePoint()
+      .id(primaryRequestPickupServicePoint.getId())
+      .name("DCB_" + primaryRequestPickupServicePoint.getName())
+      .code(primaryRequestPickupServicePoint.getCode())
+      .discoveryDisplayName(primaryRequestPickupServicePoint.getDiscoveryDisplayName())
+      .pickupLocation(primaryRequestPickupServicePoint.getPickupLocation());
   }
 
 }

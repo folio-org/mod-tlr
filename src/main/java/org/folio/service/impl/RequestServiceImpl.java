@@ -7,11 +7,14 @@ import java.util.Collection;
 import org.folio.client.feign.CirculationClient;
 import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.Request;
+import org.folio.domain.dto.ServicePoint;
 import org.folio.domain.dto.User;
 import org.folio.exception.RequestCreatingException;
+import org.folio.service.CloningService;
 import org.folio.service.RequestService;
-import org.folio.service.TenantScopedExecutionService;
+import org.folio.service.ServicePointService;
 import org.folio.service.UserService;
+import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -21,18 +24,22 @@ import lombok.extern.log4j.Log4j2;
 @RequiredArgsConstructor
 @Log4j2
 public class RequestServiceImpl implements RequestService {
-  private final TenantScopedExecutionService tenantScopedExecutionService;
+
+  private final SystemUserScopedExecutionService executionService;
   private final CirculationClient circulationClient;
   private final UserService userService;
+  private final ServicePointService servicePointService;
+  private final CloningService<User> userCloningService;
+  private final CloningService<ServicePoint> servicePointCloningService;
 
   @Override
   public RequestWrapper createPrimaryRequest(Request request, String borrowingTenantId) {
     final String requestId = request.getId();
-    log.info("createPrimaryRequest:: creating primary request {} in borrowing tenant {}",
+    log.info("createPrimaryRequest:: creating primary request {} in borrowing tenant ({})",
       requestId, borrowingTenantId);
-    Request primaryRequest = tenantScopedExecutionService.execute(borrowingTenantId,
+    Request primaryRequest = executionService.executeSystemUserScoped(borrowingTenantId,
       () -> circulationClient.createRequest(request));
-    log.info("createPrimaryRequest:: primary request {} created in borrowing tenant {}",
+    log.info("createPrimaryRequest:: primary request {} created in borrowing tenant ({})",
       requestId, borrowingTenantId);
     log.debug("createPrimaryRequest:: primary request: {}", () -> primaryRequest);
 
@@ -43,22 +50,40 @@ public class RequestServiceImpl implements RequestService {
   public RequestWrapper createSecondaryRequest(Request request, String borrowingTenantId,
     Collection<String> lendingTenantIds) {
 
-    log.info("createSecondaryRequest:: attempting to create secondary request in one of potential " +
-        "lending tenants: {}", lendingTenantIds);
+    final String requestId = request.getId();
     final String requesterId = request.getRequesterId();
+    final String pickupServicePointId = request.getPickupServicePointId();
 
-    log.info("createSecondaryRequest:: looking for requester {} in borrowing tenant ({})",
-      requesterId, borrowingTenantId);
-    User realRequester = userService.findUser(requesterId, borrowingTenantId);
+    log.info("createSecondaryRequest:: creating secondary request {} in one of potential " +
+      "lending tenants: {}", requestId, lendingTenantIds);
+
+    User primaryRequestRequester = executionService.executeSystemUserScoped(borrowingTenantId,
+      () -> userService.find(requesterId));
+    ServicePoint primaryRequestPickupServicePoint = executionService.executeSystemUserScoped(
+      borrowingTenantId, () -> servicePointService.find(pickupServicePointId));
 
     for (String lendingTenantId : lendingTenantIds) {
       try {
-        log.info("createSecondaryRequest:: attempting to create shadow requester {} in lending tenant {}",
-          requesterId, lendingTenantId);
-        userService.createShadowUser(realRequester, lendingTenantId);
-        return createSecondaryRequest(request, lendingTenantId);
+        return executionService.executeSystemUserScoped(lendingTenantId, () -> {
+          log.info("createSecondaryRequest:: creating requester {} in lending tenant ({})",
+            requesterId, lendingTenantId);
+          userCloningService.clone(primaryRequestRequester);
+
+          log.info("createSecondaryRequest:: creating pickup service point {} in lending tenant ({})",
+            pickupServicePointId, lendingTenantId);
+          servicePointCloningService.clone(primaryRequestPickupServicePoint);
+
+          log.info("createSecondaryRequest:: creating secondary request {} in lending tenant ({})",
+            requestId, lendingTenantId);
+          Request secondaryRequest = circulationClient.createInstanceRequest(request);
+          log.info("createSecondaryRequest:: secondary request {} created in lending tenant ({})",
+            requestId, lendingTenantId);
+          log.debug("createSecondaryRequest:: secondary request: {}", () -> secondaryRequest);
+
+          return new RequestWrapper(secondaryRequest, lendingTenantId);
+        });
       } catch (Exception e) {
-        log.error("createSecondaryRequest:: failed to create secondary request in lending tenant {}: {}",
+        log.error("createSecondaryRequest:: failed to create secondary request in lending tenant ({}): {}",
           lendingTenantId, e.getMessage());
         log.debug("createSecondaryRequest:: ", e);
       }
@@ -69,19 +94,6 @@ public class RequestServiceImpl implements RequestService {
       request.getInstanceId(), lendingTenantIds);
     log.error("createSecondaryRequest:: {}", errorMessage);
     throw new RequestCreatingException(errorMessage);
-  }
-
-  private RequestWrapper createSecondaryRequest(Request request, String lendingTenantId) {
-    final String requestId = request.getId();
-    log.info("createSecondaryRequest:: creating secondary request {} in lending tenant {}",
-      requestId, lendingTenantId);
-    Request secondaryRequest = tenantScopedExecutionService.execute(lendingTenantId,
-      () -> circulationClient.createInstanceRequest(request));
-    log.info("createSecondaryRequest:: secondary request {} created in lending tenant {}",
-      requestId, lendingTenantId);
-    log.debug("createSecondaryRequest:: secondary request: {}", () -> secondaryRequest);
-
-    return new RequestWrapper(secondaryRequest, lendingTenantId);
   }
 
 }

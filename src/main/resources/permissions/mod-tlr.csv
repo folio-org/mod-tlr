@@ -1,3 +1,10 @@
 users.collection.get
 users.item.get
+users.item.post
+search.instances.collection.get
+circulation.requests.instances.item.post
+circulation.requests.item.post
+inventory-storage.service-points.item.get
+inventory-storage.service-points.collection.get
+inventory-storage.service-points.item.post
 dcb.ecs-request.transactions.post
