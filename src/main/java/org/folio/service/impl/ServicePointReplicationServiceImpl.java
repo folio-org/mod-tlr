@@ -37,7 +37,8 @@ public class ServicePointReplicationServiceImpl extends ReplicationServiceImpl<S
       .id(original.getId())
       .name(SECONDARY_REQUEST_PICKUP_SERVICE_POINT_NAME_PREFIX + original.getName())
       .code(original.getCode())
-      .discoveryDisplayName(original.getDiscoveryDisplayName());
+      .discoveryDisplayName(original.getDiscoveryDisplayName())
+      .pickupLocation(original.getPickupLocation());
 
     log.debug("buildReplica:: result: {}", () -> servicePoint);
     return servicePoint;

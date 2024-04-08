@@ -390,7 +390,8 @@ class EcsTlrApiTest extends BaseIT {
       .id(primaryRequestPickupServicePoint.getId())
       .name("DCB_" + primaryRequestPickupServicePoint.getName())
       .code(primaryRequestPickupServicePoint.getCode())
-      .discoveryDisplayName(primaryRequestPickupServicePoint.getDiscoveryDisplayName());
+      .discoveryDisplayName(primaryRequestPickupServicePoint.getDiscoveryDisplayName())
+      .pickupLocation(primaryRequestPickupServicePoint.getPickupLocation());
   }
 
 }
