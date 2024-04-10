@@ -67,7 +67,12 @@ public class RequestServiceImpl implements RequestService {
         return executionService.executeSystemUserScoped(lendingTenantId, () -> {
           log.info("createSecondaryRequest:: creating requester {} in lending tenant ({})",
             requesterId, lendingTenantId);
-          userCloningService.clone(primaryRequestRequester);
+          User shadowUser = userCloningService.clone(primaryRequestRequester);
+
+          if(!primaryRequestRequester.getPatronGroup().equals(shadowUser.getPatronGroup())) {
+            shadowUser.setPatronGroup(primaryRequestRequester.getPatronGroup());
+            userService.update(shadowUser);
+          }
 
           log.info("createSecondaryRequest:: creating pickup service point {} in lending tenant ({})",
             pickupServicePointId, lendingTenantId);
