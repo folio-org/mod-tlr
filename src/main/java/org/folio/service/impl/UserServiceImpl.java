@@ -29,7 +29,7 @@ public class UserServiceImpl implements UserService {
 
   @Override
   public User update(User user) {
-    log.info("update:: updating user {}", user);
+    log.info("update:: updating user {}", user.getId());
     return userClient.putUser(user.getId(), user);
   }
 

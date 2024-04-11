@@ -69,7 +69,8 @@ public class RequestServiceImpl implements RequestService {
             requesterId, lendingTenantId);
           User shadowUser = userCloningService.clone(primaryRequestRequester);
 
-          if(!primaryRequestRequester.getPatronGroup().equals(shadowUser.getPatronGroup())) {
+          if (primaryRequestRequester.getPatronGroup() != null &&
+            !primaryRequestRequester.getPatronGroup().equals(shadowUser.getPatronGroup())) {
             shadowUser.setPatronGroup(primaryRequestRequester.getPatronGroup());
             userService.update(shadowUser);
           }
