@@ -101,8 +101,8 @@ public class RequestServiceImpl implements RequestService {
     String patronGroup = primaryRequestRequester.getPatronGroup();
 
     if (patronGroup != null && !patronGroup.equals(shadowUser.getPatronGroup())) {
-      log.debug("cloneRequester:: updating requesters'({}) patron group in lending tenant to {}",
-        shadowUser.getId(), primaryRequestRequester.getPatronGroup());
+      log.info("cloneRequester:: updating requester's ({}) patron group in lending tenant to {}",
+        shadowUser.getId(), patronGroup);
       shadowUser.setPatronGroup(patronGroup);
       userService.update(shadowUser);
     }

@@ -368,6 +368,7 @@ class EcsTlrApiTest extends BaseIT {
 
   private static User buildSecondaryRequestRequester(User primaryRequestRequester,
     boolean secondaryRequestRequesterExists) {
+    
     return new User()
       .id(primaryRequestRequester.getId())
       .patronGroup(secondaryRequestRequesterExists ? PATRON_GROUP_ID_SECONDARY : PATRON_GROUP_ID_PRIMARY)
