@@ -359,6 +359,7 @@ class EcsTlrApiTest extends BaseIT {
       .id(primaryRequestRequester.getId())
       .patronGroup(primaryRequestRequester.getPatronGroup())
       .type(UserType.SHADOW.getValue())
+      .barcode(primaryRequestRequester.getBarcode())
       .active(true);
 
     UserPersonal personal = primaryRequestRequester.getPersonal();
