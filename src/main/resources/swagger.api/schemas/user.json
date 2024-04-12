@@ -5,6 +5,10 @@
   "javaName": "User",
   "type": "object",
   "properties": {
+    "username": {
+      "description": "A unique name belonging to a user. Typically used for login",
+      "type": "string"
+    },
     "id": {
       "description" : "A globally unique (UUID) identifier for the user",
       "type": "string"
@@ -17,10 +21,35 @@
       "description": "A flag to determine if the user's account is effective and not expired. The tenant configuration can require the user to be active for login. Active is different from the loan patron block",
       "type": "boolean"
     },
+    "type": {
+      "description": "The class of user like staff or patron; this is different from patronGroup; it can store shadow, system user and dcb types also",
+      "type": "string"
+    },
     "patronGroup": {
       "description": "A UUID corresponding to the group the user belongs to, see /groups API, example groups are undergraduate and faculty; loan rules, patron blocks, fees/fines and expiration days can use the patron group",
       "type": "string",
       "$ref": "uuid.json"
+    },
+    "personal": {
+      "description": "Personal information about the user",
+      "type": "object",
+      "properties": {
+        "lastName": {
+          "description": "The user's surname",
+          "type": "string"
+        },
+        "firstName": {
+          "description": "The user's given name",
+          "type": "string"
+        },
+        "middleName": {
+          "description": "The user's middle name (if any)",
+          "type": "string"
+        }
+      },
+      "required": [
+        "lastName"
+      ]
     }
   }
 }

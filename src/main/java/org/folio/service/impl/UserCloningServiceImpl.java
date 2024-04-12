@@ -1,6 +1,7 @@
 package org.folio.service.impl;
 
 import org.folio.domain.dto.User;
+import org.folio.domain.dto.UserType;
 import org.folio.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -34,6 +35,7 @@ public class UserCloningServiceImpl extends CloningServiceImpl<User> {
     User clone = new User()
       .id(original.getId())
       .patronGroup(original.getPatronGroup())
+      .type(UserType.SHADOW.getValue())
       .barcode(original.getBarcode())
       .active(true);
     log.debug("buildClone:: result: {}", () -> clone);
