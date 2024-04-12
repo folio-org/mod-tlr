@@ -30,6 +30,7 @@ import org.folio.domain.dto.SearchInstancesResponse;
 import org.folio.domain.dto.ServicePoint;
 import org.folio.domain.dto.User;
 import org.folio.domain.dto.UserPersonal;
+import org.folio.domain.dto.UserType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -370,6 +371,7 @@ class EcsTlrApiTest extends BaseIT {
     return new User()
       .id(primaryRequestRequester.getId())
       .patronGroup(secondaryRequestRequesterExists ? PATRON_GROUP_ID_SECONDARY : PATRON_GROUP_ID_PRIMARY)
+      .type(UserType.SHADOW.getValue())
       .barcode(primaryRequestRequester.getBarcode())
       .active(true);
   }

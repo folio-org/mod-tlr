@@ -99,6 +99,7 @@ public class RequestServiceImpl implements RequestService {
   private void cloneRequester(User primaryRequestRequester) {
     User shadowUser = userCloningService.clone(primaryRequestRequester);
     String patronGroup = primaryRequestRequester.getPatronGroup();
+
     if (patronGroup != null && !patronGroup.equals(shadowUser.getPatronGroup())) {
       log.debug("cloneRequester:: updating requesters'({}) patron group in lending tenant to {}",
         shadowUser.getId(), primaryRequestRequester.getPatronGroup());
