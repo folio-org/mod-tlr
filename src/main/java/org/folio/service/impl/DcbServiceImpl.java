@@ -4,7 +4,7 @@ import static org.folio.domain.dto.DcbTransaction.RoleEnum.LENDER;
 
 import java.util.UUID;
 
-import org.folio.client.feign.DcbClient;
+import org.folio.client.feign.DcbEcsTransactionClient;
 import org.folio.domain.dto.DcbTransaction;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.service.DcbService;
@@ -18,10 +18,10 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public class DcbServiceImpl implements DcbService {
 
-  private final DcbClient dcbClient;
+  private final DcbEcsTransactionClient dcbClient;
   private final SystemUserScopedExecutionService executionService;
 
-  public DcbServiceImpl(@Autowired DcbClient dcbClient,
+  public DcbServiceImpl(@Autowired DcbEcsTransactionClient dcbClient,
     @Autowired SystemUserScopedExecutionService executionService) {
 
     this.dcbClient = dcbClient;
@@ -47,7 +47,7 @@ public class DcbServiceImpl implements DcbService {
       .requestId(requestId.toString())
       .role(role);
     var response = executionService.executeSystemUserScoped(tenantId,
-      () -> dcbClient.createDcbTransaction(transactionId.toString(), transaction));
+      () -> dcbClient.createTransaction(transactionId.toString(), transaction));
     log.info("createTransaction:: {} transaction {} created", role, transactionId);
     log.debug("createTransaction:: {}", () -> response);
 
