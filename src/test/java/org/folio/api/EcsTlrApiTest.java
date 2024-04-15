@@ -9,6 +9,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.notFound;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.put;
+import static com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
@@ -41,6 +43,9 @@ class EcsTlrApiTest extends BaseIT {
   private static final String TENANT_HEADER = "x-okapi-tenant";
   private static final String INSTANCE_ID = randomId();
   private static final String INSTANCE_REQUESTS_URL = "/circulation/requests/instances";
+  private static final String PATRON_GROUP_ID_SECONDARY = randomId();
+  private static final String PATRON_GROUP_ID_PRIMARY = randomId();
+  private static final String REQUESTER_BARCODE = randomId();
   private static final String REQUESTS_URL = "/circulation/requests";
   private static final String USERS_URL = "/users";
   private static final String SERVICE_POINTS_URL = "/service-points";
@@ -107,7 +112,7 @@ class EcsTlrApiTest extends BaseIT {
       .pickupServicePointId(mockSecondaryRequestResponse.getPickupServicePointId());
 
     User primaryRequestRequester = buildPrimaryRequestRequester(requesterId);
-    User secondaryRequestRequester = buildSecondaryRequestRequester(primaryRequestRequester);
+    User secondaryRequestRequester = buildSecondaryRequestRequester(primaryRequestRequester, secondaryRequestRequesterExists);
     ServicePoint primaryRequestPickupServicePoint =
       buildPrimaryRequestPickupServicePoint(pickupServicePointId);
     ServicePoint secondaryRequestPickupServicePoint =
@@ -136,6 +141,10 @@ class EcsTlrApiTest extends BaseIT {
     wireMockServer.stubFor(post(urlMatching(USERS_URL))
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE))
       .willReturn(jsonResponse(secondaryRequestRequester, HttpStatus.SC_CREATED)));
+
+    wireMockServer.stubFor(put(urlMatching(USERS_URL + "/" + requesterId))
+      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE))
+      .willReturn(jsonResponse(primaryRequestRequester, HttpStatus.SC_NO_CONTENT)));
 
     // 2.3 Mock service point endpoints
 
@@ -206,6 +215,8 @@ class EcsTlrApiTest extends BaseIT {
 
     if (secondaryRequestRequesterExists) {
       wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(USERS_URL)));
+      wireMockServer.verify(exactly(1),
+        putRequestedFor(urlMatching(USERS_URL + "/" + requesterId)));
     } else {
       wireMockServer.verify(postRequestedFor(urlMatching(USERS_URL))
         .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE))
@@ -345,32 +356,25 @@ class EcsTlrApiTest extends BaseIT {
     return new User()
       .id(userId)
       .username("test_user")
-      .patronGroup(randomId())
+      .patronGroup(PATRON_GROUP_ID_PRIMARY)
       .type("patron")
       .active(true)
+      .barcode(REQUESTER_BARCODE)
       .personal(new UserPersonal()
         .firstName("First")
         .middleName("Middle")
         .lastName("Last"));
   }
 
-  private static User buildSecondaryRequestRequester(User primaryRequestRequester) {
-    User secondaryRequestRequester = new User()
+  private static User buildSecondaryRequestRequester(User primaryRequestRequester,
+    boolean secondaryRequestRequesterExists) {
+    
+    return new User()
       .id(primaryRequestRequester.getId())
-      .patronGroup(primaryRequestRequester.getPatronGroup())
+      .patronGroup(secondaryRequestRequesterExists ? PATRON_GROUP_ID_SECONDARY : PATRON_GROUP_ID_PRIMARY)
       .type(UserType.SHADOW.getValue())
       .barcode(primaryRequestRequester.getBarcode())
       .active(true);
-
-    UserPersonal personal = primaryRequestRequester.getPersonal();
-    if (personal != null) {
-      secondaryRequestRequester.setPersonal(new UserPersonal()
-        .firstName(personal.getFirstName())
-        .lastName(personal.getLastName())
-      );
-    }
-
-    return secondaryRequestRequester;
   }
 
   private static ServicePoint buildPrimaryRequestPickupServicePoint(String id) {

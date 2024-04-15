@@ -67,7 +67,7 @@ public class RequestServiceImpl implements RequestService {
         return executionService.executeSystemUserScoped(lendingTenantId, () -> {
           log.info("createSecondaryRequest:: creating requester {} in lending tenant ({})",
             requesterId, lendingTenantId);
-          userCloningService.clone(primaryRequestRequester);
+          cloneRequester(primaryRequestRequester);
 
           log.info("createSecondaryRequest:: creating pickup service point {} in lending tenant ({})",
             pickupServicePointId, lendingTenantId);
@@ -94,6 +94,18 @@ public class RequestServiceImpl implements RequestService {
       request.getInstanceId(), lendingTenantIds);
     log.error("createSecondaryRequest:: {}", errorMessage);
     throw new RequestCreatingException(errorMessage);
+  }
+
+  private void cloneRequester(User primaryRequestRequester) {
+    User shadowUser = userCloningService.clone(primaryRequestRequester);
+    String patronGroup = primaryRequestRequester.getPatronGroup();
+
+    if (patronGroup != null && !patronGroup.equals(shadowUser.getPatronGroup())) {
+      log.info("cloneRequester:: updating requester's ({}) patron group in lending tenant to {}",
+        shadowUser.getId(), patronGroup);
+      shadowUser.setPatronGroup(patronGroup);
+      userService.update(shadowUser);
+    }
   }
 
 }
