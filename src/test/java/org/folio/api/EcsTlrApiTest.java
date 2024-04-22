@@ -77,7 +77,6 @@ class EcsTlrApiTest extends BaseIT {
     String requesterId = randomId();
     String pickupServicePointId = randomId();
     EcsTlr ecsTlr = buildEcsTlr(INSTANCE_ID, requesterId, pickupServicePointId);
-    String ecsTlrJson = asJsonString(ecsTlr);
 
     // 1. Create mock responses from other modules
 
@@ -92,27 +91,11 @@ class EcsTlrApiTest extends BaseIT {
             buildItem(availableItemId, TENANT_ID_COLLEGE, "Available")))
       ));
 
-    Request mockSecondaryRequestResponse = new Request()
-      .id(randomId())
-      .requesterId(requesterId)
-      .requestLevel(Request.RequestLevelEnum.TITLE)
-      .requestType(Request.RequestTypeEnum.PAGE)
-      .instanceId(INSTANCE_ID)
-      .itemId(availableItemId)
-      .pickupServicePointId(pickupServicePointId);
-
-    Request mockPrimaryRequestResponse = new Request()
-      .id(mockSecondaryRequestResponse.getId())
-      .instanceId(INSTANCE_ID)
-      .requesterId(requesterId)
-      .requestDate(mockSecondaryRequestResponse.getRequestDate())
-      .requestLevel(Request.RequestLevelEnum.TITLE)
-      .requestType(Request.RequestTypeEnum.HOLD)
-      .fulfillmentPreference(Request.FulfillmentPreferenceEnum.HOLD_SHELF)
-      .pickupServicePointId(mockSecondaryRequestResponse.getPickupServicePointId());
-
+    Request secondaryRequest = buildSecondaryRequest(ecsTlr);
+    Request primaryRequest = buildPrimaryRequest(secondaryRequest);
     User primaryRequestRequester = buildPrimaryRequestRequester(requesterId);
-    User secondaryRequestRequester = buildSecondaryRequestRequester(primaryRequestRequester, secondaryRequestRequesterExists);
+    User secondaryRequestRequester = buildSecondaryRequestRequester(primaryRequestRequester,
+      secondaryRequestRequesterExists);
     ServicePoint primaryRequestPickupServicePoint =
       buildPrimaryRequestPickupServicePoint(pickupServicePointId);
     ServicePoint secondaryRequestPickupServicePoint =
@@ -166,20 +149,23 @@ class EcsTlrApiTest extends BaseIT {
 
     // 2.4 Mock request endpoints
 
+    Request mockPostSecondaryRequestResponse = buildSecondaryRequest(ecsTlr)
+      .itemId(availableItemId);
+
     wireMockServer.stubFor(post(urlMatching(INSTANCE_REQUESTS_URL))
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE))
-      .willReturn(jsonResponse(asJsonString(mockSecondaryRequestResponse), HttpStatus.SC_CREATED)));
+      .willReturn(jsonResponse(asJsonString(mockPostSecondaryRequestResponse), HttpStatus.SC_CREATED)));
 
     wireMockServer.stubFor(post(urlMatching(REQUESTS_URL))
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM))
-      .willReturn(jsonResponse(asJsonString(mockPrimaryRequestResponse), HttpStatus.SC_CREATED)));
+      .willReturn(jsonResponse(asJsonString(primaryRequest), HttpStatus.SC_CREATED)));
 
     // 3. Create ECS TLR
 
-    EcsTlr expectedPostEcsTlrResponse = fromJsonString(ecsTlrJson, EcsTlr.class)
-      .primaryRequestId(mockPrimaryRequestResponse.getId())
+    EcsTlr expectedPostEcsTlrResponse = fromJsonString(asJsonString(ecsTlr), EcsTlr.class)
+      .primaryRequestId(primaryRequest.getId())
       .primaryRequestTenantId(TENANT_ID_CONSORTIUM)
-      .secondaryRequestId(mockSecondaryRequestResponse.getId())
+      .secondaryRequestId(secondaryRequest.getId())
       .secondaryRequestTenantId(TENANT_ID_COLLEGE)
       .itemId(availableItemId);
 
@@ -207,11 +193,11 @@ class EcsTlrApiTest extends BaseIT {
 
     wireMockServer.verify(postRequestedFor(urlMatching(INSTANCE_REQUESTS_URL))
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE)) // because this tenant has available item
-      .withRequestBody(equalToJson(ecsTlrJson)));
+      .withRequestBody(equalToJson(asJsonString(secondaryRequest))));
 
     wireMockServer.verify(postRequestedFor(urlMatching(REQUESTS_URL))
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM))
-      .withRequestBody(equalToJson(asJsonString(mockPrimaryRequestResponse))));
+      .withRequestBody(equalToJson(asJsonString(primaryRequest))));
 
     if (secondaryRequestRequesterExists) {
       wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(USERS_URL)));
@@ -338,11 +324,40 @@ class EcsTlrApiTest extends BaseIT {
       .requesterId(requesterId)
       .pickupServicePointId(pickupServicePointId)
       .requestLevel(EcsTlr.RequestLevelEnum.TITLE)
-      .requestType(EcsTlr.RequestTypeEnum.HOLD)
+      .requestType(EcsTlr.RequestTypeEnum.PAGE)
       .fulfillmentPreference(EcsTlr.FulfillmentPreferenceEnum.DELIVERY)
       .patronComments("random comment")
       .requestDate(new Date())
       .requestExpirationDate(new Date());
+  }
+
+  private static Request buildSecondaryRequest(EcsTlr ecsTlr) {
+    return new Request()
+      .id(ecsTlr.getId())
+      .requesterId(ecsTlr.getRequesterId())
+      .requestLevel(Request.RequestLevelEnum.fromValue(ecsTlr.getRequestLevel().getValue()))
+      .requestType(Request.RequestTypeEnum.fromValue(ecsTlr.getRequestType().getValue()))
+      .ecsRequestPhase(Request.EcsRequestPhaseEnum.SECONDARY)
+      .instanceId(ecsTlr.getInstanceId())
+      .itemId(ecsTlr.getItemId())
+      .pickupServicePointId(ecsTlr.getPickupServicePointId())
+      .requestDate(ecsTlr.getRequestDate())
+      .requestExpirationDate(ecsTlr.getRequestExpirationDate())
+      .fulfillmentPreference(Request.FulfillmentPreferenceEnum.fromValue(ecsTlr.getFulfillmentPreference().getValue()))
+      .patronComments(ecsTlr.getPatronComments());
+  }
+
+  private static Request buildPrimaryRequest(Request secondaryRequest) {
+    return new Request()
+      .id(secondaryRequest.getId())
+      .instanceId(secondaryRequest.getInstanceId())
+      .requesterId(secondaryRequest.getRequesterId())
+      .requestDate(secondaryRequest.getRequestDate())
+      .requestLevel(Request.RequestLevelEnum.TITLE)
+      .requestType(Request.RequestTypeEnum.HOLD)
+      .ecsRequestPhase(Request.EcsRequestPhaseEnum.PRIMARY)
+      .fulfillmentPreference(Request.FulfillmentPreferenceEnum.HOLD_SHELF)
+      .pickupServicePointId(secondaryRequest.getPickupServicePointId());
   }
 
   private static Item buildItem(String id, String tenantId, String status) {

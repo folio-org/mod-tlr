@@ -48,7 +48,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     String borrowingTenantId = getBorrowingTenant(ecsTlr);
     Collection<String> lendingTenantIds = getLendingTenants(ecsTlr);
     RequestWrapper secondaryRequest = requestService.createSecondaryRequest(
-      requestsMapper.mapDtoToRequest(ecsTlr), borrowingTenantId, lendingTenantIds);
+      buildSecondaryRequest(ecsTlr), borrowingTenantId, lendingTenantIds);
     RequestWrapper primaryRequest = requestService.createPrimaryRequest(
       buildPrimaryRequest(secondaryRequest.request()), borrowingTenantId);
     updateEcsTlr(ecsTlr, primaryRequest, secondaryRequest);
@@ -117,8 +117,14 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       .requestDate(secondaryRequest.getRequestDate())
       .requestLevel(Request.RequestLevelEnum.TITLE)
       .requestType(Request.RequestTypeEnum.HOLD)
+      .ecsRequestPhase(Request.EcsRequestPhaseEnum.PRIMARY)
       .fulfillmentPreference(Request.FulfillmentPreferenceEnum.HOLD_SHELF)
       .pickupServicePointId(secondaryRequest.getPickupServicePointId());
+  }
+
+  private Request buildSecondaryRequest(EcsTlr ecsTlr) {
+    return requestsMapper.mapDtoToRequest(ecsTlr)
+      .ecsRequestPhase(Request.EcsRequestPhaseEnum.SECONDARY);
   }
 
   private static void updateEcsTlr(EcsTlr ecsTlr, RequestWrapper primaryRequest,
