@@ -1,0 +1,10 @@
+AllowedServicePointsResponse:
+  description: Allowed pickup service points grouped by request type
+  type: object
+  properties:
+    Page:
+      $ref: "allowedServicePoints.yaml#/AllowedServicePoints"
+    Hold:
+      $ref: "allowedServicePoints.yaml#/AllowedServicePoints"
+    Recall:
+      $ref: "allowedServicePoints.yaml#/AllowedServicePoints"

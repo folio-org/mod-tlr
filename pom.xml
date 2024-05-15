@@ -35,7 +35,7 @@
     <!-- runtime dependencies -->
     <folio-spring-base.version>7.2.2</folio-spring-base.version>
     <folio-spring-system-user.version>7.2.2</folio-spring-system-user.version>
-    <openapi-generator.version>6.2.1</openapi-generator.version>
+    <openapi-generator.version>7.5.0</openapi-generator.version>
     <mapstruct.version>1.5.3.Final</mapstruct.version>
 
     <!-- test dependencies -->
@@ -288,6 +288,37 @@
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
         <version>${openapi-generator.version}</version>
+
+        <!--executions>
+          <execution>
+            <id>request-mediator</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <inputSpecRootDirectory>${project.basedir}/src/main/resources/swagger.api</inputSpecRootDirectory>
+              <output>${project.build.directory}/generated-sources</output>
+              <generatorName>spring</generatorName>
+              <modelPackage>${project.groupId}.domain.dto</modelPackage>
+              <apiPackage>${project.groupId}.rest.resource</apiPackage>
+              <generateApis>true</generateApis>
+              <generateApiTests>true</generateApiTests>
+              <generateApiDocumentation>true</generateApiDocumentation>
+              <generateModels>true</generateModels>
+              <generateModelTests>false</generateModelTests>
+              <generateSupportingFiles>true</generateSupportingFiles>
+              <supportingFilesToGenerate>ApiUtil.java</supportingFilesToGenerate>
+              <generateModelDocumentation>true</generateModelDocumentation>
+              <configOptions>
+                <dateLibrary>java</dateLibrary>
+                <interfaceOnly>true</interfaceOnly>
+                <useSpringBoot3>true</useSpringBoot3>
+                <useTags>true</useTags>
+              </configOptions>
+            </configuration>
+          </execution>
+        </executions-->
+
         <executions>
           <execution>
             <id>request-mediator</id>
@@ -323,6 +354,33 @@
             </goals>
             <configuration>
               <inputSpec>${project.basedir}/src/main/resources/swagger.api/tlr-settings.yaml</inputSpec>
+              <output>${project.build.directory}/generated-sources</output>
+              <generatorName>spring</generatorName>
+              <modelPackage>${project.groupId}.domain.dto</modelPackage>
+              <apiPackage>${project.groupId}.rest.resource</apiPackage>
+              <generateApis>true</generateApis>
+              <generateApiTests>true</generateApiTests>
+              <generateApiDocumentation>true</generateApiDocumentation>
+              <generateModels>true</generateModels>
+              <generateModelTests>false</generateModelTests>
+              <generateSupportingFiles>true</generateSupportingFiles>
+              <supportingFilesToGenerate>ApiUtil.java</supportingFilesToGenerate>
+              <generateModelDocumentation>true</generateModelDocumentation>
+              <configOptions>
+                <dateLibrary>java</dateLibrary>
+                <interfaceOnly>true</interfaceOnly>
+                <useSpringBoot3>true</useSpringBoot3>
+                <useTags>true</useTags>
+              </configOptions>
+            </configuration>
+          </execution>
+          <execution>
+            <id>allowed-service-points</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <inputSpec>${project.basedir}/src/main/resources/swagger.api/allowed-service-points.yaml</inputSpec>
               <output>${project.build.directory}/generated-sources</output>
               <generatorName>spring</generatorName>
               <modelPackage>${project.groupId}.domain.dto</modelPackage>

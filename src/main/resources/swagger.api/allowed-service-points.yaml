@@ -1,0 +1,83 @@
+openapi: 3.0.0
+info:
+  title: Allowed service points API
+  version: v1
+tags:
+  - name: AllowedServicePoints
+paths:
+  /tlr/allowed-service-points:
+    get:
+      description: Retrieve allowed service points
+      operationId: getAllowedServicePoints
+      parameters:
+        - $ref: '#/components/parameters/requesterId'
+        - $ref: '#/components/parameters/instanceId'
+      tags:
+        - allowedServicePoints
+      responses:
+        '200':
+          $ref: '#/components/responses/success'
+        '400':
+          $ref: '#/components/responses/badRequest'
+        '422':
+          $ref: '#/components/responses/validationFailed'
+        '500':
+          $ref: '#/components/responses/internalServerError'
+components:
+  schemas:
+    allowedServicePointsResponse:
+      $ref: schemas/allowedServicePointsResponse.yaml#/AllowedServicePointsResponse
+    errorResponse:
+      $ref: schemas/errors.json
+  parameters:
+    requesterId:
+      name: requesterId
+      in: query
+      required: true
+      schema:
+        type: string
+        format: uuid
+    instanceId:
+      name: instanceId
+      in: query
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    success:
+      description: Allowed service points grouped by request type
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/allowedServicePointsResponse'
+    badRequest:
+      description: Validation errors
+      content:
+        application/json:
+          example:
+            errors:
+              - message: Request is invalid
+            total_records: 1
+          schema:
+            $ref: "#/components/schemas/errorResponse"
+    validationFailed:
+      description: Validation errors
+      content:
+        application/json:
+          example:
+            errors:
+              - message: Request is invalid
+            total_records: 1
+          schema:
+            $ref: "#/components/schemas/errorResponse"
+    internalServerError:
+      description: When unhandled exception occurred during code execution, e.g. NullPointerException
+      content:
+        application/json:
+          example:
+            errors:
+              - message: Unexpected error
+            total_records: 1
+          schema:
+            $ref: "#/components/schemas/errorResponse"
