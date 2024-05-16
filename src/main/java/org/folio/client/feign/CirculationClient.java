@@ -4,6 +4,7 @@ import org.folio.domain.dto.AllowedServicePointsResponse;
 import org.folio.domain.dto.Request;
 import org.folio.spring.config.FeignClientConfiguration;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -16,7 +17,7 @@ public interface CirculationClient {
   @PostMapping("/requests")
   Request createRequest(Request request);
 
-  @PostMapping("/requests/allowed-service-points")
+  @GetMapping("/requests/allowed-service-points")
   AllowedServicePointsResponse allowedServicePoints(
     @RequestParam("requesterId") String requesterId, @RequestParam("instanceId") String instanceId,
     @RequestParam("useStubItem") boolean useStubItem);

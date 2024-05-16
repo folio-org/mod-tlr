@@ -288,37 +288,6 @@
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
         <version>${openapi-generator.version}</version>
-
-        <!--executions>
-          <execution>
-            <id>request-mediator</id>
-            <goals>
-              <goal>generate</goal>
-            </goals>
-            <configuration>
-              <inputSpecRootDirectory>${project.basedir}/src/main/resources/swagger.api</inputSpecRootDirectory>
-              <output>${project.build.directory}/generated-sources</output>
-              <generatorName>spring</generatorName>
-              <modelPackage>${project.groupId}.domain.dto</modelPackage>
-              <apiPackage>${project.groupId}.rest.resource</apiPackage>
-              <generateApis>true</generateApis>
-              <generateApiTests>true</generateApiTests>
-              <generateApiDocumentation>true</generateApiDocumentation>
-              <generateModels>true</generateModels>
-              <generateModelTests>false</generateModelTests>
-              <generateSupportingFiles>true</generateSupportingFiles>
-              <supportingFilesToGenerate>ApiUtil.java</supportingFilesToGenerate>
-              <generateModelDocumentation>true</generateModelDocumentation>
-              <configOptions>
-                <dateLibrary>java</dateLibrary>
-                <interfaceOnly>true</interfaceOnly>
-                <useSpringBoot3>true</useSpringBoot3>
-                <useTags>true</useTags>
-              </configOptions>
-            </configuration>
-          </execution>
-        </executions-->
-
         <executions>
           <execution>
             <id>request-mediator</id>
