@@ -28,11 +28,12 @@ public class AllowedServicePointsApiTest extends BaseIT {
   @Test
   void allowedServicePointCallProxiedToModCirculationEndpoint() {
     AllowedServicePointsResponse modCirculationMockedResponse = new AllowedServicePointsResponse();
-    modCirculationMockedResponse.setHold(List.of(new AllowedServicePointsInner(randomId(), "SP1"),
-      new AllowedServicePointsInner(randomId(), "SP2")));
+    modCirculationMockedResponse.setHold(List.of(
+      new AllowedServicePointsInner().id(randomId()).name("SP1"),
+      new AllowedServicePointsInner().id(randomId()).name("SP2")));
     modCirculationMockedResponse.setPage(null);
-    modCirculationMockedResponse.setRecall(List.of(new AllowedServicePointsInner(randomId(),
-      "SP3")));
+    modCirculationMockedResponse.setRecall(List.of(
+      new AllowedServicePointsInner().id(randomId()).name("SP3")));
 
     System.out.println(asJsonString(modCirculationMockedResponse));
 
