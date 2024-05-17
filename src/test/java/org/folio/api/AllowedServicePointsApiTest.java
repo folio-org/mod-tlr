@@ -15,7 +15,7 @@ import org.folio.domain.dto.AllowedServicePointsResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class AllowedServicePointsApiTest extends BaseIT {
+class AllowedServicePointsApiTest extends BaseIT {
   private static final String ALLOWED_SERVICE_POINTS_URL = "/tlr/allowed-service-points";
   private static final String ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL =
     "/circulation/requests/allowed-service-points(.*)";
