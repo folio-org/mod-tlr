@@ -7,7 +7,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static java.lang.String.format;
 
-import java.util.List;
+import java.util.Set;
 
 import org.apache.http.HttpStatus;
 import org.folio.domain.dto.AllowedServicePointsInner;
@@ -28,14 +28,12 @@ public class AllowedServicePointsApiTest extends BaseIT {
   @Test
   void allowedServicePointCallProxiedToModCirculationEndpoint() {
     AllowedServicePointsResponse modCirculationMockedResponse = new AllowedServicePointsResponse();
-    modCirculationMockedResponse.setHold(List.of(
+    modCirculationMockedResponse.setHold(Set.of(
       new AllowedServicePointsInner().id(randomId()).name("SP1"),
       new AllowedServicePointsInner().id(randomId()).name("SP2")));
     modCirculationMockedResponse.setPage(null);
-    modCirculationMockedResponse.setRecall(List.of(
+    modCirculationMockedResponse.setRecall(Set.of(
       new AllowedServicePointsInner().id(randomId()).name("SP3")));
-
-    System.out.println(asJsonString(modCirculationMockedResponse));
 
     wireMockServer.stubFor(get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL))
       .willReturn(jsonResponse(asJsonString(modCirculationMockedResponse), HttpStatus.SC_OK)));

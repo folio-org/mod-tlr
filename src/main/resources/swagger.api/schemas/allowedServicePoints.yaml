@@ -1,7 +1,6 @@
 AllowedServicePoints:
   description: List of allowed pickup service points
   type: array
-  nullable: true
   default: null
   minItems: 1
   uniqueItems: true
