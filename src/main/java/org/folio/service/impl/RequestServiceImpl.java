@@ -107,7 +107,5 @@ public class RequestServiceImpl implements RequestService {
       userService.update(shadowUser);
     }
   }
-
-
-
+  
 }
