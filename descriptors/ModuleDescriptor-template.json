@@ -43,6 +43,22 @@
       ]
     },
     {
+      "id": "ecs-tlr-allowed-service-points",
+      "version": "1.0",
+      "handlers": [
+        {
+          "methods": ["GET"],
+          "pathPattern": "/tlr/allowed-service-points",
+          "permissionsRequired": [
+            "tlr.ecs-tlr-allowed-service-points.get"
+          ],
+          "modulePermissions": [
+            "circulation.requests.allowed-service-points.get"
+          ]
+        }
+      ]
+    },
+    {
       "id": "tlr-settings",
       "version": "1.0",
       "handlers": [
@@ -188,6 +204,10 @@
     {
       "id": "users",
       "version": "16.1"
+    },
+    {
+      "id": "allowed-service-points",
+      "version": "1.0"
     }
   ],
   "launchDescriptor": {
