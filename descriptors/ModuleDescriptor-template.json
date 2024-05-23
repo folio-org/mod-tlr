@@ -170,6 +170,11 @@
         "mod-settings.entries.item.post"
       ],
       "visible": true
+    },
+    {
+      "permissionName": "tlr.ecs-tlr-allowed-service-points.get",
+      "displayName": "ecs-tlr - allowed service points",
+      "description": "Get ECS TLR allowed service points"
     }
   ],
   "requires": [
