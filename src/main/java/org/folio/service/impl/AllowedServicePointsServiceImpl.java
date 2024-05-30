@@ -2,6 +2,7 @@ package org.folio.service.impl;
 
 import org.folio.client.feign.CirculationClient;
 import org.folio.domain.dto.AllowedServicePointsResponse;
+import org.folio.domain.dto.RequestOperation;
 import org.folio.service.AllowedServicePointsService;
 import org.springframework.stereotype.Service;
 
@@ -16,13 +17,14 @@ public class AllowedServicePointsServiceImpl implements AllowedServicePointsServ
   private final CirculationClient circulationClient;
 
   @Override
-  public AllowedServicePointsResponse getAllowedServicePoints(String requesterId,
-    String instanceId) {
+  public AllowedServicePointsResponse getAllowedServicePoints(RequestOperation operation,
+    String requesterId, String instanceId) {
 
     log.debug("getAllowedServicePoints:: params: requesterId={}, instanceId={}", requesterId,
       instanceId);
 
-    return circulationClient.allowedServicePoints(requesterId, instanceId, true);
+    return circulationClient.allowedServicePoints(requesterId, instanceId,
+      operation.toString().toLowerCase(), true);
   }
 
 }

@@ -41,13 +41,15 @@ class AllowedServicePointsApiTest extends BaseIT {
     String requesterId = randomId();
     String instanceId = randomId();
     doGet(
-      ALLOWED_SERVICE_POINTS_URL + format("?requesterId=%s&instanceId=%s", requesterId, instanceId))
+      ALLOWED_SERVICE_POINTS_URL + format("?operation=create&requesterId=%s&instanceId=%s",
+        requesterId, instanceId))
       .expectStatus().isEqualTo(200)
       .expectBody().json(asJsonString(modCirculationMockedResponse));
 
     wireMockServer.verify(getRequestedFor(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL))
       .withQueryParam("requesterId", equalTo(requesterId))
       .withQueryParam("instanceId", equalTo(instanceId))
+      .withQueryParam("operation", equalTo("create"))
       .withQueryParam("useStubItem", equalTo("true")));
   }
 }

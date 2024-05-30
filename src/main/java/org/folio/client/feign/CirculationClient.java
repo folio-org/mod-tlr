@@ -20,5 +20,5 @@ public interface CirculationClient {
   @GetMapping("/requests/allowed-service-points")
   AllowedServicePointsResponse allowedServicePoints(
     @RequestParam("requesterId") String requesterId, @RequestParam("instanceId") String instanceId,
-    @RequestParam("useStubItem") boolean useStubItem);
+    @RequestParam("operation") String operation, @RequestParam("useStubItem") boolean useStubItem);
 }
