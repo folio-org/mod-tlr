@@ -120,24 +120,24 @@ class KafkaEventListenerTest extends BaseIT {
   }
 
   private static void verifyDcbTransactions(EcsTlrEntity ecsTlr) {
-//    UUID primaryRequestDcbTransactionId = ecsTlr.getPrimaryRequestDcbTransactionId();
+    UUID primaryRequestDcbTransactionId = ecsTlr.getPrimaryRequestDcbTransactionId();
     UUID secondaryRequestDcbTransactionId = ecsTlr.getSecondaryRequestDcbTransactionId();
-//    assertNotNull(primaryRequestDcbTransactionId);
+    assertNotNull(primaryRequestDcbTransactionId);
     assertNotNull(secondaryRequestDcbTransactionId);
 
-//    DcbTransaction expectedBorrowerTransaction = new DcbTransaction()
-//      .role(DcbTransaction.RoleEnum.BORROWER)
-//      .requestId(ecsTlr.getPrimaryRequestId().toString());
+    DcbTransaction expectedBorrowerTransaction = new DcbTransaction()
+      .role(DcbTransaction.RoleEnum.BORROWER)
+      .requestId(ecsTlr.getPrimaryRequestId().toString());
 
     DcbTransaction expectedLenderTransaction = new DcbTransaction()
       .role(DcbTransaction.RoleEnum.LENDER)
       .requestId(ecsTlr.getSecondaryRequestId().toString());
 
-//    wireMockServer.verify(
-//      postRequestedFor(urlMatching(
-//        ".*" + ECS_REQUEST_TRANSACTIONS_URL + "/" + primaryRequestDcbTransactionId))
-//        .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
-//        .withRequestBody(equalToJson(asJsonString(expectedBorrowerTransaction))));
+    wireMockServer.verify(
+      postRequestedFor(urlMatching(
+        ".*" + ECS_REQUEST_TRANSACTIONS_URL + "/" + primaryRequestDcbTransactionId))
+        .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+        .withRequestBody(equalToJson(asJsonString(expectedBorrowerTransaction))));
 
     wireMockServer.verify(
       postRequestedFor(urlMatching(
