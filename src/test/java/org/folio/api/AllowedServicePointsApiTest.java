@@ -13,7 +13,6 @@ import java.util.Set;
 import org.apache.http.HttpStatus;
 import org.folio.domain.dto.AllowedServicePointsInner;
 import org.folio.domain.dto.AllowedServicePointsResponse;
-import org.folio.domain.dto.Holding;
 import org.folio.domain.dto.Instance;
 import org.folio.domain.dto.Item;
 import org.folio.domain.dto.SearchInstancesResponse;
@@ -35,18 +34,15 @@ class AllowedServicePointsApiTest extends BaseIT {
 
   @Test
   void allowedServicePointReturnsEmptyResultWhenNoRoutingSpInResponsesFromDataTenants() {
-    var item1 = new Item(List.of());
+    var item1 = new Item();
     item1.setTenantId(TENANT_ID_UNIVERSITY);
 
-    var item2 = new Item(List.of());
+    var item2 = new Item();
     item2.setTenantId(TENANT_ID_COLLEGE);
 
     var searchInstancesResponse = new SearchInstancesResponse();
     searchInstancesResponse.setTotalRecords(1);
-    searchInstancesResponse.setInstances(List.of(new Instance(List.of(), List.of(),
-      List.of(item1, item2),
-      List.of(new Holding(List.of(), List.of()))
-    )));
+    searchInstancesResponse.setInstances(List.of(new Instance().items(List.of(item1, item2))));
 
     wireMockServer.stubFor(get(urlMatching(SEARCH_INSTANCES_URL))
       .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM))
