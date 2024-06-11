@@ -62,20 +62,6 @@ public class AllowedServicePointsController implements AllowedServicePointsApi {
       allowedCombinationOfParametersDetected = true;
     }
 
-    if (operation == RequestOperation.CREATE && requesterId != null && instanceId == null &&
-      requestId == null) {
-
-      log.info("validateAllowedServicePointsRequest:: ILR request creation case");
-      allowedCombinationOfParametersDetected = true;
-    }
-
-    if (operation == RequestOperation.REPLACE && requesterId == null && instanceId == null &&
-      requestId != null) {
-
-      log.info("validateAllowedServicePointsRequest:: request replacement case");
-      allowedCombinationOfParametersDetected = true;
-    }
-
     if (!allowedCombinationOfParametersDetected) {
       String errorMessage = "Invalid combination of query parameters";
       errors.add(errorMessage);

@@ -115,6 +115,12 @@ class AllowedServicePointsApiTest extends BaseIT {
       .withQueryParam("useStubItem", equalTo("true")));
   }
 
+  @Test
+  void allowedServicePointsShouldReturn422WhenParametersAreInvalid() {
+    doGet(ALLOWED_SERVICE_POINTS_URL + format("?operation=create&requesterId=%s", randomId()))
+      .expectStatus().isEqualTo(422);
+  }
+
   private AllowedServicePointsInner buildAllowedServicePoint(String name,
     Boolean ecsRequestRouting) {
 
