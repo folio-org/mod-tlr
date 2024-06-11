@@ -57,16 +57,13 @@ class AllowedServicePointsApiTest extends BaseIT {
       buildAllowedServicePoint("SP_consortium_3")));
 
     var allowedSpResponseUniversity = new AllowedServicePointsResponse();
-    allowedSpResponseUniversity.setHold(Set.of(
-      buildAllowedServicePoint("SP_university_1"),
-      buildAllowedServicePoint("SP_university_2")));
+    allowedSpResponseUniversity.setHold(null);
     allowedSpResponseUniversity.setPage(null);
     allowedSpResponseUniversity.setRecall(null);
 
     var allowedSpResponseCollege = new AllowedServicePointsResponse();
     allowedSpResponseCollege.setHold(null);
-    allowedSpResponseCollege.setPage(Set.of(
-      buildAllowedServicePoint("SP_college_1")));
+    allowedSpResponseCollege.setPage(null);
     allowedSpResponseCollege.setRecall(null);
 
     var allowedSpResponseCollegeWithRouting = new AllowedServicePointsResponse();

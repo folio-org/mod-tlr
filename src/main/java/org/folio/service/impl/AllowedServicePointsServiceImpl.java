@@ -35,6 +35,7 @@ public class AllowedServicePointsServiceImpl implements AllowedServicePointsServ
       operation, requesterId, instanceId);
 
     var searchInstancesResponse = searchClient.searchInstance(instanceId);
+    // TODO: make call in parallel
     var availableForRequesting = searchInstancesResponse.getInstances().stream()
       .map(Instance::getItems)
       .flatMap(Collection::stream)
@@ -65,6 +66,8 @@ public class AllowedServicePointsServiceImpl implements AllowedServicePointsServ
 
     var availabilityCheckResult = Stream.of(allowedServicePointsResponse.getHold(),
       allowedServicePointsResponse.getPage(), allowedServicePointsResponse.getRecall())
+      .filter(Objects::nonNull)
+      .flatMap(Collection::stream)
       .anyMatch(Objects::nonNull);
 
     log.info("checkAvailability:: result: {}", availabilityCheckResult);
