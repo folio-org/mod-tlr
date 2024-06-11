@@ -18,7 +18,14 @@ public interface CirculationClient {
   Request createRequest(Request request);
 
   @GetMapping("/requests/allowed-service-points")
-  AllowedServicePointsResponse allowedServicePoints(
+  AllowedServicePointsResponse allowedServicePointsWithStubItem(
     @RequestParam("requesterId") String requesterId, @RequestParam("instanceId") String instanceId,
     @RequestParam("operation") String operation, @RequestParam("useStubItem") boolean useStubItem);
+
+
+  @GetMapping("/requests/allowed-service-points")
+  AllowedServicePointsResponse allowedRoutingServicePoints(
+    @RequestParam("requesterId") String requesterId, @RequestParam("instanceId") String instanceId,
+    @RequestParam("operation") String operation,
+    @RequestParam("ecsRequestRouting") boolean ecsRequestRouting);
 }

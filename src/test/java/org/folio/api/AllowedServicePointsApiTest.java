@@ -22,9 +22,9 @@ import org.junit.jupiter.api.Test;
 class AllowedServicePointsApiTest extends BaseIT {
   private static final String ALLOWED_SERVICE_POINTS_URL = "/tlr/allowed-service-points";
   private static final String ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL =
-    "/circulation/requests/allowed-service-points(.*)";
+    "/circulation/requests/allowed-service-points.*";
   private static final String SEARCH_INSTANCES_URL =
-    "/search/instances(.*)";
+    "/search/instances.*";
   private static final String TENANT_HEADER = "x-okapi-tenant";
 
   @BeforeEach

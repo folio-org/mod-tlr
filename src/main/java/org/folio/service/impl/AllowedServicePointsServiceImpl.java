@@ -46,7 +46,7 @@ public class AllowedServicePointsServiceImpl implements AllowedServicePointsServ
 
     if (availableForRequesting) {
       log.info("getAllowedServicePoints:: Available for requesting, proxying call");
-      return circulationClient.allowedServicePoints(requesterId, instanceId,
+      return circulationClient.allowedServicePointsWithStubItem(requesterId, instanceId,
         operation.toString().toLowerCase(), true);
     } else {
       log.info("getAllowedServicePoints:: Not available for requesting, returning empty result");
@@ -61,7 +61,7 @@ public class AllowedServicePointsServiceImpl implements AllowedServicePointsServ
       tenantId, operation, requesterId, instanceId);
 
     var allowedServicePointsResponse = executionService.executeSystemUserScoped(tenantId,
-      () -> circulationClient.allowedServicePoints(requesterId, instanceId,
+      () -> circulationClient.allowedRoutingServicePoints(requesterId, instanceId,
         operation.toString().toLowerCase(), true));
 
     var availabilityCheckResult = Stream.of(allowedServicePointsResponse.getHold(),
