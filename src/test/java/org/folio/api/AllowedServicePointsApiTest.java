@@ -50,29 +50,29 @@ class AllowedServicePointsApiTest extends BaseIT {
 
     var allowedSpResponseConsortium = new AllowedServicePointsResponse();
     allowedSpResponseConsortium.setHold(Set.of(
-      buildAllowedServicePoint("SP_consortium_1", null),
-      buildAllowedServicePoint("SP_consortium_2", null)));
+      buildAllowedServicePoint("SP_consortium_1"),
+      buildAllowedServicePoint("SP_consortium_2")));
     allowedSpResponseConsortium.setPage(null);
     allowedSpResponseConsortium.setRecall(Set.of(
-      buildAllowedServicePoint("SP_consortium_3", null)));
+      buildAllowedServicePoint("SP_consortium_3")));
 
     var allowedSpResponseUniversity = new AllowedServicePointsResponse();
     allowedSpResponseUniversity.setHold(Set.of(
-      buildAllowedServicePoint("SP_university_1", false),
-      buildAllowedServicePoint("SP_university_2", false)));
+      buildAllowedServicePoint("SP_university_1"),
+      buildAllowedServicePoint("SP_university_2")));
     allowedSpResponseUniversity.setPage(null);
     allowedSpResponseUniversity.setRecall(null);
 
     var allowedSpResponseCollege = new AllowedServicePointsResponse();
     allowedSpResponseCollege.setHold(null);
     allowedSpResponseCollege.setPage(Set.of(
-      buildAllowedServicePoint("SP_college_1", false)));
+      buildAllowedServicePoint("SP_college_1")));
     allowedSpResponseCollege.setRecall(null);
 
     var allowedSpResponseCollegeWithRouting = new AllowedServicePointsResponse();
     allowedSpResponseCollegeWithRouting.setHold(null);
     allowedSpResponseCollegeWithRouting.setPage(Set.of(
-      buildAllowedServicePoint("SP_college_1", true)));
+      buildAllowedServicePoint("SP_college_1")));
     allowedSpResponseCollegeWithRouting.setRecall(null);
 
     wireMockServer.stubFor(get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL))
@@ -121,12 +121,9 @@ class AllowedServicePointsApiTest extends BaseIT {
       .expectStatus().isEqualTo(422);
   }
 
-  private AllowedServicePointsInner buildAllowedServicePoint(String name,
-    Boolean ecsRequestRouting) {
-
+  private AllowedServicePointsInner buildAllowedServicePoint(String name) {
     return new AllowedServicePointsInner()
       .id(randomId())
-      .name(name)
-      .ecsRequestRouting(ecsRequestRouting);
+      .name(name);
   }
 }

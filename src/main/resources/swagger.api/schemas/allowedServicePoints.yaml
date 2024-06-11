@@ -12,9 +12,6 @@ AllowedServicePoints:
       name:
         description: "Service point name"
         type: string
-      ecsRequestRouting:
-        description: "Indicates whether or not the service point is a routing service point"
-        type: boolean
     required:
       - id
       - name

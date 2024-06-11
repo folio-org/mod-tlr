@@ -64,10 +64,8 @@ public class AllowedServicePointsServiceImpl implements AllowedServicePointsServ
         operation.toString().toLowerCase(), true));
 
     var availabilityCheckResult = Stream.of(allowedServicePointsResponse.getHold(),
-        allowedServicePointsResponse.getPage(), allowedServicePointsResponse.getRecall())
-      .filter(Objects::nonNull)
-      .flatMap(Collection::stream)
-      .anyMatch(AllowedServicePointsInner::getEcsRequestRouting);
+      allowedServicePointsResponse.getPage(), allowedServicePointsResponse.getRecall())
+      .anyMatch(Objects::nonNull);
 
     log.info("checkAvailability:: result: {}", availabilityCheckResult);
 
