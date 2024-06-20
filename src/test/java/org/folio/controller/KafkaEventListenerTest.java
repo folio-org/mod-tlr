@@ -2,19 +2,22 @@ package org.folio.controller;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
-import static com.github.tomakehurst.wiremock.client.WireMock.exactly;
 import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
+import static java.util.UUID.randomUUID;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.folio.support.MockDataUtils.ITEM_ID;
-import static org.folio.support.MockDataUtils.PRIMARY_REQUEST_ID;
-import static org.folio.support.MockDataUtils.SECONDARY_REQUEST_ID;
-import static org.folio.support.MockDataUtils.getMockDataAsString;
+import static org.folio.domain.dto.Request.StatusEnum.CLOSED_CANCELLED;
+import static org.folio.domain.dto.Request.StatusEnum.OPEN_IN_TRANSIT;
+import static org.folio.domain.dto.Request.StatusEnum.OPEN_NOT_YET_FILLED;
+import static org.folio.support.KafkaEvent.EventType.CREATED;
+import static org.folio.support.KafkaEvent.EventType.UPDATED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import java.util.Date;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -25,12 +28,20 @@ import org.apache.kafka.common.TopicPartition;
 import org.awaitility.Awaitility;
 import org.folio.api.BaseIT;
 import org.folio.domain.dto.DcbTransaction;
+import org.folio.domain.dto.Request;
+import org.folio.domain.dto.RequestInstance;
+import org.folio.domain.dto.RequestItem;
+import org.folio.domain.dto.RequestRequester;
+import org.folio.domain.dto.TransactionStatus;
 import org.folio.domain.dto.TransactionStatusResponse;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.support.KafkaEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -43,10 +54,27 @@ class KafkaEventListenerTest extends BaseIT {
   private static final String ECS_REQUEST_TRANSACTIONS_URL = "/ecs-request-transactions";
   private static final String POST_ECS_REQUEST_TRANSACTION_URL_PATTERN =
     ECS_REQUEST_TRANSACTIONS_URL + "/" + UUID_PATTERN;
+  private static final String TRANSACTION_STATUS_URL_PATTERN = "/transactions/%s/status";
+  private static final String DCB_TRANSACTIONS_URL_PATTERN =
+    String.format(TRANSACTION_STATUS_URL_PATTERN, UUID_PATTERN);
   private static final String REQUEST_TOPIC_NAME = buildTopicName("circulation", "request");
-  private static final String REQUEST_UPDATE_EVENT_SAMPLE =
-    getMockDataAsString("mockdata/kafka/secondary_request_update_event.json");
+//  private static final String REQUEST_UPDATE_EVENT_SAMPLE =
+//    getMockDataAsString("mockdata/kafka/secondary_request_update_event.json");
   private static final String CONSUMER_GROUP_ID = "folio-mod-tlr-group";
+
+  private static final UUID INSTANCE_ID = randomUUID();
+  private static final UUID HOLDINGS_ID = randomUUID();
+  private static final UUID ITEM_ID = randomUUID();
+  private static final UUID REQUESTER_ID = randomUUID();
+  private static final UUID PICKUP_SERVICE_POINT_ID = randomUUID();
+  private static final UUID ECS_TLR_ID = randomUUID();
+  private static final UUID PRIMARY_REQUEST_ID = ECS_TLR_ID;
+  private static final UUID SECONDARY_REQUEST_ID = ECS_TLR_ID;
+  private static final UUID PRIMARY_REQUEST_DCB_TRANSACTION_ID = randomUUID();
+  private static final UUID SECONDARY_REQUEST_DCB_TRANSACTION_ID = randomUUID();
+  private static final String PRIMARY_REQUEST_TENANT_ID = TENANT_ID_CONSORTIUM;
+  private static final String SECONDARY_REQUEST_TENANT_ID = TENANT_ID_COLLEGE;
+  private static final String CENTRAL_TENANT_ID = TENANT_ID_CONSORTIUM;
 
   @Autowired
   private EcsTlrRepository ecsTlrRepository;
@@ -58,68 +86,170 @@ class KafkaEventListenerTest extends BaseIT {
     ecsTlrRepository.deleteAll();
   }
 
-  @Test
-  void requestUpdateEventIsConsumed() {
-    EcsTlrEntity newEcsTlr = EcsTlrEntity.builder()
-      .id(UUID.randomUUID())
-      .primaryRequestId(PRIMARY_REQUEST_ID)
-      .primaryRequestTenantId(TENANT_ID_CONSORTIUM)
-      .secondaryRequestId(SECONDARY_REQUEST_ID)
-      .secondaryRequestTenantId(TENANT_ID_COLLEGE)
-      .build();
+  @ParameterizedTest
+  @CsvSource({
+    "OPEN_NOT_YET_FILLED, OPEN_IN_TRANSIT, CREATED, OPEN",
+    "OPEN_IN_TRANSIT, OPEN_AWAITING_PICKUP, OPEN, AWAITING_PICKUP",
+    "OPEN_AWAITING_PICKUP, CLOSED_FILLED, AWAITING_PICKUP, ITEM_CHECKED_OUT",
+  })
+  void shouldCreateAndUpdateDcbTransactionsUponSecondaryRequestUpdateWhenEcsTlrHasNoItemId(
+    Request.StatusEnum oldRequestStatus, Request.StatusEnum newRequestStatus,
+    TransactionStatusResponse.StatusEnum oldTransactionStatus,
+    TransactionStatusResponse.StatusEnum expectedNewTransactionStatus) {
 
-    EcsTlrEntity initialEcsTlr = executionService.executeSystemUserScoped(TENANT_ID_CONSORTIUM,
-      () -> ecsTlrRepository.save(newEcsTlr));
+    mockDcb(oldTransactionStatus, expectedNewTransactionStatus);
+
+    EcsTlrEntity initialEcsTlr = createEcsTlr(buildEcsTlrWithoutItemId());
     assertNull(initialEcsTlr.getItemId());
 
-    var mockEcsDcbTransactionResponse = new TransactionStatusResponse()
-      .status(TransactionStatusResponse.StatusEnum.CREATED);
-    wireMockServer.stubFor(WireMock.post(urlMatching(".*" + POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
-      .willReturn(jsonResponse(mockEcsDcbTransactionResponse, HttpStatus.SC_CREATED)));
+    KafkaEvent<Request> event = buildSecondaryRequestUpdateEvent(oldRequestStatus, newRequestStatus);
+    publishEventAndWait(REQUEST_TOPIC_NAME, event);
 
-    publishEvent(REQUEST_TOPIC_NAME, REQUEST_UPDATE_EVENT_SAMPLE);
+    EcsTlrEntity updatedEcsTlr = getEcsTlr(ECS_TLR_ID);
+    assertEquals(updatedEcsTlr.getItemId(), ITEM_ID);
 
-    EcsTlrEntity updatedEcsTlr = executionService.executeSystemUserScoped(TENANT_ID_CONSORTIUM,
-      () -> Awaitility.await()
-        .atMost(30, SECONDS)
-        .until(() -> ecsTlrRepository.findById(initialEcsTlr.getId()),
-          ecsTlr -> ecsTlr.isPresent() && ITEM_ID.equals(ecsTlr.get().getItemId()))
-    ).orElseThrow();
+    UUID secondaryRequestTransactionId = updatedEcsTlr.getSecondaryRequestDcbTransactionId();
+    verifyThatDcbTransactionsWereCreated(updatedEcsTlr);
+    verifyThatDcbTransactionWasUpdated(secondaryRequestTransactionId,
+      expectedNewTransactionStatus, SECONDARY_REQUEST_TENANT_ID);
+  }
 
-    verifyDcbTransactions(updatedEcsTlr);
+  @ParameterizedTest
+  @CsvSource({
+    "OPEN_NOT_YET_FILLED, OPEN_IN_TRANSIT, CREATED, OPEN",
+    "OPEN_IN_TRANSIT, OPEN_AWAITING_PICKUP, OPEN, AWAITING_PICKUP",
+    "OPEN_AWAITING_PICKUP, CLOSED_FILLED, AWAITING_PICKUP, ITEM_CHECKED_OUT",
+  })
+  void shouldUpdateLendingDcbTransactionUponSecondaryRequestUpdateWhenEcsTlrAlreadyHasItemId(
+    Request.StatusEnum oldRequestStatus, Request.StatusEnum newRequestStatus,
+    TransactionStatusResponse.StatusEnum oldTransactionStatus,
+    TransactionStatusResponse.StatusEnum expectedNewTransactionStatus) {
+
+    mockDcb(oldTransactionStatus, expectedNewTransactionStatus);
+
+    EcsTlrEntity initialEcsTlr = createEcsTlr(buildEcsTlrWithItemId());
+    assertNotNull(initialEcsTlr.getItemId());
+
+    KafkaEvent<Request> event = buildSecondaryRequestUpdateEvent(oldRequestStatus, newRequestStatus);
+    publishEventAndWait(REQUEST_TOPIC_NAME, event);
+
+    EcsTlrEntity updatedEcsTlr = getEcsTlr(ECS_TLR_ID);
+    verifyThatNoDcbTransactionsWereCreated();
+    verifyThatDcbTransactionWasUpdated(updatedEcsTlr.getSecondaryRequestDcbTransactionId(),
+      expectedNewTransactionStatus, SECONDARY_REQUEST_TENANT_ID);
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "OPEN_NOT_YET_FILLED, OPEN_IN_TRANSIT, CREATED, OPEN",
+    "OPEN_IN_TRANSIT, OPEN_AWAITING_PICKUP, OPEN, AWAITING_PICKUP",
+    "OPEN_AWAITING_PICKUP, CLOSED_FILLED, AWAITING_PICKUP, ITEM_CHECKED_OUT",
+  })
+  void shouldUpdateBorrowingDcbTransactionUponPrimaryRequestUpdate(
+    Request.StatusEnum oldRequestStatus, Request.StatusEnum newRequestStatus,
+    TransactionStatusResponse.StatusEnum oldTransactionStatus,
+    TransactionStatusResponse.StatusEnum expectedNewTransactionStatus) {
+
+    mockDcb(oldTransactionStatus, expectedNewTransactionStatus);
+
+    EcsTlrEntity initialEcsTlr = createEcsTlr(buildEcsTlrWithItemId());
+    assertNotNull(initialEcsTlr.getItemId());
+
+    KafkaEvent<Request> event = buildPrimaryRequestUpdateEvent(oldRequestStatus, newRequestStatus);
+    publishEventAndWait(REQUEST_TOPIC_NAME, event);
+
+    EcsTlrEntity updatedEcsTlr = getEcsTlr(ECS_TLR_ID);
+    verifyThatNoDcbTransactionsWereCreated();
+    verifyThatDcbTransactionWasUpdated(updatedEcsTlr.getPrimaryRequestDcbTransactionId(),
+      expectedNewTransactionStatus, PRIMARY_REQUEST_TENANT_ID);
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "OPEN_NOT_YET_FILLED, OPEN_NOT_YET_FILLED",
+    "OPEN_IN_TRANSIT, CLOSED_CANCELLED",
+    "OPEN_AWAITING_DELIVERY, CLOSED_FILLED",
+  })
+  void shouldNotCreateOrUpdateLendingDcbTransactionUponIrrelevantSecondaryRequestStatusChange(
+    Request.StatusEnum oldRequestStatus, Request.StatusEnum newRequestStatus) {
+
+    EcsTlrEntity initialEcsTlr = createEcsTlr(buildEcsTlrWithItemId());
+    assertNotNull(initialEcsTlr.getItemId());
+
+    KafkaEvent<Request> event = buildSecondaryRequestUpdateEvent(oldRequestStatus, newRequestStatus);
+    publishEventAndWait(REQUEST_TOPIC_NAME, event);
+
+    verifyThatNoDcbTransactionsWereCreated();
+    verifyThatNoDcbTransactionsWereUpdated();
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "OPEN_NOT_YET_FILLED, OPEN_NOT_YET_FILLED",
+    "OPEN_IN_TRANSIT, CLOSED_CANCELLED",
+    "OPEN_AWAITING_DELIVERY, CLOSED_FILLED",
+  })
+  void shouldNotUpdateBorrowingDcbTransactionUponIrrelevantPrimaryRequestStatusChange(
+    Request.StatusEnum oldRequestStatus, Request.StatusEnum newRequestStatus) {
+
+    EcsTlrEntity initialEcsTlr = createEcsTlr(buildEcsTlrWithItemId());
+    assertNotNull(initialEcsTlr.getItemId());
+
+    KafkaEvent<Request> event = buildPrimaryRequestUpdateEvent(oldRequestStatus, newRequestStatus);
+    publishEventAndWait(REQUEST_TOPIC_NAME, event);
+
+    verifyThatNoDcbTransactionsWereCreated();
+    verifyThatNoDcbTransactionsWereUpdated();
   }
 
   @Test
-  void requestUpdateEventIsIgnoredWhenEcsTlrAlreadyHasItemId() {
-    UUID ecsTlrId = UUID.randomUUID();
-    EcsTlrEntity initialEcsTlr = EcsTlrEntity.builder()
-      .id(ecsTlrId)
-      .primaryRequestId(PRIMARY_REQUEST_ID)
-      .secondaryRequestId(SECONDARY_REQUEST_ID)
-      .itemId(ITEM_ID)
-      .build();
-
-    executionService.executeAsyncSystemUserScoped(TENANT_ID_CONSORTIUM,
-      () -> ecsTlrRepository.save(initialEcsTlr));
-
-    var mockEcsDcbTransactionResponse = new TransactionStatusResponse()
-      .status(TransactionStatusResponse.StatusEnum.CREATED);
-
-    wireMockServer.stubFor(WireMock.post(urlMatching(".*" + POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
-      .willReturn(jsonResponse(mockEcsDcbTransactionResponse, HttpStatus.SC_CREATED)));
-
-    publishEventAndWait(REQUEST_TOPIC_NAME, CONSUMER_GROUP_ID, REQUEST_UPDATE_EVENT_SAMPLE);
-
-    EcsTlrEntity ecsTlr = executionService.executeSystemUserScoped(TENANT_ID_CONSORTIUM,
-      () -> ecsTlrRepository.findById(ecsTlrId)).orElseThrow();
-    assertEquals(ITEM_ID, ecsTlr.getItemId());
-    assertNull(ecsTlr.getPrimaryRequestDcbTransactionId());
-    assertNull(ecsTlr.getSecondaryRequestDcbTransactionId());
-    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(
-      ".*" + POST_ECS_REQUEST_TRANSACTION_URL_PATTERN)));
+  void requestEventOfUnsupportedTypeIsIgnored() {
+    checkThatEventIsIgnored(buildRequestEvent(TENANT_ID_COLLEGE, CREATED));
   }
 
-  private static void verifyDcbTransactions(EcsTlrEntity ecsTlr) {
+  @Test
+  void requestUpdateEventFromUnknownTenantIsIgnored() {
+    checkThatEventIsIgnored(buildRequestUpdateEvent("unknown"));
+  }
+
+  @Test
+  void requestUpdateEventWithoutNewVersionOfRequestIsIgnored() {
+    checkThatEventIsIgnored(
+      buildUpdateEvent(SECONDARY_REQUEST_TENANT_ID, buildSecondaryRequest(OPEN_NOT_YET_FILLED), null));
+  }
+
+  @Test
+  void requestUpdateEventForRequestWithoutItemIdIsIgnored() {
+    checkThatEventIsIgnored(
+      buildUpdateEvent(SECONDARY_REQUEST_TENANT_ID,
+        buildSecondaryRequest(OPEN_NOT_YET_FILLED).itemId(null),
+        buildSecondaryRequest(CLOSED_CANCELLED).itemId(null)
+      ));
+  }
+
+  @Test
+  void requestUpdateEventForUnknownRequestIsIgnored() {
+    String randomId = randomId();
+    checkThatEventIsIgnored(
+      buildUpdateEvent(SECONDARY_REQUEST_TENANT_ID,
+        buildSecondaryRequest(OPEN_NOT_YET_FILLED).id(randomId),
+        buildSecondaryRequest(OPEN_IN_TRANSIT).id(randomId)
+      ));
+  }
+
+  void checkThatEventIsIgnored(KafkaEvent<Request> event) {
+    EcsTlrEntity initialEcsTlr = createEcsTlr(buildEcsTlrWithoutItemId());
+    publishEventAndWait(REQUEST_TOPIC_NAME, event);
+
+    EcsTlrEntity ecsTlr = getEcsTlr(initialEcsTlr.getId());
+    assertNull(ecsTlr.getItemId());
+    assertNull(ecsTlr.getPrimaryRequestDcbTransactionId());
+    assertNull(ecsTlr.getSecondaryRequestDcbTransactionId());
+    verifyThatNoDcbTransactionsWereCreated();
+    verifyThatNoDcbTransactionsWereUpdated();
+  }
+
+  private static void verifyThatDcbTransactionsWereCreated(EcsTlrEntity ecsTlr) {
     UUID primaryRequestDcbTransactionId = ecsTlr.getPrimaryRequestDcbTransactionId();
     UUID secondaryRequestDcbTransactionId = ecsTlr.getSecondaryRequestDcbTransactionId();
     assertNotNull(primaryRequestDcbTransactionId);
@@ -133,17 +263,39 @@ class KafkaEventListenerTest extends BaseIT {
       .role(DcbTransaction.RoleEnum.LENDER)
       .requestId(ecsTlr.getSecondaryRequestId().toString());
 
-    wireMockServer.verify(
-      postRequestedFor(urlMatching(
-        ".*" + ECS_REQUEST_TRANSACTIONS_URL + "/" + primaryRequestDcbTransactionId))
-        .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
-        .withRequestBody(equalToJson(asJsonString(expectedBorrowerTransaction))));
+    wireMockServer.verify(postRequestedFor(urlMatching(
+      ECS_REQUEST_TRANSACTIONS_URL + "/" + primaryRequestDcbTransactionId))
+      .withHeader(HEADER_TENANT, equalTo(ecsTlr.getPrimaryRequestTenantId()))
+      .withRequestBody(equalToJson(asJsonString(expectedBorrowerTransaction))));
 
-    wireMockServer.verify(
-      postRequestedFor(urlMatching(
-        ".*" + ECS_REQUEST_TRANSACTIONS_URL + "/" + secondaryRequestDcbTransactionId))
-        .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
-        .withRequestBody(equalToJson(asJsonString(expectedLenderTransaction))));
+    wireMockServer.verify(postRequestedFor(urlMatching(
+      ECS_REQUEST_TRANSACTIONS_URL + "/" + secondaryRequestDcbTransactionId))
+      .withHeader(HEADER_TENANT, equalTo(ecsTlr.getSecondaryRequestTenantId()))
+      .withRequestBody(equalToJson(asJsonString(expectedLenderTransaction))));
+  }
+
+  private static void verifyThatNoDcbTransactionsWereCreated() {
+    wireMockServer.verify(0, postRequestedFor(
+      urlMatching(ECS_REQUEST_TRANSACTIONS_URL + "/" + UUID_PATTERN)));
+  }
+
+  private static void verifyThatDcbTransactionWasUpdated(UUID transactionId,
+    TransactionStatusResponse.StatusEnum newStatus, String tenant) {
+
+    wireMockServer.verify(putRequestedFor(
+      urlMatching(String.format(DCB_TRANSACTIONS_URL_PATTERN, transactionId)))
+      .withHeader(HEADER_TENANT, equalTo(tenant))
+      .withRequestBody(equalToJson(asJsonString(
+        new TransactionStatus().status(TransactionStatus.StatusEnum.valueOf(newStatus.name()))))));
+  }
+
+  private static void verifyThatNoDcbTransactionsWereUpdated() {
+    wireMockServer.verify(0, putRequestedFor(urlMatching(DCB_TRANSACTIONS_URL_PATTERN)));
+  }
+
+  @SneakyThrows
+  private <T> void publishEvent(String topic, KafkaEvent<T> event) {
+    publishEvent(topic, asJsonString(event));
   }
 
   @SneakyThrows
@@ -163,16 +315,161 @@ class KafkaEventListenerTest extends BaseIT {
       .get(10, TimeUnit.SECONDS);
   }
 
-  private  void publishEventAndWait(String topic, String consumerGroupId, String payload) {
-    final int initialOffset = getOffset(topic, consumerGroupId);
+  private <T> void publishEventAndWait(String topic, KafkaEvent<T> event) {
+    publishEventAndWait(topic, asJsonString(event));
+  }
+
+  private void publishEventAndWait(String topic, String payload) {
+    final int initialOffset = getOffset(topic, CONSUMER_GROUP_ID);
     publishEvent(topic, payload);
-    waitForOffset(topic, consumerGroupId, initialOffset + 1);
+    waitForOffset(topic, CONSUMER_GROUP_ID, initialOffset + 1);
   }
 
   private void waitForOffset(String topic, String consumerGroupId, int expectedOffset) {
     Awaitility.await()
       .atMost(60, TimeUnit.SECONDS)
       .until(() -> getOffset(topic, consumerGroupId), offset -> offset.equals(expectedOffset));
+  }
+
+  private static KafkaEvent<Request> buildPrimaryRequestUpdateEvent(Request.StatusEnum oldStatus,
+    Request.StatusEnum newStatus) {
+
+    return buildUpdateEvent(PRIMARY_REQUEST_TENANT_ID,
+      buildPrimaryRequest(oldStatus),
+      buildPrimaryRequest(newStatus));
+  }
+
+  private static KafkaEvent<Request> buildSecondaryRequestUpdateEvent(Request.StatusEnum oldStatus,
+    Request.StatusEnum newStatus) {
+
+    return buildUpdateEvent(SECONDARY_REQUEST_TENANT_ID,
+      buildSecondaryRequest(oldStatus),
+      buildSecondaryRequest(newStatus));
+  }
+
+  private static KafkaEvent<Request> buildRequestUpdateEvent(String tenant) {
+    return buildRequestEvent(tenant, UPDATED);
+  }
+
+  private static KafkaEvent<Request> buildRequestEvent(String tenant, KafkaEvent.EventType type) {
+    return buildEvent(tenant, type, buildSecondaryRequest(OPEN_NOT_YET_FILLED),
+      buildSecondaryRequest(OPEN_IN_TRANSIT));
+  }
+
+  private static <T> KafkaEvent<T> buildUpdateEvent(String tenant, T oldVersion, T newVersion) {
+    return buildEvent(tenant, UPDATED, oldVersion, newVersion);
+  }
+
+  private static <T> KafkaEvent<T> buildEvent(String tenant, KafkaEvent.EventType type, T oldVersion,
+    T newVersion) {
+
+    KafkaEvent.EventData<T> data = KafkaEvent.EventData.<T>builder()
+      .oldVersion(oldVersion)
+      .newVersion(newVersion)
+      .build();
+
+    return buildEvent(tenant, type, data);
+  }
+
+  private static <T> KafkaEvent<T> buildEvent(String tenant, KafkaEvent.EventType type,
+    KafkaEvent.EventData<T> data) {
+
+    return KafkaEvent.<T>builder()
+      .id(randomId())
+      .type(type)
+      .timestamp(new Date().getTime())
+      .tenant(tenant)
+      .data(data)
+      .build();
+  }
+
+  private static Request buildPrimaryRequest(Request.StatusEnum status) {
+    return buildRequest(PRIMARY_REQUEST_ID, Request.EcsRequestPhaseEnum.PRIMARY, status);
+  }
+
+  private static Request buildSecondaryRequest(Request.StatusEnum status) {
+    return buildRequest(SECONDARY_REQUEST_ID, Request.EcsRequestPhaseEnum.SECONDARY, status);
+  }
+
+  private static Request buildRequest(UUID id, Request.EcsRequestPhaseEnum ecsPhase,
+    Request.StatusEnum status) {
+
+    return new Request()
+      .id(id.toString())
+      .requestLevel(Request.RequestLevelEnum.TITLE)
+      .requestType(Request.RequestTypeEnum.HOLD)
+      .ecsRequestPhase(ecsPhase)
+      .requestDate(new Date())
+      .requesterId(REQUESTER_ID.toString())
+      .instanceId(INSTANCE_ID.toString())
+      .holdingsRecordId(HOLDINGS_ID.toString())
+      .itemId(ITEM_ID.toString())
+      .status(status)
+      .position(1)
+      .instance(new RequestInstance().title("Test title"))
+      .item(new RequestItem().barcode("test"))
+      .requester(new RequestRequester()
+        .firstName("First")
+        .lastName("Last")
+        .barcode("test"))
+      .fulfillmentPreference(Request.FulfillmentPreferenceEnum.HOLD_SHELF)
+      .pickupServicePointId(PICKUP_SERVICE_POINT_ID.toString());
+  }
+
+  private static EcsTlrEntity buildEcsTlrWithItemId() {
+    return EcsTlrEntity.builder()
+      .id(ECS_TLR_ID)
+      .primaryRequestId(PRIMARY_REQUEST_ID)
+      .primaryRequestTenantId(PRIMARY_REQUEST_TENANT_ID)
+      .primaryRequestDcbTransactionId(PRIMARY_REQUEST_DCB_TRANSACTION_ID)
+      .secondaryRequestId(SECONDARY_REQUEST_ID)
+      .secondaryRequestTenantId(SECONDARY_REQUEST_TENANT_ID)
+      .secondaryRequestDcbTransactionId(SECONDARY_REQUEST_DCB_TRANSACTION_ID)
+      .itemId(ITEM_ID)
+      .build();
+  }
+
+  private static EcsTlrEntity buildEcsTlrWithoutItemId() {
+    return EcsTlrEntity.builder()
+      .id(ECS_TLR_ID)
+      .primaryRequestId(PRIMARY_REQUEST_ID)
+      .primaryRequestTenantId(PRIMARY_REQUEST_TENANT_ID)
+      .secondaryRequestId(SECONDARY_REQUEST_ID)
+      .secondaryRequestTenantId(SECONDARY_REQUEST_TENANT_ID)
+      .build();
+  }
+
+  private static void mockDcb(TransactionStatusResponse.StatusEnum initialTransactionStatus,
+    TransactionStatusResponse.StatusEnum newTransactionStatus) {
+
+    // mock DCB transaction POST response
+    TransactionStatusResponse mockPostEcsDcbTransactionResponse = new TransactionStatusResponse()
+      .status(TransactionStatusResponse.StatusEnum.CREATED);
+    wireMockServer.stubFor(WireMock.post(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
+      .willReturn(jsonResponse(mockPostEcsDcbTransactionResponse, HttpStatus.SC_CREATED)));
+
+    // mock DCB transaction GET response
+    TransactionStatusResponse mockGetTransactionStatusResponse = new TransactionStatusResponse()
+      .status(initialTransactionStatus)
+      .role(TransactionStatusResponse.RoleEnum.LENDER);
+    wireMockServer.stubFor(WireMock.get(urlMatching(DCB_TRANSACTIONS_URL_PATTERN))
+      .willReturn(jsonResponse(mockGetTransactionStatusResponse, HttpStatus.SC_OK)));
+
+    // mock DCB transaction PUT response
+    TransactionStatusResponse mockPutEcsDcbTransactionResponse = new TransactionStatusResponse()
+      .status(newTransactionStatus);
+    wireMockServer.stubFor(WireMock.put(urlMatching(DCB_TRANSACTIONS_URL_PATTERN))
+      .willReturn(jsonResponse(mockPutEcsDcbTransactionResponse, HttpStatus.SC_OK)));
+  }
+
+  private EcsTlrEntity createEcsTlr(EcsTlrEntity ecsTlr) {
+    return executionService.executeSystemUserScoped(CENTRAL_TENANT_ID,
+      () -> ecsTlrRepository.save(ecsTlr));
+  }
+
+  private EcsTlrEntity getEcsTlr(UUID id) {
+    return executionService.executeSystemUserScoped(CENTRAL_TENANT_ID,
+      () -> ecsTlrRepository.findById(id)).orElseThrow();
   }
 
 }
