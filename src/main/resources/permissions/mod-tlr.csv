@@ -9,5 +9,6 @@ inventory-storage.service-points.item.get
 inventory-storage.service-points.collection.get
 inventory-storage.service-points.item.post
 dcb.ecs-request.transactions.post
+circulation.requests.allowed-service-points.get
 dcb.transactions.get
 dcb.transactions.put

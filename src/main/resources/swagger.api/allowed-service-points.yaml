@@ -10,8 +10,10 @@ paths:
       description: Retrieve allowed service points
       operationId: getAllowedServicePoints
       parameters:
+        - $ref: '#/components/parameters/operation'
         - $ref: '#/components/parameters/requesterId'
         - $ref: '#/components/parameters/instanceId'
+        - $ref: '#/components/parameters/requestId'
       tags:
         - allowedServicePoints
       responses:
@@ -30,6 +32,15 @@ components:
     errorResponse:
       $ref: schemas/errors.json
   parameters:
+    operation:
+      name: operation
+      in: query
+      required: true
+      schema:
+        type: string
+        enum:
+          - create
+          - replace
     requesterId:
       name: requesterId
       in: query
@@ -40,7 +51,14 @@ components:
     instanceId:
       name: instanceId
       in: query
-      required: true
+      required: false
+      schema:
+        type: string
+        format: uuid
+    requestId:
+      name: requestId
+      in: query
+      required: false
       schema:
         type: string
         format: uuid
