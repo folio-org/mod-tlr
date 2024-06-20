@@ -16,7 +16,6 @@ import org.folio.domain.dto.Request.EcsRequestPhaseEnum;
 import org.folio.domain.dto.TransactionStatus;
 import org.folio.domain.dto.TransactionStatusResponse;
 import org.folio.domain.entity.EcsTlrEntity;
-import org.folio.exception.RequestValidationException;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.DcbService;
 import org.folio.service.KafkaEventHandler;
@@ -68,12 +67,13 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
   private void handleRequestUpdateEvent(EcsTlrEntity ecsTlr, KafkaEvent<Request> event) {
     log.debug("handleRequestUpdateEvent:: ecsTlr={}", () -> ecsTlr);
     Request updatedRequest = event.getData().getNewVersion();
-    validateUpdatedRequest(ecsTlr, updatedRequest, event.getTenant());
-    processItemIdUpdate(ecsTlr, updatedRequest);
-    updateDcbTransaction(ecsTlr, updatedRequest, event);
+    if (requestMatchesEcsTlr(ecsTlr, updatedRequest, event.getTenant())) {
+      processItemIdUpdate(ecsTlr, updatedRequest);
+      updateDcbTransaction(ecsTlr, updatedRequest, event);
+    }
   }
 
-  private static void validateUpdatedRequest(EcsTlrEntity ecsTlr, Request updatedRequest,
+  private static boolean requestMatchesEcsTlr(EcsTlrEntity ecsTlr, Request updatedRequest,
     String updatedRequestTenant) {
 
     final EcsRequestPhaseEnum updatedRequestPhase = updatedRequest.getEcsRequestPhase();
@@ -81,17 +81,17 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
 
     if (updatedRequestPhase == PRIMARY && updatedRequestId.equals(ecsTlr.getPrimaryRequestId())
       && updatedRequestTenant.equals(ecsTlr.getPrimaryRequestTenantId())) {
-      log.info("validateUpdatedRequest:: updated request is a valid primary request");
+      log.info("requestMatchesEcsTlr:: updated primary request matches ECS TLR");
+      return true;
     } else if (updatedRequestPhase == SECONDARY && updatedRequestId.equals(ecsTlr.getSecondaryRequestId())
       && updatedRequestTenant.equals(ecsTlr.getSecondaryRequestTenantId())) {
-      log.info("validateUpdatedRequest:: updated request is a valid secondary request");
-    } else {
-      String errorMessage = String.format("Updated request validation failed: " +
-          "updatedRequestPhase=%s, updatedRequestId=%s, updatedRequestTenant=%s, ecsTlr=%s",
-        updatedRequestPhase, updatedRequestId, updatedRequestTenant, ecsTlr);
-      log.error("validateUpdatedRequest:: {}", errorMessage);
-      throw new RequestValidationException(errorMessage);
+      log.info("requestMatchesEcsTlr:: updated secondary request matches ECS TLR");
+      return true;
     }
+    log.warn("requestMatchesEcsTlr:: request does not match ECS TLR: updatedRequestPhase={}, " +
+        "updatedRequestId={}, updatedRequestTenant={}, ecsTlr={}", updatedRequestPhase,
+      updatedRequestId, updatedRequestTenant, ecsTlr);
+    return false;
   }
 
   private void processItemIdUpdate(EcsTlrEntity ecsTlr, Request updatedRequest) {
@@ -148,7 +148,6 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
       log.info("getDcbTransactionStatus:: irrelevant request status change: '{}' -> '{}'",
         oldRequestStatus, newRequestStatus);
     }
-
     log.info("getDcbTransactionStatus:: oldRequestStatus='{}', newRequestStatus='{}', " +
         "newTransactionStatus={}", oldRequestStatus, newRequestStatus, newTransactionStatus);
 
@@ -166,7 +165,6 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
       log.info("updateTransactionStatus:: transaction status did not change, doing nothing");
       return;
     }
-
     dcbService.updateTransactionStatus(transactionId, newTransactionStatus, tenant);
   }
 
