@@ -1,6 +1,7 @@
 package org.folio.listener.kafka;
 
 import org.folio.domain.dto.Request;
+import org.folio.exception.KafkaEventDeserializationException;
 import org.folio.service.KafkaEventHandler;
 import org.folio.service.impl.RequestEventHandler;
 import org.folio.spring.service.SystemUserScopedExecutionService;
@@ -54,7 +55,7 @@ public class KafkaEventListener {
       return objectMapper.readValue(eventString, eventType);
     } catch (JsonProcessingException e) {
       log.error("deserialize:: failed to deserialize event", e);
-      throw new RuntimeException(e);
+      throw new KafkaEventDeserializationException(e);
     }
   }
 

@@ -43,12 +43,6 @@ class RequestEventHandlerTest extends BaseIT {
     when(ecsTlrRepository.findBySecondaryRequestId(any())).thenReturn(Optional.of(getEcsTlrEntity()));
     doNothing().when(dcbService).createTransactions(any());
     eventListener.handleRequestEvent(REQUEST_UPDATE_EVENT_SAMPLE);
-  }
-
-  @Test
-  void handleRequestEventWithoutItemIdTest() {
-    when(ecsTlrRepository.findBySecondaryRequestId(any())).thenReturn(Optional.of(getEcsTlrEntity()));
-    doNothing().when(dcbService).createTransactions(any());
-    eventListener.handleRequestEvent(REQUEST_UPDATE_EVENT_SAMPLE);
+    verify(ecsTlrRepository).findBySecondaryRequestId(any());
   }
 }

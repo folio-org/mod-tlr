@@ -58,8 +58,6 @@ class KafkaEventListenerTest extends BaseIT {
   private static final String DCB_TRANSACTIONS_URL_PATTERN =
     String.format(TRANSACTION_STATUS_URL_PATTERN, UUID_PATTERN);
   private static final String REQUEST_TOPIC_NAME = buildTopicName("circulation", "request");
-//  private static final String REQUEST_UPDATE_EVENT_SAMPLE =
-//    getMockDataAsString("mockdata/kafka/secondary_request_update_event.json");
   private static final String CONSUMER_GROUP_ID = "folio-mod-tlr-group";
 
   private static final UUID INSTANCE_ID = randomUUID();
@@ -106,7 +104,7 @@ class KafkaEventListenerTest extends BaseIT {
     publishEventAndWait(REQUEST_TOPIC_NAME, event);
 
     EcsTlrEntity updatedEcsTlr = getEcsTlr(ECS_TLR_ID);
-    assertEquals(updatedEcsTlr.getItemId(), ITEM_ID);
+    assertEquals(ITEM_ID, updatedEcsTlr.getItemId());
 
     UUID secondaryRequestTransactionId = updatedEcsTlr.getSecondaryRequestDcbTransactionId();
     verifyThatDcbTransactionsWereCreated(updatedEcsTlr);
