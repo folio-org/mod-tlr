@@ -32,5 +32,4 @@ public class UserServiceImpl implements UserService {
     log.info("update:: updating user {}", user.getId());
     return userClient.putUser(user.getId(), user);
   }
-
 }
