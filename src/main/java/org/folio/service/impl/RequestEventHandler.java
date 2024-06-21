@@ -139,7 +139,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
       oldRequestStatus, newRequestStatus);
 
     if (newRequestStatus == oldRequestStatus) {
-      log.info("getDcbTransactionStatus:: request status did not change'");
+      log.info("getDcbTransactionStatus:: request status did not change");
       return Optional.empty();
     }
 
