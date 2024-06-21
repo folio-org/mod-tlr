@@ -2,10 +2,9 @@ package org.folio.service.impl;
 
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.PRIMARY;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.SECONDARY;
-import static org.folio.domain.dto.Request.StatusEnum.CLOSED_FILLED;
-import static org.folio.domain.dto.Request.StatusEnum.OPEN_AWAITING_PICKUP;
-import static org.folio.domain.dto.Request.StatusEnum.OPEN_IN_TRANSIT;
-import static org.folio.domain.dto.Request.StatusEnum.OPEN_NOT_YET_FILLED;
+import static org.folio.domain.dto.TransactionStatus.StatusEnum.AWAITING_PICKUP;
+import static org.folio.domain.dto.TransactionStatus.StatusEnum.ITEM_CHECKED_OUT;
+import static org.folio.domain.dto.TransactionStatus.StatusEnum.OPEN;
 import static org.folio.support.KafkaEvent.EventType.UPDATED;
 
 import java.util.Optional;
@@ -49,6 +48,10 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
     Request updatedRequest = event.getData().getNewVersion();
     if (updatedRequest == null) {
       log.warn("handleRequestUpdateEvent:: event does not contain new version of request");
+      return;
+    }
+    if (updatedRequest.getEcsRequestPhase() == null) {
+      log.info("handleRequestUpdateEvent:: updated request is not an ECS request");
       return;
     }
     if (updatedRequest.getEcsRequestPhase() == SECONDARY && updatedRequest.getItemId() == null) {
@@ -134,22 +137,26 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
 
     final Request.StatusEnum oldRequestStatus = event.getData().getOldVersion().getStatus();
     final Request.StatusEnum newRequestStatus = event.getData().getNewVersion().getStatus();
-    TransactionStatus.StatusEnum newTransactionStatus = null;
 
-    if (oldRequestStatus == newRequestStatus) {
+    if (newRequestStatus == oldRequestStatus) {
       log.info("getDcbTransactionStatus:: request status did not change: '{}'", newRequestStatus);
-    } else if (oldRequestStatus == OPEN_NOT_YET_FILLED && newRequestStatus == OPEN_IN_TRANSIT) {
-      newTransactionStatus = TransactionStatus.StatusEnum.OPEN;
-    } else if (oldRequestStatus == OPEN_IN_TRANSIT && newRequestStatus == OPEN_AWAITING_PICKUP) {
-      newTransactionStatus = TransactionStatus.StatusEnum.AWAITING_PICKUP;
-    } else if (oldRequestStatus == OPEN_AWAITING_PICKUP && newRequestStatus == CLOSED_FILLED) {
-      newTransactionStatus = TransactionStatus.StatusEnum.ITEM_CHECKED_OUT;
-    } else {
+      return Optional.empty();
+    }
+
+    TransactionStatus.StatusEnum newTransactionStatus = switch (newRequestStatus) {
+      case OPEN_IN_TRANSIT -> OPEN;
+      case OPEN_AWAITING_PICKUP -> AWAITING_PICKUP;
+      case CLOSED_FILLED -> ITEM_CHECKED_OUT;
+      default -> null;
+    };
+
+    if (newTransactionStatus == null) {
       log.info("getDcbTransactionStatus:: irrelevant request status change: '{}' -> '{}'",
         oldRequestStatus, newRequestStatus);
-    }
-    log.info("getDcbTransactionStatus:: oldRequestStatus='{}', newRequestStatus='{}', " +
+    } else {
+      log.info("getDcbTransactionStatus:: oldRequestStatus='{}', newRequestStatus='{}', " +
         "newTransactionStatus={}", oldRequestStatus, newRequestStatus, newTransactionStatus);
+    }
 
     return Optional.ofNullable(newTransactionStatus);
   }

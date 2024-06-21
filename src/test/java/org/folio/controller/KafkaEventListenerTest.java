@@ -186,8 +186,6 @@ class KafkaEventListenerTest extends BaseIT {
   @CsvSource({
     "OPEN_NOT_YET_FILLED, OPEN_NOT_YET_FILLED",
     "OPEN_IN_TRANSIT, CLOSED_CANCELLED",
-    "OPEN_AWAITING_DELIVERY, CLOSED_CANCELLED",
-    "OPEN_AWAITING_DELIVERY, CLOSED_FILLED",
   })
   void shouldNotCreateOrUpdateLendingDcbTransactionUponIrrelevantSecondaryRequestStatusChange(
     Request.StatusEnum oldRequestStatus, Request.StatusEnum newRequestStatus) {
@@ -207,7 +205,6 @@ class KafkaEventListenerTest extends BaseIT {
   @CsvSource({
     "OPEN_NOT_YET_FILLED, OPEN_NOT_YET_FILLED",
     "OPEN_IN_TRANSIT, CLOSED_CANCELLED",
-    "OPEN_AWAITING_DELIVERY, CLOSED_FILLED",
   })
   void shouldNotUpdateBorrowingDcbTransactionUponIrrelevantPrimaryRequestStatusChange(
     Request.StatusEnum oldRequestStatus, Request.StatusEnum newRequestStatus) {
@@ -268,6 +265,15 @@ class KafkaEventListenerTest extends BaseIT {
       buildUpdateEvent(SECONDARY_REQUEST_TENANT_ID,
         buildSecondaryRequest(OPEN_NOT_YET_FILLED).itemId(null),
         buildSecondaryRequest(CLOSED_CANCELLED).itemId(null)
+      ));
+  }
+
+  @Test
+  void requestUpdateEventForRequestWithoutEcsRequestPhaseIsIgnored() {
+    checkThatEventIsIgnored(
+      buildUpdateEvent(PRIMARY_REQUEST_TENANT_ID,
+        buildPrimaryRequest(OPEN_NOT_YET_FILLED).ecsRequestPhase(null),
+        buildPrimaryRequest(CLOSED_CANCELLED).ecsRequestPhase(null)
       ));
   }
 
