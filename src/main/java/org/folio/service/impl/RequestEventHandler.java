@@ -14,7 +14,6 @@ import java.util.UUID;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.Request.EcsRequestPhaseEnum;
 import org.folio.domain.dto.TransactionStatus;
-import org.folio.domain.dto.TransactionStatusResponse;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.DcbService;
@@ -22,6 +21,7 @@ import org.folio.service.KafkaEventHandler;
 import org.folio.support.KafkaEvent;
 import org.springframework.stereotype.Service;
 
+import feign.FeignException;
 import lombok.AllArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
@@ -157,15 +157,16 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
   private void updateTransactionStatus(UUID transactionId,
     TransactionStatus.StatusEnum newTransactionStatus, String tenant) {
 
-    TransactionStatusResponse.StatusEnum currentTransactionStatus =
-      dcbService.getTransactionStatus(transactionId, tenant).getStatus();
-    //TODO: what if transaction is not found?
-
-    if (newTransactionStatus.getValue().equals(currentTransactionStatus.getValue())) {
-      log.info("updateTransactionStatus:: transaction status did not change, doing nothing");
-      return;
+    try {
+      var currentStatus = dcbService.getTransactionStatus(transactionId, tenant).getStatus();
+      if (newTransactionStatus.getValue().equals(currentStatus.getValue())) {
+        log.info("updateTransactionStatus:: transaction status did not change, doing nothing");
+        return;
+      }
+      dcbService.updateTransactionStatus(transactionId, newTransactionStatus, tenant);
+    } catch (FeignException.NotFound e) {
+      log.error("updateTransactionStatus:: transaction {} not found: {}", transactionId, e.getMessage());
     }
-    dcbService.updateTransactionStatus(transactionId, newTransactionStatus, tenant);
   }
 
 }

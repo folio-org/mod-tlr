@@ -2,7 +2,9 @@ package org.folio.controller;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.notFound;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
@@ -201,13 +203,38 @@ class KafkaEventListenerTest extends BaseIT {
   }
 
   @Test
+  void shouldNotTryToUpdateTransactionStatusUponRequestUpdateWhenTransactionIsNotFound() {
+    EcsTlrEntity ecsTlr = createEcsTlr(buildEcsTlrWithItemId());
+
+    wireMockServer.stubFor(WireMock.get(urlMatching(DCB_TRANSACTIONS_URL_PATTERN))
+      .willReturn(notFound()));
+
+    publishEventAndWait(REQUEST_TOPIC_NAME, buildSecondaryRequestUpdateEvent());
+
+    wireMockServer.verify(getRequestedFor(
+      urlMatching(String.format(TRANSACTION_STATUS_URL_PATTERN, ecsTlr.getSecondaryRequestDcbTransactionId())))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID)));
+
+    verifyThatNoDcbTransactionsWereCreated();
+    verifyThatNoDcbTransactionsWereUpdated();
+  }
+
+  @Test
   void requestEventOfUnsupportedTypeIsIgnored() {
-    checkThatEventIsIgnored(buildRequestEvent(TENANT_ID_COLLEGE, CREATED));
+    checkThatEventIsIgnored(
+      buildEvent(SECONDARY_REQUEST_TENANT_ID, CREATED,
+        buildSecondaryRequest(OPEN_NOT_YET_FILLED),
+        buildSecondaryRequest(OPEN_IN_TRANSIT)
+      ));
   }
 
   @Test
   void requestUpdateEventFromUnknownTenantIsIgnored() {
-    checkThatEventIsIgnored(buildRequestUpdateEvent("unknown"));
+    checkThatEventIsIgnored(
+      buildUpdateEvent("unknown",
+        buildSecondaryRequest(OPEN_NOT_YET_FILLED),
+        buildSecondaryRequest(OPEN_IN_TRANSIT)
+      ));
   }
 
   @Test
@@ -345,13 +372,8 @@ class KafkaEventListenerTest extends BaseIT {
       buildSecondaryRequest(newStatus));
   }
 
-  private static KafkaEvent<Request> buildRequestUpdateEvent(String tenant) {
-    return buildRequestEvent(tenant, UPDATED);
-  }
-
-  private static KafkaEvent<Request> buildRequestEvent(String tenant, KafkaEvent.EventType type) {
-    return buildEvent(tenant, type, buildSecondaryRequest(OPEN_NOT_YET_FILLED),
-      buildSecondaryRequest(OPEN_IN_TRANSIT));
+  private static KafkaEvent<Request> buildSecondaryRequestUpdateEvent() {
+    return buildSecondaryRequestUpdateEvent(OPEN_NOT_YET_FILLED, OPEN_IN_TRANSIT);
   }
 
   private static <T> KafkaEvent<T> buildUpdateEvent(String tenant, T oldVersion, T newVersion) {
