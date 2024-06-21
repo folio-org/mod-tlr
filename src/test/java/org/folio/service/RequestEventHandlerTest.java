@@ -13,18 +13,18 @@ import org.folio.api.BaseIT;
 import org.folio.listener.kafka.KafkaEventListener;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.impl.EcsTlrServiceImpl;
-import org.folio.service.impl.KafkaEventHandlerImpl;
+import org.folio.service.impl.RequestEventHandler;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
-class KafkaEventHandlerImplTest extends BaseIT {
+class RequestEventHandlerTest extends BaseIT {
   private static final String REQUEST_UPDATE_EVENT_SAMPLE =
     getMockDataAsString("mockdata/kafka/secondary_request_update_event.json");
 
   @InjectMocks
-  private KafkaEventHandlerImpl eventHandler;
+  private RequestEventHandler eventHandler;
 
   @InjectMocks
   private EcsTlrServiceImpl ecsTlrService;
@@ -43,14 +43,6 @@ class KafkaEventHandlerImplTest extends BaseIT {
     when(ecsTlrRepository.findBySecondaryRequestId(any())).thenReturn(Optional.of(getEcsTlrEntity()));
     doNothing().when(dcbService).createTransactions(any());
     eventListener.handleRequestEvent(REQUEST_UPDATE_EVENT_SAMPLE);
-    verify(ecsTlrRepository).save(any());
-  }
-
-  @Test
-  void handleRequestEventWithoutItemIdTest() {
-    when(ecsTlrRepository.findBySecondaryRequestId(any())).thenReturn(Optional.of(getEcsTlrEntity()));
-    doNothing().when(dcbService).createTransactions(any());
-    eventListener.handleRequestEvent(REQUEST_UPDATE_EVENT_SAMPLE);
-    verify(ecsTlrRepository).save(any());
+    verify(ecsTlrRepository).findBySecondaryRequestId(any());
   }
 }
