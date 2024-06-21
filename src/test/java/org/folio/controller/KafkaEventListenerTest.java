@@ -186,6 +186,7 @@ class KafkaEventListenerTest extends BaseIT {
   @CsvSource({
     "OPEN_NOT_YET_FILLED, OPEN_NOT_YET_FILLED",
     "OPEN_IN_TRANSIT, CLOSED_CANCELLED",
+    "OPEN_AWAITING_DELIVERY, CLOSED_CANCELLED",
     "OPEN_AWAITING_DELIVERY, CLOSED_FILLED",
   })
   void shouldNotCreateOrUpdateLendingDcbTransactionUponIrrelevantSecondaryRequestStatusChange(
