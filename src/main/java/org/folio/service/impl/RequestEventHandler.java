@@ -135,28 +135,27 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
 
     final Request.StatusEnum oldRequestStatus = event.getData().getOldVersion().getStatus();
     final Request.StatusEnum newRequestStatus = event.getData().getNewVersion().getStatus();
+    log.info("getDcbTransactionStatus:: oldRequestStatus='{}', newRequestStatus='{}'",
+      oldRequestStatus, newRequestStatus);
 
     if (newRequestStatus == oldRequestStatus) {
-      log.info("getDcbTransactionStatus:: request status did not change: '{}'", newRequestStatus);
+      log.info("getDcbTransactionStatus:: request status did not change'");
       return Optional.empty();
     }
 
-    TransactionStatus.StatusEnum newTransactionStatus = switch (newRequestStatus) {
-      case OPEN_IN_TRANSIT -> OPEN;
-      case OPEN_AWAITING_PICKUP -> AWAITING_PICKUP;
-      case CLOSED_FILLED -> ITEM_CHECKED_OUT;
-      default -> null;
-    };
+    var newTransactionStatus = Optional.ofNullable(
+      switch (newRequestStatus) {
+        case OPEN_IN_TRANSIT -> OPEN;
+        case OPEN_AWAITING_PICKUP -> AWAITING_PICKUP;
+        case CLOSED_FILLED -> ITEM_CHECKED_OUT;
+        default -> null;
+      });
 
-    if (newTransactionStatus == null) {
-      log.info("getDcbTransactionStatus:: irrelevant request status change: '{}' -> '{}'",
-        oldRequestStatus, newRequestStatus);
-    } else {
-      log.info("getDcbTransactionStatus:: oldRequestStatus='{}', newRequestStatus='{}', " +
-        "newTransactionStatus={}", oldRequestStatus, newRequestStatus, newTransactionStatus);
-    }
+    newTransactionStatus.ifPresentOrElse(
+      ts -> log.info("getDcbTransactionStatus:: new transaction status: {}", ts),
+      () -> log.info("getDcbTransactionStatus:: irrelevant request status change"));
 
-    return Optional.ofNullable(newTransactionStatus);
+    return newTransactionStatus;
   }
 
   private void updateTransactionStatus(UUID transactionId,
