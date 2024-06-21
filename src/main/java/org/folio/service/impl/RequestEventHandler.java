@@ -98,7 +98,6 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
   }
 
   private void processItemIdUpdate(EcsTlrEntity ecsTlr, Request updatedRequest) {
-    // TODO: what if request was moved to another item?
     if (updatedRequest.getEcsRequestPhase() == PRIMARY) {
       log.info("processItemIdUpdate:: updated request is a primary request, doing nothing");
       return;
@@ -112,7 +111,6 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
     ecsTlr.setItemId(UUID.fromString(updatedRequest.getItemId()));
     dcbService.createTransactions(ecsTlr);
     ecsTlrRepository.save(ecsTlr);
-    // TODO: copy itemId to primary request
     log.info("processItemIdUpdate: ECS TLR {} is updated", ecsTlr::getId);
   }
 
