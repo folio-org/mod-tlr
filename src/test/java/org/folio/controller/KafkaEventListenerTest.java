@@ -13,7 +13,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.folio.domain.dto.Request.StatusEnum.CLOSED_CANCELLED;
 import static org.folio.domain.dto.Request.StatusEnum.OPEN_IN_TRANSIT;
 import static org.folio.domain.dto.Request.StatusEnum.OPEN_NOT_YET_FILLED;
-import static org.folio.support.KafkaEvent.EventType.CREATED;
 import static org.folio.support.KafkaEvent.EventType.UPDATED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -56,9 +55,9 @@ class KafkaEventListenerTest extends BaseIT {
   private static final String ECS_REQUEST_TRANSACTIONS_URL = "/ecs-request-transactions";
   private static final String POST_ECS_REQUEST_TRANSACTION_URL_PATTERN =
     ECS_REQUEST_TRANSACTIONS_URL + "/" + UUID_PATTERN;
-  private static final String TRANSACTION_STATUS_URL_PATTERN = "/transactions/%s/status";
+  private static final String DCB_TRANSACTION_STATUS_URL_PATTERN = "/transactions/%s/status";
   private static final String DCB_TRANSACTIONS_URL_PATTERN =
-    String.format(TRANSACTION_STATUS_URL_PATTERN, UUID_PATTERN);
+    String.format(DCB_TRANSACTION_STATUS_URL_PATTERN, UUID_PATTERN);
   private static final String REQUEST_TOPIC_NAME = buildTopicName("circulation", "request");
   private static final String CONSUMER_GROUP_ID = "folio-mod-tlr-group";
 
@@ -110,8 +109,10 @@ class KafkaEventListenerTest extends BaseIT {
 
     UUID secondaryRequestTransactionId = updatedEcsTlr.getSecondaryRequestDcbTransactionId();
     verifyThatDcbTransactionsWereCreated(updatedEcsTlr);
+    verifyThatDcbTransactionStatusWasRetrieved(secondaryRequestTransactionId,
+      SECONDARY_REQUEST_TENANT_ID);
     verifyThatDcbTransactionWasUpdated(secondaryRequestTransactionId,
-      expectedNewTransactionStatus, SECONDARY_REQUEST_TENANT_ID);
+      SECONDARY_REQUEST_TENANT_ID, expectedNewTransactionStatus);
   }
 
   @ParameterizedTest
@@ -134,9 +135,11 @@ class KafkaEventListenerTest extends BaseIT {
     publishEventAndWait(REQUEST_TOPIC_NAME, event);
 
     EcsTlrEntity updatedEcsTlr = getEcsTlr(ECS_TLR_ID);
+    UUID transactionId = updatedEcsTlr.getSecondaryRequestDcbTransactionId();
     verifyThatNoDcbTransactionsWereCreated();
-    verifyThatDcbTransactionWasUpdated(updatedEcsTlr.getSecondaryRequestDcbTransactionId(),
-      expectedNewTransactionStatus, SECONDARY_REQUEST_TENANT_ID);
+    verifyThatDcbTransactionStatusWasRetrieved(transactionId, SECONDARY_REQUEST_TENANT_ID);
+    verifyThatDcbTransactionWasUpdated(transactionId,
+      SECONDARY_REQUEST_TENANT_ID, expectedNewTransactionStatus);
   }
 
   @ParameterizedTest
@@ -159,9 +162,24 @@ class KafkaEventListenerTest extends BaseIT {
     publishEventAndWait(REQUEST_TOPIC_NAME, event);
 
     EcsTlrEntity updatedEcsTlr = getEcsTlr(ECS_TLR_ID);
+    UUID transactionId = updatedEcsTlr.getPrimaryRequestDcbTransactionId();
     verifyThatNoDcbTransactionsWereCreated();
-    verifyThatDcbTransactionWasUpdated(updatedEcsTlr.getPrimaryRequestDcbTransactionId(),
-      expectedNewTransactionStatus, PRIMARY_REQUEST_TENANT_ID);
+    verifyThatDcbTransactionStatusWasRetrieved(transactionId, PRIMARY_REQUEST_TENANT_ID);
+    verifyThatDcbTransactionWasUpdated(transactionId, PRIMARY_REQUEST_TENANT_ID,
+      expectedNewTransactionStatus);
+  }
+
+@Test
+  void shouldNotUpdateDcbTransactionUponRequestUpdateWhenTransactionStatusWouldNotChange() {
+    mockDcb(TransactionStatusResponse.StatusEnum.OPEN, TransactionStatusResponse.StatusEnum.OPEN);
+    EcsTlrEntity ecsTlr = createEcsTlr(buildEcsTlrWithItemId());
+    publishEventAndWait(REQUEST_TOPIC_NAME, buildSecondaryRequestUpdateEvent());
+
+    EcsTlrEntity updatedEcsTlr = getEcsTlr(ecsTlr.getId());
+    UUID transactionId = updatedEcsTlr.getSecondaryRequestDcbTransactionId();
+    verifyThatNoDcbTransactionsWereCreated();
+    verifyThatDcbTransactionStatusWasRetrieved(transactionId, SECONDARY_REQUEST_TENANT_ID);
+    verifyThatNoDcbTransactionsWereUpdated();
   }
 
   @ParameterizedTest
@@ -180,6 +198,7 @@ class KafkaEventListenerTest extends BaseIT {
     publishEventAndWait(REQUEST_TOPIC_NAME, event);
 
     verifyThatNoDcbTransactionsWereCreated();
+    verifyThatDcbTransactionStatusWasNotRetrieved();
     verifyThatNoDcbTransactionsWereUpdated();
   }
 
@@ -199,6 +218,7 @@ class KafkaEventListenerTest extends BaseIT {
     publishEventAndWait(REQUEST_TOPIC_NAME, event);
 
     verifyThatNoDcbTransactionsWereCreated();
+    verifyThatDcbTransactionStatusWasNotRetrieved();
     verifyThatNoDcbTransactionsWereUpdated();
   }
 
@@ -211,18 +231,16 @@ class KafkaEventListenerTest extends BaseIT {
 
     publishEventAndWait(REQUEST_TOPIC_NAME, buildSecondaryRequestUpdateEvent());
 
-    wireMockServer.verify(getRequestedFor(
-      urlMatching(String.format(TRANSACTION_STATUS_URL_PATTERN, ecsTlr.getSecondaryRequestDcbTransactionId())))
-      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID)));
-
+    UUID transactionId = ecsTlr.getSecondaryRequestDcbTransactionId();
     verifyThatNoDcbTransactionsWereCreated();
+    verifyThatDcbTransactionStatusWasRetrieved(transactionId, SECONDARY_REQUEST_TENANT_ID);
     verifyThatNoDcbTransactionsWereUpdated();
   }
 
   @Test
   void requestEventOfUnsupportedTypeIsIgnored() {
     checkThatEventIsIgnored(
-      buildEvent(SECONDARY_REQUEST_TENANT_ID, CREATED,
+      buildEvent(SECONDARY_REQUEST_TENANT_ID, KafkaEvent.EventType.CREATED,
         buildSecondaryRequest(OPEN_NOT_YET_FILLED),
         buildSecondaryRequest(OPEN_IN_TRANSIT)
       ));
@@ -271,6 +289,7 @@ class KafkaEventListenerTest extends BaseIT {
     assertNull(ecsTlr.getPrimaryRequestDcbTransactionId());
     assertNull(ecsTlr.getSecondaryRequestDcbTransactionId());
     verifyThatNoDcbTransactionsWereCreated();
+    verifyThatDcbTransactionStatusWasNotRetrieved();
     verifyThatNoDcbTransactionsWereUpdated();
   }
 
@@ -304,11 +323,11 @@ class KafkaEventListenerTest extends BaseIT {
       urlMatching(ECS_REQUEST_TRANSACTIONS_URL + "/" + UUID_PATTERN)));
   }
 
-  private static void verifyThatDcbTransactionWasUpdated(UUID transactionId,
-    TransactionStatusResponse.StatusEnum newStatus, String tenant) {
+  private static void verifyThatDcbTransactionWasUpdated(UUID transactionId, String tenant,
+    TransactionStatusResponse.StatusEnum newStatus) {
 
     wireMockServer.verify(putRequestedFor(
-      urlMatching(String.format(DCB_TRANSACTIONS_URL_PATTERN, transactionId)))
+      urlMatching(String.format(DCB_TRANSACTION_STATUS_URL_PATTERN, transactionId)))
       .withHeader(HEADER_TENANT, equalTo(tenant))
       .withRequestBody(equalToJson(asJsonString(
         new TransactionStatus().status(TransactionStatus.StatusEnum.valueOf(newStatus.name()))))));
@@ -316,6 +335,16 @@ class KafkaEventListenerTest extends BaseIT {
 
   private static void verifyThatNoDcbTransactionsWereUpdated() {
     wireMockServer.verify(0, putRequestedFor(urlMatching(DCB_TRANSACTIONS_URL_PATTERN)));
+  }
+
+  private static void verifyThatDcbTransactionStatusWasRetrieved(UUID transactionId, String tenant) {
+    wireMockServer.verify(getRequestedFor(
+      urlMatching(String.format(DCB_TRANSACTION_STATUS_URL_PATTERN, transactionId)))
+      .withHeader(HEADER_TENANT, equalTo(tenant)));
+  }
+
+  private static void verifyThatDcbTransactionStatusWasNotRetrieved() {
+    wireMockServer.verify(0, getRequestedFor(urlMatching(DCB_TRANSACTIONS_URL_PATTERN)));
   }
 
   @SneakyThrows

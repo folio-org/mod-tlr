@@ -37,10 +37,6 @@ public class DcbServiceImpl implements DcbService {
 
   @Override
   public void createTransactions(EcsTlrEntity ecsTlr) {
-    if (ecsTlr.getItemId() == null) {
-      log.info("createTransactions:: ECS TLR {} has no itemId, skipping", ecsTlr::getId);
-    }
-
     log.info("createTransactions:: creating DCB transactions for ECS TLR {}", ecsTlr::getId);
     final UUID borrowerTransactionId = createTransaction(ecsTlr.getPrimaryRequestId(), BORROWER,
       ecsTlr.getPrimaryRequestTenantId());
