@@ -22,14 +22,17 @@ public class UserTenantsServiceImpl implements UserTenantsService {
   public UserTenant findFirstUserTenant() {
     log.info("findFirstUserTenant:: finding a first userTenant");
     UserTenant firstUserTenant = null;
-//    List<UserTenant> userTenants = userTenantsClient.getUserTenants(1).getUserTenants();
-    UserTenantCollection userTenantCollection = userTenantsClient.getUserTenants();
-    log.info("findFirstUserTenant:: userTenantCollection: {}", userTenantCollection);
-    List<UserTenant> userTenants = userTenantCollection.getUserTenants();
-    if (!userTenants.isEmpty()) {
-      firstUserTenant = userTenants.get(0);
-      log.info("findFirstUserTenant:: found userTenant: {}", firstUserTenant);
+    UserTenantCollection userTenantCollection = userTenantsClient.getUserTenants(1);
+    if (userTenantCollection != null) {
+      log.info("findFirstUserTenant:: userTenantCollection: {}", () -> userTenantCollection);
+      List<UserTenant> userTenants = userTenantCollection.getUserTenants();
+      if (!userTenants.isEmpty()) {
+        firstUserTenant = userTenants.get(0);
+        log.info("findFirstUserTenant:: found userTenant: {}", firstUserTenant);
+      }
     }
+    log.info("findFirstUserTenant:: result: {}", firstUserTenant);
     return firstUserTenant;
   }
 }
+
