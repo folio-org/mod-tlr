@@ -50,10 +50,9 @@ folio:
     password: ${SYSTEM_USER_PASSWORD:mod-tlr}
     lastname: System
     permissionsFilePath: permissions/mod-tlr.csv
-  logging:
-    feign:
-      enabled: true
-      level: full
+logging:
+  level:
+    org.springframework.cloud.openfeign: DEBUG
 management:
   endpoints:
     web:
