@@ -50,15 +50,11 @@ folio:
     password: ${SYSTEM_USER_PASSWORD:mod-tlr}
     lastname: System
     permissionsFilePath: permissions/mod-tlr.csv
-  logging:
-    feign:
-      enabled: true
-      level: full
 feign:
   client:
     config:
       default:
-        loggerLevel: FULL
+        loggerLevel: full
 management:
   endpoints:
     web:
