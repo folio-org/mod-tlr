@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.folio.client.feign.UserTenantsClient;
 import org.folio.domain.dto.UserTenant;
+import org.folio.domain.dto.UserTenantCollection;
 import org.folio.service.UserTenantsService;
 import org.springframework.stereotype.Service;
 
@@ -21,7 +22,10 @@ public class UserTenantsServiceImpl implements UserTenantsService {
   public UserTenant findFirstUserTenant() {
     log.info("findFirstUser:: finding a first userTenant");
     UserTenant firstUserTenant = null;
-    List<UserTenant> userTenants = userTenantsClient.getUserTenants(1).getUserTenants();
+//    List<UserTenant> userTenants = userTenantsClient.getUserTenants(1).getUserTenants();
+    UserTenantCollection userTenantCollection = userTenantsClient.getUserTenants(1);
+    log.info("findFirstUserTenant:: userTenantCollection: {}", userTenantCollection);
+    List<UserTenant> userTenants = userTenantCollection.getUserTenants();
     if (!userTenants.isEmpty()) {
       firstUserTenant = userTenants.get(0);
       log.info("findFirstUserTenant:: found userTenant: {}", firstUserTenant);
