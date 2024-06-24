@@ -20,10 +20,10 @@ public class UserTenantsServiceImpl implements UserTenantsService {
 
   @Override
   public UserTenant findFirstUserTenant() {
-    log.info("findFirstUser:: finding a first userTenant");
+    log.info("findFirstUserTenant:: finding a first userTenant");
     UserTenant firstUserTenant = null;
 //    List<UserTenant> userTenants = userTenantsClient.getUserTenants(1).getUserTenants();
-    UserTenantCollection userTenantCollection = userTenantsClient.getUserTenants(1);
+    UserTenantCollection userTenantCollection = userTenantsClient.getUserTenants();
     log.info("findFirstUserTenant:: userTenantCollection: {}", userTenantCollection);
     List<UserTenant> userTenants = userTenantCollection.getUserTenants();
     if (!userTenants.isEmpty()) {
