@@ -57,21 +57,23 @@ public class KafkaEventHandlerImpl implements KafkaEventHandler {
   public void handleUserGroupCreatingEvent(KafkaEvent event, MessageHeaders messageHeaders) {
     log.info("handleUserGroupCreatingEvent:: processing request event: {}, messageHeaders: {}",
       () -> event, () -> messageHeaders);
-    UserTenant firstUserTenant = userTenantsService.findFirstUserTenant();
-    String consortiumId = firstUserTenant.getConsortiumId();
-    String centralTenantId = firstUserTenant.getCentralTenantId();
-    String requestedTenantId = getHeaderValue(messageHeaders, XOkapiHeaders.TENANT, null).get(0);
-    log.info("handleUserGroupCreatingEvent:: consortiumId: {}, centralTenantId: {}, requestedTenantId: {}",
-      consortiumId, centralTenantId, requestedTenantId);
+    String tenantId = getHeaderValue(messageHeaders, XOkapiHeaders.TENANT, null).get(0);
+    systemUserScopedExecutionService.executeAsyncSystemUserScoped(tenantId, () -> {
+        UserTenant firstUserTenant = userTenantsService.findFirstUserTenant();
+        String consortiumId = firstUserTenant.getConsortiumId();
+        String centralTenantId = firstUserTenant.getCentralTenantId();
+        log.info("handleUserGroupCreatingEvent:: consortiumId: {}, centralTenantId: {}, requestedTenantId: {}",
+          consortiumId, centralTenantId, tenantId);
 
-    if (centralTenantId.equals(requestedTenantId)) {
-      log.info("handleUserGroupCreatingEvent: received event from centralTenant: {}", centralTenantId);
+        if (centralTenantId.equals(tenantId)) {
+          log.info("handleUserGroupCreatingEvent: received event from centralTenant: {}", centralTenantId);
 
-      consortiaService.getAllDataTenants(consortiumId).getTenants().stream()
-        .filter(tenant -> !tenant.getIsCentral())
-        .forEach(tenant -> systemUserScopedExecutionService.executeAsyncSystemUserScoped(
-          tenant.getId(), () -> userGroupService.create(convertJsonNodeToUserGroup(event.getNewNode()))));
-    }
+          consortiaService.getAllDataTenants(consortiumId).getTenants().stream()
+            .filter(tenant -> !tenant.getIsCentral())
+            .forEach(tenant -> systemUserScopedExecutionService.executeAsyncSystemUserScoped(
+              tenant.getId(), () -> userGroupService.create(convertJsonNodeToUserGroup(event.getNewNode()))));
+        }
+      });
   }
 
   @Override
@@ -105,7 +107,7 @@ public class KafkaEventHandlerImpl implements KafkaEventHandler {
   }
 
   static List<String> getHeaderValue(MessageHeaders headers, String headerName, String defaultValue) {
-    log.debug("getHeaderValue:: headers: {}, headerName: {}, defaultValue: {}", () -> headers,
+    log.info("getHeaderValue:: headers: {}, headerName: {}, defaultValue: {}", () -> headers,
       () -> headerName, () -> defaultValue);
     var headerValue = headers.get(headerName);
     var value = headerValue == null
