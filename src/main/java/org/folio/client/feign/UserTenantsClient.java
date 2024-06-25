@@ -6,9 +6,9 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-@FeignClient(name = "user-tenants", configuration = FeignClientConfiguration.class)
+@FeignClient(name = "user-tenants", url = "user-tenants", configuration = FeignClientConfiguration.class)
 public interface UserTenantsClient {
 
-  @GetMapping(value = "/user-tenants")
+  @GetMapping()
   UserTenantCollection getUserTenants(@RequestParam(name = "limit", required = false) Integer limit);
 }
