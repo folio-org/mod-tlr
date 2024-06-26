@@ -57,44 +57,67 @@ public class KafkaEventHandlerImpl implements KafkaEventHandler {
   public void handleUserGroupCreatingEvent(KafkaEvent event, MessageHeaders messageHeaders) {
     log.info("handleUserGroupCreatingEvent:: processing request event: {}, messageHeaders: {}",
       () -> event, () -> messageHeaders);
-    String tenantId = getHeaderValue(messageHeaders, XOkapiHeaders.TENANT, null).get(0);
-    systemUserScopedExecutionService.executeAsyncSystemUserScoped(tenantId, () -> {
-        UserTenant firstUserTenant = userTenantsService.findFirstUserTenant();
-        String consortiumId = firstUserTenant.getConsortiumId();
-        String centralTenantId = firstUserTenant.getCentralTenantId();
-        log.info("handleUserGroupCreatingEvent:: consortiumId: {}, centralTenantId: {}, requestedTenantId: {}",
-          consortiumId, centralTenantId, tenantId);
 
-        if (centralTenantId.equals(tenantId)) {
-          log.info("handleUserGroupCreatingEvent: received event from centralTenant: {}", centralTenantId);
+    List<String> tenantIds = getHeaderValue(messageHeaders, XOkapiHeaders.TENANT, null);
+    if (tenantIds == null || tenantIds.isEmpty()) {
+      log.error("handleUserGroupCreatingEvent:: tenant ID not found in headers");
+      return;
+    }
 
-          consortiaService.getAllDataTenants(consortiumId).getTenants().stream()
-            .filter(tenant -> !tenant.getIsCentral())
-            .forEach(tenant -> systemUserScopedExecutionService.executeAsyncSystemUserScoped(
-              tenant.getId(), () -> userGroupService.create(convertJsonNodeToUserGroup(event.getNewNode()))));
-        }
-      });
+    String requestedTenantId = tenantIds.get(0);
+    systemUserScopedExecutionService.executeAsyncSystemUserScoped(requestedTenantId,
+      () -> processUserGroupCreatingEvent(event, requestedTenantId));
   }
 
   @Override
   public void handleUserGroupUpdatingEvent(KafkaEvent event, MessageHeaders messageHeaders) {
-    log.info("handleUserGroupUpdatingEvent:: processing request event: {}, messageHeaders: {}",
-      () -> event, () -> messageHeaders);
+    log.info("handleUserGroupUpdatingEvent:: processing request event: {}, messageHeaders: {}", () -> event, () -> messageHeaders);
+
+    List<String> tenantIds = getHeaderValue(messageHeaders, XOkapiHeaders.TENANT, null);
+    if (tenantIds == null || tenantIds.isEmpty()) {
+      log.error("Tenant ID not found in headers");
+      return;
+    }
+
+    String requestedTenantId = tenantIds.get(0);
+    systemUserScopedExecutionService.executeAsyncSystemUserScoped(requestedTenantId,
+      () -> processUserGroupUpdatingEvent(event, requestedTenantId));
+  }
+
+  private void processUserGroupCreatingEvent(KafkaEvent event, String requestedTenantId){
     UserTenant firstUserTenant = userTenantsService.findFirstUserTenant();
     String consortiumId = firstUserTenant.getConsortiumId();
     String centralTenantId = firstUserTenant.getCentralTenantId();
-    String requestedTenantId = getHeaderValue(messageHeaders, XOkapiHeaders.TENANT, null).get(0);
+    log.info("handleUserGroupCreatingEvent:: consortiumId: {}, centralTenantId: {}, requestedTenantId: {}",
+      consortiumId, centralTenantId, requestedTenantId);
+
+    if (!centralTenantId.equals(requestedTenantId)) {
+      return;
+    }
+    log.info("handleUserGroupCreatingEvent: received event from centralTenant: {}", centralTenantId);
+    processUserGroupForAllDataTenants(event, consortiumId, () -> userGroupService.create(
+      convertJsonNodeToUserGroup(event.getNewNode())));
+  }
+
+  private void processUserGroupUpdatingEvent(KafkaEvent event, String requestedTenantId) {
+    UserTenant firstUserTenant = userTenantsService.findFirstUserTenant();
+    String consortiumId = firstUserTenant.getConsortiumId();
+    String centralTenantId = firstUserTenant.getCentralTenantId();
     log.info("handleUserGroupUpdatingEvent:: consortiumId: {}, centralTenantId: {}, requestedTenantId: {}",
       consortiumId, centralTenantId, requestedTenantId);
 
-    if (centralTenantId.equals(requestedTenantId)) {
-      log.info("handleUserGroupUpdatingEvent: received event from centralTenant: {}", centralTenantId);
-
-      consortiaService.getAllDataTenants(consortiumId).getTenants().stream()
-        .filter(tenant -> !tenant.getIsCentral())
-        .forEach(tenant -> systemUserScopedExecutionService.executeAsyncSystemUserScoped(
-          tenant.getId(), () -> userGroupService.update(convertJsonNodeToUserGroup(event.getNewNode()))));
+    if (!centralTenantId.equals(requestedTenantId)) {
+      return;
     }
+    log.info("handleUserGroupUpdatingEvent: received event from centralTenant: {}", centralTenantId);
+    processUserGroupForAllDataTenants(event, consortiumId, () -> userGroupService.update(
+      convertJsonNodeToUserGroup(event.getNewNode())));
+  }
+
+  private void processUserGroupForAllDataTenants(KafkaEvent event, String consortiumId, Runnable action) {
+    consortiaService.getAllDataTenants(consortiumId).getTenants().stream()
+      .filter(tenant -> !tenant.getIsCentral())
+      .forEach(tenant -> systemUserScopedExecutionService.executeAsyncSystemUserScoped(tenant.getId(), action));
   }
 
   private UserGroup convertJsonNodeToUserGroup(JsonNode jsonNode) {
