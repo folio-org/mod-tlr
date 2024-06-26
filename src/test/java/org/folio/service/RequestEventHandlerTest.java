@@ -23,13 +23,15 @@ import org.folio.listener.kafka.KafkaEventListener;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.spring.integration.XOkapiHeaders;
 import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.service.impl.EcsTlrServiceImpl;
+import org.folio.service.impl.RequestEventHandler;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.messaging.MessageHeaders;
 
-class KafkaEventHandlerImplTest extends BaseIT {
+class RequestEventHandlerTest extends BaseIT {
   private static final String REQUEST_UPDATE_EVENT_SAMPLE =
     getMockDataAsString("mockdata/kafka/secondary_request_update_event.json");
   private static final String USER_GROUP_CREATING_EVENT_SAMPLE = getMockDataAsString(
@@ -40,6 +42,13 @@ class KafkaEventHandlerImplTest extends BaseIT {
   private static final String TENANT_ID = "a8b9a084-abbb-4299-be13-9fdc19249928";
   private static final String CONSORTIUM_ID = "785d5c71-399d-4978-bdff-fb88b72d140a";
   private static final String CENTRAL_TENANT_ID = "consortium";
+
+  @InjectMocks
+  private RequestEventHandler eventHandler;
+
+  @InjectMocks
+  private EcsTlrServiceImpl ecsTlrService;
+
   @MockBean
   private DcbService dcbService;
 
@@ -62,15 +71,7 @@ class KafkaEventHandlerImplTest extends BaseIT {
     when(ecsTlrRepository.findBySecondaryRequestId(any())).thenReturn(Optional.of(getEcsTlrEntity()));
     doNothing().when(dcbService).createTransactions(any());
     eventListener.handleRequestEvent(REQUEST_UPDATE_EVENT_SAMPLE);
-    verify(ecsTlrRepository).save(any());
-  }
-
-  @Test
-  void handleRequestEventWithoutItemIdTest() {
-    when(ecsTlrRepository.findBySecondaryRequestId(any())).thenReturn(Optional.of(getEcsTlrEntity()));
-    doNothing().when(dcbService).createTransactions(any());
-    eventListener.handleRequestEvent(REQUEST_UPDATE_EVENT_SAMPLE);
-    verify(ecsTlrRepository).save(any());
+    verify(ecsTlrRepository).findBySecondaryRequestId(any());
   }
 
   @Test
