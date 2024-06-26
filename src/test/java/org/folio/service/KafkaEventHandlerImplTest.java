@@ -86,7 +86,7 @@ class KafkaEventHandlerImplTest extends BaseIT {
 
     eventListener.handleUserGroupEvent(USER_GROUP_CREATING_EVENT_SAMPLE, getMessageHeaders());
 
-    verify(systemUserScopedExecutionService, times(2)).executeAsyncSystemUserScoped(anyString(), any(Runnable.class));
+    verify(systemUserScopedExecutionService, times(3)).executeAsyncSystemUserScoped(anyString(), any(Runnable.class));
     verify(userGroupService, times(2)).create(any(UserGroup.class));
   }
 
@@ -103,7 +103,7 @@ class KafkaEventHandlerImplTest extends BaseIT {
 
     eventListener.handleUserGroupEvent(USER_GROUP_UPDATING_EVENT_SAMPLE, getMessageHeaders());
 
-    verify(systemUserScopedExecutionService, times(2))
+    verify(systemUserScopedExecutionService, times(3))
       .executeAsyncSystemUserScoped(anyString(), any(Runnable.class));
     verify(userGroupService, times(2)).update(any(UserGroup.class));
   }
