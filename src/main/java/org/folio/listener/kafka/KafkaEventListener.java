@@ -1,9 +1,11 @@
 package org.folio.listener.kafka;
 
 import org.folio.domain.dto.Request;
+import org.folio.domain.dto.UserGroup;
 import org.folio.exception.KafkaEventDeserializationException;
 import org.folio.service.KafkaEventHandler;
 import org.folio.service.impl.RequestEventHandler;
+import org.folio.service.impl.UserGroupEventHandler;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.folio.support.KafkaEvent;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,13 +25,16 @@ public class KafkaEventListener {
   private static final ObjectMapper objectMapper = new ObjectMapper();
   public static final String CENTRAL_TENANT_ID = "consortium";
   private final RequestEventHandler requestEventHandler;
+  private final UserGroupEventHandler userGroupEventHandler;
   private final SystemUserScopedExecutionService systemUserScopedExecutionService;
 
   public KafkaEventListener(@Autowired RequestEventHandler requestEventHandler,
-    @Autowired SystemUserScopedExecutionService systemUserScopedExecutionService) {
+    @Autowired SystemUserScopedExecutionService systemUserScopedExecutionService,
+    @Autowired UserGroupEventHandler userGroupEventHandler) {
 
     this.requestEventHandler = requestEventHandler;
     this.systemUserScopedExecutionService = systemUserScopedExecutionService;
+    this.userGroupEventHandler = userGroupEventHandler;
   }
 
   @KafkaListener(
@@ -46,24 +51,33 @@ public class KafkaEventListener {
 
   private <T> void handleEvent(KafkaEvent<T> event, KafkaEventHandler<T> handler) {
     systemUserScopedExecutionService.executeAsyncSystemUserScoped(CENTRAL_TENANT_ID,
-      () -> handler.handle(event));
+      () -> handler.handle(event, null));
+  }
+
+  private <T> void handleEvent(KafkaEvent<T> event, MessageHeaders messageHeaders,
+    KafkaEventHandler<T> handler) {
+
+    systemUserScopedExecutionService.executeAsyncSystemUserScoped(CENTRAL_TENANT_ID,
+      () -> handler.handle(event, messageHeaders));
   }
 
   @KafkaListener(
     topicPattern = "${folio.environment}\\.\\w+\\.users\\.userGroup",
     groupId = "${spring.kafka.consumer.group-id}"
   )
-  public void handleUserGroupEvent(String event, MessageHeaders messageHeaders) {
-    KafkaEvent kafkaEvent = new KafkaEvent(event);
-    log.info("handleUserGroupEvent:: event received: {}", kafkaEvent.getEventId());
+  public void handleUserGroupEvent(String eventString, MessageHeaders messageHeaders) {
+    KafkaEvent<UserGroup> event = deserialize(eventString, UserGroup.class);
+
+    log.info("handleUserGroupEvent:: event received: {}", event::getId);
     log.debug("handleUserGroupEvent:: event: {}", () -> event);
-    KafkaEvent.EventType eventType = kafkaEvent.getEventType();
-    if (eventType == KafkaEvent.EventType.CREATED) {
-      eventHandler.handleUserGroupCreatingEvent(kafkaEvent, messageHeaders);
-    }
-    if (eventType == KafkaEvent.EventType.UPDATED) {
-      eventHandler.handleUserGroupUpdatingEvent(kafkaEvent, messageHeaders);
-    }
+//    KafkaEvent.EventType eventType = event.getType();
+//    if (eventType == KafkaEvent.EventType.CREATED) {
+//      userGroupEventHandler.handleUserGroupCreatingEvent(event, messageHeaders);
+//    }
+//    if (eventType == KafkaEvent.EventType.UPDATED) {
+//      userGroupEventHandler.handleUserGroupUpdatingEvent(event, messageHeaders);
+//    }
+    handleEvent(event, messageHeaders, userGroupEventHandler);
   }
 
   private static <T> KafkaEvent<T> deserialize(String eventString, Class<T> dataType) {
