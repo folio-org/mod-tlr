@@ -7,7 +7,9 @@ import java.util.UUID;
 
 import org.folio.client.feign.DcbEcsTransactionClient;
 import org.folio.client.feign.DcbTransactionClient;
+import org.folio.domain.dto.DcbItem;
 import org.folio.domain.dto.DcbTransaction;
+import org.folio.domain.dto.Request;
 import org.folio.domain.dto.TransactionStatus;
 import org.folio.domain.dto.TransactionStatusResponse;
 import org.folio.domain.entity.EcsTlrEntity;
@@ -36,27 +38,38 @@ public class DcbServiceImpl implements DcbService {
   }
 
   @Override
-  public void createTransactions(EcsTlrEntity ecsTlr) {
+  public void createLendingTransactions(EcsTlrEntity ecsTlr) {
     log.info("createTransactions:: creating DCB transactions for ECS TLR {}", ecsTlr::getId);
-    final UUID borrowerTransactionId = createTransaction(ecsTlr.getPrimaryRequestId(), BORROWER,
-      ecsTlr.getPrimaryRequestTenantId());
-    final UUID lenderTransactionId = createTransaction(ecsTlr.getSecondaryRequestId(), LENDER,
-      ecsTlr.getSecondaryRequestTenantId());
-    ecsTlr.setPrimaryRequestDcbTransactionId(borrowerTransactionId);
+    DcbTransaction transaction = new DcbTransaction()
+      .requestId(ecsTlr.getSecondaryRequestId().toString())
+      .role(LENDER);
+    final UUID lenderTransactionId = createTransaction(transaction, ecsTlr.getSecondaryRequestTenantId());
     ecsTlr.setSecondaryRequestDcbTransactionId(lenderTransactionId);
-    log.info("createTransactions:: DCB transactions for ECS TLR {} created", ecsTlr::getId);
+    log.info("createTransactions:: DCB Lending transaction for ECS TLR {} created", ecsTlr::getId);
   }
 
-  private UUID createTransaction(UUID requestId, DcbTransaction.RoleEnum role, String tenantId) {
+  @Override
+  public void createBorrowingTransactions(EcsTlrEntity ecsTlr, Request request) {
+    log.info("createTransactions:: creating DCB transactions for ECS TLR {}", ecsTlr::getId);
+    DcbItem dcbItem = new DcbItem()
+      .id(request.getItemId())
+      .title(request.getInstance().getTitle())
+      .barcode(request.getItem().getBarcode());
+    DcbTransaction transaction = new DcbTransaction()
+      .requestId(ecsTlr.getSecondaryRequestId().toString())
+      .item(dcbItem)
+      .role(BORROWER);
+    final UUID borrowerTransactionId = createTransaction(transaction, ecsTlr.getPrimaryRequestTenantId());
+    ecsTlr.setPrimaryRequestDcbTransactionId(borrowerTransactionId);
+    log.info("createTransactions:: DCB Borroer transaction for ECS TLR {} created", ecsTlr::getId);
+  }
+
+  private UUID createTransaction(DcbTransaction transaction, String tenantId) {
     final UUID transactionId = UUID.randomUUID();
-    log.info("createTransaction:: creating {} transaction {} for request {} in tenant {}", role,
-      transactionId, requestId, tenantId);
-    final DcbTransaction transaction = new DcbTransaction()
-      .requestId(requestId.toString())
-      .role(role);
+    log.info("createTransaction:: creating transaction {} in tenant {}", transaction, tenantId);
     var response = executionService.executeSystemUserScoped(tenantId,
       () -> dcbEcsTransactionClient.createTransaction(transactionId.toString(), transaction));
-    log.info("createTransaction:: {} transaction {} created", role, transactionId);
+    log.info("createTransaction:: {} transaction {} created", transaction.getRole(), transactionId);
     log.debug("createTransaction:: {}", () -> response);
 
     return transactionId;

@@ -109,7 +109,8 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
     log.info("processItemIdUpdate:: updating ECS TLR {} with itemId {}", ecsTlr::getId,
       updatedRequest::getItemId);
     ecsTlr.setItemId(UUID.fromString(updatedRequest.getItemId()));
-    dcbService.createTransactions(ecsTlr);
+    dcbService.createLendingTransactions(ecsTlr);
+    dcbService.createBorrowingTransactions(ecsTlr, updatedRequest);
     ecsTlrRepository.save(ecsTlr);
     log.info("processItemIdUpdate: ECS TLR {} is updated", ecsTlr::getId);
   }
