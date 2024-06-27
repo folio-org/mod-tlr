@@ -70,13 +70,6 @@ public class KafkaEventListener {
 
     log.info("handleUserGroupEvent:: event received: {}", event::getId);
     log.debug("handleUserGroupEvent:: event: {}", () -> event);
-//    KafkaEvent.EventType eventType = event.getType();
-//    if (eventType == KafkaEvent.EventType.CREATED) {
-//      userGroupEventHandler.handleUserGroupCreatingEvent(event, messageHeaders);
-//    }
-//    if (eventType == KafkaEvent.EventType.UPDATED) {
-//      userGroupEventHandler.handleUserGroupUpdatingEvent(event, messageHeaders);
-//    }
     handleEvent(event, messageHeaders, userGroupEventHandler);
   }
 
