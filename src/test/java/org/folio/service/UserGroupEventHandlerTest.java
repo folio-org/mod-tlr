@@ -1,5 +1,6 @@
 package org.folio.service;
 
+import static java.util.Collections.EMPTY_MAP;
 import static org.folio.support.MockDataUtils.getMockDataAsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -8,6 +9,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -79,6 +81,23 @@ class UserGroupEventHandlerTest extends BaseIT {
     verify(systemUserScopedExecutionService, times(3))
       .executeAsyncSystemUserScoped(anyString(), any(Runnable.class));
     verify(userGroupService, times(2)).update(any(UserGroup.class));
+  }
+
+  @Test
+  void handleUserGroupCreatingEventShouldNotCreateUserGroupWithEmptyHeaders() {
+    when(userTenantsService.findFirstUserTenant()).thenReturn(mockUserTenant());
+    when(consortiaService.getAllDataTenants(anyString())).thenReturn(mockTenantCollection());
+    when(userGroupService.create(any(UserGroup.class))).thenReturn(new UserGroup());
+
+    doAnswer(invocation -> {
+      ((Runnable) invocation.getArguments()[1]).run();
+      return null;
+    }).when(systemUserScopedExecutionService).executeAsyncSystemUserScoped(anyString(), any(Runnable.class));
+
+    eventListener.handleUserGroupEvent(USER_GROUP_CREATING_EVENT_SAMPLE, new MessageHeaders(EMPTY_MAP));
+
+    verify(systemUserScopedExecutionService, times(1)).executeAsyncSystemUserScoped(anyString(), any(Runnable.class));
+    verify(userGroupService, times(0)).create(any(UserGroup.class));
   }
 
   private MessageHeaders getMessageHeaders() {
