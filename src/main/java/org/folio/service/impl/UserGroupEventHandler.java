@@ -35,7 +35,7 @@ public class UserGroupEventHandler implements KafkaEventHandler<UserGroup> {
       () -> event, () -> messageHeaders);
 
     List<String> tenantIds = getHeaderValue(messageHeaders, XOkapiHeaders.TENANT, null);
-    if (tenantIds == null || tenantIds.isEmpty()) {
+    if (tenantIds.isEmpty()) {
       log.error("handleUserGroupCreatingEvent:: tenant ID not found in headers");
       return;
     }
