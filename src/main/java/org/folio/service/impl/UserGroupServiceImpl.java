@@ -17,13 +17,13 @@ public class UserGroupServiceImpl implements UserGroupService {
 
   @Override
   public UserGroup create(UserGroup userGroup) {
-    log.info("create:: creating user {}", userGroup.getId());
+    log.info("create:: creating userGroup {}", userGroup.getId());
     return userGroupClient.postUserGroup(userGroup);
   }
 
   @Override
   public UserGroup update(UserGroup userGroup) {
-    log.info("update:: updating user {}", userGroup.getId());
+    log.info("update:: updating userGroup {}", userGroup.getId());
     return userGroupClient.putUserGroup(userGroup.getId(), userGroup);
   }
 }
