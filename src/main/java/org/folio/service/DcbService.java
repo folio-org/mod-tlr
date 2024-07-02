@@ -8,8 +8,8 @@ import org.folio.domain.dto.TransactionStatusResponse;
 import org.folio.domain.entity.EcsTlrEntity;
 
 public interface DcbService {
-  void createLendingTransactions(EcsTlrEntity ecsTlr);
-  void createBorrowingTransactions(EcsTlrEntity ecsTlr, Request updatedRequest);
+  void createLendingTransaction(EcsTlrEntity ecsTlr);
+  void createBorrowingTransaction(EcsTlrEntity ecsTlr, Request updatedRequest);
   TransactionStatusResponse getTransactionStatus(UUID transactionId, String tenantId);
   TransactionStatusResponse updateTransactionStatus(UUID transactionId,
     TransactionStatus.StatusEnum newStatus, String tenantId);

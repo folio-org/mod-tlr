@@ -38,7 +38,7 @@ public class DcbServiceImpl implements DcbService {
   }
 
   @Override
-  public void createLendingTransactions(EcsTlrEntity ecsTlr) {
+  public void createLendingTransaction(EcsTlrEntity ecsTlr) {
     log.info("createTransactions:: creating DCB transactions for ECS TLR {}", ecsTlr::getId);
     DcbTransaction transaction = new DcbTransaction()
       .requestId(ecsTlr.getSecondaryRequestId().toString())
@@ -49,7 +49,7 @@ public class DcbServiceImpl implements DcbService {
   }
 
   @Override
-  public void createBorrowingTransactions(EcsTlrEntity ecsTlr, Request request) {
+  public void createBorrowingTransaction(EcsTlrEntity ecsTlr, Request request) {
     log.info("createTransactions:: creating DCB transactions for ECS TLR {}", ecsTlr::getId);
     DcbItem dcbItem = new DcbItem()
       .id(request.getItemId())
