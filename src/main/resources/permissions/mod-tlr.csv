@@ -2,6 +2,9 @@ users.collection.get
 users.item.get
 users.item.post
 users.item.put
+user-tenants.collection.get
+usergroups.item.post
+usergroups.item.put
 search.instances.collection.get
 circulation.requests.instances.item.post
 circulation.requests.item.post

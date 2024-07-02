@@ -89,6 +89,10 @@ components:
       $ref: 'schemas/transactionStatus.yaml#/TransactionStatus'
     transactionStatusResponse:
       $ref: 'schemas/transactionStatusResponse.yaml#/TransactionStatusResponse'
+    tenant:
+      $ref: 'schemas/tenant.yaml#/Tenant'
+    tenants:
+      $ref: 'schemas/tenant.yaml#/TenantCollection'
     errorResponse:
       $ref: 'schemas/errors.json'
     request:
@@ -97,8 +101,14 @@ components:
       $ref: schemas/response/searchInstancesResponse.json
     user:
       $ref: schemas/user.json
+    userTenant:
+      $ref: schemas/userTenant.json
+    userTenantCollection:
+      $ref: schemas/userTenantCollection.json
     servicePoint:
       $ref: schemas/service-point.json
+    userGroup:
+      $ref: schemas/userGroup.json
   parameters:
     requestId:
       name: requestId
