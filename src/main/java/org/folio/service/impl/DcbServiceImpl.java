@@ -50,7 +50,7 @@ public class DcbServiceImpl implements DcbService {
 
   @Override
   public void createBorrowingTransaction(EcsTlrEntity ecsTlr, Request request) {
-    log.info("createTransactions:: creating DCB transactions for ECS TLR {}", ecsTlr::getId);
+    log.info("createBorrowingTransaction:: creating DCB transactions for ECS TLR {}", ecsTlr::getId);
     DcbItem dcbItem = new DcbItem()
       .id(request.getItemId())
       .title(request.getInstance().getTitle())
