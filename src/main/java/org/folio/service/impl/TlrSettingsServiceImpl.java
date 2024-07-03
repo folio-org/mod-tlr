@@ -5,7 +5,9 @@ import java.util.Optional;
 import org.folio.domain.dto.TlrSettings;
 import org.folio.domain.mapper.TlrSettingsMapper;
 import org.folio.repository.TlrSettingsRepository;
+import org.folio.service.PublishCoordinatorService;
 import org.folio.service.TlrSettingsService;
+import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +21,9 @@ public class TlrSettingsServiceImpl implements TlrSettingsService {
 
   private final TlrSettingsRepository tlrSettingsRepository;
   private final TlrSettingsMapper tlrSettingsMapper;
+  private final PublishCoordinatorService<TlrSettings> publishCoordinatorService;
+  private final SystemUserScopedExecutionService systemUserScopedExecutionService;
+  private static final String CENTRAL_TENANT_ID = "consortium";
 
   @Override
   public Optional<TlrSettings> getTlrSettings() {
@@ -39,6 +44,11 @@ public class TlrSettingsServiceImpl implements TlrSettingsService {
       .findFirst()
       .map(entity -> tlrSettingsMapper.mapEntityToDto(
         tlrSettingsRepository.save(tlrSettingsMapper.mapDtoToEntity(
-          tlrSettings.id(entity.getId().toString())))));
+          tlrSettings.id(entity.getId().toString())))))
+      .map(entity -> {
+        systemUserScopedExecutionService.executeAsyncSystemUserScoped(CENTRAL_TENANT_ID,
+          () -> publishCoordinatorService.updateForAllTenants(entity));
+        return entity;
+      });
   }
 }
