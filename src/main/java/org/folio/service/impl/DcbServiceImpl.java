@@ -39,13 +39,13 @@ public class DcbServiceImpl implements DcbService {
 
   @Override
   public void createLendingTransaction(EcsTlrEntity ecsTlr) {
-    log.info("createTransactions:: creating DCB transactions for ECS TLR {}", ecsTlr::getId);
+    log.info("createLendingTransaction:: creating DCB transactions for ECS TLR {}", ecsTlr::getId);
     DcbTransaction transaction = new DcbTransaction()
       .requestId(ecsTlr.getSecondaryRequestId().toString())
       .role(LENDER);
     final UUID lenderTransactionId = createTransaction(transaction, ecsTlr.getSecondaryRequestTenantId());
     ecsTlr.setSecondaryRequestDcbTransactionId(lenderTransactionId);
-    log.info("createTransactions:: DCB Lending transaction for ECS TLR {} created", ecsTlr::getId);
+    log.info("createLendingTransaction:: DCB Lending transaction for ECS TLR {} created", ecsTlr::getId);
   }
 
   @Override
@@ -61,7 +61,7 @@ public class DcbServiceImpl implements DcbService {
       .role(BORROWER);
     final UUID borrowerTransactionId = createTransaction(transaction, ecsTlr.getPrimaryRequestTenantId());
     ecsTlr.setPrimaryRequestDcbTransactionId(borrowerTransactionId);
-    log.info("createBorrowingTransaction:: DCB Borroer transaction for ECS TLR {} created", ecsTlr::getId);
+    log.info("createBorrowingTransaction:: DCB Borrower transaction for ECS TLR {} created", ecsTlr::getId);
   }
 
   private UUID createTransaction(DcbTransaction transaction, String tenantId) {
