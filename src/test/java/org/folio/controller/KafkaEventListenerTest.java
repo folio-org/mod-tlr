@@ -28,6 +28,7 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.awaitility.Awaitility;
 import org.folio.api.BaseIT;
+import org.folio.domain.dto.DcbItem;
 import org.folio.domain.dto.DcbTransaction;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.RequestInstance;
@@ -308,6 +309,10 @@ class KafkaEventListenerTest extends BaseIT {
 
     DcbTransaction expectedBorrowerTransaction = new DcbTransaction()
       .role(DcbTransaction.RoleEnum.BORROWER)
+      .item(new DcbItem()
+        .id(ecsTlr.getItemId().toString())
+        .barcode("test")
+        .title("Test title"))
       .requestId(ecsTlr.getPrimaryRequestId().toString());
 
     DcbTransaction expectedLenderTransaction = new DcbTransaction()

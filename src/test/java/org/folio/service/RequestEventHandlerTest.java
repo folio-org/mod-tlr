@@ -32,7 +32,7 @@ class RequestEventHandlerTest extends BaseIT {
   @Test
   void handleRequestUpdateTest() {
     when(ecsTlrRepository.findBySecondaryRequestId(any())).thenReturn(Optional.of(getEcsTlrEntity()));
-    doNothing().when(dcbService).createTransactions(any());
+    doNothing().when(dcbService).createLendingTransaction(any());
     eventListener.handleRequestEvent(REQUEST_UPDATE_EVENT_SAMPLE);
     verify(ecsTlrRepository).findBySecondaryRequestId(any());
   }
