@@ -1,11 +1,14 @@
 package org.folio.listener.kafka;
 
+import java.nio.charset.StandardCharsets;
+
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.UserGroup;
 import org.folio.exception.KafkaEventDeserializationException;
 import org.folio.service.KafkaEventHandler;
 import org.folio.service.impl.RequestEventHandler;
 import org.folio.service.impl.UserGroupEventHandler;
+import org.folio.spring.integration.XOkapiHeaders;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.folio.support.KafkaEvent;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,9 +44,9 @@ public class KafkaEventListener {
     topicPattern = "${folio.environment}\\.\\w+\\.circulation\\.request",
     groupId = "${spring.kafka.consumer.group-id}"
   )
-  public void handleRequestEvent(String eventString) {
+  public void handleRequestEvent(String eventString, MessageHeaders messageHeaders) {
     log.debug("handleRequestEvent:: event: {}", () -> eventString);
-    KafkaEvent<Request> event = deserialize(eventString, Request.class);
+    KafkaEvent<Request> event = deserialize(eventString, messageHeaders, Request.class);
     log.info("handleRequestEvent:: event received: {}", event::getId);
     handleEvent(event, requestEventHandler);
     log.info("handleRequestEvent:: event consumed: {}", event::getId);
@@ -51,14 +54,7 @@ public class KafkaEventListener {
 
   private <T> void handleEvent(KafkaEvent<T> event, KafkaEventHandler<T> handler) {
     systemUserScopedExecutionService.executeAsyncSystemUserScoped(CENTRAL_TENANT_ID,
-      () -> handler.handle(event, null));
-  }
-
-  private <T> void handleEvent(KafkaEvent<T> event, MessageHeaders messageHeaders,
-    KafkaEventHandler<T> handler) {
-
-    systemUserScopedExecutionService.executeAsyncSystemUserScoped(CENTRAL_TENANT_ID,
-      () -> handler.handle(event, messageHeaders));
+      () -> handler.handle(event));
   }
 
   @KafkaListener(
@@ -66,21 +62,39 @@ public class KafkaEventListener {
     groupId = "${spring.kafka.consumer.group-id}"
   )
   public void handleUserGroupEvent(String eventString, MessageHeaders messageHeaders) {
-    KafkaEvent<UserGroup> event = deserialize(eventString, UserGroup.class);
+    KafkaEvent<UserGroup> event = deserialize(eventString, messageHeaders, UserGroup.class);
 
     log.info("handleUserGroupEvent:: event received: {}", event::getId);
     log.debug("handleUserGroupEvent:: event: {}", () -> event);
-    handleEvent(event, messageHeaders, userGroupEventHandler);
+    handleEvent(event, userGroupEventHandler);
   }
 
-  private static <T> KafkaEvent<T> deserialize(String eventString, Class<T> dataType) {
+  private static <T> KafkaEvent<T> deserialize(String eventString, MessageHeaders messageHeaders,
+    Class<T> dataType) {
+
     try {
       JavaType eventType = objectMapper.getTypeFactory()
         .constructParametricType(KafkaEvent.class, dataType);
-      return objectMapper.readValue(eventString, eventType);
+      var kafkaEvent = objectMapper.<KafkaEvent<T>>readValue(eventString, eventType);
+      String tenantId = getHeaderValue(messageHeaders, XOkapiHeaders.TENANT, null);
+      kafkaEvent.setTenantIdHeaderValue(tenantId);
+      return kafkaEvent;
     } catch (JsonProcessingException e) {
       log.error("deserialize:: failed to deserialize event", e);
       throw new KafkaEventDeserializationException(e);
     }
+  }
+
+  private static String getHeaderValue(MessageHeaders headers, String headerName,
+    String defaultValue) {
+
+    log.debug("getHeaderValue:: headers: {}, headerName: {}, defaultValue: {}", () -> headers,
+      () -> headerName, () -> defaultValue);
+    var headerValue = headers.get(headerName);
+    var value = headerValue == null
+      ? defaultValue
+      : new String((byte[]) headerValue, StandardCharsets.UTF_8);
+    log.info("getHeaderValue:: header {} value is {}", headerName, value);
+    return value;
   }
 }

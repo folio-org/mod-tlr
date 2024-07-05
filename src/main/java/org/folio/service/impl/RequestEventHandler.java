@@ -18,7 +18,6 @@ import org.folio.repository.EcsTlrRepository;
 import org.folio.service.DcbService;
 import org.folio.service.KafkaEventHandler;
 import org.folio.support.KafkaEvent;
-import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Service;
 
 import feign.FeignException;
@@ -34,7 +33,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
   private final EcsTlrRepository ecsTlrRepository;
 
   @Override
-  public void handle(KafkaEvent<Request> event, MessageHeaders messageHeaders) {
+  public void handle(KafkaEvent<Request> event) {
     log.info("handle:: processing request event: {}", event::getId);
     if (event.getType() == UPDATED) {
       handleRequestUpdateEvent(event);
@@ -71,7 +70,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
   private void handleRequestUpdateEvent(EcsTlrEntity ecsTlr, KafkaEvent<Request> event) {
     log.debug("handleRequestUpdateEvent:: ecsTlr={}", () -> ecsTlr);
     Request updatedRequest = event.getData().getNewVersion();
-    if (requestMatchesEcsTlr(ecsTlr, updatedRequest, event.getTenant())) {
+    if (requestMatchesEcsTlr(ecsTlr, updatedRequest, event.getTenantIdHeaderValue())) {
       processItemIdUpdate(ecsTlr, updatedRequest);
       updateDcbTransaction(ecsTlr, updatedRequest, event);
     }
