@@ -1,8 +1,6 @@
 package org.folio.service.impl;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.List;
 
 import org.folio.domain.dto.UserGroup;
 import org.folio.domain.dto.UserTenant;
@@ -34,67 +32,71 @@ public class UserGroupEventHandler implements KafkaEventHandler<UserGroup> {
     log.info("handle:: processing request event: {}, messageHeaders: {}",
       () -> event, () -> messageHeaders);
 
-    List<String> tenantIds = getHeaderValue(messageHeaders, XOkapiHeaders.TENANT, null);
-    if (tenantIds.isEmpty()) {
+    String tenantId = getHeaderValue(messageHeaders, XOkapiHeaders.TENANT, null);
+    if (tenantId == null) {
       log.error("handleUserGroupCreatingEvent:: tenant ID not found in headers");
       return;
     }
-    String requestedTenantId = tenantIds.get(0);
     KafkaEvent.EventType eventType = event.getType();
+    event.setTenantIdHeaderValue(tenantId);
+
     if (eventType == KafkaEvent.EventType.CREATED) {
-      processUserGroupCreatingEvent(event, requestedTenantId);
+      processUserGroupCreateEvent(event);
     }
+
     if (eventType == KafkaEvent.EventType.UPDATED) {
-      processUserGroupUpdatingEvent(event, requestedTenantId);
+      processUserGroupUpdateEvent(event);
     }
   }
 
-  private void processUserGroupCreatingEvent(KafkaEvent<UserGroup> event, String requestedTenantId){
+  private void processUserGroupCreateEvent(KafkaEvent<UserGroup> event){
+    log.debug("processUserGroupCreateEvent:: params: event={}", () -> event);
     UserTenant firstUserTenant = userTenantsService.findFirstUserTenant();
     String consortiumId = firstUserTenant.getConsortiumId();
     String centralTenantId = firstUserTenant.getCentralTenantId();
-    log.info("handleUserGroupCreatingEvent:: consortiumId: {}, centralTenantId: {}, requestedTenantId: {}",
-      consortiumId, centralTenantId, requestedTenantId);
+    log.info("processUserGroupCreateEvent:: consortiumId: {}, centralTenantId: {}",
+      consortiumId, centralTenantId);
 
-    if (!centralTenantId.equals(requestedTenantId)) {
+    if (!centralTenantId.equals(event.getTenantIdHeaderValue())) {
+      log.info("processUserGroupCreateEvent: ignoring central tenant event");
       return;
     }
-    log.info("handleUserGroupCreatingEvent: received event from centralTenant: {}", centralTenantId);
     processUserGroupForAllDataTenants(consortiumId, () -> userGroupService.create(
       event.getData().getNewVersion()));
   }
 
-  private void processUserGroupUpdatingEvent(KafkaEvent<UserGroup> event, String requestedTenantId) {
+  private void processUserGroupUpdateEvent(KafkaEvent<UserGroup> event) {
+    log.debug("processUserGroupUpdateEvent:: params: event={}", () -> event);
     UserTenant firstUserTenant = userTenantsService.findFirstUserTenant();
     String consortiumId = firstUserTenant.getConsortiumId();
     String centralTenantId = firstUserTenant.getCentralTenantId();
-    log.info("handleUserGroupUpdatingEvent:: consortiumId: {}, centralTenantId: {}, requestedTenantId: {}",
-      consortiumId, centralTenantId, requestedTenantId);
+    log.info("processUserGroupUpdateEvent:: consortiumId: {}, centralTenantId: {}",
+      consortiumId, centralTenantId);
 
-    if (!centralTenantId.equals(requestedTenantId)) {
+    if (!centralTenantId.equals(event.getTenantIdHeaderValue())) {
+      log.info("processUserGroupUpdateEvent: ignoring central tenant event");
       return;
     }
-    log.info("handleUserGroupUpdatingEvent: received event from centralTenant: {}", centralTenantId);
     processUserGroupForAllDataTenants(consortiumId, () -> userGroupService.update(
       event.getData().getNewVersion()));
   }
 
-  private void processUserGroupForAllDataTenants(String consortiumId,
-    Runnable action) {
-
+  private void processUserGroupForAllDataTenants(String consortiumId, Runnable action) {
+    log.debug("processUserGroupForAllDataTenants:: params: consortiumId={}", consortiumId);
     consortiaService.getAllDataTenants(consortiumId).getTenants().stream()
       .filter(tenant -> !tenant.getIsCentral())
       .forEach(tenant -> systemUserScopedExecutionService.executeAsyncSystemUserScoped(
         tenant.getId(), action));
   }
 
-  static List<String> getHeaderValue(MessageHeaders headers, String headerName, String defaultValue) {
-    log.info("getHeaderValue:: headers: {}, headerName: {}, defaultValue: {}", () -> headers,
+  static String getHeaderValue(MessageHeaders headers, String headerName, String defaultValue) {
+    log.debug("getHeaderValue:: headers: {}, headerName: {}, defaultValue: {}", () -> headers,
       () -> headerName, () -> defaultValue);
     var headerValue = headers.get(headerName);
     var value = headerValue == null
       ? defaultValue
       : new String((byte[]) headerValue, StandardCharsets.UTF_8);
-    return value == null ? Collections.emptyList() : Collections.singletonList(value);
+    log.info("getHeaderValue:: header {} value is {}", headerName, value);
+    return value;
   }
 }
