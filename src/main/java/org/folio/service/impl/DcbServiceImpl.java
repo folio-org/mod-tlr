@@ -61,7 +61,7 @@ public class DcbServiceImpl implements DcbService {
       .role(BORROWER);
     final UUID borrowerTransactionId = createTransaction(transaction, ecsTlr.getPrimaryRequestTenantId());
     ecsTlr.setPrimaryRequestDcbTransactionId(borrowerTransactionId);
-    log.info("createBorrowingTransaction:: DCB Borroer transaction for ECS TLR {} created", ecsTlr::getId);
+    log.info("createBorrowingTransaction:: DCB Borrower transaction for ECS TLR {} created", ecsTlr::getId);
   }
 
   private UUID createTransaction(DcbTransaction transaction, String tenantId) {
