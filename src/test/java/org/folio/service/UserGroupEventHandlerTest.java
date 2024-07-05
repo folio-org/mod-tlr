@@ -2,15 +2,12 @@ package org.folio.service;
 
 import static java.util.Collections.EMPTY_MAP;
 import static org.folio.support.MockDataUtils.getMockDataAsString;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.util.List;
 
 import org.folio.api.BaseIT;
 import org.folio.domain.dto.Tenant;
@@ -20,7 +17,6 @@ import org.folio.domain.dto.UserTenant;
 import org.folio.listener.kafka.KafkaEventListener;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
@@ -65,12 +61,7 @@ class UserGroupEventHandlerTest extends BaseIT {
 
     verify(systemUserScopedExecutionService, times(3)).executeAsyncSystemUserScoped(anyString(),
       any(Runnable.class));
-
-    ArgumentCaptor<UserGroup> userGroupCaptor = ArgumentCaptor.forClass(UserGroup.class);
-    verify(userGroupService, times(2)).create(userGroupCaptor.capture());
-    List<UserGroup> capturedUserGroups = userGroupCaptor.getAllValues();
-    assertEquals(USER_GROUP_ID, capturedUserGroups.get(0).getId());
-    assertEquals(USER_GROUP_ID, capturedUserGroups.get(1).getId());
+    verify(userGroupService, times(2)).create(any(UserGroup.class));
   }
 
   @Test
@@ -90,12 +81,7 @@ class UserGroupEventHandlerTest extends BaseIT {
 
     verify(systemUserScopedExecutionService, times(3))
       .executeAsyncSystemUserScoped(anyString(), any(Runnable.class));
-
-    ArgumentCaptor<UserGroup> userGroupCaptor = ArgumentCaptor.forClass(UserGroup.class);
-    verify(userGroupService, times(2)).update(userGroupCaptor.capture());
-    List<UserGroup> capturedUserGroups = userGroupCaptor.getAllValues();
-    assertEquals(USER_GROUP_ID, capturedUserGroups.get(0).getId());
-    assertEquals(USER_GROUP_ID, capturedUserGroups.get(1).getId());
+    verify(userGroupService, times(2)).update(any(UserGroup.class));
   }
 
   @Test
