@@ -19,15 +19,19 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.http.HttpStatus;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.header.internals.RecordHeader;
 import org.awaitility.Awaitility;
 import org.folio.api.BaseIT;
+import org.folio.domain.dto.DcbItem;
 import org.folio.domain.dto.DcbTransaction;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.RequestInstance;
@@ -37,6 +41,7 @@ import org.folio.domain.dto.TransactionStatus;
 import org.folio.domain.dto.TransactionStatusResponse;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
+import org.folio.spring.integration.XOkapiHeaders;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.folio.support.KafkaEvent;
 import org.junit.jupiter.api.BeforeEach;
@@ -102,7 +107,7 @@ class KafkaEventListenerTest extends BaseIT {
     assertNull(initialEcsTlr.getItemId());
 
     KafkaEvent<Request> event = buildSecondaryRequestUpdateEvent(oldRequestStatus, newRequestStatus);
-    publishEventAndWait(REQUEST_TOPIC_NAME, event);
+    publishEventAndWait(SECONDARY_REQUEST_TENANT_ID, REQUEST_TOPIC_NAME, event);
 
     EcsTlrEntity updatedEcsTlr = getEcsTlr(ECS_TLR_ID);
     assertEquals(ITEM_ID, updatedEcsTlr.getItemId());
@@ -132,7 +137,7 @@ class KafkaEventListenerTest extends BaseIT {
     assertNotNull(initialEcsTlr.getItemId());
 
     KafkaEvent<Request> event = buildSecondaryRequestUpdateEvent(oldRequestStatus, newRequestStatus);
-    publishEventAndWait(REQUEST_TOPIC_NAME, event);
+    publishEventAndWait(SECONDARY_REQUEST_TENANT_ID, REQUEST_TOPIC_NAME, event);
 
     EcsTlrEntity updatedEcsTlr = getEcsTlr(ECS_TLR_ID);
     UUID transactionId = updatedEcsTlr.getSecondaryRequestDcbTransactionId();
@@ -159,7 +164,7 @@ class KafkaEventListenerTest extends BaseIT {
     assertNotNull(initialEcsTlr.getItemId());
 
     KafkaEvent<Request> event = buildPrimaryRequestUpdateEvent(oldRequestStatus, newRequestStatus);
-    publishEventAndWait(REQUEST_TOPIC_NAME, event);
+    publishEventAndWait(PRIMARY_REQUEST_TENANT_ID, REQUEST_TOPIC_NAME, event);
 
     EcsTlrEntity updatedEcsTlr = getEcsTlr(ECS_TLR_ID);
     UUID transactionId = updatedEcsTlr.getPrimaryRequestDcbTransactionId();
@@ -173,7 +178,8 @@ class KafkaEventListenerTest extends BaseIT {
   void shouldNotUpdateDcbTransactionUponRequestUpdateWhenTransactionStatusWouldNotChange() {
     mockDcb(TransactionStatusResponse.StatusEnum.OPEN, TransactionStatusResponse.StatusEnum.OPEN);
     EcsTlrEntity ecsTlr = createEcsTlr(buildEcsTlrWithItemId());
-    publishEventAndWait(REQUEST_TOPIC_NAME, buildSecondaryRequestUpdateEvent());
+    publishEventAndWait(SECONDARY_REQUEST_TENANT_ID, REQUEST_TOPIC_NAME,
+      buildSecondaryRequestUpdateEvent());
 
     EcsTlrEntity updatedEcsTlr = getEcsTlr(ecsTlr.getId());
     UUID transactionId = updatedEcsTlr.getSecondaryRequestDcbTransactionId();
@@ -194,7 +200,7 @@ class KafkaEventListenerTest extends BaseIT {
     assertNotNull(initialEcsTlr.getItemId());
 
     KafkaEvent<Request> event = buildSecondaryRequestUpdateEvent(oldRequestStatus, newRequestStatus);
-    publishEventAndWait(REQUEST_TOPIC_NAME, event);
+    publishEventAndWait(SECONDARY_REQUEST_TENANT_ID, REQUEST_TOPIC_NAME, event);
 
     verifyThatNoDcbTransactionsWereCreated();
     verifyThatDcbTransactionStatusWasNotRetrieved();
@@ -213,7 +219,7 @@ class KafkaEventListenerTest extends BaseIT {
     assertNotNull(initialEcsTlr.getItemId());
 
     KafkaEvent<Request> event = buildPrimaryRequestUpdateEvent(oldRequestStatus, newRequestStatus);
-    publishEventAndWait(REQUEST_TOPIC_NAME, event);
+    publishEventAndWait(PRIMARY_REQUEST_TENANT_ID, REQUEST_TOPIC_NAME, event);
 
     verifyThatNoDcbTransactionsWereCreated();
     verifyThatDcbTransactionStatusWasNotRetrieved();
@@ -227,7 +233,8 @@ class KafkaEventListenerTest extends BaseIT {
     wireMockServer.stubFor(WireMock.get(urlMatching(DCB_TRANSACTIONS_URL_PATTERN))
       .willReturn(notFound()));
 
-    publishEventAndWait(REQUEST_TOPIC_NAME, buildSecondaryRequestUpdateEvent());
+    publishEventAndWait(SECONDARY_REQUEST_TENANT_ID, REQUEST_TOPIC_NAME,
+      buildSecondaryRequestUpdateEvent());
 
     UUID transactionId = ecsTlr.getSecondaryRequestDcbTransactionId();
     verifyThatNoDcbTransactionsWereCreated();
@@ -289,7 +296,7 @@ class KafkaEventListenerTest extends BaseIT {
 
   void checkThatEventIsIgnored(KafkaEvent<Request> event) {
     EcsTlrEntity initialEcsTlr = createEcsTlr(buildEcsTlrWithoutItemId());
-    publishEventAndWait(REQUEST_TOPIC_NAME, event);
+    publishEventAndWait(PRIMARY_REQUEST_TENANT_ID, REQUEST_TOPIC_NAME, event);
 
     EcsTlrEntity ecsTlr = getEcsTlr(initialEcsTlr.getId());
     assertNull(ecsTlr.getItemId());
@@ -308,6 +315,10 @@ class KafkaEventListenerTest extends BaseIT {
 
     DcbTransaction expectedBorrowerTransaction = new DcbTransaction()
       .role(DcbTransaction.RoleEnum.BORROWER)
+      .item(new DcbItem()
+        .id(ecsTlr.getItemId().toString())
+        .barcode("test")
+        .title("Test title"))
       .requestId(ecsTlr.getPrimaryRequestId().toString());
 
     DcbTransaction expectedLenderTransaction = new DcbTransaction()
@@ -355,13 +366,17 @@ class KafkaEventListenerTest extends BaseIT {
   }
 
   @SneakyThrows
-  private <T> void publishEvent(String topic, KafkaEvent<T> event) {
-    publishEvent(topic, asJsonString(event));
+  private <T> void publishEvent(String tenant, String topic, KafkaEvent<T> event) {
+    publishEvent(tenant, topic, asJsonString(event));
   }
 
   @SneakyThrows
-  private void publishEvent(String topic, String payload) {
-    kafkaTemplate.send(topic, randomId(), payload)
+  private void publishEvent(String tenant, String topic, String payload) {
+    kafkaTemplate.send(new ProducerRecord<>(topic, 0, randomId(), payload,
+        List.of(
+          new RecordHeader(XOkapiHeaders.TENANT, tenant.getBytes()),
+          new RecordHeader("folio.tenantId", randomId().getBytes())
+        )))
       .get(10, SECONDS);
   }
 
@@ -376,13 +391,13 @@ class KafkaEventListenerTest extends BaseIT {
       .get(10, TimeUnit.SECONDS);
   }
 
-  private <T> void publishEventAndWait(String topic, KafkaEvent<T> event) {
-    publishEventAndWait(topic, asJsonString(event));
+  private <T> void publishEventAndWait(String tenant, String topic, KafkaEvent<T> event) {
+    publishEventAndWait(tenant, topic, asJsonString(event));
   }
 
-  private void publishEventAndWait(String topic, String payload) {
+  private void publishEventAndWait(String tenant, String topic, String payload) {
     final int initialOffset = getOffset(topic, CONSUMER_GROUP_ID);
-    publishEvent(topic, payload);
+    publishEvent(tenant, topic, payload);
     waitForOffset(topic, CONSUMER_GROUP_ID, initialOffset + 1);
   }
 

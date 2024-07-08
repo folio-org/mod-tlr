@@ -35,6 +35,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.messaging.MessageHeaders;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -251,6 +252,14 @@ public class BaseIT {
 
   private static String buildTopicName(String env, String tenant, String module, String objectType) {
     return String.format("%s.%s.%s.%s", env, tenant, module, objectType);
+  }
+
+  protected MessageHeaders getMessageHeaders(String tenantName, String tenantId) {
+    Map<String, Object> header = new HashMap<>();
+    header.put(XOkapiHeaders.TENANT, tenantName.getBytes());
+    header.put("folio.tenantId", tenantId);
+
+    return new MessageHeaders(header);
   }
 
 }

@@ -48,7 +48,7 @@
       "$ref": "uuid.json"
     }
   },
-  "additionalProperties": false,
+  "additionalProperties": true,
   "required": [
     "userId",
     "tenantId"

@@ -9,16 +9,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.folio.api.BaseIT;
 import org.folio.domain.dto.Tenant;
 import org.folio.domain.dto.TenantCollection;
 import org.folio.domain.dto.UserGroup;
 import org.folio.domain.dto.UserTenant;
 import org.folio.listener.kafka.KafkaEventListener;
-import org.folio.spring.integration.XOkapiHeaders;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +31,7 @@ class UserGroupEventHandlerTest extends BaseIT {
   private static final String TENANT_ID = "a8b9a084-abbb-4299-be13-9fdc19249928";
   private static final String CONSORTIUM_ID = "785d5c71-399d-4978-bdff-fb88b72d140a";
   private static final String CENTRAL_TENANT_ID = "consortium";
+  private static final String USER_GROUP_ID = "a1070927-53a1-4c3b-86be-f9f32b5bcab3";
 
   @MockBean
   private UserTenantsService userTenantsService;
@@ -56,11 +53,14 @@ class UserGroupEventHandlerTest extends BaseIT {
     doAnswer(invocation -> {
       ((Runnable) invocation.getArguments()[1]).run();
       return null;
-    }).when(systemUserScopedExecutionService).executeAsyncSystemUserScoped(anyString(), any(Runnable.class));
+    }).when(systemUserScopedExecutionService).executeAsyncSystemUserScoped(anyString(),
+      any(Runnable.class));
 
-    eventListener.handleUserGroupEvent(USER_GROUP_CREATING_EVENT_SAMPLE, getMessageHeaders());
+    eventListener.handleUserGroupEvent(USER_GROUP_CREATING_EVENT_SAMPLE,
+      getMessageHeaders(TENANT, TENANT_ID));
 
-    verify(systemUserScopedExecutionService, times(3)).executeAsyncSystemUserScoped(anyString(), any(Runnable.class));
+    verify(systemUserScopedExecutionService, times(3)).executeAsyncSystemUserScoped(anyString(),
+      any(Runnable.class));
     verify(userGroupService, times(2)).create(any(UserGroup.class));
   }
 
@@ -73,9 +73,11 @@ class UserGroupEventHandlerTest extends BaseIT {
     doAnswer(invocation -> {
       ((Runnable) invocation.getArguments()[1]).run();
       return null;
-    }).when(systemUserScopedExecutionService).executeAsyncSystemUserScoped(anyString(), any(Runnable.class));
+    }).when(systemUserScopedExecutionService).executeAsyncSystemUserScoped(anyString(),
+      any(Runnable.class));
 
-    eventListener.handleUserGroupEvent(USER_GROUP_UPDATING_EVENT_SAMPLE, getMessageHeaders());
+    eventListener.handleUserGroupEvent(USER_GROUP_UPDATING_EVENT_SAMPLE,
+      getMessageHeaders(TENANT, TENANT_ID));
 
     verify(systemUserScopedExecutionService, times(3))
       .executeAsyncSystemUserScoped(anyString(), any(Runnable.class));
@@ -91,20 +93,15 @@ class UserGroupEventHandlerTest extends BaseIT {
     doAnswer(invocation -> {
       ((Runnable) invocation.getArguments()[1]).run();
       return null;
-    }).when(systemUserScopedExecutionService).executeAsyncSystemUserScoped(anyString(), any(Runnable.class));
+    }).when(systemUserScopedExecutionService).executeAsyncSystemUserScoped(anyString(),
+      any(Runnable.class));
 
-    eventListener.handleUserGroupEvent(USER_GROUP_CREATING_EVENT_SAMPLE, new MessageHeaders(EMPTY_MAP));
+    eventListener.handleUserGroupEvent(USER_GROUP_CREATING_EVENT_SAMPLE,
+      new MessageHeaders(EMPTY_MAP));
 
-    verify(systemUserScopedExecutionService, times(1)).executeAsyncSystemUserScoped(anyString(), any(Runnable.class));
+    verify(systemUserScopedExecutionService, times(1)).executeAsyncSystemUserScoped(anyString(),
+      any(Runnable.class));
     verify(userGroupService, times(0)).create(any(UserGroup.class));
-  }
-
-  private MessageHeaders getMessageHeaders() {
-    Map<String, Object> header = new HashMap<>();
-    header.put(XOkapiHeaders.TENANT, TENANT.getBytes());
-    header.put("folio.tenantId", TENANT_ID);
-
-    return new MessageHeaders(header);
   }
 
   private UserTenant mockUserTenant() {

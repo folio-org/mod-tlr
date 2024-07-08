@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import org.folio.api.BaseIT;
 import org.folio.listener.kafka.KafkaEventListener;
@@ -32,8 +33,9 @@ class RequestEventHandlerTest extends BaseIT {
   @Test
   void handleRequestUpdateTest() {
     when(ecsTlrRepository.findBySecondaryRequestId(any())).thenReturn(Optional.of(getEcsTlrEntity()));
-    doNothing().when(dcbService).createTransactions(any());
-    eventListener.handleRequestEvent(REQUEST_UPDATE_EVENT_SAMPLE);
+    doNothing().when(dcbService).createLendingTransaction(any());
+    eventListener.handleRequestEvent(REQUEST_UPDATE_EVENT_SAMPLE, getMessageHeaders(
+      TENANT_ID_CONSORTIUM, UUID.randomUUID().toString()));
     verify(ecsTlrRepository).findBySecondaryRequestId(any());
   }
 }
