@@ -25,7 +25,7 @@ public class UserGroupEventHandler implements KafkaEventHandler<UserGroup> {
 
   @Override
   public void handle(KafkaEvent<UserGroup> event) {
-    log.info("handle:: processing request event: {}", () -> event);
+    log.info("handle:: processing user group event: {}", () -> event);
 
     KafkaEvent.EventType eventType = event.getType();
     if (eventType == KafkaEvent.EventType.CREATED) {
@@ -45,7 +45,7 @@ public class UserGroupEventHandler implements KafkaEventHandler<UserGroup> {
       consortiumId, centralTenantId);
 
     if (!centralTenantId.equals(event.getTenantIdHeaderValue())) {
-      log.info("processUserGroupCreateEvent: ignoring central tenant event");
+      log.info("processUserGroupCreateEvent: ignoring non-central tenant event");
       return;
     }
     processUserGroupForAllDataTenants(consortiumId, () -> userGroupService.create(

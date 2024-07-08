@@ -78,8 +78,14 @@ public class BaseIT {
   protected static final String TENANT_ID_CONSORTIUM = "consortium"; // central tenant
   protected static final String TENANT_ID_UNIVERSITY = "university";
   protected static final String TENANT_ID_COLLEGE = "college";
-
-  private static final String[] KAFKA_TOPICS = { buildTopicName("circulation", "request") };
+  protected static final String REQUEST_KAFKA_TOPIC_NAME =
+    buildTopicName("circulation", "request");
+  protected static final String USER_GROUP_KAFKA_TOPIC_NAME =
+    buildTopicName("users", "userGroup");
+  private static final String[] KAFKA_TOPICS = {
+    REQUEST_KAFKA_TOPIC_NAME,
+    USER_GROUP_KAFKA_TOPIC_NAME
+  };
   private static final int WIRE_MOCK_PORT = TestSocketUtils.findAvailableTcpPort();
   protected static WireMockServer wireMockServer = new WireMockServer(WIRE_MOCK_PORT);
 
