@@ -10,8 +10,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.put;
 import static com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static java.lang.String.format;
 import static java.util.UUID.randomUUID;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -660,7 +660,7 @@ class KafkaEventListenerTest extends BaseIT {
 
   @SneakyThrows
   void mockUserTenants() {
-    wireMockServer.stubFor(get(urlEqualTo("/user-tenants?limit=1"))
+    wireMockServer.stubFor(get(urlPathMatching("/user-tenants"))
       .willReturn(jsonResponse(new JSONObject()
         .put("userTenants", new JSONObject()
           .put("centralTenantId", CENTRAL_TENANT_ID)
@@ -670,7 +670,7 @@ class KafkaEventListenerTest extends BaseIT {
 
   @SneakyThrows
   void mockConsortiaTenants() {
-    wireMockServer.stubFor(get(urlEqualTo(format("/consortia/%s/tenants", CONSORTIUM_ID)))
+    wireMockServer.stubFor(get(urlMatching(format("/consortia/%s/tenants", CONSORTIUM_ID)))
       .willReturn(jsonResponse(new JSONObject()
         .put("tenants", new JSONArray(Set.of(
           new JSONObject().put("id", "consortium").put("isCentral", "true"),
