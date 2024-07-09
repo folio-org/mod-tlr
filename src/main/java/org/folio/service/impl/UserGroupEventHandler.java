@@ -61,7 +61,7 @@ public class UserGroupEventHandler implements KafkaEventHandler<UserGroup> {
       consortiumId, centralTenantId);
 
     if (!centralTenantId.equals(event.getTenantIdHeaderValue())) {
-      log.info("processUserGroupUpdateEvent: ignoring central tenant event");
+      log.info("processUserGroupUpdateEvent: ignoring non-central tenant event");
       return;
     }
     processUserGroupForAllDataTenants(consortiumId, () -> userGroupService.update(
