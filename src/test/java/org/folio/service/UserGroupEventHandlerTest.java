@@ -34,7 +34,6 @@ class UserGroupEventHandlerTest extends BaseIT {
   private static final String TENANT_ID = "a8b9a084-abbb-4299-be13-9fdc19249928";
   private static final String CONSORTIUM_ID = "785d5c71-399d-4978-bdff-fb88b72d140a";
   private static final String CENTRAL_TENANT_ID = "consortium";
-  private static final String USER_GROUP_ID = "a1070927-53a1-4c3b-86be-f9f32b5bcab3";
 
   @MockBean
   private UserTenantsService userTenantsService;
@@ -108,7 +107,7 @@ class UserGroupEventHandlerTest extends BaseIT {
       verify(userGroupService, times(0)).create(any(UserGroup.class));
     } catch (KafkaEventDeserializationException e) {
       verify(systemUserScopedExecutionService, times(0)).executeAsyncSystemUserScoped(
-        anyString(), any(Runnable.class));;
+        anyString(), any(Runnable.class));
       verify(userGroupService, times(0)).create(any(UserGroup.class));
     }
   }
