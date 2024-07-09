@@ -659,7 +659,7 @@ class KafkaEventListenerTest extends BaseIT {
   }
 
   @SneakyThrows
-  void mockUserTenants() {
+  private static void mockUserTenants() {
     wireMockServer.stubFor(get(urlPathMatching("/user-tenants"))
       .willReturn(jsonResponse(new JSONObject()
         .put("userTenants", new JSONObject()
@@ -669,7 +669,7 @@ class KafkaEventListenerTest extends BaseIT {
   }
 
   @SneakyThrows
-  void mockConsortiaTenants() {
+  private static void mockConsortiaTenants() {
     wireMockServer.stubFor(get(urlMatching(format("/consortia/%s/tenants", CONSORTIUM_ID)))
       .willReturn(jsonResponse(new JSONObject()
         .put("tenants", new JSONArray(Set.of(
