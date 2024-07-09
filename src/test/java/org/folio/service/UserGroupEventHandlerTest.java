@@ -108,7 +108,7 @@ class UserGroupEventHandlerTest extends BaseIT {
       verify(userGroupService, times(0)).create(any(UserGroup.class));
     } catch (KafkaEventDeserializationException e) {
       verify(systemUserScopedExecutionService, times(0)).executeAsyncSystemUserScoped(
-        anyString(), any(Runnable.class));;
+        anyString(), any(Runnable.class));
       verify(userGroupService, times(0)).create(any(UserGroup.class));
     }
   }
