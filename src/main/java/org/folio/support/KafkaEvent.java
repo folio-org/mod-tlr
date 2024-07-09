@@ -1,5 +1,6 @@
 package org.folio.support;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.AllArgsConstructor;
@@ -7,6 +8,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
+import lombok.With;
 import lombok.extern.log4j.Log4j2;
 
 @Log4j2
@@ -22,6 +24,10 @@ public class KafkaEvent<T> {
   private long timestamp;
   @ToString.Exclude
   private EventData<T> data;
+
+  @With
+  @JsonIgnore
+  private String tenantIdHeaderValue;
 
   public enum EventType {
     UPDATED, CREATED, DELETED, ALL_DELETED

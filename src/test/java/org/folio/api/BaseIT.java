@@ -35,6 +35,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.messaging.MessageHeaders;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -77,8 +78,14 @@ public class BaseIT {
   protected static final String TENANT_ID_CONSORTIUM = "consortium"; // central tenant
   protected static final String TENANT_ID_UNIVERSITY = "university";
   protected static final String TENANT_ID_COLLEGE = "college";
-
-  private static final String[] KAFKA_TOPICS = { buildTopicName("circulation", "request") };
+  protected static final String REQUEST_KAFKA_TOPIC_NAME =
+    buildTopicName("circulation", "request");
+  protected static final String USER_GROUP_KAFKA_TOPIC_NAME =
+    buildTopicName("users", "userGroup");
+  private static final String[] KAFKA_TOPICS = {
+    REQUEST_KAFKA_TOPIC_NAME,
+    USER_GROUP_KAFKA_TOPIC_NAME
+  };
   private static final int WIRE_MOCK_PORT = TestSocketUtils.findAvailableTcpPort();
   protected static WireMockServer wireMockServer = new WireMockServer(WIRE_MOCK_PORT);
 
@@ -251,6 +258,14 @@ public class BaseIT {
 
   private static String buildTopicName(String env, String tenant, String module, String objectType) {
     return String.format("%s.%s.%s.%s", env, tenant, module, objectType);
+  }
+
+  protected MessageHeaders getMessageHeaders(String tenantName, String tenantId) {
+    Map<String, Object> header = new HashMap<>();
+    header.put(XOkapiHeaders.TENANT, tenantName.getBytes());
+    header.put("folio.tenantId", tenantId);
+
+    return new MessageHeaders(header);
   }
 
 }

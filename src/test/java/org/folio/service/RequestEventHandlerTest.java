@@ -8,26 +8,18 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import org.folio.api.BaseIT;
 import org.folio.listener.kafka.KafkaEventListener;
 import org.folio.repository.EcsTlrRepository;
-import org.folio.service.impl.EcsTlrServiceImpl;
-import org.folio.service.impl.RequestEventHandler;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
 class RequestEventHandlerTest extends BaseIT {
   private static final String REQUEST_UPDATE_EVENT_SAMPLE =
     getMockDataAsString("mockdata/kafka/secondary_request_update_event.json");
-
-  @InjectMocks
-  private RequestEventHandler eventHandler;
-
-  @InjectMocks
-  private EcsTlrServiceImpl ecsTlrService;
 
   @MockBean
   private DcbService dcbService;
@@ -42,7 +34,8 @@ class RequestEventHandlerTest extends BaseIT {
   void handleRequestUpdateTest() {
     when(ecsTlrRepository.findBySecondaryRequestId(any())).thenReturn(Optional.of(getEcsTlrEntity()));
     doNothing().when(dcbService).createLendingTransaction(any());
-    eventListener.handleRequestEvent(REQUEST_UPDATE_EVENT_SAMPLE);
+    eventListener.handleRequestEvent(REQUEST_UPDATE_EVENT_SAMPLE, getMessageHeaders(
+      TENANT_ID_CONSORTIUM, UUID.randomUUID().toString()));
     verify(ecsTlrRepository).findBySecondaryRequestId(any());
   }
 }

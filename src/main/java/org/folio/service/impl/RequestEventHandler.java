@@ -70,7 +70,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
   private void handleRequestUpdateEvent(EcsTlrEntity ecsTlr, KafkaEvent<Request> event) {
     log.debug("handleRequestUpdateEvent:: ecsTlr={}", () -> ecsTlr);
     Request updatedRequest = event.getData().getNewVersion();
-    if (requestMatchesEcsTlr(ecsTlr, updatedRequest, event.getTenant())) {
+    if (requestMatchesEcsTlr(ecsTlr, updatedRequest, event.getTenantIdHeaderValue())) {
       processItemIdUpdate(ecsTlr, updatedRequest);
       updateDcbTransaction(ecsTlr, updatedRequest, event);
     }
