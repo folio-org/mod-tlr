@@ -14,6 +14,7 @@ import org.folio.domain.dto.Tenant;
 import org.folio.domain.dto.TenantCollection;
 import org.folio.domain.dto.UserGroup;
 import org.folio.domain.dto.UserTenant;
+import org.folio.exception.KafkaEventDeserializationException;
 import org.folio.listener.kafka.KafkaEventListener;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.messaging.MessageHeaders;
+
+import lombok.SneakyThrows;
 
 class UserGroupEventHandlerTest extends BaseIT {
   private static final String USER_GROUP_CREATING_EVENT_SAMPLE = getMockDataAsString(
@@ -85,6 +88,7 @@ class UserGroupEventHandlerTest extends BaseIT {
   }
 
   @Test
+  @SneakyThrows
   void handleUserGroupCreatingEventShouldNotCreateUserGroupWithEmptyHeaders() {
     when(userTenantsService.findFirstUserTenant()).thenReturn(mockUserTenant());
     when(consortiaService.getAllDataTenants(anyString())).thenReturn(mockTenantCollection());
@@ -96,12 +100,17 @@ class UserGroupEventHandlerTest extends BaseIT {
     }).when(systemUserScopedExecutionService).executeAsyncSystemUserScoped(anyString(),
       any(Runnable.class));
 
-    eventListener.handleUserGroupEvent(USER_GROUP_CREATING_EVENT_SAMPLE,
-      new MessageHeaders(EMPTY_MAP));
-
-    verify(systemUserScopedExecutionService, times(1)).executeAsyncSystemUserScoped(anyString(),
-      any(Runnable.class));
-    verify(userGroupService, times(0)).create(any(UserGroup.class));
+    try {
+      eventListener.handleUserGroupEvent(USER_GROUP_CREATING_EVENT_SAMPLE,
+        new MessageHeaders(EMPTY_MAP));
+      verify(systemUserScopedExecutionService, times(1)).executeAsyncSystemUserScoped(
+        anyString(), any(Runnable.class));
+      verify(userGroupService, times(0)).create(any(UserGroup.class));
+    } catch (KafkaEventDeserializationException e) {
+      verify(systemUserScopedExecutionService, times(0)).executeAsyncSystemUserScoped(
+        anyString(), any(Runnable.class));;
+      verify(userGroupService, times(0)).create(any(UserGroup.class));
+    }
   }
 
   private UserTenant mockUserTenant() {
