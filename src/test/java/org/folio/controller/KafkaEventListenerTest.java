@@ -2,17 +2,23 @@ package org.folio.controller;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.notFound;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.put;
 import static com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
+import static java.lang.String.format;
 import static java.util.UUID.randomUUID;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.folio.domain.dto.Request.StatusEnum.CLOSED_CANCELLED;
 import static org.folio.domain.dto.Request.StatusEnum.OPEN_IN_TRANSIT;
 import static org.folio.domain.dto.Request.StatusEnum.OPEN_NOT_YET_FILLED;
+import static org.folio.support.KafkaEvent.EventType.CREATED;
 import static org.folio.support.KafkaEvent.EventType.UPDATED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -21,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -39,11 +46,14 @@ import org.folio.domain.dto.RequestItem;
 import org.folio.domain.dto.RequestRequester;
 import org.folio.domain.dto.TransactionStatus;
 import org.folio.domain.dto.TransactionStatusResponse;
+import org.folio.domain.dto.UserGroup;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.spring.integration.XOkapiHeaders;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.folio.support.KafkaEvent;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -62,8 +72,8 @@ class KafkaEventListenerTest extends BaseIT {
     ECS_REQUEST_TRANSACTIONS_URL + "/" + UUID_PATTERN;
   private static final String DCB_TRANSACTION_STATUS_URL_PATTERN = "/transactions/%s/status";
   private static final String DCB_TRANSACTIONS_URL_PATTERN =
-    String.format(DCB_TRANSACTION_STATUS_URL_PATTERN, UUID_PATTERN);
-  private static final String REQUEST_TOPIC_NAME = buildTopicName("circulation", "request");
+    format(DCB_TRANSACTION_STATUS_URL_PATTERN, UUID_PATTERN);
+  private static final String USER_GROUPS_URL_PATTERN = "/groups";
   private static final String CONSUMER_GROUP_ID = "folio-mod-tlr-group";
 
   private static final UUID INSTANCE_ID = randomUUID();
@@ -79,6 +89,7 @@ class KafkaEventListenerTest extends BaseIT {
   private static final String PRIMARY_REQUEST_TENANT_ID = TENANT_ID_CONSORTIUM;
   private static final String SECONDARY_REQUEST_TENANT_ID = TENANT_ID_COLLEGE;
   private static final String CENTRAL_TENANT_ID = TENANT_ID_CONSORTIUM;
+  private static final UUID CONSORTIUM_ID = randomUUID();
 
   @Autowired
   private EcsTlrRepository ecsTlrRepository;
@@ -107,7 +118,7 @@ class KafkaEventListenerTest extends BaseIT {
     assertNull(initialEcsTlr.getItemId());
 
     KafkaEvent<Request> event = buildSecondaryRequestUpdateEvent(oldRequestStatus, newRequestStatus);
-    publishEventAndWait(SECONDARY_REQUEST_TENANT_ID, REQUEST_TOPIC_NAME, event);
+    publishEventAndWait(SECONDARY_REQUEST_TENANT_ID, REQUEST_KAFKA_TOPIC_NAME, event);
 
     EcsTlrEntity updatedEcsTlr = getEcsTlr(ECS_TLR_ID);
     assertEquals(ITEM_ID, updatedEcsTlr.getItemId());
@@ -137,7 +148,7 @@ class KafkaEventListenerTest extends BaseIT {
     assertNotNull(initialEcsTlr.getItemId());
 
     KafkaEvent<Request> event = buildSecondaryRequestUpdateEvent(oldRequestStatus, newRequestStatus);
-    publishEventAndWait(SECONDARY_REQUEST_TENANT_ID, REQUEST_TOPIC_NAME, event);
+    publishEventAndWait(SECONDARY_REQUEST_TENANT_ID, REQUEST_KAFKA_TOPIC_NAME, event);
 
     EcsTlrEntity updatedEcsTlr = getEcsTlr(ECS_TLR_ID);
     UUID transactionId = updatedEcsTlr.getSecondaryRequestDcbTransactionId();
@@ -164,7 +175,7 @@ class KafkaEventListenerTest extends BaseIT {
     assertNotNull(initialEcsTlr.getItemId());
 
     KafkaEvent<Request> event = buildPrimaryRequestUpdateEvent(oldRequestStatus, newRequestStatus);
-    publishEventAndWait(PRIMARY_REQUEST_TENANT_ID, REQUEST_TOPIC_NAME, event);
+    publishEventAndWait(PRIMARY_REQUEST_TENANT_ID, REQUEST_KAFKA_TOPIC_NAME, event);
 
     EcsTlrEntity updatedEcsTlr = getEcsTlr(ECS_TLR_ID);
     UUID transactionId = updatedEcsTlr.getPrimaryRequestDcbTransactionId();
@@ -178,7 +189,7 @@ class KafkaEventListenerTest extends BaseIT {
   void shouldNotUpdateDcbTransactionUponRequestUpdateWhenTransactionStatusWouldNotChange() {
     mockDcb(TransactionStatusResponse.StatusEnum.OPEN, TransactionStatusResponse.StatusEnum.OPEN);
     EcsTlrEntity ecsTlr = createEcsTlr(buildEcsTlrWithItemId());
-    publishEventAndWait(SECONDARY_REQUEST_TENANT_ID, REQUEST_TOPIC_NAME,
+    publishEventAndWait(SECONDARY_REQUEST_TENANT_ID, REQUEST_KAFKA_TOPIC_NAME,
       buildSecondaryRequestUpdateEvent());
 
     EcsTlrEntity updatedEcsTlr = getEcsTlr(ecsTlr.getId());
@@ -200,7 +211,7 @@ class KafkaEventListenerTest extends BaseIT {
     assertNotNull(initialEcsTlr.getItemId());
 
     KafkaEvent<Request> event = buildSecondaryRequestUpdateEvent(oldRequestStatus, newRequestStatus);
-    publishEventAndWait(SECONDARY_REQUEST_TENANT_ID, REQUEST_TOPIC_NAME, event);
+    publishEventAndWait(SECONDARY_REQUEST_TENANT_ID, REQUEST_KAFKA_TOPIC_NAME, event);
 
     verifyThatNoDcbTransactionsWereCreated();
     verifyThatDcbTransactionStatusWasNotRetrieved();
@@ -219,7 +230,7 @@ class KafkaEventListenerTest extends BaseIT {
     assertNotNull(initialEcsTlr.getItemId());
 
     KafkaEvent<Request> event = buildPrimaryRequestUpdateEvent(oldRequestStatus, newRequestStatus);
-    publishEventAndWait(PRIMARY_REQUEST_TENANT_ID, REQUEST_TOPIC_NAME, event);
+    publishEventAndWait(PRIMARY_REQUEST_TENANT_ID, REQUEST_KAFKA_TOPIC_NAME, event);
 
     verifyThatNoDcbTransactionsWereCreated();
     verifyThatDcbTransactionStatusWasNotRetrieved();
@@ -233,7 +244,7 @@ class KafkaEventListenerTest extends BaseIT {
     wireMockServer.stubFor(WireMock.get(urlMatching(DCB_TRANSACTIONS_URL_PATTERN))
       .willReturn(notFound()));
 
-    publishEventAndWait(SECONDARY_REQUEST_TENANT_ID, REQUEST_TOPIC_NAME,
+    publishEventAndWait(SECONDARY_REQUEST_TENANT_ID, REQUEST_KAFKA_TOPIC_NAME,
       buildSecondaryRequestUpdateEvent());
 
     UUID transactionId = ecsTlr.getSecondaryRequestDcbTransactionId();
@@ -294,9 +305,84 @@ class KafkaEventListenerTest extends BaseIT {
       ));
   }
 
+  @Test
+  void shouldCloneNewPatronGroupFromCentralTenantToNonCentralTenants() {
+    wireMockServer.stubFor(post(urlMatching(USER_GROUPS_URL_PATTERN))
+      .willReturn(jsonResponse("", HttpStatus.SC_CREATED)));
+
+    mockUserTenants();
+    mockConsortiaTenants();
+
+    KafkaEvent<UserGroup> event = buildUserGroupCreateEvent("new-user-group");
+
+    publishEventAndWait(CENTRAL_TENANT_ID, USER_GROUP_KAFKA_TOPIC_NAME, event);
+
+    var newUserGroup = event.getData().getNewVersion();
+
+    wireMockServer.verify(1, postRequestedFor(urlMatching(USER_GROUPS_URL_PATTERN))
+      .withRequestBody(equalToJson(asJsonString(newUserGroup)))
+      .withHeader(XOkapiHeaders.TENANT, equalTo("university")));
+    wireMockServer.verify(1, postRequestedFor(urlMatching(USER_GROUPS_URL_PATTERN))
+      .withRequestBody(equalToJson(asJsonString(newUserGroup)))
+      .withHeader(XOkapiHeaders.TENANT, equalTo("college")));
+    wireMockServer.verify(0, postRequestedFor(urlMatching(USER_GROUPS_URL_PATTERN))
+      .withHeader(XOkapiHeaders.TENANT, equalTo("consortium")));
+  }
+
+  @Test
+  void shouldUpdatePatronGroupInNonCentralTenantsWhenUpdatedInCentralTenant() {
+    var userGroupId = randomUUID();
+    var userGroupUpdateUrlPattern = format("%s/%s", USER_GROUPS_URL_PATTERN, userGroupId);
+    wireMockServer.stubFor(put(urlMatching(userGroupUpdateUrlPattern))
+      .willReturn(jsonResponse("", HttpStatus.SC_CREATED)));
+
+    mockUserTenants();
+    mockConsortiaTenants();
+
+    KafkaEvent<UserGroup> event = buildUserGroupUpdateEvent(userGroupId, "old-user-group",
+      "new-user-group");
+
+    publishEventAndWait(CENTRAL_TENANT_ID, USER_GROUP_KAFKA_TOPIC_NAME, event);
+
+    var updatedUserGroup = event.getData().getNewVersion();
+
+    wireMockServer.verify(1, putRequestedFor(urlMatching(userGroupUpdateUrlPattern))
+      .withRequestBody(equalToJson(asJsonString(updatedUserGroup)))
+      .withHeader(XOkapiHeaders.TENANT, equalTo("university")));
+    wireMockServer.verify(1, putRequestedFor(urlMatching(userGroupUpdateUrlPattern))
+      .withRequestBody(equalToJson(asJsonString(updatedUserGroup)))
+      .withHeader(XOkapiHeaders.TENANT, equalTo("college")));
+    wireMockServer.verify(0, putRequestedFor(urlMatching(userGroupUpdateUrlPattern))
+      .withHeader(XOkapiHeaders.TENANT, equalTo("consortium")));
+  }
+
+  @Test
+  void shouldIgnoreUserGroupEventsReceivedFromNonCentralTenants() {
+    wireMockServer.stubFor(post(urlMatching(USER_GROUPS_URL_PATTERN))
+      .willReturn(jsonResponse("", HttpStatus.SC_CREATED)));
+
+    var userGroupId = randomUUID();
+    var userGroupUpdateUrlPattern = format("%s/%s", USER_GROUPS_URL_PATTERN, userGroupId);
+    wireMockServer.stubFor(put(urlMatching(userGroupUpdateUrlPattern))
+      .willReturn(jsonResponse("", HttpStatus.SC_CREATED)));
+
+    mockUserTenants();
+    mockConsortiaTenants();
+
+    KafkaEvent<UserGroup> createEvent = buildUserGroupCreateEvent(TENANT_ID_COLLEGE, "new-user-group-1");
+    publishEventAndWait(TENANT_ID_COLLEGE, USER_GROUP_KAFKA_TOPIC_NAME, createEvent);
+
+    KafkaEvent<UserGroup> updateEvent = buildUserGroupUpdateEvent(TENANT_ID_UNIVERSITY, userGroupId, "old-user-group-2",
+      "new-user-group-2");
+    publishEventAndWait(TENANT_ID_UNIVERSITY, USER_GROUP_KAFKA_TOPIC_NAME, updateEvent);
+
+    wireMockServer.verify(0, putRequestedFor(urlMatching(USER_GROUPS_URL_PATTERN)));
+    wireMockServer.verify(0, putRequestedFor(urlMatching(userGroupUpdateUrlPattern)));
+  }
+
   void checkThatEventIsIgnored(KafkaEvent<Request> event) {
     EcsTlrEntity initialEcsTlr = createEcsTlr(buildEcsTlrWithoutItemId());
-    publishEventAndWait(PRIMARY_REQUEST_TENANT_ID, REQUEST_TOPIC_NAME, event);
+    publishEventAndWait(PRIMARY_REQUEST_TENANT_ID, REQUEST_KAFKA_TOPIC_NAME, event);
 
     EcsTlrEntity ecsTlr = getEcsTlr(initialEcsTlr.getId());
     assertNull(ecsTlr.getItemId());
@@ -345,7 +431,7 @@ class KafkaEventListenerTest extends BaseIT {
     TransactionStatusResponse.StatusEnum newStatus) {
 
     wireMockServer.verify(putRequestedFor(
-      urlMatching(String.format(DCB_TRANSACTION_STATUS_URL_PATTERN, transactionId)))
+      urlMatching(format(DCB_TRANSACTION_STATUS_URL_PATTERN, transactionId)))
       .withHeader(HEADER_TENANT, equalTo(tenant))
       .withRequestBody(equalToJson(asJsonString(
         new TransactionStatus().status(TransactionStatus.StatusEnum.valueOf(newStatus.name()))))));
@@ -357,7 +443,7 @@ class KafkaEventListenerTest extends BaseIT {
 
   private static void verifyThatDcbTransactionStatusWasRetrieved(UUID transactionId, String tenant) {
     wireMockServer.verify(getRequestedFor(
-      urlMatching(String.format(DCB_TRANSACTION_STATUS_URL_PATTERN, transactionId)))
+      urlMatching(format(DCB_TRANSACTION_STATUS_URL_PATTERN, transactionId)))
       .withHeader(HEADER_TENANT, equalTo(tenant)));
   }
 
@@ -427,6 +513,32 @@ class KafkaEventListenerTest extends BaseIT {
     return buildSecondaryRequestUpdateEvent(OPEN_NOT_YET_FILLED, OPEN_IN_TRANSIT);
   }
 
+  private static KafkaEvent<UserGroup> buildUserGroupCreateEvent(String name) {
+    return buildUserGroupCreateEvent(CENTRAL_TENANT_ID, name);
+  }
+
+  private static KafkaEvent<UserGroup> buildUserGroupCreateEvent(String tenantId, String name) {
+    return buildCreateEvent(tenantId, buildUserGroup(name));
+  }
+
+  private static KafkaEvent<UserGroup> buildUserGroupUpdateEvent(UUID id, String oldName,
+    String newName) {
+
+    return buildUserGroupUpdateEvent(CENTRAL_TENANT_ID, id, oldName, newName);
+  }
+
+  private static KafkaEvent<UserGroup> buildUserGroupUpdateEvent(String tenantId, UUID id,
+    String oldName, String newName) {
+
+    return buildUpdateEvent(tenantId,
+      buildUserGroup(id, oldName),
+      buildUserGroup(id, newName));
+  }
+
+  private static <T> KafkaEvent<T> buildCreateEvent(String tenant, T newVersion) {
+    return buildEvent(tenant, CREATED, null, newVersion);
+  }
+
   private static <T> KafkaEvent<T> buildUpdateEvent(String tenant, T oldVersion, T newVersion) {
     return buildEvent(tenant, UPDATED, oldVersion, newVersion);
   }
@@ -487,6 +599,19 @@ class KafkaEventListenerTest extends BaseIT {
       .pickupServicePointId(PICKUP_SERVICE_POINT_ID.toString());
   }
 
+  private static UserGroup buildUserGroup(String name) {
+    return buildUserGroup(randomUUID(), name);
+  }
+
+  private static UserGroup buildUserGroup(UUID id, String name) {
+    return new UserGroup()
+      .id(id.toString())
+      .group(name)
+      .desc("description")
+      .expirationOffsetInDays(0)
+      .source("source");
+  }
+
   private static EcsTlrEntity buildEcsTlrWithItemId() {
     return EcsTlrEntity.builder()
       .id(ECS_TLR_ID)
@@ -516,7 +641,7 @@ class KafkaEventListenerTest extends BaseIT {
     // mock DCB transaction POST response
     TransactionStatusResponse mockPostEcsDcbTransactionResponse = new TransactionStatusResponse()
       .status(TransactionStatusResponse.StatusEnum.CREATED);
-    wireMockServer.stubFor(WireMock.post(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
+    wireMockServer.stubFor(post(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
       .willReturn(jsonResponse(mockPostEcsDcbTransactionResponse, HttpStatus.SC_CREATED)));
 
     // mock DCB transaction GET response
@@ -531,6 +656,27 @@ class KafkaEventListenerTest extends BaseIT {
       .status(newTransactionStatus);
     wireMockServer.stubFor(WireMock.put(urlMatching(DCB_TRANSACTIONS_URL_PATTERN))
       .willReturn(jsonResponse(mockPutEcsDcbTransactionResponse, HttpStatus.SC_OK)));
+  }
+
+  @SneakyThrows
+  void mockUserTenants() {
+    wireMockServer.stubFor(get(urlPathMatching("/user-tenants"))
+      .willReturn(jsonResponse(new JSONObject()
+        .put("userTenants", new JSONObject()
+          .put("centralTenantId", CENTRAL_TENANT_ID)
+          .put("consortiumId", CONSORTIUM_ID))
+        .toString(), HttpStatus.SC_OK)));
+  }
+
+  @SneakyThrows
+  void mockConsortiaTenants() {
+    wireMockServer.stubFor(get(urlMatching(format("/consortia/%s/tenants", CONSORTIUM_ID)))
+      .willReturn(jsonResponse(new JSONObject()
+        .put("tenants", new JSONArray(Set.of(
+          new JSONObject().put("id", "consortium").put("isCentral", "true"),
+          new JSONObject().put("id", "university").put("isCentral", "false"),
+          new JSONObject().put("id", "college").put("isCentral", "false")
+        ))).toString(), HttpStatus.SC_OK)));
   }
 
   private EcsTlrEntity createEcsTlr(EcsTlrEntity ecsTlr) {
