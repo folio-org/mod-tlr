@@ -334,7 +334,7 @@ class KafkaEventListenerTest extends BaseIT {
     var userGroupId = randomUUID();
     var userGroupUpdateUrlPattern = format("%s/%s", USER_GROUPS_URL_PATTERN, userGroupId);
     wireMockServer.stubFor(put(urlMatching(userGroupUpdateUrlPattern))
-      .willReturn(jsonResponse("", HttpStatus.SC_CREATED)));
+      .willReturn(jsonResponse("", HttpStatus.SC_NO_CONTENT)));
 
     mockUserTenants();
     mockConsortiaTenants();
@@ -662,9 +662,10 @@ class KafkaEventListenerTest extends BaseIT {
   private static void mockUserTenants() {
     wireMockServer.stubFor(get(urlPathMatching("/user-tenants"))
       .willReturn(jsonResponse(new JSONObject()
-        .put("userTenants", new JSONObject()
+        .put("userTenants", new JSONArray(Set.of(new JSONObject()
           .put("centralTenantId", CENTRAL_TENANT_ID)
-          .put("consortiumId", CONSORTIUM_ID))
+          .put("consortiumId", CONSORTIUM_ID))))
+        .put("totalRecords", 1)
         .toString(), HttpStatus.SC_OK)));
   }
 

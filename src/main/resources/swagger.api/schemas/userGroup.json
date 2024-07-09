@@ -27,7 +27,7 @@
       "$ref": "metadata.json"
     }
   },
-  "additionalProperties": true,
+  "additionalProperties": false,
   "required": [
     "group"
   ]
