@@ -1,6 +1,7 @@
 package org.folio.listener.kafka;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.UserGroup;
@@ -76,23 +77,21 @@ public class KafkaEventListener {
       JavaType eventType = objectMapper.getTypeFactory()
         .constructParametricType(KafkaEvent.class, dataType);
       var kafkaEvent = objectMapper.<KafkaEvent<T>>readValue(eventString, eventType);
-      String tenantId = getHeaderValue(messageHeaders, XOkapiHeaders.TENANT, null);
-      kafkaEvent.setTenantIdHeaderValue(tenantId);
-      return kafkaEvent;
+      return Optional.ofNullable(getHeaderValue(messageHeaders, XOkapiHeaders.TENANT))
+        .map(kafkaEvent::withTenantIdHeaderValue)
+        .orElseThrow(() -> new KafkaEventDeserializationException(
+          "Failed to get tenant ID from message headers"));
     } catch (JsonProcessingException e) {
       log.error("deserialize:: failed to deserialize event", e);
       throw new KafkaEventDeserializationException(e);
     }
   }
 
-  private static String getHeaderValue(MessageHeaders headers, String headerName,
-    String defaultValue) {
-
-    log.debug("getHeaderValue:: headers: {}, headerName: {}, defaultValue: {}", () -> headers,
-      () -> headerName, () -> defaultValue);
+  private static String getHeaderValue(MessageHeaders headers, String headerName) {
+    log.debug("getHeaderValue:: headers: {}, headerName: {}", () -> headers, () -> headerName);
     var headerValue = headers.get(headerName);
     var value = headerValue == null
-      ? defaultValue
+      ? null
       : new String((byte[]) headerValue, StandardCharsets.UTF_8);
     log.info("getHeaderValue:: header {} value is {}", headerName, value);
     return value;

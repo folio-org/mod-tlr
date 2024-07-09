@@ -7,8 +7,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import lombok.ToString;
+import lombok.With;
 import lombok.extern.log4j.Log4j2;
 
 @Log4j2
@@ -25,7 +25,7 @@ public class KafkaEvent<T> {
   @ToString.Exclude
   private EventData<T> data;
 
-  @Setter
+  @With
   @JsonIgnore
   private String tenantIdHeaderValue;
 
