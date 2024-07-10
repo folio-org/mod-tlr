@@ -46,11 +46,12 @@ public class TlrSettingsPublishCoordinatorServiceImpl implements PublishCoordina
       log.info("updateForAllTenants:: tenantIds: {}", () -> tenantIds);
       publicationResponse = consortiaClient.postPublications(consortiumId,
         mapTlrSettingsToPublicationRequest(tlrSettings, tenantIds));
-      log.info("updateForAllTenants:: publicationResponse status: {}",
-        publicationResponse.getStatus());
+      log.info("updateForAllTenants:: publicationResponse id: {}, status: {}",
+        publicationResponse.getId(), publicationResponse.getStatus());
+    } else {
+      log.error("updateForAllTenants:: userTenant was not found");
     }
 
-    log.error("updateForAllTenants:: userTenant was not found");
     return publicationResponse;
   }
 
