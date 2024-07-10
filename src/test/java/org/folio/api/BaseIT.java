@@ -104,7 +104,7 @@ public class BaseIT {
     .configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true)
     .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
   private static final String CENTRAL_TENANT_ID = TENANT_ID_CONSORTIUM;
-  private static final UUID CONSORTIUM_ID = randomUUID();
+  protected static final UUID CONSORTIUM_ID = randomUUID();
 
   @Autowired
   private WebTestClient webClient;

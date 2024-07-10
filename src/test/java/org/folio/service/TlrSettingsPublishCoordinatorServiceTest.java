@@ -1,14 +1,13 @@
 package org.folio.service;
 
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 
 import org.folio.client.feign.ConsortiaClient;
-import org.folio.client.feign.PublishCoordinatorClient;
 import org.folio.domain.dto.PublicationRequest;
 import org.folio.domain.dto.PublicationResponse;
 import org.folio.domain.dto.Tenant;
@@ -28,10 +27,6 @@ class TlrSettingsPublishCoordinatorServiceTest {
 
   @Mock
   private UserTenantsService userTenantsService;
-
-  @Mock
-  private PublishCoordinatorClient publishCoordinatorClient;
-
   @Mock
   private ConsortiaClient consortiaClient;
 
@@ -43,7 +38,8 @@ class TlrSettingsPublishCoordinatorServiceTest {
     when(userTenantsService.findFirstUserTenant()).thenReturn(null);
     tlrSettingsService.updateForAllTenants(new TlrSettings());
 
-    verifyNoInteractions(publishCoordinatorClient);
+    verify(consortiaClient, never()).postPublications(Mockito.anyString(),
+      Mockito.any(PublicationRequest.class));
   }
 
   @Test
@@ -59,9 +55,11 @@ class TlrSettingsPublishCoordinatorServiceTest {
 
     when(userTenantsService.findFirstUserTenant()).thenReturn(userTenant);
     when(consortiaClient.getConsortiaTenants(userTenant.getConsortiumId())).thenReturn(tenantCollection);
-    when(publishCoordinatorClient.publish(Mockito.any(PublicationRequest.class))).thenReturn(new PublicationResponse());
+    when(consortiaClient.postPublications(Mockito.anyString(), Mockito.any(PublicationRequest.class)))
+      .thenReturn(new PublicationResponse());
     tlrSettingsService.updateForAllTenants(new TlrSettings().ecsTlrFeatureEnabled(true));
 
-    verify(publishCoordinatorClient, times(1)).publish(Mockito.any(PublicationRequest.class));
+    verify(consortiaClient, times(1)).postPublications(
+      Mockito.anyString(), Mockito.any(PublicationRequest.class));
   }
 }

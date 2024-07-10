@@ -36,7 +36,7 @@ import lombok.SneakyThrows;
 
 @ExtendWith(MockitoExtension.class)
 public class TlrSettingsPublishCoordinatorTest extends BaseIT {
-  public static final String PUBLICATIONS_URL_PATTERN = "/publications";
+  public static final String PUBLICATIONS_URL_PATTERN = "/consortia/%s/publications";
   @Mock
   private TlrSettingsRepository tlrSettingsRepository;
   @Spy
@@ -59,7 +59,7 @@ public class TlrSettingsPublishCoordinatorTest extends BaseIT {
   @Test
   void shouldPublishUpdatedTlrSettings() {
     TlrSettingsEntity tlrSettingsEntity = new TlrSettingsEntity(UUID.randomUUID(), true);
-    wireMockServer.stubFor(post(urlMatching(PUBLICATIONS_URL_PATTERN))
+    wireMockServer.stubFor(post(urlMatching(String.format(PUBLICATIONS_URL_PATTERN, CONSORTIUM_ID)))
       .willReturn(okJson( "{\"id\": \"" + UUID.randomUUID() + "\",\"status\": \"IN_PROGRESS\"}")));
     when(tlrSettingsRepository.findAll(any(PageRequest.class)))
       .thenReturn(new PageImpl<>(List.of(tlrSettingsEntity)));
@@ -78,7 +78,7 @@ public class TlrSettingsPublishCoordinatorTest extends BaseIT {
     tlrSettings.ecsTlrFeatureEnabled(true);
     tlrSettingsController.putTlrSettings(tlrSettings);
 
-    wireMockServer.verify(1, postRequestedFor(urlMatching(PUBLICATIONS_URL_PATTERN))
+    wireMockServer.verify(1, postRequestedFor(urlMatching(String.format(PUBLICATIONS_URL_PATTERN, CONSORTIUM_ID)))
       .withRequestBody(equalToJson("""
             {
                "url": "/circulation/settings",

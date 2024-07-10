@@ -7,7 +7,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.folio.client.feign.ConsortiaClient;
-import org.folio.client.feign.PublishCoordinatorClient;
 import org.folio.domain.dto.PublicationRequest;
 import org.folio.domain.dto.PublicationResponse;
 import org.folio.domain.dto.Tenant;
@@ -28,7 +27,6 @@ public class TlrSettingsPublishCoordinatorServiceImpl implements PublishCoordina
   private static final String POST_METHOD = "POST";
   private static final String ECS_TLR_FEATURE = "ecsTlrFeature";
   private final UserTenantsService userTenantsService;
-  private final PublishCoordinatorClient publishCoordinatorClient;
   private final ConsortiaClient consortiaClient;
 
   @Override
@@ -37,15 +35,16 @@ public class TlrSettingsPublishCoordinatorServiceImpl implements PublishCoordina
     UserTenant firstUserTenant = userTenantsService.findFirstUserTenant();
     PublicationResponse publicationResponse = null;
     if (firstUserTenant != null) {
+      String consortiumId = firstUserTenant.getConsortiumId();
       log.info("updateForAllTenants:: firstUserTenant: {}", () -> firstUserTenant);
-      Set<String> tenantIds = consortiaClient.getConsortiaTenants(firstUserTenant.getConsortiumId())
+      Set<String> tenantIds = consortiaClient.getConsortiaTenants(consortiumId)
         .getTenants()
         .stream()
         .filter(tenant -> !tenant.getIsCentral())
         .map(Tenant::getId)
         .collect(Collectors.toSet());
       log.info("updateForAllTenants:: tenantIds: {}", () -> tenantIds);
-      publicationResponse = publishCoordinatorClient.publish(
+      publicationResponse = consortiaClient.postPublications(consortiumId,
         mapTlrSettingsToPublicationRequest(tlrSettings, tenantIds));
       log.info("updateForAllTenants:: publicationResponse status: {}",
         publicationResponse.getStatus());
@@ -61,10 +60,13 @@ public class TlrSettingsPublishCoordinatorServiceImpl implements PublishCoordina
     Map<String, Object> payloadMap = new HashMap<>();
     payloadMap.put("name", ECS_TLR_FEATURE);
     payloadMap.put("value", Collections.singletonMap("enabled", tlrSettings.getEcsTlrFeatureEnabled()));
-    return new PublicationRequest()
+    PublicationRequest publicationRequest = new PublicationRequest()
       .url(CIRCULATION_SETTINGS_URL)
       .method(POST_METHOD)
       .tenants(tenantIds)
       .payload(payloadMap);
+    log.info("mapTlrSettingsToPublicationRequest:: result: {}", () -> publicationRequest);
+
+    return publicationRequest;
   }
 }
