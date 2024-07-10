@@ -79,11 +79,13 @@ public class TlrSettingsPublishCoordinatorTest extends BaseIT {
     tlrSettingsController.putTlrSettings(tlrSettings);
 
     wireMockServer.verify(1, postRequestedFor(urlMatching(PUBLICATIONS_URL_PATTERN))
-      .withRequestBody(equalToJson("{\n" +
-        "    \"url\": \"/circulation/settings\",\n" +
-        "    \"method\": \"POST\",\n" +
-        "    \"tenants\": [\"college\", \"university\"],\n" +
-        "    \"payload\": {\"name\":\"ecsTlrFeature\",\"value\":{\"enabled\":true}}\n" +
-        "}")));
+      .withRequestBody(equalToJson("""
+            {
+               "url": "/circulation/settings",
+               "method": "POST",
+               "tenants": ["college", "university"],
+               "payload": {"name":"ecsTlrFeature","value":{"enabled":true}}
+            }
+        """)));
   }
 }
