@@ -1,7 +1,7 @@
 package org.folio.service;
 
-import java.util.Optional;
+import org.folio.domain.dto.PublicationResponse;
 
 public interface PublishCoordinatorService <T> {
-  Optional<T> updateForAllTenants(T t);
+  PublicationResponse updateForAllTenants(T t);
 }

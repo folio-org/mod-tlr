@@ -1,5 +1,11 @@
 package org.folio.api;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static java.lang.String.format;
+import static java.util.UUID.randomUUID;
 import static java.util.stream.Collectors.toMap;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -9,9 +15,11 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.http.HttpStatus;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.KafkaAdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -23,6 +31,8 @@ import org.folio.spring.scope.FolioExecutionContextSetter;
 import org.folio.tenant.domain.dto.TenantAttributes;
 import org.folio.util.TestUtils;
 import org.jetbrains.annotations.NotNull;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -93,6 +103,8 @@ public class BaseIT {
     .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
     .configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true)
     .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+  private static final String CENTRAL_TENANT_ID = TENANT_ID_CONSORTIUM;
+  private static final UUID CONSORTIUM_ID = randomUUID();
 
   @Autowired
   private WebTestClient webClient;
@@ -268,4 +280,28 @@ public class BaseIT {
     return new MessageHeaders(header);
   }
 
+  @SneakyThrows
+  protected void mockUserTenants() {
+    wireMockServer.stubFor(get(urlEqualTo("/user-tenants?limit=1"))
+      .willReturn(okJson(new JSONObject()
+        .put("totalRecords", 1)
+        .put("userTenants", new JSONArray()
+          .put(new JSONObject()
+            .put("centralTenantId", CENTRAL_TENANT_ID)
+            .put("consortiumId", CONSORTIUM_ID)
+            .put("userId", UUID.randomUUID().toString())
+            .put("tenantId", UUID.randomUUID().toString())))
+        .toString())));
+  }
+
+  @SneakyThrows
+  protected void mockConsortiaTenants() {
+    wireMockServer.stubFor(get(urlEqualTo(format("/consortia/%s/tenants", CONSORTIUM_ID)))
+      .willReturn(jsonResponse(new JSONObject()
+        .put("tenants", new JSONArray(Set.of(
+          new JSONObject().put("id", "consortium").put("isCentral", "true"),
+          new JSONObject().put("id", "university").put("isCentral", "false"),
+          new JSONObject().put("id", "college").put("isCentral", "false")
+        ))).toString(), HttpStatus.SC_OK)));
+  }
 }
