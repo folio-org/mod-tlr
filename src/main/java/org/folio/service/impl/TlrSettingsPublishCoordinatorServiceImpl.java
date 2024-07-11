@@ -66,7 +66,10 @@ public class TlrSettingsPublishCoordinatorServiceImpl implements PublishCoordina
       .method(POST_METHOD)
       .tenants(tenantIds)
       .payload(payload);
-    log.info("mapTlrSettingsToPublicationRequest:: result: {}", () -> publicationRequest);
+    log.info("mapTlrSettingsToPublicationRequest:: result: url: {}," +
+      "method: {}, tenants: {}, payload: {}", publicationRequest::getUrl,
+      publicationRequest::getMethod, publicationRequest::getTenants,
+      publicationRequest::getPayload);
 
     return publicationRequest;
   }
