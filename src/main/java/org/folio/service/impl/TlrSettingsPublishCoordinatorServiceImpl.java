@@ -1,5 +1,7 @@
 package org.folio.service.impl;
 
+import static java.util.Collections.singletonMap;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -14,6 +16,7 @@ import org.folio.domain.dto.TlrSettings;
 import org.folio.domain.dto.UserTenant;
 import org.folio.service.PublishCoordinatorService;
 import org.folio.service.UserTenantsService;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -60,11 +63,10 @@ public class TlrSettingsPublishCoordinatorServiceImpl implements PublishCoordina
 
     Map<String, Object> payload = new HashMap<>();
     payload.put("name", ECS_TLR_FEATURE);
-    payload.put("value", Collections.singletonMap("enabled", String.valueOf(
-      tlrSettings.getEcsTlrFeatureEnabled())));
+    payload.put("value", singletonMap("enabled", tlrSettings.getEcsTlrFeatureEnabled()));
     PublicationRequest publicationRequest = new PublicationRequest()
       .url(CIRCULATION_SETTINGS_URL)
-      .method(POST_METHOD)
+      .method(HttpMethod.POST.name())
       .tenants(tenantIds)
       .payload(payload);
 
