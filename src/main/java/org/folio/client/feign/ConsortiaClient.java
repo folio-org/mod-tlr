@@ -17,7 +17,7 @@ public interface ConsortiaClient {
   @GetMapping(value = "/{consortiumId}/tenants", produces = MediaType.APPLICATION_JSON_VALUE)
   TenantCollection getConsortiaTenants(@PathVariable String consortiumId);
 
-  @PostMapping(value = "/{consortiumId}/publications")
+  @PostMapping(value = "/{consortiumId}/publications", consumes = MediaType.APPLICATION_JSON_VALUE)
   PublicationResponse postPublications(@PathVariable String consortiumId,
     @RequestBody PublicationRequest publicationRequest);
 }
