@@ -6,7 +6,6 @@ import java.util.stream.Stream;
 
 import org.folio.client.feign.CirculationClient;
 import org.folio.client.feign.SearchClient;
-import org.folio.domain.dto.AllowedServicePointsInner;
 import org.folio.domain.dto.AllowedServicePointsResponse;
 import org.folio.domain.dto.Instance;
 import org.folio.domain.dto.Item;
@@ -29,10 +28,10 @@ public class AllowedServicePointsServiceImpl implements AllowedServicePointsServ
 
   @Override
   public AllowedServicePointsResponse getAllowedServicePoints(RequestOperation operation,
-    String requesterId, String instanceId) {
+    String patronGroupId, String instanceId) {
 
-    log.debug("getAllowedServicePoints:: params: operation={}, requesterId={}, instanceId={}",
-      operation, requesterId, instanceId);
+    log.debug("getAllowedServicePoints:: params: operation={}, patronGroupId={}, instanceId={}",
+      operation, patronGroupId, instanceId);
 
     var searchInstancesResponse = searchClient.searchInstance(instanceId);
     // TODO: make call in parallel
@@ -42,11 +41,11 @@ public class AllowedServicePointsServiceImpl implements AllowedServicePointsServ
       .map(Item::getTenantId)
       .filter(Objects::nonNull)
       .distinct()
-      .anyMatch(tenantId -> checkAvailability(tenantId, operation, requesterId, instanceId));
+      .anyMatch(tenantId -> checkAvailability(tenantId, operation, patronGroupId, instanceId));
 
     if (availableForRequesting) {
       log.info("getAllowedServicePoints:: Available for requesting, proxying call");
-      return circulationClient.allowedServicePointsWithStubItem(requesterId, instanceId,
+      return circulationClient.allowedServicePointsWithStubItem(patronGroupId, instanceId,
         operation.toString().toLowerCase(), true);
     } else {
       log.info("getAllowedServicePoints:: Not available for requesting, returning empty result");
@@ -55,13 +54,13 @@ public class AllowedServicePointsServiceImpl implements AllowedServicePointsServ
   }
 
   private boolean checkAvailability(String tenantId, RequestOperation operation,
-    String requesterId, String instanceId) {
+    String patronGroupId, String instanceId) {
 
-    log.debug("checkAvailability:: params: tenantId={}, operation={}, requesterId={}, instanceId={}",
-      tenantId, operation, requesterId, instanceId);
+    log.debug("checkAvailability:: params: tenantId={}, operation={}, patronGroupId={}, instanceId={}",
+      tenantId, operation, patronGroupId, instanceId);
 
     var allowedServicePointsResponse = executionService.executeSystemUserScoped(tenantId,
-      () -> circulationClient.allowedRoutingServicePoints(requesterId, instanceId,
+      () -> circulationClient.allowedRoutingServicePoints(patronGroupId, instanceId,
         operation.toString().toLowerCase(), true));
 
     var availabilityCheckResult = Stream.of(allowedServicePointsResponse.getHold(),
