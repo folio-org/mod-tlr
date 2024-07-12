@@ -21,7 +21,6 @@ import org.folio.domain.mapper.TlrSettingsMapperImpl;
 import org.folio.repository.TlrSettingsRepository;
 import org.folio.service.PublishCoordinatorService;
 import org.folio.service.impl.TlrSettingsServiceImpl;
-import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,15 +42,13 @@ public class TlrSettingsPublishCoordinatorTest extends BaseIT {
   private TlrSettingsMapper tlrSettingsMapper = new TlrSettingsMapperImpl();
   @Autowired
   private PublishCoordinatorService<TlrSettings> publishCoordinatorService;
-  @Mock
-  private SystemUserScopedExecutionService systemUserScopedExecutionService;
   private TlrSettingsServiceImpl tlrSettingsService;
   private TlrSettingsController tlrSettingsController;
 
   @BeforeEach
   void before() {
     tlrSettingsService = new TlrSettingsServiceImpl(tlrSettingsRepository, tlrSettingsMapper,
-      publishCoordinatorService, systemUserScopedExecutionService);
+      publishCoordinatorService);
     tlrSettingsController = new TlrSettingsController(tlrSettingsService);
   }
 
@@ -65,11 +62,6 @@ public class TlrSettingsPublishCoordinatorTest extends BaseIT {
       .thenReturn(new PageImpl<>(List.of(tlrSettingsEntity)));
     when(tlrSettingsRepository.save(any(TlrSettingsEntity.class)))
       .thenReturn(tlrSettingsEntity);
-    doAnswer(invocation -> {
-      ((Runnable) invocation.getArguments()[1]).run();
-      return null;
-    }).when(systemUserScopedExecutionService).executeAsyncSystemUserScoped(anyString(),
-      any(Runnable.class));
 
     mockUserTenants();
     mockConsortiaTenants();

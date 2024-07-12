@@ -22,7 +22,6 @@ public class TlrSettingsServiceImpl implements TlrSettingsService {
   private final TlrSettingsRepository tlrSettingsRepository;
   private final TlrSettingsMapper tlrSettingsMapper;
   private final PublishCoordinatorService<TlrSettings> publishCoordinatorService;
-  private final SystemUserScopedExecutionService systemUserScopedExecutionService;
   private static final String CENTRAL_TENANT_ID = "consortium";
 
   @Override

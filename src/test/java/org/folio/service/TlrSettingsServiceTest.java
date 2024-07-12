@@ -3,8 +3,6 @@ package org.folio.service;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -20,7 +18,6 @@ import org.folio.domain.mapper.TlrSettingsMapper;
 import org.folio.domain.mapper.TlrSettingsMapperImpl;
 import org.folio.repository.TlrSettingsRepository;
 import org.folio.service.impl.TlrSettingsServiceImpl;
-import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -36,8 +33,6 @@ class TlrSettingsServiceTest {
   private TlrSettingsRepository tlrSettingsRepository;
   @Spy
   private final TlrSettingsMapper tlrSettingsMapper = new TlrSettingsMapperImpl();
-  @Mock
-  private SystemUserScopedExecutionService systemUserScopedExecutionService;
   @Mock
   private PublishCoordinatorService<TlrSettings> publishCoordinatorService;
   @InjectMocks
@@ -71,11 +66,6 @@ class TlrSettingsServiceTest {
       .thenReturn(new PageImpl<>(List.of(tlrSettingsEntity)));
     when(tlrSettingsRepository.save(any(TlrSettingsEntity.class)))
       .thenReturn(tlrSettingsEntity);
-    doAnswer(invocation -> {
-      ((Runnable) invocation.getArguments()[1]).run();
-      return null;
-    }).when(systemUserScopedExecutionService).executeAsyncSystemUserScoped(anyString(),
-      any(Runnable.class));
 
     TlrSettings tlrSettings = new TlrSettings();
     tlrSettings.ecsTlrFeatureEnabled(true);

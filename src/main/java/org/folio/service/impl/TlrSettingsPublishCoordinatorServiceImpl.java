@@ -1,7 +1,5 @@
 package org.folio.service.impl;
 
-import static java.util.Collections.singletonMap;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -19,7 +17,6 @@ import org.folio.service.UserTenantsService;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
@@ -30,7 +27,6 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public class TlrSettingsPublishCoordinatorServiceImpl implements PublishCoordinatorService<TlrSettings> {
   private static final String CIRCULATION_SETTINGS_URL = "/circulation/settings";
-  private static final String POST_METHOD = "POST";
   private static final String ECS_TLR_FEATURE = "ecsTlrFeature";
   private final UserTenantsService userTenantsService;
   private final ConsortiaClient consortiaClient;
@@ -60,22 +56,6 @@ public class TlrSettingsPublishCoordinatorServiceImpl implements PublishCoordina
 
     return publicationResponse;
   }
-
-//  private PublicationRequest mapTlrSettingsToPublicationRequest(TlrSettings tlrSettings,
-//    Set<String> tenantIds) {
-//
-//    Map<String, Object> payload = new HashMap<>();
-//    payload.put("name", ECS_TLR_FEATURE);
-//    payload.put("value", singletonMap("enabled", tlrSettings.getEcsTlrFeatureEnabled()));
-//    PublicationRequest publicationRequest = new PublicationRequest()
-//      .url(CIRCULATION_SETTINGS_URL)
-//      .method(HttpMethod.POST.name())
-//      .tenants(tenantIds)
-//      .payload(payload);
-//
-//    log.info("mapTlrSettingsToPublicationRequest:: result: {}", () -> publicationRequest);
-//    return publicationRequest;
-//  }
 
   private PublicationRequest mapTlrSettingsToPublicationRequest(TlrSettings tlrSettings,
     Set<String> tenantIds) {
