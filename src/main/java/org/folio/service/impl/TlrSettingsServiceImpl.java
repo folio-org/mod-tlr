@@ -46,9 +46,8 @@ public class TlrSettingsServiceImpl implements TlrSettingsService {
         tlrSettingsRepository.save(tlrSettingsMapper.mapDtoToEntity(
           tlrSettings.id(entity.getId().toString())))))
       .map(entity -> {
-        systemUserScopedExecutionService.executeAsyncSystemUserScoped(CENTRAL_TENANT_ID,
-          () -> publishCoordinatorService.updateForAllTenants(entity));
-        return entity;
+        publishCoordinatorService.updateForAllTenants(entity);
+        return tlrSettings;
       });
   }
 }

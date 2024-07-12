@@ -83,12 +83,12 @@ public class TlrSettingsPublishCoordinatorServiceImpl implements PublishCoordina
     Map<String, Object> payloadMap = new HashMap<>();
     payloadMap.put("name", ECS_TLR_FEATURE);
     payloadMap.put("value", Collections.singletonMap("enabled", tlrSettings.getEcsTlrFeatureEnabled()));
-    JsonNode payload = new ObjectMapper().valueToTree(payloadMap);
+
     PublicationRequest publicationRequest = new PublicationRequest()
       .url(CIRCULATION_SETTINGS_URL)
       .method(HttpMethod.POST.name())
       .tenants(tenantIds)
-      .payload(payload);
+      .payload(new ObjectMapper().valueToTree(payloadMap));
 
     log.info("mapTlrSettingsToPublicationRequest:: result: {}", () -> publicationRequest);
 
