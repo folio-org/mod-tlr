@@ -86,7 +86,7 @@ class KafkaEventListenerTest extends BaseIT {
   private static final UUID ITEM_ID = randomUUID();
   private static final UUID REQUESTER_ID = randomUUID();
   private static final UUID PICKUP_SERVICE_POINT_ID = randomUUID();
-  private static final UUID ECS_TLR_ID = UUID.fromString("7391c753-30c8-4587-a733-7faf98057511");
+  private static final UUID ECS_TLR_ID = randomUUID();
   private static final UUID PRIMARY_REQUEST_ID = ECS_TLR_ID;
   private static final UUID SECONDARY_REQUEST_ID = ECS_TLR_ID;
   private static final UUID PRIMARY_REQUEST_DCB_TRANSACTION_ID = randomUUID();
