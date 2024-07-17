@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@FeignClient(name = "request-storage", url = "/request-storage/requests", configuration = FeignClientConfiguration.class)
+@FeignClient(name = "request-storage", url = "request-storage/requests", configuration = FeignClientConfiguration.class)
 public interface RequestStorageClient {
 
   @GetMapping("/{requestId}")
