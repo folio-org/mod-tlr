@@ -40,7 +40,6 @@ import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 
 class EcsTlrApiTest extends BaseIT {
   private static final String TLR_URL = "/tlr/ecs-tlr";
-  private static final String TENANT_HEADER = "x-okapi-tenant";
   private static final String INSTANCE_ID = randomId();
   private static final String INSTANCE_REQUESTS_URL = "/circulation/requests/instances";
   private static final String PATRON_GROUP_ID_SECONDARY = randomId();

@@ -10,4 +10,7 @@ public interface RequestService {
 
   RequestWrapper createSecondaryRequest(Request request, String borrowingTenantId,
     Collection<String> lendingTenantIds);
+
+  Request getRequestFromStorage(String requestId, String tenantId);
+  Request updateRequestInStorage(Request request, String tenantId);
 }

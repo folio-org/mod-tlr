@@ -5,6 +5,7 @@ import static java.lang.String.format;
 import java.util.Collection;
 
 import org.folio.client.feign.CirculationClient;
+import org.folio.client.feign.RequestStorageClient;
 import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.ServicePoint;
@@ -27,6 +28,7 @@ public class RequestServiceImpl implements RequestService {
 
   private final SystemUserScopedExecutionService executionService;
   private final CirculationClient circulationClient;
+  private final RequestStorageClient requestStorageClient;
   private final UserService userService;
   private final ServicePointService servicePointService;
   private final CloningService<User> userCloningService;
@@ -94,6 +96,23 @@ public class RequestServiceImpl implements RequestService {
       request.getInstanceId(), lendingTenantIds);
     log.error("createSecondaryRequest:: {}", errorMessage);
     throw new RequestCreatingException(errorMessage);
+  }
+
+  @Override
+  public Request getRequestFromStorage(String requestId, String tenantId) {
+    log.info("getRequestFromStorage:: getting request {} from storage in tenant {}", requestId, tenantId);
+    return executionService.executeSystemUserScoped(tenantId,
+      () -> requestStorageClient.getRequest(requestId));
+  }
+
+  @Override
+  public Request updateRequestInStorage(Request request, String tenantId) {
+    log.info("updateRequestInStorage:: updating request {} in storage in tenant {}", request::getId,
+      () -> tenantId);
+    log.debug("updateRequestInStorage:: {}", () -> request);
+
+    return executionService.executeSystemUserScoped(tenantId,
+      () -> requestStorageClient.updateRequest(request.getId(), request));
   }
 
   private void cloneRequester(User primaryRequestRequester) {
