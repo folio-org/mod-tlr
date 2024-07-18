@@ -177,7 +177,9 @@ class KafkaEventListenerTest extends BaseIT {
 
     mockDcb(oldTransactionStatus, expectedNewTransactionStatus);
 
+
     Request secondaryRequest = buildSecondaryRequest(OPEN_NOT_YET_FILLED)
+      // custom values in order to trigger change propagation from primary to secondary request
       .requestExpirationDate(Date.from(ZonedDateTime.now().minusDays(1).toInstant()))
       .fulfillmentPreference(Request.FulfillmentPreferenceEnum.DELIVERY)
       .pickupServicePointId(randomId());
@@ -197,6 +199,9 @@ class KafkaEventListenerTest extends BaseIT {
     wireMockServer.stubFor(get(urlMatching(SERVICE_POINTS_URL + "/" + PICKUP_SERVICE_POINT_ID))
       .withHeader(TENANT_HEADER, equalTo(PRIMARY_REQUEST_TENANT_ID))
       .willReturn(jsonResponse(asJsonString(primaryPickupServicePoint), HttpStatus.SC_OK)));
+    wireMockServer.stubFor(get(urlMatching(SERVICE_POINTS_URL + "/" + PICKUP_SERVICE_POINT_ID))
+      .withHeader(TENANT_HEADER, equalTo(SECONDARY_REQUEST_TENANT_ID))
+      .willReturn(notFound())); // to trigger service point cloning
     wireMockServer.stubFor(post(urlMatching(SERVICE_POINTS_URL))
       .withHeader(TENANT_HEADER, equalTo(SECONDARY_REQUEST_TENANT_ID))
       .willReturn(jsonResponse(asJsonString(secondaryPickupServicePoint), HttpStatus.SC_CREATED)));

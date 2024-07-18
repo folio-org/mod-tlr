@@ -221,6 +221,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
         pickupServicePointId);
       secondaryRequest.setPickupServicePointId(pickupServicePointId);
       shouldUpdateSecondaryRequest = true;
+      clonePickupServicePoint(ecsTlr, pickupServicePointId);
     }
 
     if (!shouldUpdateSecondaryRequest) {
@@ -229,15 +230,15 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
     }
 
     log.info("propagateChangesFromPrimaryToSecondaryRequest:: updating secondary request");
-    clonePickupServicePoint(ecsTlr);
     requestService.updateRequestInStorage(secondaryRequest, secondaryRequestTenantId);
+    log.info("propagateChangesFromPrimaryToSecondaryRequest:: secondary request updated");
   }
 
-  private void clonePickupServicePoint(EcsTlrEntity ecsTlr) {
+  private void clonePickupServicePoint(EcsTlrEntity ecsTlr, String pickupServicePointId) {
+    log.info("clonePickupServicePoint:: ensuring that service point {} exists in lending tenant",
+      pickupServicePointId);
     ServicePoint pickupServicePoint = executionService.executeSystemUserScoped(
-      ecsTlr.getPrimaryRequestTenantId(),
-      () -> servicePointService.find(ecsTlr.getPickupServicePointId().toString()));
-
+      ecsTlr.getPrimaryRequestTenantId(), () -> servicePointService.find(pickupServicePointId));
     executionService.executeSystemUserScoped(ecsTlr.getSecondaryRequestTenantId(),
       () -> servicePointCloningService.clone(pickupServicePoint));
   }
