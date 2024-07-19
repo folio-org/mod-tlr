@@ -79,4 +79,25 @@ public class TlrSettingsPublishCoordinatorTest extends BaseIT {
             }
         """)));
   }
+
+  @SneakyThrows
+  @Test
+  void shouldNotPublishUpdatedTlrSettingsIfNoUserTenantsFound() {
+    TlrSettingsEntity tlrSettingsEntity = new TlrSettingsEntity(UUID.randomUUID(), true);
+    wireMockServer.stubFor(post(urlMatching(String.format(PUBLICATIONS_URL_PATTERN, CONSORTIUM_ID)))
+      .willReturn(okJson( "{\"id\": \"" + UUID.randomUUID() + "\",\"status\": \"IN_PROGRESS\"}")));
+    when(tlrSettingsRepository.findAll(any(PageRequest.class)))
+      .thenReturn(new PageImpl<>(List.of(tlrSettingsEntity)));
+    when(tlrSettingsRepository.save(any(TlrSettingsEntity.class)))
+      .thenReturn(tlrSettingsEntity);
+
+    wireMockServer.stubFor(get(urlEqualTo("/user-tenants?limit=1"))
+      .willReturn(okJson("")));
+    mockConsortiaTenants();
+
+    tlrSettingsController.putTlrSettings(new TlrSettings().ecsTlrFeatureEnabled(true));
+
+    wireMockServer.verify(0, postRequestedFor(urlMatching(String.format(
+      PUBLICATIONS_URL_PATTERN, CONSORTIUM_ID))));
+  }
 }
