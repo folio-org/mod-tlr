@@ -1,9 +1,11 @@
 package org.folio.controller;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -19,6 +21,7 @@ import org.folio.domain.mapper.TlrSettingsMapperImpl;
 import org.folio.repository.TlrSettingsRepository;
 import org.folio.service.PublishCoordinatorService;
 import org.folio.service.impl.TlrSettingsServiceImpl;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -39,10 +42,15 @@ public class TlrSettingsPublishCoordinatorTest extends BaseIT {
   private TlrSettingsMapper tlrSettingsMapper = new TlrSettingsMapperImpl();
   @Autowired
   private PublishCoordinatorService<TlrSettings> publishCoordinatorService;
-  private final TlrSettingsServiceImpl tlrSettingsService = new TlrSettingsServiceImpl(
-    tlrSettingsRepository, tlrSettingsMapper, publishCoordinatorService);
-  private final TlrSettingsController tlrSettingsController = new TlrSettingsController(
-    tlrSettingsService);
+  private TlrSettingsServiceImpl tlrSettingsService;
+  private TlrSettingsController tlrSettingsController;
+
+  @BeforeEach
+  void before() {
+    tlrSettingsService = new TlrSettingsServiceImpl(tlrSettingsRepository, tlrSettingsMapper,
+      publishCoordinatorService);
+    tlrSettingsController = new TlrSettingsController(tlrSettingsService);
+  }
 
   @SneakyThrows
   @Test
