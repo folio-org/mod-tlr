@@ -33,31 +33,30 @@ public class TlrSettingsPublishCoordinatorServiceImpl implements PublishCoordina
 
   @Override
   public PublicationResponse updateForAllTenants(TlrSettings tlrSettings) {
-    log.debug("updateForAllTenants:: parameters: {} ", () -> tlrSettings);
+    log.debug("updateForAllTenants:: parameters: tlrSettings: {} ", () -> tlrSettings);
     UserTenant firstUserTenant = userTenantsService.findFirstUserTenant();
-    PublicationResponse publicationResponse = null;
-    if (firstUserTenant != null) {
-      String consortiumId = firstUserTenant.getConsortiumId();
-      log.info("updateForAllTenants:: firstUserTenant: {}", () -> firstUserTenant);
-      Set<String> tenantIds = consortiaClient.getConsortiaTenants(consortiumId)
-        .getTenants()
-        .stream()
-        .filter(tenant -> !tenant.getIsCentral())
-        .map(Tenant::getId)
-        .collect(Collectors.toSet());
-      log.info("updateForAllTenants:: tenantIds: {}", () -> tenantIds);
-      publicationResponse = consortiaClient.postPublications(consortiumId,
-        mapTlrSettingsToPublicationRequest(tlrSettings, tenantIds));
-      log.info("updateForAllTenants:: publicationResponse id: {}, status: {}",
-        publicationResponse.getId(), publicationResponse.getStatus());
-    } else {
+    if (firstUserTenant == null) {
       log.error("updateForAllTenants:: userTenant was not found");
+      return null;
     }
+    String consortiumId = firstUserTenant.getConsortiumId();
+    log.info("updateForAllTenants:: found consortiumId: {}", consortiumId);
+    Set<String> tenantIds = consortiaClient.getConsortiaTenants(consortiumId)
+      .getTenants()
+      .stream()
+      .filter(tenant -> !tenant.getIsCentral())
+      .map(Tenant::getId)
+      .collect(Collectors.toSet());
+    log.info("updateForAllTenants:: tenantIds: {}", () -> tenantIds);
+    PublicationResponse publicationResponse = consortiaClient.postPublications(consortiumId,
+      mapTlrSettingsToPublicationRequest(tlrSettings, tenantIds));
+    log.info("updateForAllTenants:: publicationResponse id: {}, status: {}",
+      publicationResponse::getId, publicationResponse::getStatus);
 
     return publicationResponse;
   }
 
-  private PublicationRequest mapTlrSettingsToPublicationRequest(TlrSettings tlrSettings,
+  private static PublicationRequest mapTlrSettingsToPublicationRequest(TlrSettings tlrSettings,
     Set<String> tenantIds) {
 
     Map<String, Object> payloadMap = new HashMap<>();

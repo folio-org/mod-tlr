@@ -15,5 +15,3 @@ dcb.ecs-request.transactions.post
 circulation.requests.allowed-service-points.get
 dcb.transactions.get
 dcb.transactions.put
-consortia.publications.item.post
-circulation.settings.item.post

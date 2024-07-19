@@ -3,11 +3,12 @@ package org.folio.service.impl;
 import java.util.Optional;
 
 import org.folio.domain.dto.TlrSettings;
+import org.folio.domain.entity.TlrSettingsEntity;
 import org.folio.domain.mapper.TlrSettingsMapper;
 import org.folio.repository.TlrSettingsRepository;
 import org.folio.service.PublishCoordinatorService;
 import org.folio.service.TlrSettingsService;
-import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
@@ -22,15 +23,12 @@ public class TlrSettingsServiceImpl implements TlrSettingsService {
   private final TlrSettingsRepository tlrSettingsRepository;
   private final TlrSettingsMapper tlrSettingsMapper;
   private final PublishCoordinatorService<TlrSettings> publishCoordinatorService;
-  private static final String CENTRAL_TENANT_ID = "consortium";
 
   @Override
   public Optional<TlrSettings> getTlrSettings() {
     log.debug("getTlrSettings:: ");
 
-    return tlrSettingsRepository.findAll(PageRequest.of(0, 1))
-      .stream()
-      .findFirst()
+    return findTlrSettings()
       .map(tlrSettingsMapper::mapEntityToDto);
   }
 
@@ -38,15 +36,20 @@ public class TlrSettingsServiceImpl implements TlrSettingsService {
   public Optional<TlrSettings> updateTlrSettings(TlrSettings tlrSettings) {
     log.debug("updateTlrSettings:: parameters: {} ", () -> tlrSettings);
 
-    return tlrSettingsRepository.findAll(PageRequest.of(0, 1))
-      .stream()
-      .findFirst()
+    return findTlrSettings()
       .map(entity -> tlrSettingsMapper.mapEntityToDto(
         tlrSettingsRepository.save(tlrSettingsMapper.mapDtoToEntity(
           tlrSettings.id(entity.getId().toString())))))
       .map(entity -> {
         publishCoordinatorService.updateForAllTenants(entity);
-        return tlrSettings;
+        return entity;
       });
+  }
+
+  @NotNull
+  private Optional<TlrSettingsEntity> findTlrSettings() {
+    return tlrSettingsRepository.findAll(PageRequest.of(0, 1))
+      .stream()
+      .findFirst();
   }
 }
