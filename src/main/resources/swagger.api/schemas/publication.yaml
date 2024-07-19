@@ -28,7 +28,7 @@ PublicationResponse:
   properties:
     id:
       description: id of publication record
-      $ref: "common.yaml#/uuid"
+      $ref: "uuid.yaml"
     status:
       type: string
       $ref: "publication.yaml#/PublicationStatus"
@@ -41,7 +41,7 @@ PublicationDetailsResponse:
   properties:
     id:
       description: id of publication record
-      $ref: "common.yaml#/uuid"
+      $ref: "uuid.yaml"
     status:
       type: string
       $ref: "publication.yaml#/PublicationStatus"
