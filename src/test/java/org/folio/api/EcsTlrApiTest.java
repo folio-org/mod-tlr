@@ -109,7 +109,7 @@ class EcsTlrApiTest extends BaseIT {
     // 2.2 Mock user endpoints
 
     wireMockServer.stubFor(get(urlMatching(USERS_URL + "/" + requesterId))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
       .willReturn(jsonResponse(primaryRequestRequester, HttpStatus.SC_OK)));
 
     ResponseDefinitionBuilder mockGetSecondaryRequesterResponse = secondaryRequestRequesterExists
@@ -117,21 +117,21 @@ class EcsTlrApiTest extends BaseIT {
       : notFound();
 
     wireMockServer.stubFor(get(urlMatching(USERS_URL + "/" + requesterId))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
       .willReturn(mockGetSecondaryRequesterResponse));
 
     wireMockServer.stubFor(post(urlMatching(USERS_URL))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
       .willReturn(jsonResponse(secondaryRequestRequester, HttpStatus.SC_CREATED)));
 
     wireMockServer.stubFor(put(urlMatching(USERS_URL + "/" + requesterId))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
       .willReturn(jsonResponse(primaryRequestRequester, HttpStatus.SC_NO_CONTENT)));
 
     // 2.3 Mock service point endpoints
 
     wireMockServer.stubFor(get(urlMatching(SERVICE_POINTS_URL + "/" + pickupServicePointId))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
       .willReturn(jsonResponse(asJsonString(primaryRequestPickupServicePoint), HttpStatus.SC_OK)));
 
     var mockGetSecondaryRequestPickupServicePointResponse = secondaryRequestPickupServicePointExists
@@ -139,11 +139,11 @@ class EcsTlrApiTest extends BaseIT {
       : notFound();
 
     wireMockServer.stubFor(get(urlMatching(SERVICE_POINTS_URL + "/" + pickupServicePointId))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
       .willReturn(mockGetSecondaryRequestPickupServicePointResponse));
 
     wireMockServer.stubFor(post(urlMatching(SERVICE_POINTS_URL))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
       .willReturn(jsonResponse(asJsonString(secondaryRequestPickupServicePoint), HttpStatus.SC_CREATED)));
 
     // 2.4 Mock request endpoints
@@ -152,11 +152,11 @@ class EcsTlrApiTest extends BaseIT {
       .itemId(availableItemId);
 
     wireMockServer.stubFor(post(urlMatching(INSTANCE_REQUESTS_URL))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
       .willReturn(jsonResponse(asJsonString(mockPostSecondaryRequestResponse), HttpStatus.SC_CREATED)));
 
     wireMockServer.stubFor(post(urlMatching(REQUESTS_URL))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
       .willReturn(jsonResponse(asJsonString(primaryRequest), HttpStatus.SC_CREATED)));
 
     // 3. Create ECS TLR
@@ -176,26 +176,26 @@ class EcsTlrApiTest extends BaseIT {
 
     // 4. Verify calls to other modules
     wireMockServer.verify(getRequestedFor(urlMatching(SEARCH_INSTANCES_URL))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM)));
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
 
     wireMockServer.verify(getRequestedFor(urlMatching(USERS_URL + "/" + requesterId))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM)));
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
 
     wireMockServer.verify(getRequestedFor(urlMatching(USERS_URL + "/" + requesterId))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE)));
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)));
 
     wireMockServer.verify(getRequestedFor(urlMatching(SERVICE_POINTS_URL + "/" + pickupServicePointId))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM)));
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
 
     wireMockServer.verify(getRequestedFor(urlMatching(SERVICE_POINTS_URL + "/" + pickupServicePointId))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE)));
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)));
 
     wireMockServer.verify(postRequestedFor(urlMatching(INSTANCE_REQUESTS_URL))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE)) // because this tenant has available item
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)) // because this tenant has available item
       .withRequestBody(equalToJson(asJsonString(secondaryRequest))));
 
     wireMockServer.verify(postRequestedFor(urlMatching(REQUESTS_URL))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
       .withRequestBody(equalToJson(asJsonString(primaryRequest))));
 
     if (secondaryRequestRequesterExists) {
@@ -204,7 +204,7 @@ class EcsTlrApiTest extends BaseIT {
         putRequestedFor(urlMatching(USERS_URL + "/" + requesterId)));
     } else {
       wireMockServer.verify(postRequestedFor(urlMatching(USERS_URL))
-        .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE))
+        .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
         .withRequestBody(equalToJson(asJsonString(secondaryRequestRequester))));
     }
 
@@ -212,7 +212,7 @@ class EcsTlrApiTest extends BaseIT {
       wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(SERVICE_POINTS_URL)));
     } else {
       wireMockServer.verify(postRequestedFor(urlMatching(SERVICE_POINTS_URL))
-        .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE))
+        .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
         .withRequestBody(equalToJson(asJsonString(secondaryRequestPickupServicePoint))));
     }
   }
@@ -240,7 +240,7 @@ class EcsTlrApiTest extends BaseIT {
       .expectStatus().isEqualTo(INTERNAL_SERVER_ERROR);
 
     wireMockServer.verify(getRequestedFor(urlMatching(SEARCH_INSTANCES_URL))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM)));
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
 
     wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(USERS_URL)));
   }
@@ -267,10 +267,10 @@ class EcsTlrApiTest extends BaseIT {
       .expectStatus().isEqualTo(INTERNAL_SERVER_ERROR);
 
     wireMockServer.verify(getRequestedFor(urlMatching(SEARCH_INSTANCES_URL))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM)));
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
 
     wireMockServer.verify(getRequestedFor(urlMatching(USERS_URL + "/" + requesterId))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM)));
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
 
     wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(INSTANCE_REQUESTS_URL)));
     wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(REQUESTS_URL)));
@@ -302,13 +302,13 @@ class EcsTlrApiTest extends BaseIT {
       .expectStatus().isEqualTo(INTERNAL_SERVER_ERROR);
 
     wireMockServer.verify(getRequestedFor(urlMatching(SEARCH_INSTANCES_URL))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM)));
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
 
     wireMockServer.verify(getRequestedFor(urlMatching(USERS_URL + "/" + requesterId))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM)));
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
 
     wireMockServer.verify(getRequestedFor(urlMatching(SERVICE_POINTS_URL + "/" + pickupServicePointId))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM)));
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
 
     wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(INSTANCE_REQUESTS_URL)));
     wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(REQUESTS_URL)));

@@ -75,7 +75,6 @@ public class BaseIT {
   private static final String FOLIO_ENVIRONMENT = "folio";
   protected static final String HEADER_TENANT = "x-okapi-tenant";
   protected static final String TOKEN = "test_token";
-  protected static final String TENANT_HEADER = "x-okapi-tenant";
   protected static final String TENANT_ID_CONSORTIUM = "consortium"; // central tenant
   protected static final String TENANT_ID_UNIVERSITY = "university";
   protected static final String TENANT_ID_COLLEGE = "college";
