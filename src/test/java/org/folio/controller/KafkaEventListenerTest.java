@@ -185,10 +185,10 @@ class KafkaEventListenerTest extends BaseIT {
       .pickupServicePointId(randomId());
 
     wireMockServer.stubFor(WireMock.get(urlMatching(format(REQUEST_STORAGE_URL_PATTERN, SECONDARY_REQUEST_ID)))
-      .withHeader(TENANT_HEADER, equalTo(SECONDARY_REQUEST_TENANT_ID))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID))
       .willReturn(jsonResponse(asJsonString(secondaryRequest), HttpStatus.SC_OK)));
     wireMockServer.stubFor(WireMock.put(urlMatching(format(REQUEST_STORAGE_URL_PATTERN, SECONDARY_REQUEST_ID)))
-      .withHeader(TENANT_HEADER, equalTo(SECONDARY_REQUEST_TENANT_ID))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID))
       .willReturn(noContent()));
 
     ServicePoint primaryPickupServicePoint = buildPrimaryRequestPickupServicePoint(
@@ -197,13 +197,13 @@ class KafkaEventListenerTest extends BaseIT {
       primaryPickupServicePoint);
 
     wireMockServer.stubFor(get(urlMatching(SERVICE_POINTS_URL + "/" + PICKUP_SERVICE_POINT_ID))
-      .withHeader(TENANT_HEADER, equalTo(PRIMARY_REQUEST_TENANT_ID))
+      .withHeader(HEADER_TENANT, equalTo(PRIMARY_REQUEST_TENANT_ID))
       .willReturn(jsonResponse(asJsonString(primaryPickupServicePoint), HttpStatus.SC_OK)));
     wireMockServer.stubFor(get(urlMatching(SERVICE_POINTS_URL + "/" + PICKUP_SERVICE_POINT_ID))
-      .withHeader(TENANT_HEADER, equalTo(SECONDARY_REQUEST_TENANT_ID))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID))
       .willReturn(notFound())); // to trigger service point cloning
     wireMockServer.stubFor(post(urlMatching(SERVICE_POINTS_URL))
-      .withHeader(TENANT_HEADER, equalTo(SECONDARY_REQUEST_TENANT_ID))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID))
       .willReturn(jsonResponse(asJsonString(secondaryPickupServicePoint), HttpStatus.SC_CREATED)));
 
     EcsTlrEntity initialEcsTlr = createEcsTlr(buildEcsTlrWithItemId());
@@ -246,7 +246,7 @@ class KafkaEventListenerTest extends BaseIT {
     mockDcb(TransactionStatusResponse.StatusEnum.CREATED, TransactionStatusResponse.StatusEnum.OPEN);
     Request secondaryRequest = buildSecondaryRequest(OPEN_NOT_YET_FILLED);
     wireMockServer.stubFor(WireMock.get(urlMatching(format(REQUEST_STORAGE_URL_PATTERN, SECONDARY_REQUEST_ID)))
-      .withHeader(TENANT_HEADER, equalTo(SECONDARY_REQUEST_TENANT_ID))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID))
       .willReturn(jsonResponse(asJsonString(secondaryRequest), HttpStatus.SC_OK)));
 
     EcsTlrEntity initialEcsTlr = createEcsTlr(buildEcsTlrWithItemId());
@@ -321,7 +321,7 @@ class KafkaEventListenerTest extends BaseIT {
 
     Request secondaryRequest = buildSecondaryRequest(OPEN_NOT_YET_FILLED);
     wireMockServer.stubFor(WireMock.get(urlMatching(format(REQUEST_STORAGE_URL_PATTERN, SECONDARY_REQUEST_ID)))
-      .withHeader(TENANT_HEADER, equalTo(SECONDARY_REQUEST_TENANT_ID))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID))
       .willReturn(jsonResponse(asJsonString(secondaryRequest), HttpStatus.SC_OK)));
 
     EcsTlrEntity initialEcsTlr = createEcsTlr(buildEcsTlrWithItemId());
