@@ -103,8 +103,6 @@ public class BaseIT {
     .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
     .configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true)
     .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-  private static final String CENTRAL_TENANT_ID = TENANT_ID_CONSORTIUM;
-  protected static final UUID CONSORTIUM_ID = randomUUID();
 
   @Autowired
   private WebTestClient webClient;
@@ -278,30 +276,5 @@ public class BaseIT {
     header.put("folio.tenantId", tenantId);
 
     return new MessageHeaders(header);
-  }
-
-  @SneakyThrows
-  protected void mockUserTenants() {
-    wireMockServer.stubFor(get(urlEqualTo("/user-tenants?limit=1"))
-      .willReturn(okJson(new JSONObject()
-        .put("totalRecords", 1)
-        .put("userTenants", new JSONArray()
-          .put(new JSONObject()
-            .put("centralTenantId", CENTRAL_TENANT_ID)
-            .put("consortiumId", CONSORTIUM_ID)
-            .put("userId", UUID.randomUUID().toString())
-            .put("tenantId", UUID.randomUUID().toString())))
-        .toString())));
-  }
-
-  @SneakyThrows
-  protected void mockConsortiaTenants() {
-    wireMockServer.stubFor(get(urlEqualTo(format("/consortia/%s/tenants", CONSORTIUM_ID)))
-      .willReturn(jsonResponse(new JSONObject()
-        .put("tenants", new JSONArray(Set.of(
-          new JSONObject().put("id", "consortium").put("isCentral", "true"),
-          new JSONObject().put("id", "university").put("isCentral", "false"),
-          new JSONObject().put("id", "college").put("isCentral", "false")
-        ))).toString(), HttpStatus.SC_OK)));
   }
 }

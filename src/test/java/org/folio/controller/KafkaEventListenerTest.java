@@ -18,6 +18,8 @@ import static org.folio.domain.dto.Request.StatusEnum.OPEN_IN_TRANSIT;
 import static org.folio.domain.dto.Request.StatusEnum.OPEN_NOT_YET_FILLED;
 import static org.folio.support.KafkaEvent.EventType.CREATED;
 import static org.folio.support.KafkaEvent.EventType.UPDATED;
+import static org.folio.util.TestUtils.mockConsortiaTenants;
+import static org.folio.util.TestUtils.mockUserTenants;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -84,6 +86,8 @@ class KafkaEventListenerTest extends BaseIT {
   private static final String PRIMARY_REQUEST_TENANT_ID = TENANT_ID_CONSORTIUM;
   private static final String SECONDARY_REQUEST_TENANT_ID = TENANT_ID_COLLEGE;
   private static final String CENTRAL_TENANT_ID = TENANT_ID_CONSORTIUM;
+  private static final UUID CONSORTIUM_ID = randomUUID();
+
 
   @Autowired
   private EcsTlrRepository ecsTlrRepository;
@@ -304,8 +308,8 @@ class KafkaEventListenerTest extends BaseIT {
     wireMockServer.stubFor(post(urlMatching(USER_GROUPS_URL_PATTERN))
       .willReturn(jsonResponse("", HttpStatus.SC_CREATED)));
 
-    mockUserTenants();
-    mockConsortiaTenants();
+    mockUserTenants(wireMockServer, CENTRAL_TENANT_ID, CONSORTIUM_ID);
+    mockConsortiaTenants(wireMockServer, CONSORTIUM_ID);
 
     KafkaEvent<UserGroup> event = buildUserGroupCreateEvent("new-user-group");
 
@@ -330,8 +334,8 @@ class KafkaEventListenerTest extends BaseIT {
     wireMockServer.stubFor(put(urlMatching(userGroupUpdateUrlPattern))
       .willReturn(jsonResponse("", HttpStatus.SC_NO_CONTENT)));
 
-    mockUserTenants();
-    mockConsortiaTenants();
+    mockUserTenants(wireMockServer, TENANT_ID_CONSORTIUM, CONSORTIUM_ID);
+    mockConsortiaTenants(wireMockServer, CONSORTIUM_ID);
 
     KafkaEvent<UserGroup> event = buildUserGroupUpdateEvent(userGroupId, "old-user-group",
       "new-user-group");
@@ -360,8 +364,8 @@ class KafkaEventListenerTest extends BaseIT {
     wireMockServer.stubFor(put(urlMatching(userGroupUpdateUrlPattern))
       .willReturn(jsonResponse("", HttpStatus.SC_CREATED)));
 
-    mockUserTenants();
-    mockConsortiaTenants();
+    mockUserTenants(wireMockServer, CENTRAL_TENANT_ID, CONSORTIUM_ID);
+    mockConsortiaTenants(wireMockServer, CONSORTIUM_ID);
 
     KafkaEvent<UserGroup> createEvent = buildUserGroupCreateEvent(TENANT_ID_COLLEGE, "new-user-group-1");
     publishEventAndWait(TENANT_ID_COLLEGE, USER_GROUP_KAFKA_TOPIC_NAME, createEvent);

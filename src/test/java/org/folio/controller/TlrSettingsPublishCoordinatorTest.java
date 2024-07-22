@@ -7,6 +7,9 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
+import static java.util.UUID.randomUUID;
+import static org.folio.util.TestUtils.mockConsortiaTenants;
+import static org.folio.util.TestUtils.mockUserTenants;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -44,6 +47,8 @@ public class TlrSettingsPublishCoordinatorTest extends BaseIT {
   private PublishCoordinatorService<TlrSettings> publishCoordinatorService;
   private TlrSettingsServiceImpl tlrSettingsService;
   private TlrSettingsController tlrSettingsController;
+  private static final String CENTRAL_TENANT_ID = TENANT_ID_CONSORTIUM;
+  private static final UUID CONSORTIUM_ID = randomUUID();
 
   @BeforeEach
   void before() {
@@ -63,8 +68,8 @@ public class TlrSettingsPublishCoordinatorTest extends BaseIT {
     when(tlrSettingsRepository.save(any(TlrSettingsEntity.class)))
       .thenReturn(tlrSettingsEntity);
 
-    mockUserTenants();
-    mockConsortiaTenants();
+    mockUserTenants(wireMockServer, CENTRAL_TENANT_ID, CONSORTIUM_ID);
+    mockConsortiaTenants(wireMockServer, CONSORTIUM_ID);
 
     TlrSettings tlrSettings = new TlrSettings().ecsTlrFeatureEnabled(true);
     tlrSettingsController.putTlrSettings(tlrSettings);
@@ -93,7 +98,7 @@ public class TlrSettingsPublishCoordinatorTest extends BaseIT {
 
     wireMockServer.stubFor(get(urlEqualTo("/user-tenants?limit=1"))
       .willReturn(okJson("")));
-    mockConsortiaTenants();
+    mockConsortiaTenants(wireMockServer, CONSORTIUM_ID);
 
     tlrSettingsController.putTlrSettings(new TlrSettings().ecsTlrFeatureEnabled(true));
 
