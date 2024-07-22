@@ -8,6 +8,9 @@ usergroups.item.put
 search.instances.collection.get
 circulation.requests.instances.item.post
 circulation.requests.item.post
+circulation-storage.requests.item.get
+circulation-storage.requests.collection.get
+circulation-storage.requests.item.put
 inventory-storage.service-points.item.get
 inventory-storage.service-points.collection.get
 inventory-storage.service-points.item.post

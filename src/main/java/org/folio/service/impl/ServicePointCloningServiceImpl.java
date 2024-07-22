@@ -16,7 +16,6 @@ public class ServicePointCloningServiceImpl extends CloningServiceImpl<ServicePo
   private final ServicePointService servicePointService;
 
   public ServicePointCloningServiceImpl(@Autowired ServicePointService servicePointService) {
-
     super(ServicePoint::getId);
     this.servicePointService = servicePointService;
   }

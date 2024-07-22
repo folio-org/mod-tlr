@@ -4,6 +4,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.noContent;
 import static com.github.tomakehurst.wiremock.client.WireMock.notFound;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
@@ -24,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -43,6 +45,7 @@ import org.folio.domain.dto.Request;
 import org.folio.domain.dto.RequestInstance;
 import org.folio.domain.dto.RequestItem;
 import org.folio.domain.dto.RequestRequester;
+import org.folio.domain.dto.ServicePoint;
 import org.folio.domain.dto.TransactionStatus;
 import org.folio.domain.dto.TransactionStatusResponse;
 import org.folio.domain.dto.UserGroup;
@@ -71,6 +74,8 @@ class KafkaEventListenerTest extends BaseIT {
   private static final String DCB_TRANSACTIONS_URL_PATTERN =
     format(DCB_TRANSACTION_STATUS_URL_PATTERN, UUID_PATTERN);
   private static final String USER_GROUPS_URL_PATTERN = "/groups";
+  private static final String REQUEST_STORAGE_URL_PATTERN = ".*/request-storage/requests/%s";
+  private static final String SERVICE_POINTS_URL = "/service-points";
   private static final String CONSUMER_GROUP_ID = "folio-mod-tlr-group";
 
   private static final UUID INSTANCE_ID = randomUUID();
@@ -83,6 +88,7 @@ class KafkaEventListenerTest extends BaseIT {
   private static final UUID SECONDARY_REQUEST_ID = ECS_TLR_ID;
   private static final UUID PRIMARY_REQUEST_DCB_TRANSACTION_ID = randomUUID();
   private static final UUID SECONDARY_REQUEST_DCB_TRANSACTION_ID = randomUUID();
+  private static final Date REQUEST_EXPIRATION_DATE = new Date();
   private static final String PRIMARY_REQUEST_TENANT_ID = TENANT_ID_CONSORTIUM;
   private static final String SECONDARY_REQUEST_TENANT_ID = TENANT_ID_COLLEGE;
   private static final String CENTRAL_TENANT_ID = TENANT_ID_CONSORTIUM;
@@ -161,12 +167,40 @@ class KafkaEventListenerTest extends BaseIT {
     "OPEN_IN_TRANSIT, OPEN_AWAITING_PICKUP, OPEN, AWAITING_PICKUP",
     "OPEN_AWAITING_PICKUP, CLOSED_FILLED, AWAITING_PICKUP, ITEM_CHECKED_OUT",
   })
-  void shouldUpdateBorrowingDcbTransactionUponPrimaryRequestUpdate(
+  void primaryRequestUpdate(
     Request.StatusEnum oldRequestStatus, Request.StatusEnum newRequestStatus,
     TransactionStatusResponse.StatusEnum oldTransactionStatus,
     TransactionStatusResponse.StatusEnum expectedNewTransactionStatus) {
 
     mockDcb(oldTransactionStatus, expectedNewTransactionStatus);
+
+    Request secondaryRequest = buildSecondaryRequest(OPEN_NOT_YET_FILLED)
+      // custom values in order to trigger change propagation from primary to secondary request
+      .requestExpirationDate(Date.from(ZonedDateTime.now().minusDays(1).toInstant()))
+      .fulfillmentPreference(Request.FulfillmentPreferenceEnum.DELIVERY)
+      .pickupServicePointId(randomId());
+
+    wireMockServer.stubFor(WireMock.get(urlMatching(format(REQUEST_STORAGE_URL_PATTERN, SECONDARY_REQUEST_ID)))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID))
+      .willReturn(jsonResponse(asJsonString(secondaryRequest), HttpStatus.SC_OK)));
+    wireMockServer.stubFor(WireMock.put(urlMatching(format(REQUEST_STORAGE_URL_PATTERN, SECONDARY_REQUEST_ID)))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID))
+      .willReturn(noContent()));
+
+    ServicePoint primaryPickupServicePoint = buildPrimaryRequestPickupServicePoint(
+      PICKUP_SERVICE_POINT_ID.toString());
+    ServicePoint secondaryPickupServicePoint = buildSecondaryRequestPickupServicePoint(
+      primaryPickupServicePoint);
+
+    wireMockServer.stubFor(WireMock.get(urlMatching(SERVICE_POINTS_URL + "/" + PICKUP_SERVICE_POINT_ID))
+      .withHeader(HEADER_TENANT, equalTo(PRIMARY_REQUEST_TENANT_ID))
+      .willReturn(jsonResponse(asJsonString(primaryPickupServicePoint), HttpStatus.SC_OK)));
+    wireMockServer.stubFor(WireMock.get(urlMatching(SERVICE_POINTS_URL + "/" + PICKUP_SERVICE_POINT_ID))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID))
+      .willReturn(notFound())); // to trigger service point cloning
+    wireMockServer.stubFor(post(urlMatching(SERVICE_POINTS_URL))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID))
+      .willReturn(jsonResponse(asJsonString(secondaryPickupServicePoint), HttpStatus.SC_CREATED)));
 
     EcsTlrEntity initialEcsTlr = createEcsTlr(buildEcsTlrWithItemId());
     assertNotNull(initialEcsTlr.getItemId());
@@ -180,6 +214,108 @@ class KafkaEventListenerTest extends BaseIT {
     verifyThatDcbTransactionStatusWasRetrieved(transactionId, PRIMARY_REQUEST_TENANT_ID);
     verifyThatDcbTransactionWasUpdated(transactionId, PRIMARY_REQUEST_TENANT_ID,
       expectedNewTransactionStatus);
+
+    wireMockServer.verify(getRequestedFor(
+      urlMatching(format(REQUEST_STORAGE_URL_PATTERN, SECONDARY_REQUEST_ID)))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID)));
+
+    Request updatedPrimaryRequest = event.getData().getNewVersion();
+    wireMockServer.verify(putRequestedFor(
+      urlMatching(format(REQUEST_STORAGE_URL_PATTERN, SECONDARY_REQUEST_ID)))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID))
+      .withRequestBody(equalToJson(asJsonString(secondaryRequest
+        .requestExpirationDate(updatedPrimaryRequest.getRequestExpirationDate())
+        .fulfillmentPreference(Request.FulfillmentPreferenceEnum.HOLD_SHELF)
+        .pickupServicePointId(PICKUP_SERVICE_POINT_ID.toString())
+      ))));
+
+    wireMockServer.verify(getRequestedFor(urlMatching(SERVICE_POINTS_URL + "/" + PICKUP_SERVICE_POINT_ID))
+      .withHeader(HEADER_TENANT, equalTo(PRIMARY_REQUEST_TENANT_ID)));
+
+    wireMockServer.verify(postRequestedFor(urlMatching(SERVICE_POINTS_URL))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID))
+      .withRequestBody(equalToJson(asJsonString(secondaryPickupServicePoint))));
+  }
+
+  @Test
+  void shouldNotUpdateSecondaryRequestUponPrimaryRequestUpdateWhenNoRelevantChangesWereDetected() {
+    mockDcb(TransactionStatusResponse.StatusEnum.CREATED, TransactionStatusResponse.StatusEnum.OPEN);
+    Request secondaryRequest = buildSecondaryRequest(OPEN_NOT_YET_FILLED);
+    wireMockServer.stubFor(WireMock.get(urlMatching(format(REQUEST_STORAGE_URL_PATTERN, SECONDARY_REQUEST_ID)))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID))
+      .willReturn(jsonResponse(asJsonString(secondaryRequest), HttpStatus.SC_OK)));
+
+    EcsTlrEntity initialEcsTlr = createEcsTlr(buildEcsTlrWithItemId());
+    assertNotNull(initialEcsTlr.getItemId());
+
+    KafkaEvent<Request> event = buildPrimaryRequestUpdateEvent(OPEN_NOT_YET_FILLED, OPEN_IN_TRANSIT);
+    publishEventAndWait(PRIMARY_REQUEST_TENANT_ID, REQUEST_KAFKA_TOPIC_NAME, event);
+
+    EcsTlrEntity updatedEcsTlr = getEcsTlr(ECS_TLR_ID);
+    UUID transactionId = updatedEcsTlr.getPrimaryRequestDcbTransactionId();
+    verifyThatNoDcbTransactionsWereCreated();
+    verifyThatDcbTransactionStatusWasRetrieved(transactionId, PRIMARY_REQUEST_TENANT_ID);
+    verifyThatDcbTransactionWasUpdated(transactionId, PRIMARY_REQUEST_TENANT_ID,
+      TransactionStatusResponse.StatusEnum.OPEN);
+
+    wireMockServer.verify(getRequestedFor(
+      urlMatching(format(REQUEST_STORAGE_URL_PATTERN, SECONDARY_REQUEST_ID)))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID)));
+
+    wireMockServer.verify(0, putRequestedFor(
+      urlMatching(format(REQUEST_STORAGE_URL_PATTERN, SECONDARY_REQUEST_ID)))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID)));
+
+    wireMockServer.verify(0, getRequestedFor(
+      urlMatching(SERVICE_POINTS_URL + "/" + PICKUP_SERVICE_POINT_ID))
+      .withHeader(HEADER_TENANT, equalTo(PRIMARY_REQUEST_TENANT_ID)));
+
+    wireMockServer.verify(0, postRequestedFor(urlMatching(SERVICE_POINTS_URL))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID)));
+  }
+
+  @Test
+  void shouldNotTryToClonePickupServicePointWhenPrimaryRequestFulfillmentPreferenceIsChangedToDelivery() {
+    mockDcb(TransactionStatusResponse.StatusEnum.OPEN, TransactionStatusResponse.StatusEnum.OPEN);
+
+    Request secondaryRequest = buildSecondaryRequest(OPEN_NOT_YET_FILLED)
+      .fulfillmentPreference(Request.FulfillmentPreferenceEnum.HOLD_SHELF)
+      .pickupServicePointId(randomId());
+
+    wireMockServer.stubFor(WireMock.get(urlMatching(format(REQUEST_STORAGE_URL_PATTERN, SECONDARY_REQUEST_ID)))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID))
+      .willReturn(jsonResponse(asJsonString(secondaryRequest), HttpStatus.SC_OK)));
+    wireMockServer.stubFor(WireMock.put(urlMatching(format(REQUEST_STORAGE_URL_PATTERN, SECONDARY_REQUEST_ID)))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID))
+      .willReturn(noContent()));
+
+    createEcsTlr(buildEcsTlrWithItemId());
+
+    KafkaEvent<Request> event = buildPrimaryRequestUpdateEvent(OPEN_NOT_YET_FILLED, OPEN_IN_TRANSIT);
+    event.getData().getNewVersion()
+      .pickupServicePointId(null)
+      .fulfillmentPreference(Request.FulfillmentPreferenceEnum.DELIVERY);
+
+    publishEventAndWait(PRIMARY_REQUEST_TENANT_ID, REQUEST_KAFKA_TOPIC_NAME, event);
+
+    wireMockServer.verify(getRequestedFor(
+      urlMatching(format(REQUEST_STORAGE_URL_PATTERN, SECONDARY_REQUEST_ID)))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID)));
+
+    wireMockServer.verify(putRequestedFor(
+      urlMatching(format(REQUEST_STORAGE_URL_PATTERN, SECONDARY_REQUEST_ID)))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID))
+      .withRequestBody(equalToJson(asJsonString(secondaryRequest
+        .fulfillmentPreference(Request.FulfillmentPreferenceEnum.DELIVERY)
+        .pickupServicePointId(null)
+      ))));
+
+    // no service point fetching for either tenant
+    wireMockServer.verify(0, getRequestedFor(
+      urlMatching(SERVICE_POINTS_URL + "/" + PICKUP_SERVICE_POINT_ID)));
+
+    wireMockServer.verify(0, postRequestedFor(urlMatching(SERVICE_POINTS_URL))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID)));
   }
 
 @Test
@@ -222,6 +358,11 @@ class KafkaEventListenerTest extends BaseIT {
   })
   void shouldNotUpdateBorrowingDcbTransactionUponIrrelevantPrimaryRequestStatusChange(
     Request.StatusEnum oldRequestStatus, Request.StatusEnum newRequestStatus) {
+
+    Request secondaryRequest = buildSecondaryRequest(OPEN_NOT_YET_FILLED);
+    wireMockServer.stubFor(WireMock.get(urlMatching(format(REQUEST_STORAGE_URL_PATTERN, SECONDARY_REQUEST_ID)))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID))
+      .willReturn(jsonResponse(asJsonString(secondaryRequest), HttpStatus.SC_OK)));
 
     EcsTlrEntity initialEcsTlr = createEcsTlr(buildEcsTlrWithItemId());
     assertNotNull(initialEcsTlr.getItemId());
@@ -593,7 +734,8 @@ class KafkaEventListenerTest extends BaseIT {
         .lastName("Last")
         .barcode("test"))
       .fulfillmentPreference(Request.FulfillmentPreferenceEnum.HOLD_SHELF)
-      .pickupServicePointId(PICKUP_SERVICE_POINT_ID.toString());
+      .pickupServicePointId(PICKUP_SERVICE_POINT_ID.toString())
+      .requestExpirationDate(REQUEST_EXPIRATION_DATE);
   }
 
   private static UserGroup buildUserGroup(String name) {
@@ -619,6 +761,7 @@ class KafkaEventListenerTest extends BaseIT {
       .secondaryRequestTenantId(SECONDARY_REQUEST_TENANT_ID)
       .secondaryRequestDcbTransactionId(SECONDARY_REQUEST_DCB_TRANSACTION_ID)
       .itemId(ITEM_ID)
+      .pickupServicePointId(PICKUP_SERVICE_POINT_ID)
       .build();
   }
 
@@ -629,6 +772,8 @@ class KafkaEventListenerTest extends BaseIT {
       .primaryRequestTenantId(PRIMARY_REQUEST_TENANT_ID)
       .secondaryRequestId(SECONDARY_REQUEST_ID)
       .secondaryRequestTenantId(SECONDARY_REQUEST_TENANT_ID)
+      .pickupServicePointId(PICKUP_SERVICE_POINT_ID)
+      .requestExpirationDate(REQUEST_EXPIRATION_DATE)
       .build();
   }
 
@@ -663,6 +808,27 @@ class KafkaEventListenerTest extends BaseIT {
   private EcsTlrEntity getEcsTlr(UUID id) {
     return executionService.executeSystemUserScoped(CENTRAL_TENANT_ID,
       () -> ecsTlrRepository.findById(id)).orElseThrow();
+  }
+
+  private static ServicePoint buildPrimaryRequestPickupServicePoint(String id) {
+    return new ServicePoint()
+      .id(id)
+      .name("Service point")
+      .code("TSP")
+      .description("Test service point")
+      .discoveryDisplayName("Test service point")
+      .pickupLocation(true);
+  }
+
+  private static ServicePoint buildSecondaryRequestPickupServicePoint(
+    ServicePoint primaryRequestPickupServicePoint) {
+
+    return new ServicePoint()
+      .id(primaryRequestPickupServicePoint.getId())
+      .name("DCB_" + primaryRequestPickupServicePoint.getName())
+      .code(primaryRequestPickupServicePoint.getCode())
+      .discoveryDisplayName(primaryRequestPickupServicePoint.getDiscoveryDisplayName())
+      .pickupLocation(primaryRequestPickupServicePoint.getPickupLocation());
   }
 
 }
