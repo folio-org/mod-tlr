@@ -88,7 +88,6 @@ class KafkaEventListenerTest extends BaseIT {
   private static final String CENTRAL_TENANT_ID = TENANT_ID_CONSORTIUM;
   private static final UUID CONSORTIUM_ID = randomUUID();
 
-
   @Autowired
   private EcsTlrRepository ecsTlrRepository;
   @Autowired
