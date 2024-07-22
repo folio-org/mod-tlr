@@ -177,7 +177,6 @@ class KafkaEventListenerTest extends BaseIT {
 
     mockDcb(oldTransactionStatus, expectedNewTransactionStatus);
 
-
     Request secondaryRequest = buildSecondaryRequest(OPEN_NOT_YET_FILLED)
       // custom values in order to trigger change propagation from primary to secondary request
       .requestExpirationDate(Date.from(ZonedDateTime.now().minusDays(1).toInstant()))
@@ -273,6 +272,50 @@ class KafkaEventListenerTest extends BaseIT {
     wireMockServer.verify(0, getRequestedFor(
       urlMatching(SERVICE_POINTS_URL + "/" + PICKUP_SERVICE_POINT_ID))
       .withHeader(HEADER_TENANT, equalTo(PRIMARY_REQUEST_TENANT_ID)));
+
+    wireMockServer.verify(0, postRequestedFor(urlMatching(SERVICE_POINTS_URL))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID)));
+  }
+
+  @Test
+  void shouldNotTryToClonePickupServicePointWhenPrimaryRequestFulfillmentPreferenceIsChangedToDelivery() {
+    mockDcb(TransactionStatusResponse.StatusEnum.OPEN, TransactionStatusResponse.StatusEnum.OPEN);
+
+    Request secondaryRequest = buildSecondaryRequest(OPEN_NOT_YET_FILLED)
+      .fulfillmentPreference(Request.FulfillmentPreferenceEnum.HOLD_SHELF)
+      .pickupServicePointId(randomId());
+
+    wireMockServer.stubFor(WireMock.get(urlMatching(format(REQUEST_STORAGE_URL_PATTERN, SECONDARY_REQUEST_ID)))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID))
+      .willReturn(jsonResponse(asJsonString(secondaryRequest), HttpStatus.SC_OK)));
+    wireMockServer.stubFor(WireMock.put(urlMatching(format(REQUEST_STORAGE_URL_PATTERN, SECONDARY_REQUEST_ID)))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID))
+      .willReturn(noContent()));
+
+    createEcsTlr(buildEcsTlrWithItemId());
+
+    KafkaEvent<Request> event = buildPrimaryRequestUpdateEvent(OPEN_NOT_YET_FILLED, OPEN_IN_TRANSIT);
+    event.getData().getNewVersion()
+      .pickupServicePointId(null)
+      .fulfillmentPreference(Request.FulfillmentPreferenceEnum.DELIVERY);
+
+    publishEventAndWait(PRIMARY_REQUEST_TENANT_ID, REQUEST_KAFKA_TOPIC_NAME, event);
+
+    wireMockServer.verify(getRequestedFor(
+      urlMatching(format(REQUEST_STORAGE_URL_PATTERN, SECONDARY_REQUEST_ID)))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID)));
+
+    wireMockServer.verify(putRequestedFor(
+      urlMatching(format(REQUEST_STORAGE_URL_PATTERN, SECONDARY_REQUEST_ID)))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID))
+      .withRequestBody(equalToJson(asJsonString(secondaryRequest
+        .fulfillmentPreference(Request.FulfillmentPreferenceEnum.DELIVERY)
+        .pickupServicePointId(null)
+      ))));
+
+    // no service point fetching for either tenant
+    wireMockServer.verify(0, getRequestedFor(
+      urlMatching(SERVICE_POINTS_URL + "/" + PICKUP_SERVICE_POINT_ID)));
 
     wireMockServer.verify(0, postRequestedFor(urlMatching(SERVICE_POINTS_URL))
       .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID)));

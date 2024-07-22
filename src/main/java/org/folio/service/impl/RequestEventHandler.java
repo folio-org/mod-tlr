@@ -235,6 +235,10 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
   }
 
   private void clonePickupServicePoint(EcsTlrEntity ecsTlr, String pickupServicePointId) {
+    if (pickupServicePointId == null) {
+      log.info("clonePickupServicePoint:: pickupServicePointId is null, doing nothing");
+      return;
+    }
     log.info("clonePickupServicePoint:: ensuring that service point {} exists in lending tenant",
       pickupServicePointId);
     ServicePoint pickupServicePoint = executionService.executeSystemUserScoped(
