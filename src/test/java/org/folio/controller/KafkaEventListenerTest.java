@@ -2,7 +2,6 @@ package org.folio.controller;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.noContent;
@@ -12,7 +11,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.put;
 import static com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static java.lang.String.format;
 import static java.util.UUID.randomUUID;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -21,6 +19,8 @@ import static org.folio.domain.dto.Request.StatusEnum.OPEN_IN_TRANSIT;
 import static org.folio.domain.dto.Request.StatusEnum.OPEN_NOT_YET_FILLED;
 import static org.folio.support.KafkaEvent.EventType.CREATED;
 import static org.folio.support.KafkaEvent.EventType.UPDATED;
+import static org.folio.util.TestUtils.mockConsortiaTenants;
+import static org.folio.util.TestUtils.mockUserTenants;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -29,7 +29,6 @@ import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -55,8 +54,6 @@ import org.folio.repository.EcsTlrRepository;
 import org.folio.spring.integration.XOkapiHeaders;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.folio.support.KafkaEvent;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -451,8 +448,8 @@ class KafkaEventListenerTest extends BaseIT {
     wireMockServer.stubFor(post(urlMatching(USER_GROUPS_URL_PATTERN))
       .willReturn(jsonResponse("", HttpStatus.SC_CREATED)));
 
-    mockUserTenants();
-    mockConsortiaTenants();
+    mockUserTenants(wireMockServer, CENTRAL_TENANT_ID, CONSORTIUM_ID);
+    mockConsortiaTenants(wireMockServer, CONSORTIUM_ID);
 
     KafkaEvent<UserGroup> event = buildUserGroupCreateEvent("new-user-group");
 
@@ -477,8 +474,8 @@ class KafkaEventListenerTest extends BaseIT {
     wireMockServer.stubFor(put(urlMatching(userGroupUpdateUrlPattern))
       .willReturn(jsonResponse("", HttpStatus.SC_NO_CONTENT)));
 
-    mockUserTenants();
-    mockConsortiaTenants();
+    mockUserTenants(wireMockServer, TENANT_ID_CONSORTIUM, CONSORTIUM_ID);
+    mockConsortiaTenants(wireMockServer, CONSORTIUM_ID);
 
     KafkaEvent<UserGroup> event = buildUserGroupUpdateEvent(userGroupId, "old-user-group",
       "new-user-group");
@@ -507,8 +504,8 @@ class KafkaEventListenerTest extends BaseIT {
     wireMockServer.stubFor(put(urlMatching(userGroupUpdateUrlPattern))
       .willReturn(jsonResponse("", HttpStatus.SC_CREATED)));
 
-    mockUserTenants();
-    mockConsortiaTenants();
+    mockUserTenants(wireMockServer, CENTRAL_TENANT_ID, CONSORTIUM_ID);
+    mockConsortiaTenants(wireMockServer, CONSORTIUM_ID);
 
     KafkaEvent<UserGroup> createEvent = buildUserGroupCreateEvent(TENANT_ID_COLLEGE, "new-user-group-1");
     publishEventAndWait(TENANT_ID_COLLEGE, USER_GROUP_KAFKA_TOPIC_NAME, createEvent);
@@ -801,28 +798,6 @@ class KafkaEventListenerTest extends BaseIT {
       .status(newTransactionStatus);
     wireMockServer.stubFor(WireMock.put(urlMatching(DCB_TRANSACTIONS_URL_PATTERN))
       .willReturn(jsonResponse(mockPutEcsDcbTransactionResponse, HttpStatus.SC_OK)));
-  }
-
-  @SneakyThrows
-  private static void mockUserTenants() {
-    wireMockServer.stubFor(get(urlPathMatching("/user-tenants"))
-      .willReturn(jsonResponse(new JSONObject()
-        .put("userTenants", new JSONArray(Set.of(new JSONObject()
-          .put("centralTenantId", CENTRAL_TENANT_ID)
-          .put("consortiumId", CONSORTIUM_ID))))
-        .put("totalRecords", 1)
-        .toString(), HttpStatus.SC_OK)));
-  }
-
-  @SneakyThrows
-  private static void mockConsortiaTenants() {
-    wireMockServer.stubFor(get(urlMatching(format("/consortia/%s/tenants", CONSORTIUM_ID)))
-      .willReturn(jsonResponse(new JSONObject()
-        .put("tenants", new JSONArray(Set.of(
-          new JSONObject().put("id", "consortium").put("isCentral", "true"),
-          new JSONObject().put("id", "university").put("isCentral", "false"),
-          new JSONObject().put("id", "college").put("isCentral", "false")
-        ))).toString(), HttpStatus.SC_OK)));
   }
 
   private EcsTlrEntity createEcsTlr(EcsTlrEntity ecsTlr) {

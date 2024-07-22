@@ -1,0 +1,103 @@
+PublicationRequest:
+  type: object
+  title: Publication request
+  properties:
+    url:
+      description: URL for publishing requests for consortia tenants
+      type: string
+    method:
+      description: HTTP method
+      type: string
+    tenants:
+      description: Set of tenants to be requested
+      type: array
+      uniqueItems: true
+      items:
+        type: string
+    payload:
+      description: Http request body
+      type: object
+  additionalProperties: false
+  required:
+    - url
+    - method
+
+PublicationResponse:
+  type: object
+  title: Publication response
+  properties:
+    id:
+      description: id of publication record
+      $ref: "uuid.yaml"
+    status:
+      type: string
+      $ref: "publication.yaml#/PublicationStatus"
+  additionalProperties: false
+
+
+PublicationDetailsResponse:
+  type: object
+  title: Publication details response
+  properties:
+    id:
+      description: id of publication record
+      $ref: "uuid.yaml"
+    status:
+      type: string
+      $ref: "publication.yaml#/PublicationStatus"
+    dateTime:
+      description: the date of publication was created
+      type: string
+    request:
+      description: tenant request payload
+      type: string
+    errors:
+      description: "List of errors"
+      type: array
+      items:
+        type: object
+        $ref: "publication.yaml#/PublicationStatusError"
+  additionalProperties: false
+
+PublicationStatus:
+  description: publication status
+  enum: [ "IN_PROGRESS", "ERROR", "COMPLETE" ]
+
+PublicationStatusError:
+  description: publication status error
+  properties:
+    tenantId:
+      description: tenant name which failed to execute request
+      type: string
+    errorMessage:
+      description: error message of failed request
+      type: string
+    errorCode:
+      description: error code of failed request
+      type: integer
+
+PublicationResultCollection:
+  description: "A JSON schema for the publication result collection"
+  type: object
+  properties:
+    publicationResults:
+      type: array
+      description: "The list of publication results"
+      items:
+        type: object
+        $ref: "publication.yaml#/PublicationResult"
+    totalRecords:
+      type: integer
+
+PublicationResult:
+  description: publication result
+  properties:
+    tenantId:
+      description: "tenant name"
+      type: string
+    response:
+      description: "response message of tenant request"
+      type: string
+    statusCode:
+      description: "response code of tenant request"
+      type: integer

@@ -1,8 +1,20 @@
 package org.folio.util;
 
-import java.util.Base64;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static java.lang.String.format;
 
+import java.util.Base64;
+import java.util.Set;
+import java.util.UUID;
+
+import org.apache.http.HttpStatus;
+import org.json.JSONArray;
 import org.json.JSONObject;
+
+import com.github.tomakehurst.wiremock.WireMockServer;
 
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
@@ -29,5 +41,32 @@ public class TestUtils {
       Base64.getEncoder().encodeToString(header.toString().getBytes()),
       Base64.getEncoder().encodeToString(payload.toString().getBytes()),
       signature);
+  }
+
+  @SneakyThrows
+  public static void mockUserTenants(WireMockServer wireMockServer, String tenantId,
+    UUID consortiumId) {
+
+    wireMockServer.stubFor(get(urlEqualTo("/user-tenants?limit=1"))
+      .willReturn(okJson(new JSONObject()
+        .put("totalRecords", 1)
+        .put("userTenants", new JSONArray()
+          .put(new JSONObject()
+            .put("centralTenantId", tenantId)
+            .put("consortiumId", consortiumId)
+            .put("userId", UUID.randomUUID().toString())
+            .put("tenantId", UUID.randomUUID().toString())))
+        .toString())));
+  }
+
+  @SneakyThrows
+  public static void mockConsortiaTenants(WireMockServer wireMockServer, UUID consortiumId) {
+    wireMockServer.stubFor(get(urlEqualTo(format("/consortia/%s/tenants", consortiumId)))
+      .willReturn(jsonResponse(new JSONObject()
+        .put("tenants", new JSONArray(Set.of(
+          new JSONObject().put("id", "consortium").put("isCentral", "true"),
+          new JSONObject().put("id", "university").put("isCentral", "false"),
+          new JSONObject().put("id", "college").put("isCentral", "false")
+        ))).toString(), HttpStatus.SC_OK)));
   }
 }
