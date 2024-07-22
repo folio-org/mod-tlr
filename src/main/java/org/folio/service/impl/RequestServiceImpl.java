@@ -109,7 +109,7 @@ public class RequestServiceImpl implements RequestService {
   public Request updateRequestInStorage(Request request, String tenantId) {
     log.info("updateRequestInStorage:: updating request {} in storage in tenant {}", request::getId,
       () -> tenantId);
-    log.debug("updateRequestInStorage:: {}", () -> request);
+    log.debug("updateRequestInStorage:: {}", request);
 
     return executionService.executeSystemUserScoped(tenantId,
       () -> requestStorageClient.updateRequest(request.getId(), request));
