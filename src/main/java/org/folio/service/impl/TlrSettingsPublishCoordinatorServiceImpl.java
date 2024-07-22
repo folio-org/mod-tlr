@@ -50,8 +50,7 @@ public class TlrSettingsPublishCoordinatorServiceImpl implements PublishCoordina
     log.info("updateForAllTenants:: tenantIds: {}", () -> tenantIds);
     PublicationResponse publicationResponse = consortiaClient.postPublications(consortiumId,
       mapTlrSettingsToPublicationRequest(tlrSettings, tenantIds));
-    log.info("updateForAllTenants:: publicationResponse id: {}, status: {}",
-      publicationResponse::getId, publicationResponse::getStatus);
+    log.info("updateForAllTenants:: publicationResponse: {}", publicationResponse);
 
     return publicationResponse;
   }
