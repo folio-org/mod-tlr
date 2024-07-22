@@ -85,11 +85,11 @@ class AllowedServicePointsApiTest extends BaseIT {
         .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE))
         .willReturn(jsonResponse(asJsonString(allowedSpResponseCollege), HttpStatus.SC_OK)));
 
-    String requesterId = randomId();
+    String patronGroupId = randomId();
     String instanceId = randomId();
     doGet(
-      ALLOWED_SERVICE_POINTS_URL + format("?operation=create&requesterId=%s&instanceId=%s",
-        requesterId, instanceId))
+      ALLOWED_SERVICE_POINTS_URL + format("?operation=create&patronGroupId=%s&instanceId=%s",
+        patronGroupId, instanceId))
       .expectStatus().isEqualTo(200)
       .expectBody().json("{}");
 
@@ -100,13 +100,13 @@ class AllowedServicePointsApiTest extends BaseIT {
         HttpStatus.SC_OK)));
 
     doGet(
-      ALLOWED_SERVICE_POINTS_URL + format("?operation=create&requesterId=%s&instanceId=%s",
-        requesterId, instanceId))
+      ALLOWED_SERVICE_POINTS_URL + format("?operation=create&patronGroupId=%s&instanceId=%s",
+        patronGroupId, instanceId))
       .expectStatus().isEqualTo(200)
       .expectBody().json(asJsonString(allowedSpResponseConsortium));
 
     wireMockServer.verify(getRequestedFor(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL))
-      .withQueryParam("requesterId", equalTo(requesterId))
+      .withQueryParam("patronGroupId", equalTo(patronGroupId))
       .withQueryParam("instanceId", equalTo(instanceId))
       .withQueryParam("operation", equalTo("create"))
       .withQueryParam("useStubItem", equalTo("true")));
@@ -114,7 +114,7 @@ class AllowedServicePointsApiTest extends BaseIT {
 
   @Test
   void allowedServicePointsShouldReturn422WhenParametersAreInvalid() {
-    doGet(ALLOWED_SERVICE_POINTS_URL + format("?operation=create&requesterId=%s", randomId()))
+    doGet(ALLOWED_SERVICE_POINTS_URL + format("?operation=create&patronGroupId=%s", randomId()))
       .expectStatus().isEqualTo(422);
   }
 
