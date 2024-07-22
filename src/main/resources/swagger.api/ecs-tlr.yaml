@@ -93,6 +93,10 @@ components:
       $ref: 'schemas/tenant.yaml#/Tenant'
     tenants:
       $ref: 'schemas/tenant.yaml#/TenantCollection'
+    publicationRequest:
+      $ref: 'schemas/publication.yaml#/PublicationRequest'
+    publicationResponse:
+      $ref: 'schemas/publication.yaml#/PublicationResponse'
     errorResponse:
       $ref: 'schemas/errors.json'
     request:
