@@ -69,7 +69,7 @@ public class TlrSettingsPublishCoordinatorServiceImpl implements PublishCoordina
       .tenants(tenantIds)
       .payload(new ObjectMapper().valueToTree(payloadMap));
 
-    log.info("mapTlrSettingsToPublicationRequest:: result: {}", () -> publicationRequest);
+    log.info("mapTlrSettingsToPublicationRequest:: result: {}", publicationRequest);
 
     return publicationRequest;
   }
