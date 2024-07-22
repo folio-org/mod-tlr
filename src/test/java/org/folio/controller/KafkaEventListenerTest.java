@@ -192,10 +192,10 @@ class KafkaEventListenerTest extends BaseIT {
     ServicePoint secondaryPickupServicePoint = buildSecondaryRequestPickupServicePoint(
       primaryPickupServicePoint);
 
-    wireMockServer.stubFor(get(urlMatching(SERVICE_POINTS_URL + "/" + PICKUP_SERVICE_POINT_ID))
+    wireMockServer.stubFor(WireMock.get(urlMatching(SERVICE_POINTS_URL + "/" + PICKUP_SERVICE_POINT_ID))
       .withHeader(HEADER_TENANT, equalTo(PRIMARY_REQUEST_TENANT_ID))
       .willReturn(jsonResponse(asJsonString(primaryPickupServicePoint), HttpStatus.SC_OK)));
-    wireMockServer.stubFor(get(urlMatching(SERVICE_POINTS_URL + "/" + PICKUP_SERVICE_POINT_ID))
+    wireMockServer.stubFor(WireMock.get(urlMatching(SERVICE_POINTS_URL + "/" + PICKUP_SERVICE_POINT_ID))
       .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID))
       .willReturn(notFound())); // to trigger service point cloning
     wireMockServer.stubFor(post(urlMatching(SERVICE_POINTS_URL))
