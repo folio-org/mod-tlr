@@ -9,7 +9,7 @@ import org.folio.domain.entity.EcsTlrEntity;
 
 public interface DcbService {
   void createLendingTransaction(EcsTlrEntity ecsTlr);
-  void createBorrowingTransaction(EcsTlrEntity ecsTlr, Request updatedRequest);
+  void createBorrowingTransaction(EcsTlrEntity ecsTlr, Request primaryRequest);
   TransactionStatusResponse getTransactionStatus(UUID transactionId, String tenantId);
   TransactionStatusResponse updateTransactionStatus(UUID transactionId,
     TransactionStatus.StatusEnum newStatus, String tenantId);

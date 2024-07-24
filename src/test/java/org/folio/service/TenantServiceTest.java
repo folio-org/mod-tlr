@@ -10,11 +10,11 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.folio.client.feign.SearchClient;
-import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.Instance;
 import org.folio.domain.dto.Item;
 import org.folio.domain.dto.ItemStatus;
 import org.folio.domain.dto.SearchInstancesResponse;
+import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.service.impl.TenantServiceImpl;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -27,7 +27,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class TenantServiceTest {
-  private static final String INSTANCE_ID = UUID.randomUUID().toString();
+  private static final UUID INSTANCE_ID = UUID.randomUUID();
 
   @Mock
   private SearchClient searchClient;
@@ -39,7 +39,9 @@ class TenantServiceTest {
   void getLendingTenants(List<String> expectedTenantIds, Instance instance) {
     Mockito.when(searchClient.searchInstance(Mockito.any()))
       .thenReturn(new SearchInstancesResponse().instances(singletonList(instance)));
-    assertEquals(expectedTenantIds, tenantService.getLendingTenants(new EcsTlr().instanceId(INSTANCE_ID)));
+    EcsTlrEntity ecsTlr = new EcsTlrEntity();
+    ecsTlr.setInstanceId(INSTANCE_ID);
+    assertEquals(expectedTenantIds, tenantService.getLendingTenants(ecsTlr));
   }
 
   private static Stream<Arguments> parametersForGetLendingTenants() {
@@ -132,7 +134,7 @@ class TenantServiceTest {
 
   private static Instance buildInstance(Item... items) {
     return new Instance()
-      .id(INSTANCE_ID)
+      .id(INSTANCE_ID.toString())
       .tenantId("centralTenant")
       .items(Arrays.stream(items).toList());
   }
