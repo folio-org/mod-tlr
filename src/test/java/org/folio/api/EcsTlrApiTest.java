@@ -48,6 +48,7 @@ class EcsTlrApiTest extends BaseIT {
     "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}";
   private static final String TLR_URL = "/tlr/ecs-tlr";
   private static final String ITEM_ID = randomId();
+  private static final String HOLDINGS_ID = randomId();
   private static final String INSTANCE_ID = randomId();
   private static final String ECS_TLR_ID = randomId();
   private static final String PRIMARY_REQUEST_ID = ECS_TLR_ID;
@@ -163,6 +164,7 @@ class EcsTlrApiTest extends BaseIT {
     Request secondaryRequestPostRequest = buildSecondaryRequest(ecsTlr);
     Request mockPostSecondaryRequestResponse = buildSecondaryRequest(ecsTlr)
       .itemId(ITEM_ID)
+      .holdingsRecordId(HOLDINGS_ID)
       .item(new RequestItem().barcode(ITEM_BARCODE))
       .instance(new RequestInstance().title(INSTANCE_TITLE));
 
@@ -410,6 +412,7 @@ class EcsTlrApiTest extends BaseIT {
     return new Request()
       .id(PRIMARY_REQUEST_ID)
       .instanceId(secondaryRequest.getInstanceId())
+      .holdingsRecordId(secondaryRequest.getHoldingsRecordId())
       .itemId(secondaryRequest.getItemId())
       .requesterId(secondaryRequest.getRequesterId())
       .requestDate(secondaryRequest.getRequestDate())
