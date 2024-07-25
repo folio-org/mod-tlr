@@ -53,7 +53,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     RequestWrapper primaryRequest = requestService.createPrimaryRequest(
       buildPrimaryRequest(secondaryRequest.request()), borrowingTenantId);
     updateEcsTlr(ecsTlr, primaryRequest, secondaryRequest);
-    createDcbTransactions(ecsTlr, primaryRequest.request());
+    createDcbTransactions(ecsTlr, secondaryRequest.request());
 
     return requestsMapper.mapEntityToDto(save(ecsTlr));
   }
@@ -143,12 +143,16 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     log.debug("updateEcsTlr:: ECS TLR: {}", () -> ecsTlr);
   }
 
-  private void createDcbTransactions(EcsTlrEntity ecsTlr, Request primaryRequest) {
+  private void createDcbTransactions(EcsTlrEntity ecsTlr, Request secondaryRequest) {
     if (ecsTlr.getItemId() == null) {
       log.info("createDcbTransactions:: ECS TLR has no item ID");
       return;
     }
-    dcbService.createBorrowingTransaction(ecsTlr, primaryRequest);
+    if (secondaryRequest.getItemId() == null) {
+      log.info("createDcbTransactions:: secondary request has no item ID");
+      return;
+    }
+    dcbService.createBorrowingTransaction(ecsTlr, secondaryRequest);
     dcbService.createLendingTransaction(ecsTlr);
   }
 
