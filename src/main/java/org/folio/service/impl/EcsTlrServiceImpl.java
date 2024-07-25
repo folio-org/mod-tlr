@@ -115,7 +115,6 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     return new Request()
       .id(secondaryRequest.getId())
       .instanceId(secondaryRequest.getInstanceId())
-      .itemId(secondaryRequest.getItemId())
       .requesterId(secondaryRequest.getRequesterId())
       .requestDate(secondaryRequest.getRequestDate())
       .requestLevel(Request.RequestLevelEnum.TITLE)

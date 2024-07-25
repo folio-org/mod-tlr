@@ -48,6 +48,7 @@ class EcsTlrApiTest extends BaseIT {
     "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}";
   private static final String TLR_URL = "/tlr/ecs-tlr";
   private static final String ITEM_ID = randomId();
+  private static final String HOLDINGS_RECORD_ID = randomId();
   private static final String INSTANCE_ID = randomId();
   private static final String ECS_TLR_ID = randomId();
   private static final String PRIMARY_REQUEST_ID = ECS_TLR_ID;
@@ -163,13 +164,12 @@ class EcsTlrApiTest extends BaseIT {
     Request secondaryRequestPostRequest = buildSecondaryRequest(ecsTlr);
     Request mockPostSecondaryRequestResponse = buildSecondaryRequest(ecsTlr)
       .itemId(ITEM_ID)
+      .holdingsRecordId(HOLDINGS_RECORD_ID)
       .item(new RequestItem().barcode(ITEM_BARCODE))
       .instance(new RequestInstance().title(INSTANCE_TITLE));
 
-    Request primaryRequestPostRequest = buildPrimaryRequest(mockPostSecondaryRequestResponse);
-    Request mockPostPrimaryRequestResponse = buildPrimaryRequest(mockPostSecondaryRequestResponse)
-      .item(mockPostSecondaryRequestResponse.getItem())
-      .instance(mockPostSecondaryRequestResponse.getInstance());
+    Request primaryRequestPostRequest = buildPrimaryRequest(secondaryRequestPostRequest);
+    Request mockPostPrimaryRequestResponse = buildPrimaryRequest(mockPostSecondaryRequestResponse);
 
     wireMockServer.stubFor(post(urlMatching(INSTANCE_REQUESTS_URL))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
@@ -409,8 +409,11 @@ class EcsTlrApiTest extends BaseIT {
   private static Request buildPrimaryRequest(Request secondaryRequest) {
     return new Request()
       .id(PRIMARY_REQUEST_ID)
-      .instanceId(secondaryRequest.getInstanceId())
       .itemId(secondaryRequest.getItemId())
+      .holdingsRecordId(secondaryRequest.getHoldingsRecordId())
+      .instanceId(secondaryRequest.getInstanceId())
+      .item(secondaryRequest.getItem())
+      .instance(secondaryRequest.getInstance())
       .requesterId(secondaryRequest.getRequesterId())
       .requestDate(secondaryRequest.getRequestDate())
       .requestLevel(Request.RequestLevelEnum.TITLE)
