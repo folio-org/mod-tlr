@@ -211,9 +211,9 @@ class EcsTlrApiTest extends BaseIT {
     // 2. Create ECS TLR
 
     EcsTlr expectedPostEcsTlrResponse = fromJsonString(asJsonString(ecsTlr), EcsTlr.class)
-      .primaryRequestId(primaryRequestPostRequest.getId())
+      .primaryRequestId(PRIMARY_REQUEST_ID)
       .primaryRequestTenantId(TENANT_ID_CONSORTIUM)
-      .secondaryRequestId(secondaryRequestPostRequest.getId())
+      .secondaryRequestId(SECONDARY_REQUEST_ID)
       .secondaryRequestTenantId(TENANT_ID_COLLEGE)
       .itemId(ITEM_ID);
 
