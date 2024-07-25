@@ -253,8 +253,7 @@ class EcsTlrApiTest extends BaseIT {
 
     if (secondaryRequestRequesterExists) {
       wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(USERS_URL)));
-      wireMockServer.verify(exactly(1),
-        putRequestedFor(urlMatching(USERS_URL + "/" + requesterId)));
+      wireMockServer.verify(exactly(1), putRequestedFor(urlMatching(USERS_URL + "/" + requesterId)));
     } else {
       wireMockServer.verify(postRequestedFor(urlMatching(USERS_URL))
         .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
