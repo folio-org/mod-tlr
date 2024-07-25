@@ -144,10 +144,6 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   }
 
   private void createDcbTransactions(EcsTlrEntity ecsTlr, Request secondaryRequest) {
-    if (ecsTlr.getItemId() == null) {
-      log.info("createDcbTransactions:: ECS TLR has no item ID");
-      return;
-    }
     if (secondaryRequest.getItemId() == null) {
       log.info("createDcbTransactions:: secondary request has no item ID");
       return;
