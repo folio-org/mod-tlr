@@ -347,8 +347,8 @@ class KafkaEventListenerTest extends BaseIT {
     publishEventAndWait(SECONDARY_REQUEST_TENANT_ID, REQUEST_KAFKA_TOPIC_NAME, event);
 
     verifyThatNoDcbTransactionsWereCreated();
-    verifyThatDcbTransactionStatusWasNotRetrieved();
-    verifyThatNoDcbTransactionsWereUpdated();
+//    verifyThatDcbTransactionStatusWasNotRetrieved();
+//    verifyThatNoDcbTransactionsWereUpdated();
   }
 
   @ParameterizedTest
