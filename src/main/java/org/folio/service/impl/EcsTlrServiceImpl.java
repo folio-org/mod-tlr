@@ -137,7 +137,11 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     ecsTlr.setSecondaryRequestTenantId(secondaryRequest.tenantId());
     ecsTlr.setPrimaryRequestId(UUID.fromString(primaryRequest.request().getId()));
     ecsTlr.setSecondaryRequestId(UUID.fromString(secondaryRequest.request().getId()));
-    ecsTlr.setItemId(UUID.fromString(secondaryRequest.request().getItemId()));
+
+    Optional.of(secondaryRequest.request())
+      .map(Request::getItemId)
+      .map(UUID::fromString)
+      .ifPresent(ecsTlr::setItemId);
 
     log.info("updateEcsTlr:: ECS TLR updated in memory");
     log.debug("updateEcsTlr:: ECS TLR: {}", () -> ecsTlr);
