@@ -171,7 +171,7 @@ class EcsTlrApiTest extends BaseIT {
     assertEquals(TENANT_ID_CONSORTIUM, getCurrentTenantId());
     doPostWithTenant(TLR_URL, ecsTlr, TENANT_ID_CONSORTIUM)
       .expectStatus().isCreated()
-      .expectBody().json(asJsonString(expectedPostEcsTlrResponse), true);
+      .expectBody().json(asJsonString(expectedPostEcsTlrResponse));
     assertEquals(TENANT_ID_CONSORTIUM, getCurrentTenantId());
 
     // 4. Verify calls to other modules
@@ -318,7 +318,6 @@ class EcsTlrApiTest extends BaseIT {
     String pickupServicePointId) {
 
     return new EcsTlr()
-      .id(randomId())
       .instanceId(instanceId)
       .requesterId(requesterId)
       .pickupServicePointId(pickupServicePointId)
