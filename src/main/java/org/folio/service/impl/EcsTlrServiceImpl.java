@@ -126,6 +126,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
 
   private Request buildSecondaryRequest(EcsTlrEntity ecsTlr) {
     return requestsMapper.mapEntityToRequest(ecsTlr)
+      .id(UUID.randomUUID().toString())
       .ecsRequestPhase(Request.EcsRequestPhaseEnum.SECONDARY);
   }
 
