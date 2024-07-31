@@ -35,8 +35,7 @@ public class AllowedServicePointsServiceImpl implements AllowedServicePointsServ
     log.debug("getAllowedServicePoints:: params: operation={}, requesterId={}, instanceId={}",
       operation, requesterId, instanceId);
 
-    String patronGroupId = userService.find(requesterId)
-      .getPatronGroup();
+    String patronGroupId = userService.find(requesterId).getPatronGroup();
 
     var searchInstancesResponse = searchClient.searchInstance(instanceId);
     // TODO: make call in parallel
