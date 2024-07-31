@@ -3,6 +3,7 @@ package org.folio.service.impl;
 import static java.lang.String.format;
 
 import java.util.Collection;
+import java.util.List;
 
 import org.folio.client.feign.CirculationClient;
 import org.folio.client.feign.RequestStorageClient;
@@ -113,6 +114,11 @@ public class RequestServiceImpl implements RequestService {
 
     return executionService.executeSystemUserScoped(tenantId,
       () -> requestStorageClient.updateRequest(request.getId(), request));
+  }
+
+  @Override
+  public List<Request> getRequestsByInstanceId(String instanceId) {
+    return requestStorageClient.getRequestsByQuery(String.format("?query=instanceId==%s", instanceId));
   }
 
   private void cloneRequester(User primaryRequestRequester) {
