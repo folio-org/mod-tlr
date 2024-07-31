@@ -1,5 +1,7 @@
 package org.folio.service.impl;
 
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.mapping;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.PRIMARY;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.SECONDARY;
 import static org.folio.domain.dto.TransactionStatus.StatusEnum.AWAITING_PICKUP;
@@ -7,11 +9,17 @@ import static org.folio.domain.dto.TransactionStatus.StatusEnum.ITEM_CHECKED_OUT
 import static org.folio.domain.dto.TransactionStatus.StatusEnum.OPEN;
 import static org.folio.support.KafkaEvent.EventType.UPDATED;
 
+import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.Request.EcsRequestPhaseEnum;
@@ -71,6 +79,15 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
       log.info("handleRequestUpdateEvent:: updated secondary request does not contain itemId");
       return;
     }
+//    Request oldRequest = event.getData().getOldVersion();
+//    if (updatedRequest.getEcsRequestPhase() == PRIMARY && !Objects.equals(
+//      updatedRequest.getPosition(), oldRequest.getPosition())) {
+//
+//      //find all requests with instanceId
+//      requestService.getRequestsByInstanceId(updatedRequest.getInstanceId())
+//      ecsTlrRepository.findRequestsByInstanceId
+//
+//    }
 
     String requestId = updatedRequest.getId();
     log.info("handleRequestUpdateEvent:: looking for ECS TLR for request {}", requestId);
@@ -224,6 +241,12 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
       clonePickupServicePoint(ecsTlr, pickupServicePointId);
     }
 
+    Integer primaryRequestPosition  = primaryRequest.getPosition();
+    Integer oldPosition = event.getData().getOldVersion().getPosition();
+    if (!Objects.equals(primaryRequestPosition, oldPosition)) {
+      updateQueuePositions(event, primaryRequest);
+    }
+
     if (!shouldUpdateSecondaryRequest) {
       log.info("propagateChangesFromPrimaryToSecondaryRequest:: no relevant changes detected");
       return;
@@ -232,6 +255,59 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
     log.info("propagateChangesFromPrimaryToSecondaryRequest:: updating secondary request");
     requestService.updateRequestInStorage(secondaryRequest, secondaryRequestTenantId);
     log.info("propagateChangesFromPrimaryToSecondaryRequest:: secondary request updated");
+  }
+
+  private void updateQueuePositions(KafkaEvent<Request> event, Request primaryRequest) {
+    List<Request> unifiedQueue = requestService.getRequestsByInstanceId(primaryRequest.getInstanceId())
+      .stream()
+      .filter(request -> !request.getId().equals(event.getData().getOldVersion().getId()))
+      .collect(Collectors.toList());
+
+    unifiedQueue.add(primaryRequest);
+    unifiedQueue.sort(Comparator.comparing(Request::getPosition));
+    IntStream.range(0, unifiedQueue.size()).forEach(i -> unifiedQueue.get(i).setPosition(i + 1));
+
+    List<Request> primaryRequestsQueue = unifiedQueue.stream()
+      .filter(request -> PRIMARY == request.getEcsRequestPhase())
+      .sorted(Comparator.comparing(Request::getPosition))
+      .toList();
+
+    List<UUID> primaryRequestIds = primaryRequestsQueue.stream()
+      .map(request -> UUID.fromString(request.getId()))
+      .toList();
+    List<EcsTlrEntity> ecsTlrQueue = ecsTlrRepository.findByPrimaryRequestIdIn(primaryRequestIds);
+    Map<String, List<Request>> groupedSecondaryRequestsByTenantId = groupSecondaryRequestsByTenantId(
+      ecsTlrQueue);
+
+    reorderSecondaryRequestsQueue(groupedSecondaryRequestsByTenantId, ecsTlrQueue);
+  }
+
+  private void reorderSecondaryRequestsQueue(
+    Map<String, List<Request>> groupedSecondaryRequestsByTenantId,
+    List<EcsTlrEntity> sortedEcsTlrQueue) {
+
+    Map<UUID, Integer> secondaryRequestOrder = new HashMap<>();
+    for (int i = 0; i < sortedEcsTlrQueue.size(); i++) {
+      EcsTlrEntity ecsEntity = sortedEcsTlrQueue.get(i);
+      if (ecsEntity.getSecondaryRequestId() != null) {
+        secondaryRequestOrder.put(ecsEntity.getSecondaryRequestId(), i + 1);
+      }
+    }
+
+    groupedSecondaryRequestsByTenantId.forEach((tenantId, secondaryRequests) -> {
+      secondaryRequests.sort(Comparator.comparingInt(
+        req -> secondaryRequestOrder.getOrDefault(UUID.fromString(req.getId()), Integer.MAX_VALUE)
+      ));
+
+      for (int i = 0; i < secondaryRequests.size(); i++) {
+        Request request = secondaryRequests.get(i);
+        int newPosition = i + 1;
+        if (newPosition != request.getPosition()) {
+          request.setPosition(newPosition);
+          requestService.updateRequestInStorage(request, tenantId);
+        }
+      }
+    });
   }
 
   private void clonePickupServicePoint(EcsTlrEntity ecsTlr, String pickupServicePointId) {
@@ -251,4 +327,16 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
     return !Objects.equals(valueExtractor.apply(o1), valueExtractor.apply(o2));
   }
 
+  private Map<String, List<Request>> groupSecondaryRequestsByTenantId(
+    List<EcsTlrEntity> sortedEcsTlrQueue) {
+
+    return sortedEcsTlrQueue.stream()
+      .filter(entity -> entity.getSecondaryRequestTenantId() != null &&
+        entity.getSecondaryRequestId() != null)
+      .collect(groupingBy(EcsTlrEntity::getSecondaryRequestTenantId,
+        mapping(entity -> requestService.getRequestFromStorage(
+          entity.getSecondaryRequestId().toString(), entity.getSecondaryRequestTenantId()),
+          Collectors.toList())
+      ));
+  }
 }

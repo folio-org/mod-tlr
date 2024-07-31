@@ -1,5 +1,6 @@
 package org.folio.repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -10,4 +11,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface EcsTlrRepository extends JpaRepository<EcsTlrEntity, UUID> {
   Optional<EcsTlrEntity> findBySecondaryRequestId(UUID secondaryRequestId);
+  Optional<EcsTlrEntity> findByInstanceId(UUID instanceId);
+  List<EcsTlrEntity> findByPrimaryRequestIdIn(List<UUID> primaryRequestIds);
 }
