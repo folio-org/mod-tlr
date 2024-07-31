@@ -123,7 +123,7 @@ class KafkaEventListenerTest extends BaseIT {
     KafkaEvent<Request> event = buildSecondaryRequestUpdateEvent(oldRequestStatus, newRequestStatus);
     publishEventAndWait(SECONDARY_REQUEST_TENANT_ID, REQUEST_KAFKA_TOPIC_NAME, event);
 
-    EcsTlrEntity updatedEcsTlr = getEcsTlr(ECS_TLR_ID);
+    EcsTlrEntity updatedEcsTlr = getEcsTlr(initialEcsTlr.getId());
     assertEquals(ITEM_ID, updatedEcsTlr.getItemId());
 
     UUID secondaryRequestTransactionId = updatedEcsTlr.getSecondaryRequestDcbTransactionId();
@@ -153,7 +153,7 @@ class KafkaEventListenerTest extends BaseIT {
     KafkaEvent<Request> event = buildSecondaryRequestUpdateEvent(oldRequestStatus, newRequestStatus);
     publishEventAndWait(SECONDARY_REQUEST_TENANT_ID, REQUEST_KAFKA_TOPIC_NAME, event);
 
-    EcsTlrEntity updatedEcsTlr = getEcsTlr(ECS_TLR_ID);
+    EcsTlrEntity updatedEcsTlr = getEcsTlr(initialEcsTlr.getId());
     UUID transactionId = updatedEcsTlr.getSecondaryRequestDcbTransactionId();
     verifyThatNoDcbTransactionsWereCreated();
     verifyThatDcbTransactionStatusWasRetrieved(transactionId, SECONDARY_REQUEST_TENANT_ID);
@@ -208,7 +208,7 @@ class KafkaEventListenerTest extends BaseIT {
     KafkaEvent<Request> event = buildPrimaryRequestUpdateEvent(oldRequestStatus, newRequestStatus);
     publishEventAndWait(PRIMARY_REQUEST_TENANT_ID, REQUEST_KAFKA_TOPIC_NAME, event);
 
-    EcsTlrEntity updatedEcsTlr = getEcsTlr(ECS_TLR_ID);
+    EcsTlrEntity updatedEcsTlr = getEcsTlr(initialEcsTlr.getId());
     UUID transactionId = updatedEcsTlr.getPrimaryRequestDcbTransactionId();
     verifyThatNoDcbTransactionsWereCreated();
     verifyThatDcbTransactionStatusWasRetrieved(transactionId, PRIMARY_REQUEST_TENANT_ID);
@@ -251,7 +251,7 @@ class KafkaEventListenerTest extends BaseIT {
     KafkaEvent<Request> event = buildPrimaryRequestUpdateEvent(OPEN_NOT_YET_FILLED, OPEN_IN_TRANSIT);
     publishEventAndWait(PRIMARY_REQUEST_TENANT_ID, REQUEST_KAFKA_TOPIC_NAME, event);
 
-    EcsTlrEntity updatedEcsTlr = getEcsTlr(ECS_TLR_ID);
+    EcsTlrEntity updatedEcsTlr = getEcsTlr(initialEcsTlr.getId());
     UUID transactionId = updatedEcsTlr.getPrimaryRequestDcbTransactionId();
     verifyThatNoDcbTransactionsWereCreated();
     verifyThatDcbTransactionStatusWasRetrieved(transactionId, PRIMARY_REQUEST_TENANT_ID);
@@ -753,7 +753,6 @@ class KafkaEventListenerTest extends BaseIT {
 
   private static EcsTlrEntity buildEcsTlrWithItemId() {
     return EcsTlrEntity.builder()
-      .id(ECS_TLR_ID)
       .primaryRequestId(PRIMARY_REQUEST_ID)
       .primaryRequestTenantId(PRIMARY_REQUEST_TENANT_ID)
       .primaryRequestDcbTransactionId(PRIMARY_REQUEST_DCB_TRANSACTION_ID)
@@ -767,7 +766,6 @@ class KafkaEventListenerTest extends BaseIT {
 
   private static EcsTlrEntity buildEcsTlrWithoutItemId() {
     return EcsTlrEntity.builder()
-      .id(ECS_TLR_ID)
       .primaryRequestId(PRIMARY_REQUEST_ID)
       .primaryRequestTenantId(PRIMARY_REQUEST_TENANT_ID)
       .secondaryRequestId(SECONDARY_REQUEST_ID)

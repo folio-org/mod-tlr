@@ -183,7 +183,8 @@ class EcsTlrApiTest extends BaseIT {
     // 1.4 Mock request endpoints
 
     Request secondaryRequestPostRequest = buildSecondaryRequest(ecsTlr);
-    Request mockPostSecondaryRequestResponse = buildSecondaryRequest(ecsTlr);
+    Request mockPostSecondaryRequestResponse = buildSecondaryRequest(ecsTlr).id(SECONDARY_REQUEST_ID);
+
     if (requestType != HOLD) {
       mockPostSecondaryRequestResponse
         .itemId(ITEM_ID)
@@ -247,6 +248,8 @@ class EcsTlrApiTest extends BaseIT {
       .expectBody()
       .json(asJsonString(expectedPostEcsTlrResponse));
     assertEquals(TENANT_ID_CONSORTIUM, getCurrentTenantId());
+
+    response.jsonPath("$.id").exists();
 
     if (requestType != HOLD) {
       response.jsonPath("$.primaryRequestDcbTransactionId").exists()
@@ -431,7 +434,6 @@ class EcsTlrApiTest extends BaseIT {
 
   private static Request buildSecondaryRequest(EcsTlr ecsTlr) {
     return new Request()
-      .id(SECONDARY_REQUEST_ID)
       .requesterId(ecsTlr.getRequesterId())
       .requestLevel(Request.RequestLevelEnum.fromValue(ecsTlr.getRequestLevel().getValue()))
       .requestType(Request.RequestTypeEnum.fromValue(ecsTlr.getRequestType().getValue()))
