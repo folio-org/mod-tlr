@@ -79,15 +79,6 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
       log.info("handleRequestUpdateEvent:: updated secondary request does not contain itemId");
       return;
     }
-//    Request oldRequest = event.getData().getOldVersion();
-//    if (updatedRequest.getEcsRequestPhase() == PRIMARY && !Objects.equals(
-//      updatedRequest.getPosition(), oldRequest.getPosition())) {
-//
-//      //find all requests with instanceId
-//      requestService.getRequestsByInstanceId(updatedRequest.getInstanceId())
-//      ecsTlrRepository.findRequestsByInstanceId
-//
-//    }
 
     String requestId = updatedRequest.getId();
     log.info("handleRequestUpdateEvent:: looking for ECS TLR for request {}", requestId);
