@@ -418,6 +418,7 @@ class EcsTlrApiTest extends BaseIT {
     String pickupServicePointId) {
 
     return new EcsTlr()
+      .id(ECS_TLR_ID)
       .instanceId(INSTANCE_ID)
       .requesterId(requesterId)
       .pickupServicePointId(pickupServicePointId)

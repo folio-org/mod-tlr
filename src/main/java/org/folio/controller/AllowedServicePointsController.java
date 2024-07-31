@@ -27,35 +27,35 @@ public class AllowedServicePointsController implements AllowedServicePointsApi {
 
   @Override
   public ResponseEntity<AllowedServicePointsResponse> getAllowedServicePoints(String operation,
-    UUID patronGroupId, UUID instanceId, UUID requestId) {
+    UUID requesterId, UUID instanceId, UUID requestId) {
 
-    log.debug("getAllowedServicePoints:: params: operation={}, patronGroupId={}, instanceId={}, " +
-        "requestId={}", operation, patronGroupId, instanceId, requestId);
+    log.debug("getAllowedServicePoints:: params: operation={}, requesterId={}, instanceId={}, " +
+        "requestId={}", operation, requesterId, instanceId, requestId);
 
     RequestOperation requestOperation = Optional.ofNullable(operation)
       .map(String::toUpperCase)
       .map(RequestOperation::valueOf)
       .orElse(null);
 
-    if (validateAllowedServicePointsRequest(requestOperation, patronGroupId, instanceId, requestId)) {
+    if (validateAllowedServicePointsRequest(requestOperation, requesterId, instanceId, requestId)) {
       return ResponseEntity.status(OK).body(allowedServicePointsService.getAllowedServicePoints(
-        requestOperation, patronGroupId.toString(), instanceId.toString()));
+        requestOperation, requesterId.toString(), instanceId.toString()));
     } else {
       return ResponseEntity.status(UNPROCESSABLE_ENTITY).build();
     }
   }
 
   private static boolean validateAllowedServicePointsRequest(RequestOperation operation,
-    UUID patronGroupId, UUID instanceId, UUID requestId) {
+    UUID requesterId, UUID instanceId, UUID requestId) {
 
     log.debug("validateAllowedServicePointsRequest:: parameters operation: {}, requesterId: {}, " +
-      "instanceId: {}, requestId: {}", operation, patronGroupId, instanceId, requestId);
+      "instanceId: {}, requestId: {}", operation, requesterId, instanceId, requestId);
 
     boolean allowedCombinationOfParametersDetected = false;
 
     List<String> errors = new ArrayList<>();
 
-    if (operation == RequestOperation.CREATE && patronGroupId != null && instanceId != null &&
+    if (operation == RequestOperation.CREATE && requesterId != null && instanceId != null &&
       requestId == null) {
 
       log.info("validateAllowedServicePointsRequest:: TLR request creation case");
