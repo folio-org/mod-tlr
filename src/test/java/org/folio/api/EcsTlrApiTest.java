@@ -55,9 +55,8 @@ class EcsTlrApiTest extends BaseIT {
   private static final String PATRON_GROUP_ID_SECONDARY = randomId();
   private static final String PATRON_GROUP_ID_PRIMARY = randomId();
   private static final String REQUESTER_BARCODE = randomId();
-  private static final String ECS_TLR_ID = randomId();
-  private static final String PRIMARY_REQUEST_ID = ECS_TLR_ID;
-  private static final String SECONDARY_REQUEST_ID = ECS_TLR_ID;
+  private static final String SECONDARY_REQUEST_ID = randomId();
+  private static final String PRIMARY_REQUEST_ID = SECONDARY_REQUEST_ID;
 
   private static final String UUID_PATTERN =
     "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}";
@@ -246,10 +245,9 @@ class EcsTlrApiTest extends BaseIT {
     var response = doPostWithTenant(TLR_URL, ecsTlr, TENANT_ID_CONSORTIUM)
       .expectStatus().isCreated()
       .expectBody()
+      .jsonPath("$.id").exists()
       .json(asJsonString(expectedPostEcsTlrResponse));
     assertEquals(TENANT_ID_CONSORTIUM, getCurrentTenantId());
-
-    response.jsonPath("$.id").exists();
 
     if (requestType != HOLD) {
       response.jsonPath("$.primaryRequestDcbTransactionId").exists()
