@@ -10,5 +10,4 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface EcsTlrRepository extends JpaRepository<EcsTlrEntity, UUID> {
   Optional<EcsTlrEntity> findBySecondaryRequestId(UUID secondaryRequestId);
-  Optional<EcsTlrEntity> findByPrimaryRequestId(UUID primaryRequestId);
 }
