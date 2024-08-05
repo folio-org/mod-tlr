@@ -74,16 +74,6 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
     }
 
     String requestId = updatedRequest.getId();
-    if (updatedRequest.getEcsRequestPhase() == PRIMARY
-      && updatedRequest.getStatus() == Request.StatusEnum.CLOSED_CANCELLED) {
-      log.info("handleRequestUpdateEvent:: updated primary request is cancelled, doing nothing");
-      ecsTlrRepository.findByPrimaryRequestId(UUID.fromString(updatedRequest.getId()))
-        .ifPresentOrElse(ecsTlr -> handleRequestUpdateEvent(ecsTlr, event),
-          () -> log.info("handlePrimaryRequestUpdate: ECS TLR for request {} not found",
-            requestId));
-      return;
-    }
-
     log.info("handleRequestUpdateEvent:: looking for ECS TLR for request {}", requestId);
     // we can search by either primary or secondary request ID, they are identical
     ecsTlrRepository.findBySecondaryRequestId(UUID.fromString(requestId)).ifPresentOrElse(
@@ -213,13 +203,6 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
       secondaryRequestId, secondaryRequestTenantId);
 
     boolean shouldUpdateSecondaryRequest = false;
-    if (primaryRequest.getStatus() == Request.StatusEnum.CLOSED_CANCELLED) {
-      log.info("propagateChangesFromPrimaryToSecondaryRequest:: primary request is cancelled, " +
-        "cancelling secondary request");
-      secondaryRequest.setStatus(Request.StatusEnum.CLOSED_CANCELLED);
-      shouldUpdateSecondaryRequest = true;
-    }
-
     if (valueIsNotEqual(primaryRequest, secondaryRequest, Request::getRequestExpirationDate)) {
       Date requestExpirationDate = primaryRequest.getRequestExpirationDate();
       log.info("propagateChangesFromPrimaryToSecondaryRequest:: request expiration date changed: {}",
