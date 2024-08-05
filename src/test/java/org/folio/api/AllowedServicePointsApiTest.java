@@ -16,16 +16,19 @@ import org.folio.domain.dto.AllowedServicePointsResponse;
 import org.folio.domain.dto.Instance;
 import org.folio.domain.dto.Item;
 import org.folio.domain.dto.SearchInstancesResponse;
+import org.folio.domain.dto.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class AllowedServicePointsApiTest extends BaseIT {
+  private static final String INSTANCE_ID = randomId();
+  private static final String REQUESTER_ID = randomId();
+  private static final String PATRON_GROUP_ID = randomId();
   private static final String ALLOWED_SERVICE_POINTS_URL = "/tlr/allowed-service-points";
   private static final String ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL =
     "/circulation/requests/allowed-service-points.*";
-  private static final String SEARCH_INSTANCES_URL =
-    "/search/instances.*";
-  private static final String TENANT_HEADER = "x-okapi-tenant";
+  private static final String SEARCH_INSTANCES_URL = "/search/instances.*";
+  private static final String USER_URL = "/users/" + REQUESTER_ID;
 
   @BeforeEach
   public void beforeEach() {
@@ -45,7 +48,7 @@ class AllowedServicePointsApiTest extends BaseIT {
     searchInstancesResponse.setInstances(List.of(new Instance().items(List.of(item1, item2))));
 
     wireMockServer.stubFor(get(urlMatching(SEARCH_INSTANCES_URL))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
       .willReturn(jsonResponse(asJsonString(searchInstancesResponse), HttpStatus.SC_OK)));
 
     var allowedSpResponseConsortium = new AllowedServicePointsResponse();
@@ -72,49 +75,52 @@ class AllowedServicePointsApiTest extends BaseIT {
       buildAllowedServicePoint("SP_college_1")));
     allowedSpResponseCollegeWithRouting.setRecall(null);
 
+    User requester = new User().patronGroup(PATRON_GROUP_ID);
+    wireMockServer.stubFor(get(urlMatching(USER_URL))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(jsonResponse(asJsonString(requester), HttpStatus.SC_OK)));
+
     wireMockServer.stubFor(get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_CONSORTIUM))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
       .willReturn(jsonResponse(asJsonString(allowedSpResponseConsortium), HttpStatus.SC_OK)));
 
     wireMockServer.stubFor(get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_UNIVERSITY))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
       .willReturn(jsonResponse(asJsonString(allowedSpResponseUniversity), HttpStatus.SC_OK)));
 
     var collegeStubMapping = wireMockServer.stubFor(
       get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL))
-        .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE))
+        .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
         .willReturn(jsonResponse(asJsonString(allowedSpResponseCollege), HttpStatus.SC_OK)));
 
-    String patronGroupId = randomId();
-    String instanceId = randomId();
     doGet(
-      ALLOWED_SERVICE_POINTS_URL + format("?operation=create&patronGroupId=%s&instanceId=%s",
-        patronGroupId, instanceId))
+      ALLOWED_SERVICE_POINTS_URL + format("?operation=create&requesterId=%s&instanceId=%s",
+        REQUESTER_ID, INSTANCE_ID))
       .expectStatus().isEqualTo(200)
       .expectBody().json("{}");
 
     wireMockServer.removeStub(collegeStubMapping);
     wireMockServer.stubFor(get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL))
-      .withHeader(TENANT_HEADER, equalTo(TENANT_ID_COLLEGE))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
       .willReturn(jsonResponse(asJsonString(allowedSpResponseCollegeWithRouting),
         HttpStatus.SC_OK)));
 
     doGet(
-      ALLOWED_SERVICE_POINTS_URL + format("?operation=create&patronGroupId=%s&instanceId=%s",
-        patronGroupId, instanceId))
+      ALLOWED_SERVICE_POINTS_URL + format("?operation=create&requesterId=%s&instanceId=%s",
+        REQUESTER_ID, INSTANCE_ID))
       .expectStatus().isEqualTo(200)
       .expectBody().json(asJsonString(allowedSpResponseConsortium));
 
     wireMockServer.verify(getRequestedFor(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL))
-      .withQueryParam("patronGroupId", equalTo(patronGroupId))
-      .withQueryParam("instanceId", equalTo(instanceId))
+      .withQueryParam("patronGroupId", equalTo(PATRON_GROUP_ID))
+      .withQueryParam("instanceId", equalTo(INSTANCE_ID))
       .withQueryParam("operation", equalTo("create"))
       .withQueryParam("useStubItem", equalTo("true")));
   }
 
   @Test
   void allowedServicePointsShouldReturn422WhenParametersAreInvalid() {
-    doGet(ALLOWED_SERVICE_POINTS_URL + format("?operation=create&patronGroupId=%s", randomId()))
+    doGet(ALLOWED_SERVICE_POINTS_URL + format("?operation=create&requesterId=%s", randomId()))
       .expectStatus().isEqualTo(422);
   }
 

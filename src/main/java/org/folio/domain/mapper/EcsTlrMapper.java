@@ -11,9 +11,9 @@ import org.mapstruct.NullValueCheckStrategy;
 @Mapper(componentModel = "spring", nullValueCheckStrategy = NullValueCheckStrategy.ALWAYS)
 public interface EcsTlrMapper {
 
-  @Mapping(target = "requestType", qualifiedByName = "StringToRequestType")
-  @Mapping(target = "requestLevel", qualifiedByName = "StringToRequestLevel")
-  @Mapping(target = "fulfillmentPreference", qualifiedByName = "StringToFulfillmentPreference")
+  @Mapping(target = "requestType", qualifiedByName = "StringToEcsTlrRequestType")
+  @Mapping(target = "requestLevel", qualifiedByName = "StringToEcsTlrRequestLevel")
+  @Mapping(target = "fulfillmentPreference", qualifiedByName = "StringToEcsTlrFulfillmentPreference")
   EcsTlr mapEntityToDto(EcsTlrEntity ecsTlrEntity);
 
   @Mapping(target = "requestType", qualifiedByName = "RequestTypeToString")
@@ -21,19 +21,39 @@ public interface EcsTlrMapper {
   @Mapping(target = "fulfillmentPreference", qualifiedByName = "FulfillmentPreferenceToString")
   EcsTlrEntity mapDtoToEntity(EcsTlr ecsTlr);
 
-  @Named("StringToRequestType")
-  default EcsTlr.RequestTypeEnum mapRequestType(String requestType) {
+  @Mapping(target = "requestType", qualifiedByName = "StringToRequestType")
+  @Mapping(target = "requestLevel", qualifiedByName = "StringToRequestLevel")
+  @Mapping(target = "fulfillmentPreference", qualifiedByName = "StringToFulfillmentPreference")
+  Request mapEntityToRequest(EcsTlrEntity ecsTlr);
+
+  @Named("StringToEcsTlrRequestType")
+  default EcsTlr.RequestTypeEnum mapDtoRequestType(String requestType) {
     return requestType != null ? EcsTlr.RequestTypeEnum.fromValue(requestType) : null;
   }
 
-  @Named("StringToRequestLevel")
-  default EcsTlr.RequestLevelEnum mapRequestLevel(String requestLevel) {
+  @Named("StringToRequestType")
+  default Request.RequestTypeEnum mapRequestType(String requestType) {
+    return requestType != null ? Request.RequestTypeEnum.fromValue(requestType) : null;
+  }
+
+  @Named("StringToEcsTlrRequestLevel")
+  default EcsTlr.RequestLevelEnum mapDtoRequestLevel(String requestLevel) {
     return requestLevel != null ? EcsTlr.RequestLevelEnum.fromValue(requestLevel) : null;
   }
 
-  @Named("StringToFulfillmentPreference")
-  default EcsTlr.FulfillmentPreferenceEnum mapFulfillmentPreference(String fulfillmentPreference) {
+  @Named("StringToRequestLevel")
+  default Request.RequestLevelEnum mapRequestLevel(String requestLevel) {
+    return requestLevel != null ? Request.RequestLevelEnum.fromValue(requestLevel) : null;
+  }
+
+  @Named("StringToEcsTlrFulfillmentPreference")
+  default EcsTlr.FulfillmentPreferenceEnum mapDtoFulfillmentPreference(String fulfillmentPreference) {
     return fulfillmentPreference != null ? EcsTlr.FulfillmentPreferenceEnum.fromValue(fulfillmentPreference) : null;
+  }
+
+  @Named("StringToFulfillmentPreference")
+  default Request.FulfillmentPreferenceEnum mapFulfillmentPreference(String fulfillmentPreference) {
+    return fulfillmentPreference != null ? Request.FulfillmentPreferenceEnum.fromValue(fulfillmentPreference) : null;
   }
 
   @Named("RequestTypeToString")
@@ -51,5 +71,4 @@ public interface EcsTlrMapper {
     return fulfillmentPreferenceEnum != null ? fulfillmentPreferenceEnum.getValue() : null;
   }
 
-  Request mapDtoToRequest(EcsTlr ecsTlr);
 }

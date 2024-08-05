@@ -11,6 +11,7 @@ import org.folio.domain.dto.Instance;
 import org.folio.domain.dto.Item;
 import org.folio.domain.dto.RequestOperation;
 import org.folio.service.AllowedServicePointsService;
+import org.folio.service.UserService;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.springframework.stereotype.Service;
 
@@ -24,18 +25,21 @@ public class AllowedServicePointsServiceImpl implements AllowedServicePointsServ
 
   private final SearchClient searchClient;
   private final CirculationClient circulationClient;
+  private final UserService userService;
   private final SystemUserScopedExecutionService executionService;
 
   @Override
   public AllowedServicePointsResponse getAllowedServicePoints(RequestOperation operation,
-    String patronGroupId, String instanceId) {
+    String requesterId, String instanceId) {
 
-    log.debug("getAllowedServicePoints:: params: operation={}, patronGroupId={}, instanceId={}",
-      operation, patronGroupId, instanceId);
+    log.debug("getAllowedServicePoints:: params: operation={}, requesterId={}, instanceId={}",
+      operation, requesterId, instanceId);
+
+    String patronGroupId = userService.find(requesterId).getPatronGroup();
 
     var searchInstancesResponse = searchClient.searchInstance(instanceId);
     // TODO: make call in parallel
-    var availableForRequesting = searchInstancesResponse.getInstances().stream()
+    boolean availableForRequesting = searchInstancesResponse.getInstances().stream()
       .map(Instance::getItems)
       .flatMap(Collection::stream)
       .map(Item::getTenantId)
