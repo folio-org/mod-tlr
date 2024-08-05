@@ -139,6 +139,7 @@ class KafkaEventListenerTest extends BaseIT {
     "OPEN_NOT_YET_FILLED, OPEN_IN_TRANSIT, CREATED, OPEN",
     "OPEN_IN_TRANSIT, OPEN_AWAITING_PICKUP, OPEN, AWAITING_PICKUP",
     "OPEN_AWAITING_PICKUP, CLOSED_FILLED, AWAITING_PICKUP, ITEM_CHECKED_OUT",
+    "OPEN_NOT_YET_FILLED, CLOSED_CANCELLED, CREATED, CANCELLED",
   })
   void shouldUpdateLendingDcbTransactionUponSecondaryRequestUpdateWhenEcsTlrAlreadyHasItemId(
     Request.StatusEnum oldRequestStatus, Request.StatusEnum newRequestStatus,
