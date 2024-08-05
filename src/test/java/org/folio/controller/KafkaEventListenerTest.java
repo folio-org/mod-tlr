@@ -334,8 +334,7 @@ class KafkaEventListenerTest extends BaseIT {
 
   @ParameterizedTest
   @CsvSource({
-    "OPEN_NOT_YET_FILLED, OPEN_NOT_YET_FILLED",
-    "OPEN_IN_TRANSIT, CLOSED_CANCELLED",
+    "OPEN_NOT_YET_FILLED, OPEN_NOT_YET_FILLED"
   })
   void shouldNotCreateOrUpdateLendingDcbTransactionUponIrrelevantSecondaryRequestStatusChange(
     Request.StatusEnum oldRequestStatus, Request.StatusEnum newRequestStatus) {
@@ -347,14 +346,13 @@ class KafkaEventListenerTest extends BaseIT {
     publishEventAndWait(SECONDARY_REQUEST_TENANT_ID, REQUEST_KAFKA_TOPIC_NAME, event);
 
     verifyThatNoDcbTransactionsWereCreated();
-//    verifyThatDcbTransactionStatusWasNotRetrieved();
-//    verifyThatNoDcbTransactionsWereUpdated();
+    verifyThatDcbTransactionStatusWasNotRetrieved();
+    verifyThatNoDcbTransactionsWereUpdated();
   }
 
   @ParameterizedTest
   @CsvSource({
-    "OPEN_NOT_YET_FILLED, OPEN_NOT_YET_FILLED",
-    "OPEN_IN_TRANSIT, CLOSED_CANCELLED",
+    "OPEN_NOT_YET_FILLED, OPEN_NOT_YET_FILLED"
   })
   void shouldNotUpdateBorrowingDcbTransactionUponIrrelevantPrimaryRequestStatusChange(
     Request.StatusEnum oldRequestStatus, Request.StatusEnum newRequestStatus) {
