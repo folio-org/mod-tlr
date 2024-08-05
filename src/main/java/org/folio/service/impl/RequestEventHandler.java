@@ -73,16 +73,6 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
       return;
     }
     String requestId = updatedRequest.getId();
-    log.info("handleRequestUpdateEvent:: looking for ECS TLR for request {}", requestId);
-    if (updatedRequest.getEcsRequestPhase() == PRIMARY
-      && updatedRequest.getStatus() == Request.StatusEnum.CLOSED_CANCELLED) {
-      log.info("handleRequestUpdateEvent:: updated primary request is cancelled, doing nothing");
-      ecsTlrRepository.findByPrimaryRequestId(UUID.fromString(updatedRequest.getId()))
-        .ifPresentOrElse(ecsTlr -> handleRequestUpdateEvent(ecsTlr, event),
-          () -> log.info("handlePrimaryRequestUpdate: ECS TLR for request {} not found",
-            requestId));
-      return;
-    }
     // we can search by either primary or secondary request ID, they are identical
     ecsTlrRepository.findBySecondaryRequestId(UUID.fromString(requestId)).ifPresentOrElse(
       ecsTlr -> handleRequestUpdateEvent(ecsTlr, event),
@@ -127,14 +117,21 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
 
   private void handlePrimaryRequestUpdate(EcsTlrEntity ecsTlr, KafkaEvent<Request> event) {
     propagateChangesFromPrimaryToSecondaryRequest(ecsTlr, event);
-    updateDcbTransaction(ecsTlr.getPrimaryRequestDcbTransactionId(),
-      ecsTlr.getPrimaryRequestTenantId(), event);
+    determineNewTransactionStatus(event).ifPresent(newTransactionStatus -> {
+      updateTransactionStatus(ecsTlr.getPrimaryRequestDcbTransactionId(), newTransactionStatus,
+        ecsTlr.getPrimaryRequestTenantId());
+      if (newTransactionStatus == CANCELLED) {
+        updateTransactionStatus(ecsTlr.getSecondaryRequestDcbTransactionId(), newTransactionStatus,
+          ecsTlr.getSecondaryRequestTenantId());
+      }
+    });
   }
 
   private void handleSecondaryRequestUpdate(EcsTlrEntity ecsTlr, KafkaEvent<Request> event) {
     processItemIdUpdate(ecsTlr, event.getData().getNewVersion());
-    updateDcbTransaction(ecsTlr.getSecondaryRequestDcbTransactionId(),
-      ecsTlr.getSecondaryRequestTenantId(), event);
+    determineNewTransactionStatus(event).ifPresent(newTransactionStatus ->
+      updateTransactionStatus(ecsTlr.getSecondaryRequestDcbTransactionId(), newTransactionStatus,
+      ecsTlr.getSecondaryRequestTenantId()));
   }
 
   private void processItemIdUpdate(EcsTlrEntity ecsTlr, Request updatedRequest) {
@@ -149,11 +146,6 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
     dcbService.createBorrowingTransaction(ecsTlr, updatedRequest);
     ecsTlrRepository.save(ecsTlr);
     log.info("processItemIdUpdate: ECS TLR {} is updated", ecsTlr::getId);
-  }
-
-  private void updateDcbTransaction(UUID transactionId, String tenant, KafkaEvent<Request> event) {
-    determineNewTransactionStatus(event)
-      .ifPresent(newStatus -> updateTransactionStatus(transactionId, newStatus, tenant));
   }
 
   private static Optional<TransactionStatus.StatusEnum> determineNewTransactionStatus(
