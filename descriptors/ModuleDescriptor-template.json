@@ -53,7 +53,10 @@
             "tlr.ecs-tlr-allowed-service-points.get"
           ],
           "modulePermissions": [
-            "circulation.requests.allowed-service-points.get"
+            "circulation.requests.allowed-service-points.get",
+            "users.item.get",
+            "users.collection.get",
+            "search.instances.collection.get"
           ]
         }
       ]

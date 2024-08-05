@@ -11,7 +11,7 @@ paths:
       operationId: getAllowedServicePoints
       parameters:
         - $ref: '#/components/parameters/operation'
-        - $ref: '#/components/parameters/patronGroupId'
+        - $ref: '#/components/parameters/requesterId'
         - $ref: '#/components/parameters/instanceId'
         - $ref: '#/components/parameters/requestId'
       tags:
@@ -41,8 +41,8 @@ components:
         enum:
           - create
           - replace
-    patronGroupId:
-      name: patronGroupId
+    requesterId:
+      name: requesterId
       in: query
       required: true
       schema:

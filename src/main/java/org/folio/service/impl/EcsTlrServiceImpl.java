@@ -41,10 +41,11 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   }
 
   @Override
-  public EcsTlr create(EcsTlr ecsTlr) {
-    log.info("create:: creating ECS TLR {} for instance {} and requester {}", ecsTlr.getId(),
-      ecsTlr.getInstanceId(), ecsTlr.getRequesterId());
+  public EcsTlr create(EcsTlr ecsTlrDto) {
+    log.info("create:: creating ECS TLR {} for instance {} and requester {}", ecsTlrDto.getId(),
+      ecsTlrDto.getInstanceId(), ecsTlrDto.getRequesterId());
 
+    final EcsTlrEntity ecsTlr = requestsMapper.mapDtoToEntity(ecsTlrDto);
     String borrowingTenantId = getBorrowingTenant(ecsTlr);
     Collection<String> lendingTenantIds = getLendingTenants(ecsTlr);
     RequestWrapper secondaryRequest = requestService.createSecondaryRequest(
@@ -52,8 +53,9 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     RequestWrapper primaryRequest = requestService.createPrimaryRequest(
       buildPrimaryRequest(secondaryRequest.request()), borrowingTenantId);
     updateEcsTlr(ecsTlr, primaryRequest, secondaryRequest);
+    createDcbTransactions(ecsTlr, secondaryRequest.request());
 
-    return save(ecsTlr);
+    return requestsMapper.mapEntityToDto(save(ecsTlr));
   }
 
   @Override
@@ -78,7 +80,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     return false;
   }
 
-  private String getBorrowingTenant(EcsTlr ecsTlr) {
+  private String getBorrowingTenant(EcsTlrEntity ecsTlr) {
     log.info("getBorrowingTenant:: getting borrowing tenant");
     final String borrowingTenantId = tenantService.getBorrowingTenant(ecsTlr)
       .orElseThrow(() -> new TenantPickingException("Failed to get borrowing tenant"));
@@ -87,8 +89,8 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     return borrowingTenantId;
   }
 
-  private Collection<String> getLendingTenants(EcsTlr ecsTlr) {
-    final String instanceId = ecsTlr.getInstanceId();
+  private Collection<String> getLendingTenants(EcsTlrEntity ecsTlr) {
+    final String instanceId = ecsTlr.getInstanceId().toString();
     log.info("getLendingTenants:: looking for lending tenants for instance {}", instanceId);
     List<String> tenantIds = tenantService.getLendingTenants(ecsTlr);
     if (tenantIds.isEmpty()) {
@@ -100,13 +102,13 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     return tenantIds;
   }
 
-  private EcsTlr save(EcsTlr ecsTlr) {
+  private EcsTlrEntity save(EcsTlrEntity ecsTlr) {
     log.info("save:: saving ECS TLR {}", ecsTlr.getId());
-    EcsTlrEntity updatedEcsTlr = ecsTlrRepository.save(requestsMapper.mapDtoToEntity(ecsTlr));
+    EcsTlrEntity savedEcsTlr = ecsTlrRepository.save(ecsTlr);
     log.info("save:: saved ECS TLR {}", ecsTlr.getId());
     log.debug("save:: ECS TLR: {}", () -> ecsTlr);
 
-    return requestsMapper.mapEntityToDto(updatedEcsTlr);
+    return savedEcsTlr;
   }
 
   private static Request buildPrimaryRequest(Request secondaryRequest) {
@@ -122,23 +124,36 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       .pickupServicePointId(secondaryRequest.getPickupServicePointId());
   }
 
-  private Request buildSecondaryRequest(EcsTlr ecsTlr) {
-    return requestsMapper.mapDtoToRequest(ecsTlr)
+  private Request buildSecondaryRequest(EcsTlrEntity ecsTlr) {
+    return requestsMapper.mapEntityToRequest(ecsTlr)
       .ecsRequestPhase(Request.EcsRequestPhaseEnum.SECONDARY);
   }
 
-  private static void updateEcsTlr(EcsTlr ecsTlr, RequestWrapper primaryRequest,
+  private static void updateEcsTlr(EcsTlrEntity ecsTlr, RequestWrapper primaryRequest,
     RequestWrapper secondaryRequest) {
 
     log.info("updateEcsTlr:: updating ECS TLR in memory");
-    ecsTlr.primaryRequestTenantId(primaryRequest.tenantId())
-      .primaryRequestId(primaryRequest.request().getId())
-      .secondaryRequestTenantId(secondaryRequest.tenantId())
-      .secondaryRequestId(secondaryRequest.request().getId())
-      .itemId(secondaryRequest.request().getItemId());
+    ecsTlr.setPrimaryRequestTenantId(primaryRequest.tenantId());
+    ecsTlr.setSecondaryRequestTenantId(secondaryRequest.tenantId());
+    ecsTlr.setPrimaryRequestId(UUID.fromString(primaryRequest.request().getId()));
+    ecsTlr.setSecondaryRequestId(UUID.fromString(secondaryRequest.request().getId()));
+
+    Optional.of(secondaryRequest.request())
+      .map(Request::getItemId)
+      .map(UUID::fromString)
+      .ifPresent(ecsTlr::setItemId);
 
     log.info("updateEcsTlr:: ECS TLR updated in memory");
     log.debug("updateEcsTlr:: ECS TLR: {}", () -> ecsTlr);
+  }
+
+  private void createDcbTransactions(EcsTlrEntity ecsTlr, Request secondaryRequest) {
+    if (secondaryRequest.getItemId() == null) {
+      log.info("createDcbTransactions:: secondary request has no item ID");
+      return;
+    }
+    dcbService.createBorrowingTransaction(ecsTlr, secondaryRequest);
+    dcbService.createLendingTransaction(ecsTlr);
   }
 
 }
