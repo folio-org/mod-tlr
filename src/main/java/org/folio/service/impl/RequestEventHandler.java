@@ -64,11 +64,8 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
       log.warn("handleRequestUpdateEvent:: event does not contain new version of request");
       return;
     }
-    if (updatedRequest.getEcsRequestPhase() == null) {
-      log.info("handleRequestUpdateEvent:: updated request is not an ECS request");
-      return;
-    }
-    if (updatedRequest.getEcsRequestPhase() == SECONDARY && updatedRequest.getItemId() == null) {
+
+    if (SECONDARY == updatedRequest.getEcsRequestPhase() && updatedRequest.getItemId() == null) {
       log.info("handleRequestUpdateEvent:: updated secondary request does not contain itemId");
       return;
     }
