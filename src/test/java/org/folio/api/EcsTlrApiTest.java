@@ -55,9 +55,8 @@ class EcsTlrApiTest extends BaseIT {
   private static final String PATRON_GROUP_ID_SECONDARY = randomId();
   private static final String PATRON_GROUP_ID_PRIMARY = randomId();
   private static final String REQUESTER_BARCODE = randomId();
-  private static final String ECS_TLR_ID = randomId();
-  private static final String PRIMARY_REQUEST_ID = ECS_TLR_ID;
-  private static final String SECONDARY_REQUEST_ID = ECS_TLR_ID;
+  private static final String SECONDARY_REQUEST_ID = randomId();
+  private static final String PRIMARY_REQUEST_ID = SECONDARY_REQUEST_ID;
 
   private static final String UUID_PATTERN =
     "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}";
@@ -183,7 +182,8 @@ class EcsTlrApiTest extends BaseIT {
     // 1.4 Mock request endpoints
 
     Request secondaryRequestPostRequest = buildSecondaryRequest(ecsTlr);
-    Request mockPostSecondaryRequestResponse = buildSecondaryRequest(ecsTlr);
+    Request mockPostSecondaryRequestResponse = buildSecondaryRequest(ecsTlr).id(SECONDARY_REQUEST_ID);
+
     if (requestType != HOLD) {
       mockPostSecondaryRequestResponse
         .itemId(ITEM_ID)
@@ -245,6 +245,7 @@ class EcsTlrApiTest extends BaseIT {
     var response = doPostWithTenant(TLR_URL, ecsTlr, TENANT_ID_CONSORTIUM)
       .expectStatus().isCreated()
       .expectBody()
+      .jsonPath("$.id").exists()
       .json(asJsonString(expectedPostEcsTlrResponse));
     assertEquals(TENANT_ID_CONSORTIUM, getCurrentTenantId());
 
@@ -418,7 +419,6 @@ class EcsTlrApiTest extends BaseIT {
     String pickupServicePointId) {
 
     return new EcsTlr()
-      .id(ECS_TLR_ID)
       .instanceId(INSTANCE_ID)
       .requesterId(requesterId)
       .pickupServicePointId(pickupServicePointId)
@@ -432,7 +432,6 @@ class EcsTlrApiTest extends BaseIT {
 
   private static Request buildSecondaryRequest(EcsTlr ecsTlr) {
     return new Request()
-      .id(SECONDARY_REQUEST_ID)
       .requesterId(ecsTlr.getRequesterId())
       .requestLevel(Request.RequestLevelEnum.fromValue(ecsTlr.getRequestLevel().getValue()))
       .requestType(Request.RequestTypeEnum.fromValue(ecsTlr.getRequestType().getValue()))
