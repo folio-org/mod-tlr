@@ -233,9 +233,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
       clonePickupServicePoint(ecsTlr, pickupServicePointId);
     }
 
-    Integer primaryRequestPosition  = primaryRequest.getPosition();
-    Integer oldPosition = event.getData().getOldVersion().getPosition();
-    if (!Objects.equals(primaryRequestPosition, oldPosition)) {
+    if (valueIsNotEqual(primaryRequest, event.getData().getOldVersion(), Request::getPosition)) {
       log.info("propagateChangesFromPrimaryToSecondaryRequest:: position has been changed");
       updateQueuePositions(event, primaryRequest);
     }
@@ -299,7 +297,8 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
         int newPosition = i + 1;
         if (newPosition != request.getPosition()) {
           log.info("reorderSecondaryRequestsQueue:: update position for secondary request: {} , " +
-            "with new position: {}, tenant: {}", request, newPosition, tenantId);
+            "with new position: {}, tenant: {}, old position: {}", request, newPosition, tenantId,
+            request.getPosition());
           request.setPosition(newPosition);
           requestService.updateRequestInStorage(request, tenantId);
         }
