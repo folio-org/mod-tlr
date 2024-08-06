@@ -180,7 +180,7 @@ class KafkaEventListenerTest extends BaseIT {
     KafkaEvent<Request> event = buildPrimaryRequestUpdateEvent(OPEN_NOT_YET_FILLED, CLOSED_CANCELLED);
     publishEventAndWait(PRIMARY_REQUEST_TENANT_ID, REQUEST_KAFKA_TOPIC_NAME, event);
 
-    EcsTlrEntity updatedEcsTlr = getEcsTlr(ECS_TLR_ID);
+    EcsTlrEntity updatedEcsTlr = getEcsTlr(initialEcsTlr.getId());
     UUID transactionId = updatedEcsTlr.getSecondaryRequestDcbTransactionId();
     verifyThatNoDcbTransactionsWereCreated();
     verifyThatDcbTransactionStatusWasRetrieved(transactionId, SECONDARY_REQUEST_TENANT_ID);
