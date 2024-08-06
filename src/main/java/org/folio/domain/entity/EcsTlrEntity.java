@@ -1,5 +1,6 @@
 package org.folio.domain.entity;
 
+import jakarta.persistence.GeneratedValue;
 import java.util.Date;
 import java.util.UUID;
 
@@ -20,6 +21,7 @@ import lombok.NoArgsConstructor;
 public class EcsTlrEntity {
 
   @Id
+  @GeneratedValue
   private UUID id;
   private UUID instanceId;
   private UUID requesterId;
