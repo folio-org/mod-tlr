@@ -5,7 +5,6 @@ import static org.folio.support.MockDataUtils.getEcsTlrEntity;
 import static org.folio.support.MockDataUtils.getMockDataAsString;
 import static org.folio.util.TestUtils.buildEvent;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -104,8 +103,8 @@ class RequestEventHandlerTest extends BaseIT {
     eventListener.handleRequestEvent(serializeEvent(buildEvent(
       CENTRAL_TENANT_ID, UPDATED, firstPrimaryRequest, newVersion)), getMessageHeaders(
         CENTRAL_TENANT_ID, CENTRAL_TENANT_ID));
-    verify(requestService, times(2)).updateRequestInStorage(eq(firstSecondaryRequest), eq(firstTenant));
-    verify(requestService, times(1)).updateRequestInStorage(eq(secondSecondaryRequest), eq(firstTenant));
+    verify(requestService, times(2)).updateRequestInStorage(firstSecondaryRequest, firstTenant);
+    verify(requestService, times(1)).updateRequestInStorage(secondSecondaryRequest, firstTenant);
   }
 
   private static EcsTlr buildEcsTlr(String instanceId, String requesterId,
