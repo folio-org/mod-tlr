@@ -73,6 +73,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
       return;
     }
     String requestId = updatedRequest.getId();
+    log.info("handleRequestUpdateEvent:: looking for ECS TLR for request {}", requestId);
     // we can search by either primary or secondary request ID, they are identical
     ecsTlrRepository.findBySecondaryRequestId(UUID.fromString(requestId)).ifPresentOrElse(
       ecsTlr -> handleRequestUpdateEvent(ecsTlr, event),
@@ -121,6 +122,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
       updateTransactionStatus(ecsTlr.getPrimaryRequestDcbTransactionId(), newTransactionStatus,
         ecsTlr.getPrimaryRequestTenantId());
       if (newTransactionStatus == CANCELLED) {
+        log.info("handlePrimaryRequestUpdate:: cancelling secondary DCB transaction");
         updateTransactionStatus(ecsTlr.getSecondaryRequestDcbTransactionId(), newTransactionStatus,
           ecsTlr.getSecondaryRequestTenantId());
       }
