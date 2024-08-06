@@ -56,7 +56,7 @@ class RequestEventHandlerTest extends BaseIT {
   }
 
   @Test
-  public void testUpdateQueuePositionIfPrimaryRequestPositionChanged() {
+  void testUpdateQueuePositionIfPrimaryRequestPositionChanged() {
     String requesterId = randomId();
     String pickupServicePointId = randomId();
     String instanceId = randomId();
@@ -152,10 +152,6 @@ class RequestEventHandlerTest extends BaseIT {
         ecsTlr.getFulfillmentPreference().getValue()))
       .patronComments(ecsTlr.getPatronComments())
       .position(position);
-  }
-
-  private static <T> KafkaEvent<T> buildUpdateEvent(String tenant, T oldVersion, T newVersion) {
-    return buildEvent(tenant, UPDATED, oldVersion, newVersion);
   }
 
   private static <T> KafkaEvent<T> buildEvent(String tenant, KafkaEvent.EventType type,
