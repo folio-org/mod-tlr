@@ -46,7 +46,7 @@ public class KafkaEventListener {
     groupId = "${spring.kafka.consumer.group-id}"
   )
   public void handleRequestEvent(String eventString, MessageHeaders messageHeaders) {
-    log.debug("handleRequestEvent:: event: {}", () -> eventString);
+    log.info("handleRequestEvent:: event: {}", () -> eventString);
     KafkaEvent<Request> event = deserialize(eventString, messageHeaders, Request.class);
     log.info("handleRequestEvent:: event received: {}", event::getId);
     handleEvent(event, requestEventHandler);
