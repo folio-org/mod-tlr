@@ -7,10 +7,12 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static java.lang.String.format;
 
 import java.util.Base64;
+import java.util.Date;
 import java.util.Set;
 import java.util.UUID;
 
 import org.apache.http.HttpStatus;
+import org.folio.support.KafkaEvent;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -68,5 +70,32 @@ public class TestUtils {
           new JSONObject().put("id", "university").put("isCentral", "false"),
           new JSONObject().put("id", "college").put("isCentral", "false")
         ))).toString(), HttpStatus.SC_OK)));
+  }
+
+  public static <T> KafkaEvent<T> buildEvent(String tenant, KafkaEvent.EventType type,
+    T oldVersion, T newVersion) {
+
+    KafkaEvent.EventData<T> data = KafkaEvent.EventData.<T>builder()
+      .oldVersion(oldVersion)
+      .newVersion(newVersion)
+      .build();
+
+    return buildEvent(tenant, type, data);
+  }
+
+  private static <T> KafkaEvent<T> buildEvent(String tenant, KafkaEvent.EventType type,
+    KafkaEvent.EventData<T> data) {
+
+    return KafkaEvent.<T>builder()
+      .id(randomId())
+      .type(type)
+      .timestamp(new Date().getTime())
+      .tenant(tenant)
+      .data(data)
+      .build();
+  }
+
+  private static String randomId() {
+    return UUID.randomUUID().toString();
   }
 }
