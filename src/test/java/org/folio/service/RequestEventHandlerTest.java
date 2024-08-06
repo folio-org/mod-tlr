@@ -79,9 +79,8 @@ class RequestEventHandlerTest extends BaseIT {
     Request fourthPrimaryRequest = buildPrimaryRequest(fourthSecondaryRequest, 4);
 
 
-    Request oldVersion = firstPrimaryRequest;
-    Request newVersion = buildPrimaryRequest(firstSecondaryRequest, 4);
-    buildEvent("consortium", UPDATED, oldVersion, newVersion);
+    Request newVersion = buildPrimaryRequest(firstPrimaryRequest, 4);
+    buildEvent("consortium", UPDATED, firstPrimaryRequest, newVersion);
 
     EcsTlrEntity ecsTlrEntity = EcsTlrEntity.builder()
       .id(UUID.randomUUID())
@@ -99,7 +98,7 @@ class RequestEventHandlerTest extends BaseIT {
       ecsTlrMapper.mapDtoToEntity(thirdEcsTlr), ecsTlrMapper.mapDtoToEntity(fourthEcsTlr)));
 
     eventListener.handleRequestEvent(serializeEvent(buildEvent(
-      "consortium", UPDATED, oldVersion, newVersion)), getMessageHeaders(
+      "consortium", UPDATED, firstPrimaryRequest, newVersion)), getMessageHeaders(
         "consortium", "consortium"));
     verify(requestService, times(3)).updateRequestInStorage(any(Request.class), anyString());
   }

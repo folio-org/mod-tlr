@@ -9,6 +9,7 @@ import static org.folio.domain.dto.TransactionStatus.StatusEnum.ITEM_CHECKED_OUT
 import static org.folio.domain.dto.TransactionStatus.StatusEnum.OPEN;
 import static org.folio.support.KafkaEvent.EventType.UPDATED;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -235,6 +236,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
     Integer primaryRequestPosition  = primaryRequest.getPosition();
     Integer oldPosition = event.getData().getOldVersion().getPosition();
     if (!Objects.equals(primaryRequestPosition, oldPosition)) {
+      log.info("propagateChangesFromPrimaryToSecondaryRequest:: position has been changed");
       updateQueuePositions(event, primaryRequest);
     }
 
@@ -249,6 +251,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
   }
 
   private void updateQueuePositions(KafkaEvent<Request> event, Request primaryRequest) {
+    log.info("updateQueuePositions:: parameters event: {}, primaryRequest: {}", event, primaryRequest);
     List<Request> unifiedQueue = requestService.getRequestsByInstanceId(primaryRequest.getInstanceId())
       .stream()
       .filter(request -> !request.getId().equals(event.getData().getOldVersion().getId()))
@@ -258,25 +261,26 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
     unifiedQueue.sort(Comparator.comparing(Request::getPosition));
     IntStream.range(0, unifiedQueue.size()).forEach(i -> unifiedQueue.get(i).setPosition(i + 1));
 
-    List<Request> primaryRequestsQueue = unifiedQueue.stream()
+    List<UUID> sortedPrimaryRequestIds = unifiedQueue.stream()
       .filter(request -> PRIMARY == request.getEcsRequestPhase())
       .sorted(Comparator.comparing(Request::getPosition))
-      .toList();
-
-    List<UUID> primaryRequestIds = primaryRequestsQueue.stream()
       .map(request -> UUID.fromString(request.getId()))
       .toList();
-    List<EcsTlrEntity> ecsTlrQueue = ecsTlrRepository.findByPrimaryRequestIdIn(primaryRequestIds);
-    Map<String, List<Request>> groupedSecondaryRequestsByTenantId = groupSecondaryRequestsByTenantId(
-      ecsTlrQueue);
 
-    reorderSecondaryRequestsQueue(groupedSecondaryRequestsByTenantId, ecsTlrQueue);
+    List<EcsTlrEntity> sortedEcsTlrQueue = sortEcsTlrEntities(sortedPrimaryRequestIds,
+      ecsTlrRepository.findByPrimaryRequestIdIn(sortedPrimaryRequestIds));
+    Map<String, List<Request>> groupedSecondaryRequestsByTenantId = groupSecondaryRequestsByTenantId(
+      sortedEcsTlrQueue);
+
+    reorderSecondaryRequestsQueue(groupedSecondaryRequestsByTenantId, sortedEcsTlrQueue);
   }
 
   private void reorderSecondaryRequestsQueue(
     Map<String, List<Request>> groupedSecondaryRequestsByTenantId,
     List<EcsTlrEntity> sortedEcsTlrQueue) {
 
+    log.info("reorderSecondaryRequestsQueue:: parameters groupedSecondaryRequestsByTenantId: {}," +
+      "sortedEcsTlrQueue: {}", () -> groupedSecondaryRequestsByTenantId, () -> sortedEcsTlrQueue);
     Map<UUID, Integer> secondaryRequestOrder = new HashMap<>();
     for (int i = 0; i < sortedEcsTlrQueue.size(); i++) {
       EcsTlrEntity ecsEntity = sortedEcsTlrQueue.get(i);
@@ -294,6 +298,8 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
         Request request = secondaryRequests.get(i);
         int newPosition = i + 1;
         if (newPosition != request.getPosition()) {
+          log.info("reorderSecondaryRequestsQueue:: update position for secondary request: {} , " +
+            "with new position: {}, tenant: {}", request, newPosition, tenantId);
           request.setPosition(newPosition);
           requestService.updateRequestInStorage(request, tenantId);
         }
@@ -329,5 +335,19 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
           entity.getSecondaryRequestId().toString(), entity.getSecondaryRequestTenantId()),
           Collectors.toList())
       ));
+  }
+  private List<EcsTlrEntity> sortEcsTlrEntities(List<UUID> sortedPrimaryRequestIds,
+    List<EcsTlrEntity> ecsTlrQueue) {
+
+    List<EcsTlrEntity> sortedEcsTlrQueue = new ArrayList<>(ecsTlrQueue);
+    Map<UUID, Integer> indexMap = new HashMap<>();
+    for (int i = 0; i < sortedPrimaryRequestIds.size(); i++) {
+      indexMap.put(sortedPrimaryRequestIds.get(i), i);
+    }
+
+    sortedEcsTlrQueue.sort(Comparator.comparingInt(entity -> indexMap.getOrDefault(
+      entity.getPrimaryRequestId(), Integer.MAX_VALUE)));
+
+    return sortedEcsTlrQueue;
   }
 }
