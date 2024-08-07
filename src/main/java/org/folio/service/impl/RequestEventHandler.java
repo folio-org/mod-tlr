@@ -131,9 +131,15 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
 
   private void handleSecondaryRequestUpdate(EcsTlrEntity ecsTlr, KafkaEvent<Request> event) {
     processItemIdUpdate(ecsTlr, event.getData().getNewVersion());
-    determineNewTransactionStatus(event).ifPresent(newTransactionStatus ->
+    determineNewTransactionStatus(event).ifPresent(newTransactionStatus -> {
       updateTransactionStatus(ecsTlr.getSecondaryRequestDcbTransactionId(), newTransactionStatus,
-      ecsTlr.getSecondaryRequestTenantId()));
+      ecsTlr.getSecondaryRequestTenantId());
+      if (newTransactionStatus == OPEN) {
+        log.info("handleSecondaryRequestUpdate:: open primary DCB transaction");
+        updateTransactionStatus(ecsTlr.getPrimaryRequestDcbTransactionId(), newTransactionStatus,
+          ecsTlr.getPrimaryRequestTenantId());
+      }
+    });
   }
 
   private void processItemIdUpdate(EcsTlrEntity ecsTlr, Request updatedRequest) {
