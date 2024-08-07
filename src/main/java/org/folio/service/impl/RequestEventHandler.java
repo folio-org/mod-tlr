@@ -280,29 +280,30 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
     log.info("reorderSecondaryRequestsQueue:: parameters groupedSecondaryRequestsByTenantId: {}," +
       "sortedEcsTlrQueue: {}", () -> groupedSecondaryRequestsByTenantId, () -> sortedEcsTlrQueue);
     Map<UUID, Integer> secondaryRequestOrder = new HashMap<>();
-    for (int i = 0; i < sortedEcsTlrQueue.size(); i++) {
-      EcsTlrEntity ecsEntity = sortedEcsTlrQueue.get(i);
-      if (ecsEntity.getSecondaryRequestId() != null) {
-        secondaryRequestOrder.put(ecsEntity.getSecondaryRequestId(), i + 1);
-      }
-    }
+    IntStream.range(0, sortedEcsTlrQueue.size())
+      .forEach(i -> {
+        EcsTlrEntity ecsEntity = sortedEcsTlrQueue.get(i);
+        if (ecsEntity.getSecondaryRequestId() != null) {
+          secondaryRequestOrder.put(ecsEntity.getSecondaryRequestId(), i + 1);
+        }
+      });
 
     groupedSecondaryRequestsByTenantId.forEach((tenantId, secondaryRequests) -> {
       secondaryRequests.sort(Comparator.comparingInt(
         req -> secondaryRequestOrder.getOrDefault(UUID.fromString(req.getId()), Integer.MAX_VALUE)
       ));
 
-      for (int i = 0; i < secondaryRequests.size(); i++) {
+      IntStream.range(0, secondaryRequests.size()).forEach(i -> {
         Request request = secondaryRequests.get(i);
         int newPosition = i + 1;
         if (newPosition != request.getPosition()) {
-          log.info("reorderSecondaryRequestsQueue:: update position for secondary request: {} , " +
-            "with new position: {}, tenant: {}, old position: {}", request, newPosition, tenantId,
+          log.info("reorderSecondaryRequestsQueue:: update position for secondary request: {}, " +
+              "with new position: {}, tenant: {}, old position: {}", request, newPosition, tenantId,
             request.getPosition());
           request.setPosition(newPosition);
           requestService.updateRequestInStorage(request, tenantId);
         }
-      }
+      });
     });
   }
 
