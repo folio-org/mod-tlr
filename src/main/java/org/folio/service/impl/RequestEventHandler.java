@@ -335,6 +335,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
           Collectors.toList())
       ));
   }
+
   private List<EcsTlrEntity> sortEcsTlrEntities(List<UUID> sortedPrimaryRequestIds,
     List<EcsTlrEntity> ecsTlrQueue) {
 
