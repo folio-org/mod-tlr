@@ -61,8 +61,9 @@ public class RequestServiceImpl implements RequestService {
 
     User primaryRequestRequester = executionService.executeSystemUserScoped(borrowingTenantId,
       () -> userService.find(requesterId));
-    ServicePoint primaryRequestPickupServicePoint = executionService.executeSystemUserScoped(
-      borrowingTenantId, () -> servicePointService.find(pickupServicePointId));
+    ServicePoint primaryRequestPickupServicePoint = pickupServicePointId == null
+      ? null
+      : executionService.executeSystemUserScoped(borrowingTenantId, () -> servicePointService.find(pickupServicePointId));
 
     for (String lendingTenantId : lendingTenantIds) {
       try {
@@ -71,9 +72,11 @@ public class RequestServiceImpl implements RequestService {
             requesterId, lendingTenantId);
           cloneRequester(primaryRequestRequester);
 
-          log.info("createSecondaryRequest:: creating pickup service point {} in lending tenant ({})",
-            pickupServicePointId, lendingTenantId);
-          servicePointCloningService.clone(primaryRequestPickupServicePoint);
+          if (pickupServicePointId != null) {
+            log.info("createSecondaryRequest:: creating pickup service point {} in lending tenant ({})",
+              pickupServicePointId, lendingTenantId);
+            servicePointCloningService.clone(primaryRequestPickupServicePoint);
+          }
 
           log.info("createSecondaryRequest:: creating secondary request {} in lending tenant ({})",
             requestId, lendingTenantId);
