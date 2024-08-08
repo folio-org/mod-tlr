@@ -57,7 +57,7 @@ public class DcbServiceImpl implements DcbService {
       .title(request.getInstance().getTitle())
       .barcode(request.getItem().getBarcode());
     DcbTransaction transaction = new DcbTransaction()
-      .requestId(ecsTlr.getSecondaryRequestId().toString())
+      .requestId(ecsTlr.getPrimaryRequestId().toString())
       .item(dcbItem)
       .role(BORROWER);
     final UUID borrowingTransactionId = createTransaction(transaction, ecsTlr.getPrimaryRequestTenantId());
