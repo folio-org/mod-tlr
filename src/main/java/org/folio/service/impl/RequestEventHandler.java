@@ -119,12 +119,13 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
   private void handlePrimaryRequestUpdate(EcsTlrEntity ecsTlr, KafkaEvent<Request> event) {
     propagateChangesFromPrimaryToSecondaryRequest(ecsTlr, event);
     determineNewTransactionStatus(event).ifPresent(newTransactionStatus -> {
-      updateTransactionStatus(ecsTlr.getPrimaryRequestDcbTransactionId(), newTransactionStatus,
-        ecsTlr.getPrimaryRequestTenantId());
       if (newTransactionStatus == CANCELLED) {
         log.info("handlePrimaryRequestUpdate:: cancelling secondary DCB transaction");
         updateTransactionStatus(ecsTlr.getSecondaryRequestDcbTransactionId(), newTransactionStatus,
           ecsTlr.getSecondaryRequestTenantId());
+      } else {
+        updateTransactionStatus(ecsTlr.getPrimaryRequestDcbTransactionId(), newTransactionStatus,
+          ecsTlr.getPrimaryRequestTenantId());
       }
     });
   }
