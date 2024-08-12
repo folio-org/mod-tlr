@@ -2,6 +2,7 @@ package org.folio.service.impl;
 
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toMap;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.PRIMARY;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.SECONDARY;
 import static org.folio.domain.dto.TransactionStatus.StatusEnum.AWAITING_PICKUP;
@@ -10,6 +11,7 @@ import static org.folio.domain.dto.TransactionStatus.StatusEnum.OPEN;
 import static org.folio.support.KafkaEvent.EventType.UPDATED;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -127,8 +129,19 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
 
   private void handlePrimaryRequestUpdate(EcsTlrEntity ecsTlr, KafkaEvent<Request> event) {
     propagateChangesFromPrimaryToSecondaryRequest(ecsTlr, event);
+    reorderSecondaryRequestsInSyncWithPrimary(event);
     updateDcbTransaction(ecsTlr.getPrimaryRequestDcbTransactionId(),
       ecsTlr.getPrimaryRequestTenantId(), event);
+  }
+
+  private void reorderSecondaryRequestsInSyncWithPrimary(KafkaEvent<Request> event) {
+    Request primaryRequest = event.getData().getNewVersion();
+    if (valueIsNotEqual(primaryRequest, event.getData().getOldVersion(), Request::getPosition)) {
+      log.info("reorderSecondaryRequestsInSyncWithPrimary:: position of request: {} has been changed, " +
+          "old position: {}, new position: {}", primaryRequest.getId(), event.getData().getOldVersion(),
+        primaryRequest.getPosition());
+      updateQueuePositions(event);
+    }
   }
 
   private void handleSecondaryRequestUpdate(EcsTlrEntity ecsTlr, KafkaEvent<Request> event) {
@@ -233,11 +246,6 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
       clonePickupServicePoint(ecsTlr, pickupServicePointId);
     }
 
-    if (valueIsNotEqual(primaryRequest, event.getData().getOldVersion(), Request::getPosition)) {
-      log.info("propagateChangesFromPrimaryToSecondaryRequest:: position has been changed");
-      updateQueuePositions(event, primaryRequest);
-    }
-
     if (!shouldUpdateSecondaryRequest) {
       log.info("propagateChangesFromPrimaryToSecondaryRequest:: no relevant changes detected");
       return;
@@ -248,9 +256,10 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
     log.info("propagateChangesFromPrimaryToSecondaryRequest:: secondary request updated");
   }
 
-  private void updateQueuePositions(KafkaEvent<Request> event, Request primaryRequest) {
-    log.info("updateQueuePositions:: parameters event: {}, primaryRequest: {}", event, primaryRequest);
-    List<Request> unifiedQueue = requestService.getRequestsByInstanceId(primaryRequest.getInstanceId())
+  private void updateQueuePositions(KafkaEvent<Request> event) {
+    log.info("updateQueuePositions:: parameters event: {}", event);
+    var primaryRequest = event.getData().getNewVersion();
+    var unifiedQueue = requestService.getRequestsByInstanceId(primaryRequest.getInstanceId())
       .stream()
       .filter(request -> !request.getId().equals(event.getData().getOldVersion().getId()))
       .collect(Collectors.toList());
@@ -278,30 +287,37 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
     List<EcsTlrEntity> sortedEcsTlrQueue) {
 
     log.info("reorderSecondaryRequestsQueue:: parameters groupedSecondaryRequestsByTenantId: {}," +
-      "sortedEcsTlrQueue: {}", () -> groupedSecondaryRequestsByTenantId, () -> sortedEcsTlrQueue);
-    Map<UUID, Integer> secondaryRequestOrder = new HashMap<>();
-    IntStream.range(0, sortedEcsTlrQueue.size())
-      .forEach(i -> {
-        EcsTlrEntity ecsEntity = sortedEcsTlrQueue.get(i);
-        if (ecsEntity.getSecondaryRequestId() != null) {
-          secondaryRequestOrder.put(ecsEntity.getSecondaryRequestId(), i + 1);
-        }
-      });
+      "sortedEcsTlrQueue: {}", groupedSecondaryRequestsByTenantId, sortedEcsTlrQueue);
+
+    Map<UUID, Integer> correctOrder = IntStream.range(0, sortedEcsTlrQueue.size())
+      .boxed()
+      .collect(Collectors.toMap(
+        i -> sortedEcsTlrQueue.get(i).getSecondaryRequestId(),
+        i -> i + 1));
+    log.debug("reorderSecondaryRequestsQueue:: correctOrder: {}", correctOrder);
 
     groupedSecondaryRequestsByTenantId.forEach((tenantId, secondaryRequests) -> {
-      secondaryRequests.sort(Comparator.comparingInt(
-        req -> secondaryRequestOrder.getOrDefault(UUID.fromString(req.getId()), Integer.MAX_VALUE)
-      ));
+      List<Integer> sortedCurrentPositions = secondaryRequests.stream()
+        .map(Request::getPosition)
+        .sorted()
+        .toList();
+      log.debug("reorderSecondaryRequestsQueue:: sortedCurrentPositions: {}",
+        sortedCurrentPositions);
+
+      secondaryRequests.sort(Comparator.comparingInt(r -> correctOrder.getOrDefault(
+              UUID.fromString(r.getId()), 0)));
 
       IntStream.range(0, secondaryRequests.size()).forEach(i -> {
         Request request = secondaryRequests.get(i);
-        int newPosition = i + 1;
-        if (newPosition != request.getPosition()) {
-          log.info("reorderSecondaryRequestsQueue:: update position for secondary request: {}, " +
-              "with new position: {}, tenant: {}, old position: {}", request, newPosition, tenantId,
-            request.getPosition());
-          request.setPosition(newPosition);
+        int updatedPosition = sortedCurrentPositions.get(i);
+
+        if (request.getPosition() != updatedPosition) {
+          log.info("reorderSecondaryRequestsQueue:: " +
+            "swap positions: {} <-> {}, for tenant: {}", request.getPosition(), updatedPosition,
+            tenantId);
+          request.setPosition(updatedPosition);
           requestService.updateRequestInStorage(request, tenantId);
+          log.debug("reorderSecondaryRequestsQueue:: request {} updated", request);
         }
       });
     });
@@ -340,14 +356,13 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
   private List<EcsTlrEntity> sortEcsTlrEntities(List<UUID> sortedPrimaryRequestIds,
     List<EcsTlrEntity> ecsTlrQueue) {
 
-    List<EcsTlrEntity> sortedEcsTlrQueue = new ArrayList<>(ecsTlrQueue);
-    Map<UUID, Integer> indexMap = new HashMap<>();
-    for (int i = 0; i < sortedPrimaryRequestIds.size(); i++) {
-      indexMap.put(sortedPrimaryRequestIds.get(i), i);
-    }
-
-    sortedEcsTlrQueue.sort(Comparator.comparingInt(entity -> indexMap.getOrDefault(
-      entity.getPrimaryRequestId(), Integer.MAX_VALUE)));
+    Map<UUID, EcsTlrEntity> ecsTlrByPrimaryRequestId = ecsTlrQueue.stream()
+      .collect(toMap(EcsTlrEntity::getPrimaryRequestId, Function.identity()));
+    List<EcsTlrEntity> sortedEcsTlrQueue = sortedPrimaryRequestIds
+      .stream()
+      .map(ecsTlrByPrimaryRequestId::get)
+      .toList();
+    log.info("sortEcsTlrEntities:: result: {}", sortedEcsTlrQueue);
 
     return sortedEcsTlrQueue;
   }

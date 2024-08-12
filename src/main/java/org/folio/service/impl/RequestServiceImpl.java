@@ -118,7 +118,8 @@ public class RequestServiceImpl implements RequestService {
 
   @Override
   public List<Request> getRequestsByInstanceId(String instanceId) {
-    return requestStorageClient.getRequestsByQuery(String.format("?query=instanceId==%s", instanceId));
+    return requestStorageClient.getRequestsByQuery(String.format(
+      "?query=instanceId==%s sortBy position/sort.ascending", instanceId));
   }
 
   private void cloneRequester(User primaryRequestRequester) {
@@ -132,5 +133,4 @@ public class RequestServiceImpl implements RequestService {
       userService.update(requesterClone);
     }
   }
-
 }
