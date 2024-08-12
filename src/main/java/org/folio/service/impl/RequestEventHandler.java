@@ -312,9 +312,8 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
         int updatedPosition = sortedCurrentPositions.get(i);
 
         if (request.getPosition() != updatedPosition) {
-          log.info("reorderSecondaryRequestsQueue:: " +
-            "swap positions: {} <-> {}, for tenant: {}", request.getPosition(), updatedPosition,
-            tenantId);
+          log.info("reorderSecondaryRequestsQueue:: swap positions: {} <-> {}, for tenant: {}",
+            request.getPosition(), updatedPosition, tenantId);
           request.setPosition(updatedPosition);
           requestService.updateRequestInStorage(request, tenantId);
           log.debug("reorderSecondaryRequestsQueue:: request {} updated", request);
