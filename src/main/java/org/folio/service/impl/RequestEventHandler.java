@@ -259,14 +259,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
   private void updateQueuePositions(KafkaEvent<Request> event) {
     log.info("updateQueuePositions:: parameters event: {}", event);
     var primaryRequest = event.getData().getNewVersion();
-    var unifiedQueue = requestService.getRequestsByInstanceId(primaryRequest.getInstanceId())
-      .stream()
-      .filter(request -> !request.getId().equals(event.getData().getOldVersion().getId()))
-      .collect(Collectors.toList());
-
-    unifiedQueue.add(primaryRequest);
-    unifiedQueue.sort(Comparator.comparing(Request::getPosition));
-    IntStream.range(0, unifiedQueue.size()).forEach(i -> unifiedQueue.get(i).setPosition(i + 1));
+    var unifiedQueue = requestService.getRequestsByInstanceId(primaryRequest.getInstanceId());
 
     List<UUID> sortedPrimaryRequestIds = unifiedQueue.stream()
       .filter(request -> PRIMARY == request.getEcsRequestPhase())
@@ -305,7 +298,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
         sortedCurrentPositions);
 
       secondaryRequests.sort(Comparator.comparingInt(r -> correctOrder.getOrDefault(
-              UUID.fromString(r.getId()), 0)));
+        UUID.fromString(r.getId()), 0)));
 
       IntStream.range(0, secondaryRequests.size()).forEach(i -> {
         Request request = secondaryRequests.get(i);

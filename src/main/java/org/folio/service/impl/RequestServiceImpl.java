@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.folio.client.feign.CirculationClient;
+import org.folio.client.feign.RequestCirculationClient;
 import org.folio.client.feign.RequestStorageClient;
 import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.Request;
@@ -29,6 +30,7 @@ public class RequestServiceImpl implements RequestService {
 
   private final SystemUserScopedExecutionService executionService;
   private final CirculationClient circulationClient;
+  private final RequestCirculationClient requestCirculationClient;
   private final RequestStorageClient requestStorageClient;
   private final UserService userService;
   private final ServicePointService servicePointService;
@@ -118,8 +120,7 @@ public class RequestServiceImpl implements RequestService {
 
   @Override
   public List<Request> getRequestsByInstanceId(String instanceId) {
-    return requestStorageClient.getRequestsByQuery(String.format(
-      "?query=instanceId==%s sortBy position/sort.ascending", instanceId));
+    return requestCirculationClient.getRequestsQueueByInstanceId(instanceId).getRequests();
   }
 
   private void cloneRequester(User primaryRequestRequester) {

@@ -10,10 +10,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import org.folio.api.BaseIT;
 import org.folio.domain.dto.EcsTlr;
@@ -55,7 +57,7 @@ class RequestEventHandlerTest extends BaseIT {
   }
 
   @Test
-  void testUpdateQueuePositionIfPrimaryRequestPositionChanged() {
+  void updateSecondaryRequestsQueuePositionsIfPrimaryRequestPositionChanged() {
     var requesterId = randomId();
     var pickupServicePointId = randomId();
     var instanceId = randomId();
@@ -93,18 +95,84 @@ class RequestEventHandlerTest extends BaseIT {
     when(requestService.getRequestFromStorage(fourthEcsTlr.getSecondaryRequestId(),
       fourthEcsTlr.getSecondaryRequestTenantId()))
       .thenReturn(fourthSecondaryRequest);
-    when(requestService.getRequestsByInstanceId(any()))
-      .thenReturn(List.of(firstPrimaryRequest, secondPrimaryRequest, thirdPrimaryRequest,
-        fourthPrimaryRequest));
+    var requestsQueue = Stream.of(newVersion, secondPrimaryRequest, thirdPrimaryRequest,
+        fourthPrimaryRequest)
+      .sorted(Comparator.comparing(Request::getPosition))
+      .toList();
+
+    when(requestService.getRequestsByInstanceId(any())).thenReturn(requestsQueue);
     when(ecsTlrRepository.findByPrimaryRequestIdIn(any())).thenReturn(List.of(
       ecsTlrMapper.mapDtoToEntity(firstEcsTlr), ecsTlrMapper.mapDtoToEntity(secondEcsTlr),
       ecsTlrMapper.mapDtoToEntity(thirdEcsTlr), ecsTlrMapper.mapDtoToEntity(fourthEcsTlr)));
 
-    eventListener.handleRequestEvent(serializeEvent(buildEvent(
-      CENTRAL_TENANT_ID, UPDATED, firstPrimaryRequest, newVersion)), getMessageHeaders(
-        CENTRAL_TENANT_ID, CENTRAL_TENANT_ID));
+    eventListener.handleRequestEvent(serializeEvent(buildEvent(CENTRAL_TENANT_ID, UPDATED,
+      firstPrimaryRequest, newVersion)), getMessageHeaders(CENTRAL_TENANT_ID, CENTRAL_TENANT_ID));
     verify(requestService, times(2)).updateRequestInStorage(firstSecondaryRequest, firstTenant);
     verify(requestService, times(1)).updateRequestInStorage(secondSecondaryRequest, firstTenant);
+    verify(requestService, times(0)).updateRequestInStorage(thirdSecondaryRequest, secondTenant);
+    verify(requestService, times(0)).updateRequestInStorage(fourthSecondaryRequest, secondTenant);
+  }
+
+  @Test
+  void reorderSecondaryRequestsIfPrimaryRequestPositionChanged() {
+    var requesterId = randomId();
+    var pickupServicePointId = randomId();
+    var instanceId = randomId();
+    var firstTenant = "tenant1";
+    var secondTenant = "tenant2";
+
+    var firstEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, firstTenant);
+    var secondEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, firstTenant);
+    var thirdEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, firstTenant);
+    var fourthEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, secondTenant);
+    var fifthEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, secondTenant);
+
+    var firstSecondaryRequest = buildSecondaryRequest(firstEcsTlr, 1);
+    var secondSecondaryRequest = buildSecondaryRequest(secondEcsTlr, 2);
+    var thirdSecondaryRequest = buildSecondaryRequest(thirdEcsTlr, 3);
+    var fourthSecondaryRequest = buildSecondaryRequest(fourthEcsTlr, 1);
+    var fifthSecondaryRequest = buildSecondaryRequest(fifthEcsTlr, 2);
+
+    var firstPrimaryRequest = buildPrimaryRequest(firstEcsTlr, firstSecondaryRequest, 1);
+    var secondPrimaryRequest = buildPrimaryRequest(secondEcsTlr, secondSecondaryRequest, 2);
+    var thirdPrimaryRequest = buildPrimaryRequest(thirdEcsTlr, thirdSecondaryRequest, 3);
+    var fourthPrimaryRequest = buildPrimaryRequest(fourthEcsTlr, fourthSecondaryRequest, 4);
+    var fifthPrimaryRequest = buildPrimaryRequest(fifthEcsTlr, fifthSecondaryRequest, 5);
+    var newVersion = buildPrimaryRequest(secondEcsTlr, secondSecondaryRequest, 5);
+
+    var ecsTlrMapper = new EcsTlrMapperImpl();
+    when(ecsTlrRepository.findBySecondaryRequestId(any()))
+      .thenReturn(Optional.of(ecsTlrMapper.mapDtoToEntity(secondEcsTlr)));
+    when(requestService.getRequestFromStorage(firstEcsTlr.getSecondaryRequestId(),
+      firstEcsTlr.getSecondaryRequestTenantId()))
+      .thenReturn(firstSecondaryRequest);
+    when(requestService.getRequestFromStorage(secondEcsTlr.getSecondaryRequestId(),
+      secondEcsTlr.getSecondaryRequestTenantId()))
+      .thenReturn(secondSecondaryRequest);
+    when(requestService.getRequestFromStorage(thirdEcsTlr.getSecondaryRequestId(),
+      thirdEcsTlr.getSecondaryRequestTenantId()))
+      .thenReturn(thirdSecondaryRequest);
+    when(requestService.getRequestFromStorage(fourthEcsTlr.getSecondaryRequestId(),
+      fourthEcsTlr.getSecondaryRequestTenantId()))
+      .thenReturn(fourthSecondaryRequest);
+    when(requestService.getRequestFromStorage(fifthEcsTlr.getSecondaryRequestId(),
+      fifthEcsTlr.getSecondaryRequestTenantId()))
+      .thenReturn(fifthSecondaryRequest);
+    when(requestService.getRequestsByInstanceId(any()))
+      .thenReturn(List.of(firstPrimaryRequest, newVersion, thirdPrimaryRequest,
+        fourthPrimaryRequest, fifthPrimaryRequest));
+    when(ecsTlrRepository.findByPrimaryRequestIdIn(any())).thenReturn(List.of(
+      ecsTlrMapper.mapDtoToEntity(firstEcsTlr), ecsTlrMapper.mapDtoToEntity(secondEcsTlr),
+      ecsTlrMapper.mapDtoToEntity(thirdEcsTlr), ecsTlrMapper.mapDtoToEntity(fourthEcsTlr),
+      ecsTlrMapper.mapDtoToEntity(fifthEcsTlr)));
+
+    eventListener.handleRequestEvent(serializeEvent(buildEvent(CENTRAL_TENANT_ID, UPDATED,
+      secondPrimaryRequest, newVersion)), getMessageHeaders(CENTRAL_TENANT_ID, CENTRAL_TENANT_ID));
+    verify(requestService, times(0)).updateRequestInStorage(firstSecondaryRequest, firstTenant);
+    verify(requestService, times(2)).updateRequestInStorage(secondSecondaryRequest, firstTenant);
+    verify(requestService, times(1)).updateRequestInStorage(thirdSecondaryRequest, firstTenant);
+    verify(requestService, times(0)).updateRequestInStorage(fourthSecondaryRequest, secondTenant);
+    verify(requestService, times(0)).updateRequestInStorage(fifthSecondaryRequest, secondTenant);
   }
 
   private static EcsTlr buildEcsTlr(String instanceId, String requesterId,
