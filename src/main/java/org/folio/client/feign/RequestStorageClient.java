@@ -19,7 +19,4 @@ public interface RequestStorageClient {
 
   @PutMapping("/{requestId}")
   Request updateRequest(@PathVariable String requestId, @RequestBody Request request);
-
-  @GetMapping(params = "query")
-  List<Request> getRequestsByQuery(@RequestParam("query") String query);
 }
