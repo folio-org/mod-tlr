@@ -3,6 +3,7 @@ package org.folio.service.impl;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.PRIMARY;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.SECONDARY;
 import static org.folio.domain.dto.TransactionStatus.StatusEnum.AWAITING_PICKUP;
+import static org.folio.domain.dto.TransactionStatus.StatusEnum.CANCELLED;
 import static org.folio.domain.dto.TransactionStatus.StatusEnum.ITEM_CHECKED_OUT;
 import static org.folio.domain.dto.TransactionStatus.StatusEnum.OPEN;
 import static org.folio.support.KafkaEvent.EventType.UPDATED;
@@ -71,7 +72,6 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
       log.info("handleRequestUpdateEvent:: updated secondary request does not contain itemId");
       return;
     }
-
     String requestId = updatedRequest.getId();
     log.info("handleRequestUpdateEvent:: looking for ECS TLR for request {}", requestId);
     // we can search by either primary or secondary request ID, they are identical
@@ -118,14 +118,29 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
 
   private void handlePrimaryRequestUpdate(EcsTlrEntity ecsTlr, KafkaEvent<Request> event) {
     propagateChangesFromPrimaryToSecondaryRequest(ecsTlr, event);
-    updateDcbTransaction(ecsTlr.getPrimaryRequestDcbTransactionId(),
-      ecsTlr.getPrimaryRequestTenantId(), event);
+    determineNewTransactionStatus(event).ifPresent(newTransactionStatus -> {
+      if (newTransactionStatus == CANCELLED) {
+        log.info("handlePrimaryRequestUpdate:: cancelling secondary DCB transaction");
+        updateTransactionStatus(ecsTlr.getSecondaryRequestDcbTransactionId(), newTransactionStatus,
+          ecsTlr.getSecondaryRequestTenantId());
+      } else {
+        updateTransactionStatus(ecsTlr.getPrimaryRequestDcbTransactionId(), newTransactionStatus,
+          ecsTlr.getPrimaryRequestTenantId());
+      }
+    });
   }
 
   private void handleSecondaryRequestUpdate(EcsTlrEntity ecsTlr, KafkaEvent<Request> event) {
     processItemIdUpdate(ecsTlr, event.getData().getNewVersion());
-    updateDcbTransaction(ecsTlr.getSecondaryRequestDcbTransactionId(),
-      ecsTlr.getSecondaryRequestTenantId(), event);
+    determineNewTransactionStatus(event).ifPresent(newTransactionStatus -> {
+      updateTransactionStatus(ecsTlr.getSecondaryRequestDcbTransactionId(), newTransactionStatus,
+      ecsTlr.getSecondaryRequestTenantId());
+      if (newTransactionStatus == OPEN) {
+        log.info("handleSecondaryRequestUpdate:: open primary DCB transaction");
+        updateTransactionStatus(ecsTlr.getPrimaryRequestDcbTransactionId(), newTransactionStatus,
+          ecsTlr.getPrimaryRequestTenantId());
+      }
+    });
   }
 
   private void processItemIdUpdate(EcsTlrEntity ecsTlr, Request updatedRequest) {
@@ -140,11 +155,6 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
     dcbService.createBorrowingTransaction(ecsTlr, updatedRequest);
     ecsTlrRepository.save(ecsTlr);
     log.info("processItemIdUpdate: ECS TLR {} is updated", ecsTlr::getId);
-  }
-
-  private void updateDcbTransaction(UUID transactionId, String tenant, KafkaEvent<Request> event) {
-    determineNewTransactionStatus(event)
-      .ifPresent(newStatus -> updateTransactionStatus(transactionId, newStatus, tenant));
   }
 
   private static Optional<TransactionStatus.StatusEnum> determineNewTransactionStatus(
@@ -165,6 +175,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
         case OPEN_IN_TRANSIT -> OPEN;
         case OPEN_AWAITING_PICKUP -> AWAITING_PICKUP;
         case CLOSED_FILLED -> ITEM_CHECKED_OUT;
+        case CLOSED_CANCELLED -> CANCELLED;
         default -> null;
       });
 

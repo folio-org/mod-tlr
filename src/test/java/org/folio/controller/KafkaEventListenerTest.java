@@ -138,7 +138,7 @@ class KafkaEventListenerTest extends BaseIT {
   @CsvSource({
     "OPEN_NOT_YET_FILLED, OPEN_IN_TRANSIT, CREATED, OPEN",
     "OPEN_IN_TRANSIT, OPEN_AWAITING_PICKUP, OPEN, AWAITING_PICKUP",
-    "OPEN_AWAITING_PICKUP, CLOSED_FILLED, AWAITING_PICKUP, ITEM_CHECKED_OUT",
+    "OPEN_AWAITING_PICKUP, CLOSED_FILLED, AWAITING_PICKUP, ITEM_CHECKED_OUT"
   })
   void shouldUpdateLendingDcbTransactionUponSecondaryRequestUpdateWhenEcsTlrAlreadyHasItemId(
     Request.StatusEnum oldRequestStatus, Request.StatusEnum newRequestStatus,
@@ -159,6 +159,33 @@ class KafkaEventListenerTest extends BaseIT {
     verifyThatDcbTransactionStatusWasRetrieved(transactionId, SECONDARY_REQUEST_TENANT_ID);
     verifyThatDcbTransactionWasUpdated(transactionId,
       SECONDARY_REQUEST_TENANT_ID, expectedNewTransactionStatus);
+  }
+
+  @Test
+  void shouldCancelLendingDcbTransactionUponPrimaryRequestCancel() {
+
+    mockDcb(TransactionStatusResponse.StatusEnum.CREATED, TransactionStatusResponse.StatusEnum.CANCELLED);
+    Request secondaryRequest = buildSecondaryRequest(OPEN_NOT_YET_FILLED);
+
+    wireMockServer.stubFor(WireMock.get(urlMatching(format(REQUEST_STORAGE_URL_PATTERN, SECONDARY_REQUEST_ID)))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID))
+      .willReturn(jsonResponse(asJsonString(secondaryRequest), HttpStatus.SC_OK)));
+    wireMockServer.stubFor(WireMock.put(urlMatching(format(REQUEST_STORAGE_URL_PATTERN, SECONDARY_REQUEST_ID)))
+      .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID))
+      .willReturn(noContent()));
+
+    EcsTlrEntity initialEcsTlr = createEcsTlr(buildEcsTlrWithItemId());
+    assertNotNull(initialEcsTlr.getItemId());
+
+    KafkaEvent<Request> event = buildPrimaryRequestUpdateEvent(OPEN_NOT_YET_FILLED, CLOSED_CANCELLED);
+    publishEventAndWait(PRIMARY_REQUEST_TENANT_ID, REQUEST_KAFKA_TOPIC_NAME, event);
+
+    EcsTlrEntity updatedEcsTlr = getEcsTlr(initialEcsTlr.getId());
+    UUID transactionId = updatedEcsTlr.getSecondaryRequestDcbTransactionId();
+    verifyThatNoDcbTransactionsWereCreated();
+    verifyThatDcbTransactionStatusWasRetrieved(transactionId, SECONDARY_REQUEST_TENANT_ID);
+    verifyThatDcbTransactionWasUpdated(transactionId,
+      SECONDARY_REQUEST_TENANT_ID, TransactionStatusResponse.StatusEnum.CANCELLED);
   }
 
   @ParameterizedTest
@@ -334,8 +361,7 @@ class KafkaEventListenerTest extends BaseIT {
 
   @ParameterizedTest
   @CsvSource({
-    "OPEN_NOT_YET_FILLED, OPEN_NOT_YET_FILLED",
-    "OPEN_IN_TRANSIT, CLOSED_CANCELLED",
+    "OPEN_NOT_YET_FILLED, OPEN_NOT_YET_FILLED"
   })
   void shouldNotCreateOrUpdateLendingDcbTransactionUponIrrelevantSecondaryRequestStatusChange(
     Request.StatusEnum oldRequestStatus, Request.StatusEnum newRequestStatus) {
@@ -353,8 +379,7 @@ class KafkaEventListenerTest extends BaseIT {
 
   @ParameterizedTest
   @CsvSource({
-    "OPEN_NOT_YET_FILLED, OPEN_NOT_YET_FILLED",
-    "OPEN_IN_TRANSIT, CLOSED_CANCELLED",
+    "OPEN_NOT_YET_FILLED, OPEN_NOT_YET_FILLED"
   })
   void shouldNotUpdateBorrowingDcbTransactionUponIrrelevantPrimaryRequestStatusChange(
     Request.StatusEnum oldRequestStatus, Request.StatusEnum newRequestStatus) {
