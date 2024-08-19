@@ -23,7 +23,8 @@ class RequestEventHandlerTest extends BaseIT {
 
   @MockBean
   private DcbService dcbService;
-
+  @MockBean
+  RequestService requestService;
   @MockBean
   private EcsTlrRepository ecsTlrRepository;
 

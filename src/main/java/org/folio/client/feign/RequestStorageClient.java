@@ -16,5 +16,4 @@ public interface RequestStorageClient {
 
   @PutMapping("/{requestId}")
   Request updateRequest(@PathVariable String requestId, @RequestBody Request request);
-
 }

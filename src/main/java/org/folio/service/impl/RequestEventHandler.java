@@ -261,5 +261,4 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
   private static <T, V> boolean valueIsNotEqual(T o1, T o2, Function<T, V> valueExtractor) {
     return !Objects.equals(valueExtractor.apply(o1), valueExtractor.apply(o2));
   }
-
 }

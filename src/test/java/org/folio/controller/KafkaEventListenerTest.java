@@ -19,6 +19,7 @@ import static org.folio.domain.dto.Request.StatusEnum.OPEN_IN_TRANSIT;
 import static org.folio.domain.dto.Request.StatusEnum.OPEN_NOT_YET_FILLED;
 import static org.folio.support.KafkaEvent.EventType.CREATED;
 import static org.folio.support.KafkaEvent.EventType.UPDATED;
+import static org.folio.util.TestUtils.buildEvent;
 import static org.folio.util.TestUtils.mockConsortiaTenants;
 import static org.folio.util.TestUtils.mockUserTenants;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -704,29 +705,6 @@ class KafkaEventListenerTest extends BaseIT {
 
   private static <T> KafkaEvent<T> buildUpdateEvent(String tenant, T oldVersion, T newVersion) {
     return buildEvent(tenant, UPDATED, oldVersion, newVersion);
-  }
-
-  private static <T> KafkaEvent<T> buildEvent(String tenant, KafkaEvent.EventType type, T oldVersion,
-    T newVersion) {
-
-    KafkaEvent.EventData<T> data = KafkaEvent.EventData.<T>builder()
-      .oldVersion(oldVersion)
-      .newVersion(newVersion)
-      .build();
-
-    return buildEvent(tenant, type, data);
-  }
-
-  private static <T> KafkaEvent<T> buildEvent(String tenant, KafkaEvent.EventType type,
-    KafkaEvent.EventData<T> data) {
-
-    return KafkaEvent.<T>builder()
-      .id(randomId())
-      .type(type)
-      .timestamp(new Date().getTime())
-      .tenant(tenant)
-      .data(data)
-      .build();
   }
 
   private static Request buildPrimaryRequest(Request.StatusEnum status) {

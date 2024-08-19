@@ -4,9 +4,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 import org.folio.domain.dto.Request;
+import org.folio.domain.dto.RequestsBatchUpdate;
 import org.folio.domain.dto.UserGroup;
 import org.folio.exception.KafkaEventDeserializationException;
 import org.folio.service.KafkaEventHandler;
+import org.folio.service.impl.RequestBatchUpdateEventHandler;
 import org.folio.service.impl.RequestEventHandler;
 import org.folio.service.impl.UserGroupEventHandler;
 import org.folio.spring.integration.XOkapiHeaders;
@@ -31,14 +33,17 @@ public class KafkaEventListener {
   private final RequestEventHandler requestEventHandler;
   private final UserGroupEventHandler userGroupEventHandler;
   private final SystemUserScopedExecutionService systemUserScopedExecutionService;
+  private final RequestBatchUpdateEventHandler requestBatchEventHandler;
 
   public KafkaEventListener(@Autowired RequestEventHandler requestEventHandler,
+    @Autowired RequestBatchUpdateEventHandler requestBatchEventHandler,
     @Autowired SystemUserScopedExecutionService systemUserScopedExecutionService,
     @Autowired UserGroupEventHandler userGroupEventHandler) {
 
     this.requestEventHandler = requestEventHandler;
     this.systemUserScopedExecutionService = systemUserScopedExecutionService;
     this.userGroupEventHandler = userGroupEventHandler;
+    this.requestBatchEventHandler = requestBatchEventHandler;
   }
 
   @KafkaListener(
@@ -51,6 +56,18 @@ public class KafkaEventListener {
     log.info("handleRequestEvent:: event received: {}", event::getId);
     handleEvent(event, requestEventHandler);
     log.info("handleRequestEvent:: event consumed: {}", event::getId);
+  }
+
+  @KafkaListener(
+    topicPattern = "${folio.environment}\\.\\w+\\.circulation\\.request-queue-reordering",
+    groupId = "${spring.kafka.consumer.group-id}"
+  )
+  public void handleRequestBatchUpdateEvent(String eventString, MessageHeaders messageHeaders) {
+    log.debug("handleRequestBatchUpdateEvent:: event: {}", () -> eventString);
+    KafkaEvent<RequestsBatchUpdate> event = deserialize(eventString, messageHeaders, RequestsBatchUpdate.class);
+    log.info("handleRequestBatchUpdateEvent:: event received: {}", event::getId);
+    handleEvent(event, requestBatchEventHandler);
+    log.info("handleRequestBatchUpdateEvent:: event consumed: {}", event::getId);
   }
 
   private <T> void handleEvent(KafkaEvent<T> event, KafkaEventHandler<T> handler) {

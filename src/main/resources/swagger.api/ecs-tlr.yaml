@@ -101,6 +101,8 @@ components:
       $ref: 'schemas/errors.json'
     request:
       $ref: 'schemas/request.json'
+    requests:
+      $ref: 'schemas/requests.json'
     searchInstancesResponse:
       $ref: schemas/response/searchInstancesResponse.json
     user:
@@ -113,6 +115,8 @@ components:
       $ref: schemas/service-point.json
     userGroup:
       $ref: schemas/userGroup.json
+    requestsBatchUpdate:
+      $ref: schemas/requests-batch-update.json
   parameters:
     requestId:
       name: requestId

@@ -3,8 +3,10 @@ package org.folio.service.impl;
 import static java.lang.String.format;
 
 import java.util.Collection;
+import java.util.List;
 
 import org.folio.client.feign.CirculationClient;
+import org.folio.client.feign.RequestCirculationClient;
 import org.folio.client.feign.RequestStorageClient;
 import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.Request;
@@ -28,6 +30,7 @@ public class RequestServiceImpl implements RequestService {
 
   private final SystemUserScopedExecutionService executionService;
   private final CirculationClient circulationClient;
+  private final RequestCirculationClient requestCirculationClient;
   private final RequestStorageClient requestStorageClient;
   private final UserService userService;
   private final ServicePointService servicePointService;
@@ -115,6 +118,11 @@ public class RequestServiceImpl implements RequestService {
       () -> requestStorageClient.updateRequest(request.getId(), request));
   }
 
+  @Override
+  public List<Request> getRequestsByInstanceId(String instanceId) {
+    return requestCirculationClient.getRequestsQueueByInstanceId(instanceId).getRequests();
+  }
+
   private void cloneRequester(User primaryRequestRequester) {
     User requesterClone = userCloningService.clone(primaryRequestRequester);
     String patronGroup = primaryRequestRequester.getPatronGroup();
@@ -126,5 +134,4 @@ public class RequestServiceImpl implements RequestService {
       userService.update(requesterClone);
     }
   }
-
 }
