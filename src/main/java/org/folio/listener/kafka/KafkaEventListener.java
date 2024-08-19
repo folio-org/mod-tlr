@@ -59,7 +59,7 @@ public class KafkaEventListener {
   }
 
   @KafkaListener(
-    topicPattern = "${folio.environment}\\.\\w+\\.circulation\\.requests-batch-update",
+    topicPattern = "${folio.environment}\\.\\w+\\.circulation\\.request-queue-reordering",
     groupId = "${spring.kafka.consumer.group-id}"
   )
   public void handleRequestBatchUpdateEvent(String eventString, MessageHeaders messageHeaders) {
