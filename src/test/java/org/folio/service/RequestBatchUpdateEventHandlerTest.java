@@ -57,11 +57,10 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
     var thirdSecondaryRequest = buildSecondaryRequest(thirdEcsTlr, 1);
     var fourthSecondaryRequest = buildSecondaryRequest(fourthEcsTlr, 2);
 
-    var firstPrimaryRequest = buildPrimaryRequest(firstEcsTlr, firstSecondaryRequest, 1);
     var secondPrimaryRequest = buildPrimaryRequest(secondEcsTlr, secondSecondaryRequest, 2);
     var thirdPrimaryRequest = buildPrimaryRequest(thirdEcsTlr, thirdSecondaryRequest, 3);
     var fourthPrimaryRequest = buildPrimaryRequest(fourthEcsTlr, fourthSecondaryRequest, 4);
-    var newVersion = buildPrimaryRequest(firstEcsTlr, firstSecondaryRequest, 4);
+    var reorderedFirstPrimaryRequest = buildPrimaryRequest(firstEcsTlr, firstSecondaryRequest, 4);
 
     var ecsTlrMapper = new EcsTlrMapperImpl();
     when(ecsTlrRepository.findBySecondaryRequestId(any()))
@@ -78,7 +77,7 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
     when(requestService.getRequestFromStorage(fourthEcsTlr.getSecondaryRequestId(),
       fourthEcsTlr.getSecondaryRequestTenantId()))
       .thenReturn(fourthSecondaryRequest);
-    var requestsQueue = Stream.of(newVersion, secondPrimaryRequest, thirdPrimaryRequest,
+    var requestsQueue = Stream.of(reorderedFirstPrimaryRequest, secondPrimaryRequest, thirdPrimaryRequest,
         fourthPrimaryRequest)
       .sorted(Comparator.comparing(Request::getPosition))
       .toList();
@@ -118,11 +117,11 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
     var fifthSecondaryRequest = buildSecondaryRequest(fifthEcsTlr, 2);
 
     var firstPrimaryRequest = buildPrimaryRequest(firstEcsTlr, firstSecondaryRequest, 1);
-    var secondPrimaryRequest = buildPrimaryRequest(secondEcsTlr, secondSecondaryRequest, 2);
     var thirdPrimaryRequest = buildPrimaryRequest(thirdEcsTlr, thirdSecondaryRequest, 3);
     var fourthPrimaryRequest = buildPrimaryRequest(fourthEcsTlr, fourthSecondaryRequest, 4);
     var fifthPrimaryRequest = buildPrimaryRequest(fifthEcsTlr, fifthSecondaryRequest, 5);
-    var newVersion = buildPrimaryRequest(secondEcsTlr, secondSecondaryRequest, 5);
+    var reorderedSecondPrimaryRequest = buildPrimaryRequest(secondEcsTlr,
+      secondSecondaryRequest, 5);
 
     var ecsTlrMapper = new EcsTlrMapperImpl();
     when(ecsTlrRepository.findBySecondaryRequestId(any()))
@@ -143,7 +142,7 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
       fifthEcsTlr.getSecondaryRequestTenantId()))
       .thenReturn(fifthSecondaryRequest);
     when(requestService.getRequestsByInstanceId(any()))
-      .thenReturn(List.of(firstPrimaryRequest, newVersion, thirdPrimaryRequest,
+      .thenReturn(List.of(firstPrimaryRequest, reorderedSecondPrimaryRequest, thirdPrimaryRequest,
         fourthPrimaryRequest, fifthPrimaryRequest));
     when(ecsTlrRepository.findByPrimaryRequestIdIn(any())).thenReturn(List.of(
       ecsTlrMapper.mapDtoToEntity(firstEcsTlr), ecsTlrMapper.mapDtoToEntity(secondEcsTlr),

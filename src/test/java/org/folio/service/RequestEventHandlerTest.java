@@ -20,7 +20,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 class RequestEventHandlerTest extends BaseIT {
   private static final String REQUEST_UPDATE_EVENT_SAMPLE =
     getMockDataAsString("mockdata/kafka/secondary_request_update_event.json");
-  private static final String CENTRAL_TENANT_ID = "consortium";
 
   @MockBean
   private DcbService dcbService;
