@@ -115,6 +115,8 @@ components:
       $ref: schemas/service-point.json
     userGroup:
       $ref: schemas/userGroup.json
+    requestsBatchUpdate:
+      $ref: schemas/requests-batch-update.json
   parameters:
     requestId:
       name: requestId
