@@ -35,10 +35,10 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
 
   @Override
   public void handle(KafkaEvent<RequestsBatchUpdate> event) {
-    log.info("handle:: processing request event: {}", event::getId);
+    log.info("handle:: processing requests batch update event: {}", event::getId);
     updateQueuePositions(event.getData().getNewVersion().getInstanceId());
 
-    log.info("handle:: request event processed: {}", event::getId);
+    log.info("handle:: requests batch update event processed: {}", event::getId);
   }
 
   private void updateQueuePositions(String instanceId) {
