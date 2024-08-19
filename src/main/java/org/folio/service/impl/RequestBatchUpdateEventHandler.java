@@ -101,29 +101,34 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
         i -> i + 1));
     log.debug("reorderSecondaryRequestsQueue:: correctOrder: {}", correctOrder);
 
-    groupedSecondaryRequestsByTenantId.forEach((tenantId, secondaryRequests) -> {
-      List<Integer> sortedCurrentPositions = secondaryRequests.stream()
-        .map(Request::getPosition)
-        .sorted()
-        .toList();
-      log.debug("reorderSecondaryRequestsQueue:: sortedCurrentPositions: {}",
-        sortedCurrentPositions);
+    groupedSecondaryRequestsByTenantId.forEach((tenantId, secondaryRequests) ->
+      reorderSecondaryRequestsForTenant(tenantId, secondaryRequests, correctOrder));
+  }
 
-      secondaryRequests.sort(Comparator.comparingInt(r -> correctOrder.getOrDefault(
-        UUID.fromString(r.getId()), 0)));
+  private void reorderSecondaryRequestsForTenant(String tenantId, List<Request> secondaryRequests,
+    Map<UUID, Integer> correctOrder) {
 
-      IntStream.range(0, secondaryRequests.size()).forEach(i -> {
-        Request request = secondaryRequests.get(i);
-        int updatedPosition = sortedCurrentPositions.get(i);
+    List<Integer> sortedCurrentPositions = secondaryRequests.stream()
+      .map(Request::getPosition)
+      .sorted()
+      .toList();
+    log.debug("reorderSecondaryRequestsForTenant:: sortedCurrentPositions: {}",
+      sortedCurrentPositions);
 
-        if (request.getPosition() != updatedPosition) {
-          log.info("reorderSecondaryRequestsQueue:: swap positions: {} <-> {}, for tenant: {}",
-            request.getPosition(), updatedPosition, tenantId);
-          request.setPosition(updatedPosition);
-          requestService.updateRequestInStorage(request, tenantId);
-          log.debug("reorderSecondaryRequestsQueue:: request {} updated", request);
-        }
-      });
+    secondaryRequests.sort(Comparator.comparingInt(r -> correctOrder.getOrDefault(
+      UUID.fromString(r.getId()), 0)));
+
+    IntStream.range(0, secondaryRequests.size()).forEach(i -> {
+      Request request = secondaryRequests.get(i);
+      int updatedPosition = sortedCurrentPositions.get(i);
+
+      if (request.getPosition() != updatedPosition) {
+        log.info("reorderSecondaryRequestsForTenant:: swap positions: {} <-> {}, for tenant: {}",
+          request.getPosition(), updatedPosition, tenantId);
+        request.setPosition(updatedPosition);
+        requestService.updateRequestInStorage(request, tenantId);
+        log.debug("reorderSecondaryRequestsForTenant:: request {} updated", request);
+      }
     });
   }
 }
