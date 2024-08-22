@@ -45,12 +45,14 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
     log.info("updateQueuePositions:: parameters instanceId: {}", instanceId);
 
     var unifiedQueue = requestService.getRequestsByInstanceId(instanceId);
+    log.info("updateQueuePositions:: unifiedQueue: {}", unifiedQueue);
 
     List<UUID> sortedPrimaryRequestIds = unifiedQueue.stream()
       .filter(request -> PRIMARY == request.getEcsRequestPhase())
       .sorted(Comparator.comparing(Request::getPosition))
       .map(request -> UUID.fromString(request.getId()))
       .toList();
+    log.info("updateQueuePositions:: sortedPrimaryRequestIds: {}", sortedPrimaryRequestIds);
 
     List<EcsTlrEntity> sortedEcsTlrQueue = sortEcsTlrEntities(sortedPrimaryRequestIds,
       ecsTlrRepository.findByPrimaryRequestIdIn(sortedPrimaryRequestIds));
