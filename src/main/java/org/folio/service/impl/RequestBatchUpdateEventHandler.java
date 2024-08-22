@@ -54,8 +54,14 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
       .toList();
     log.info("updateQueuePositions:: sortedPrimaryRequestIds: {}", sortedPrimaryRequestIds);
 
+    List<EcsTlrEntity> ecsTlrByPrimaryRequests = ecsTlrRepository.findByPrimaryRequestIdIn(
+      sortedPrimaryRequestIds);
+    if (ecsTlrByPrimaryRequests == null || ecsTlrByPrimaryRequests.isEmpty()) {
+      log.warn("updateQueuePositions:: no corresponding ECS TLR found");
+      return;
+    }
     List<EcsTlrEntity> sortedEcsTlrQueue = sortEcsTlrEntities(sortedPrimaryRequestIds,
-      ecsTlrRepository.findByPrimaryRequestIdIn(sortedPrimaryRequestIds));
+      ecsTlrByPrimaryRequests);
     Map<String, List<Request>> groupedSecondaryRequestsByTenantId = groupSecondaryRequestsByTenantId(
       sortedEcsTlrQueue);
 
