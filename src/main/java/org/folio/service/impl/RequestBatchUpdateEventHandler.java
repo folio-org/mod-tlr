@@ -78,6 +78,8 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
   private List<EcsTlrEntity> sortEcsTlrEntities(List<UUID> sortedPrimaryRequestIds,
     List<EcsTlrEntity> ecsTlrQueue) {
 
+    log.info("sortEcsTlrEntities:: parameters sortedPrimaryRequestIds: {}, ecsTlrQueue: {}",
+      sortedPrimaryRequestIds, ecsTlrQueue);
     Map<UUID, EcsTlrEntity> ecsTlrByPrimaryRequestId = ecsTlrQueue.stream()
       .collect(toMap(EcsTlrEntity::getPrimaryRequestId, Function.identity()));
     List<EcsTlrEntity> sortedEcsTlrQueue = sortedPrimaryRequestIds
