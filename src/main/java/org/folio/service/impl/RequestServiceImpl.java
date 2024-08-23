@@ -104,8 +104,13 @@ public class RequestServiceImpl implements RequestService {
   @Override
   public Request getRequestFromStorage(String requestId, String tenantId) {
     log.info("getRequestFromStorage:: getting request {} from storage in tenant {}", requestId, tenantId);
-    return executionService.executeSystemUserScoped(tenantId,
-      () -> requestStorageClient.getRequest(requestId));
+    return executionService.executeSystemUserScoped(tenantId, () -> getRequestFromStorage(requestId));
+  }
+
+  @Override
+  public Request getRequestFromStorage(String requestId) {
+    log.info("getRequestFromStorage:: getting request {} from storage", requestId);
+    return requestStorageClient.getRequest(requestId);
   }
 
   @Override

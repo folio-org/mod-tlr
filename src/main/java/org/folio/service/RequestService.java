@@ -13,6 +13,7 @@ public interface RequestService {
     Collection<String> lendingTenantIds);
 
   Request getRequestFromStorage(String requestId, String tenantId);
+  Request getRequestFromStorage(String requestId);
   Request updateRequestInStorage(Request request, String tenantId);
   List<Request> getRequestsByInstanceId(String instanceId);
 }

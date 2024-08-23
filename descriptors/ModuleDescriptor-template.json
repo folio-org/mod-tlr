@@ -56,7 +56,9 @@
             "circulation.requests.allowed-service-points.get",
             "users.item.get",
             "users.collection.get",
-            "search.instances.collection.get"
+            "search.instances.collection.get",
+            "circulation-storage.requests.item.get",
+            "circulation-storage.requests.collection.get"
           ]
         }
       ]

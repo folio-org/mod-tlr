@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.folio.domain.Constants;
 import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.Request;
@@ -118,7 +119,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       .requesterId(secondaryRequest.getRequesterId())
       .requestDate(secondaryRequest.getRequestDate())
       .requestLevel(Request.RequestLevelEnum.TITLE)
-      .requestType(Request.RequestTypeEnum.HOLD)
+      .requestType(Constants.PRIMARY_REQUEST_TYPE)
       .ecsRequestPhase(Request.EcsRequestPhaseEnum.PRIMARY)
       .fulfillmentPreference(Request.FulfillmentPreferenceEnum.HOLD_SHELF)
       .pickupServicePointId(secondaryRequest.getPickupServicePointId());
