@@ -100,7 +100,7 @@ public class AllowedServicePointsServiceImpl implements AllowedServicePointsServ
       return new AllowedServicePointsResponse();
     }
 
-    return getAllowedServicePointsFromBorrowingTenant(request, requestIsNotLinkedToItem);
+    return getAllowedServicePointsFromBorrowingTenant(request);
   }
 
   private EcsTlrEntity findEcsTlr(AllowedServicePointsRequest request) {
@@ -115,11 +115,11 @@ public class AllowedServicePointsServiceImpl implements AllowedServicePointsServ
   }
 
   private AllowedServicePointsResponse getAllowedServicePointsFromBorrowingTenant(
-    AllowedServicePointsRequest request, boolean useStubItem) {
+    AllowedServicePointsRequest request) {
 
     log.info("getForReplace:: fetching allowed service points from borrowing tenant");
     var allowedServicePoints = circulationClient.allowedServicePointsWithStubItem(
-      REPLACE.getValue(), request.getRequestId(), useStubItem);
+      REPLACE.getValue(), request.getRequestId(), true);
 
     Request.RequestTypeEnum primaryRequestType = Constants.PRIMARY_REQUEST_TYPE;
     log.info("getAllowedServicePointsFromBorrowingTenant:: primary request type: {}",
