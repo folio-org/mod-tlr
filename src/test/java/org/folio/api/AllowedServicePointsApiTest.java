@@ -148,7 +148,7 @@ class AllowedServicePointsApiTest extends BaseIT {
   }
 
   @Test
-  void replaceForRequestLinkedToItemWhenHoldIsAllowedInBorrowingTenant() {
+  void replaceForRequestLinkedToItemWhenPrimaryRequestTypeIsAllowedInBorrowingTenant() {
     createEcsTlr(true);
 
     var mockAllowedSpResponseFromBorrowingTenant = new AllowedServicePointsResponse()
@@ -176,7 +176,7 @@ class AllowedServicePointsApiTest extends BaseIT {
   }
 
   @Test
-  void replaceForRequestLinkedToItemWhenHoldIsNotAllowedInBorrowingTenant() {
+  void replaceForRequestLinkedToItemWhenPrimaryRequestTypeIsNotAllowedInBorrowingTenant() {
     createEcsTlr(true);
 
     var mockAllowedSpResponseFromBorrowingTenant = new AllowedServicePointsResponse()
@@ -231,6 +231,50 @@ class AllowedServicePointsApiTest extends BaseIT {
       .jsonPath("Hold").doesNotExist();
 
     wireMockServer.verify(0, getRequestedFor(urlMatching(
+      ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(BORROWING_TENANT_ID)));
+  }
+
+  @Test
+  void replaceForRequestNotLinkedToItemWhenSecondaryRequestTypeIsAllowedInLendingTenant() {
+    createEcsTlr(false);
+
+    Request secondaryRequest = new Request().id(SECONDARY_REQUEST_ID)
+      .requestType(Request.RequestTypeEnum.PAGE);
+
+    wireMockServer.stubFor(get(urlMatching(REQUEST_STORAGE_URL + "/" + SECONDARY_REQUEST_ID))
+      .withHeader(HEADER_TENANT, equalTo(LENDING_TENANT_ID))
+      .willReturn(jsonResponse(asJsonString(secondaryRequest), SC_OK)));
+
+    var mockAllowedSpResponseFromLendingTenant = new AllowedServicePointsResponse()
+      .page(Set.of(buildAllowedServicePoint("lending-page")))
+      .hold(null)
+      .recall(null);
+
+    wireMockServer.stubFor(get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL +
+      String.format("\\?operation=replace&requestId=%s&ecsRequestRouting=true", SECONDARY_REQUEST_ID)))
+      .withHeader(HEADER_TENANT, equalTo(LENDING_TENANT_ID))
+      .willReturn(jsonResponse(asJsonString(mockAllowedSpResponseFromLendingTenant), SC_OK)));
+
+    var mockAllowedSpResponseFromBorrowingTenant = new AllowedServicePointsResponse()
+      .page(Set.of(buildAllowedServicePoint("borrowing-page")))
+      .hold(Set.of(buildAllowedServicePoint("borrowing-hold")))
+      .recall(Set.of(buildAllowedServicePoint("borrowing-recall")));
+
+    wireMockServer.stubFor(
+      get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL +
+        format("\\?operation=replace&requestId=%s&useStubItem=true", PRIMARY_REQUEST_ID)))
+        .withHeader(HEADER_TENANT, equalTo(BORROWING_TENANT_ID))
+        .willReturn(jsonResponse(asJsonString(mockAllowedSpResponseFromBorrowingTenant), SC_OK)));
+
+    doGet(ALLOWED_SERVICE_POINTS_FOR_REPLACE_URL)
+      .expectStatus().isEqualTo(200)
+      .expectBody()
+      .jsonPath("Page").doesNotExist()
+      .jsonPath("Recall").doesNotExist()
+      .jsonPath("Hold[0].name").value(is("borrowing-hold"));
+
+    wireMockServer.verify(getRequestedFor(urlMatching(
       ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL_PATTERN))
       .withHeader(HEADER_TENANT, equalTo(BORROWING_TENANT_ID)));
   }
