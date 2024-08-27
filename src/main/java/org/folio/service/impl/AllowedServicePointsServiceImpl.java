@@ -42,12 +42,14 @@ public class AllowedServicePointsServiceImpl implements AllowedServicePointsServ
   public AllowedServicePointsResponse getAllowedServicePoints(AllowedServicePointsRequest request) {
     log.info("getAllowedServicePoints:: {}", request);
     return switch (request.getOperation()) {
-      case CREATE -> getForCreate(request);
-      case REPLACE -> getForReplace(request);
+      case CREATE -> getAllowedServicePointsForCreate(request);
+      case REPLACE -> getAllowedServicePointsForReplace(request);
     };
   }
 
-  public AllowedServicePointsResponse getForCreate(AllowedServicePointsRequest request) {
+  public AllowedServicePointsResponse getAllowedServicePointsForCreate(
+    AllowedServicePointsRequest request) {
+
     String instanceId = request.getInstanceId();
     String patronGroupId = userService.find(request.getRequesterId()).getPatronGroup();
     log.info("getForCreate:: patronGroupId={}", patronGroupId);
@@ -90,12 +92,14 @@ public class AllowedServicePointsServiceImpl implements AllowedServicePointsServ
     return availabilityCheckResult;
   }
 
-  private AllowedServicePointsResponse getForReplace(AllowedServicePointsRequest request) {
-    EcsTlrEntity ecsTlr = findEcsTlr(request);
-    final boolean requestIsNotLinkedToItem = ecsTlr.getItemId() == null;
-    log.info("getForReplace:: request is linked to an item: {}", !requestIsNotLinkedToItem);
+  private AllowedServicePointsResponse getAllowedServicePointsForReplace(
+    AllowedServicePointsRequest request) {
 
-    if (requestIsNotLinkedToItem && isRequestingNotAllowedInLendingTenant(ecsTlr)) {
+    EcsTlrEntity ecsTlr = findEcsTlr(request);
+    final boolean requestIsLinkedToItem = ecsTlr.getItemId() != null;
+    log.info("getForReplace:: request is linked to an item: {}", requestIsLinkedToItem);
+
+    if (!requestIsLinkedToItem && isRequestingNotAllowedInLendingTenant(ecsTlr)) {
       log.info("getForReplace:: no service points are allowed in lending tenant");
       return new AllowedServicePointsResponse();
     }
@@ -126,9 +130,9 @@ public class AllowedServicePointsServiceImpl implements AllowedServicePointsServ
       primaryRequestType.getValue());
 
     return switch (primaryRequestType) {
-      case PAGE -> allowedServicePoints.hold(null).recall(null);
-      case HOLD -> allowedServicePoints.page(null).recall(null);
-      case RECALL -> allowedServicePoints.page(null).hold(null);
+      case PAGE -> new AllowedServicePointsResponse().page(allowedServicePoints.getPage());
+      case HOLD -> new AllowedServicePointsResponse().hold(allowedServicePoints.getHold());
+      case RECALL -> new AllowedServicePointsResponse().recall(allowedServicePoints.getRecall());
     };
   }
 
@@ -149,6 +153,9 @@ public class AllowedServicePointsServiceImpl implements AllowedServicePointsServ
       case HOLD -> allowedServicePointsInLendingTenant.getHold();
       case RECALL -> allowedServicePointsInLendingTenant.getRecall();
     };
+
+    log.debug("isRequestingNotAllowedInLendingTenant:: allowed service points for {}: {}",
+      secondaryRequestType.getValue(), allowedServicePointsForRequestType);
 
     return allowedServicePointsForRequestType == null || allowedServicePointsForRequestType.isEmpty();
   }
