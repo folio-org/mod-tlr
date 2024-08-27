@@ -117,6 +117,8 @@ components:
       $ref: schemas/userGroup.json
     requestsBatchUpdate:
       $ref: schemas/requests-batch-update.json
+    reorderQueue:
+      $ref: schemas/reorder-queue.json
   parameters:
     requestId:
       name: requestId

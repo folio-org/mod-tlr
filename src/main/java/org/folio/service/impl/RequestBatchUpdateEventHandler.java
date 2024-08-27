@@ -5,6 +5,7 @@ import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toMap;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.PRIMARY;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -13,12 +14,15 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.folio.domain.dto.ReorderQueue;
+import org.folio.domain.dto.ReorderQueueReorderedQueueInner;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.RequestsBatchUpdate;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.KafkaEventHandler;
 import org.folio.service.RequestService;
+import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.folio.support.KafkaEvent;
 import org.springframework.stereotype.Service;
 
@@ -44,7 +48,7 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
   private void updateQueuePositions(String instanceId) {
     log.info("updateQueuePositions:: parameters instanceId: {}", instanceId);
 
-    var unifiedQueue = requestService.getRequestsByInstanceId(instanceId);
+    var unifiedQueue = requestService.getRequestsQueueByInstanceId(instanceId);
     log.info("updateQueuePositions:: unifiedQueue: {}", unifiedQueue);
 
     List<UUID> sortedPrimaryRequestIds = unifiedQueue.stream()
@@ -112,11 +116,13 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
     log.debug("reorderSecondaryRequestsQueue:: correctOrder: {}", correctOrder);
 
     groupedSecondaryRequestsByTenantId.forEach((tenantId, secondaryRequests) ->
-      reorderSecondaryRequestsForTenant(tenantId, secondaryRequests, correctOrder));
+      updateReorderedRequests(reorderSecondaryRequestsForTenant(tenantId, secondaryRequests,
+        correctOrder), tenantId));
   }
 
-  private void reorderSecondaryRequestsForTenant(String tenantId, List<Request> secondaryRequests,
-    Map<UUID, Integer> correctOrder) {
+  //  private void reorderSecondaryRequestsForTenant(String tenantId, List<Request> secondaryRequests,
+  private List<Request> reorderSecondaryRequestsForTenant(String tenantId,
+    List<Request> secondaryRequests, Map<UUID, Integer> correctOrder) {
 
     List<Integer> sortedCurrentPositions = secondaryRequests.stream()
       .map(Request::getPosition)
@@ -128,6 +134,7 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
     secondaryRequests.sort(Comparator.comparingInt(r -> correctOrder.getOrDefault(
       UUID.fromString(r.getId()), 0)));
 
+    List<Request> reorderedRequests = new ArrayList<>();
     IntStream.range(0, secondaryRequests.size()).forEach(i -> {
       Request request = secondaryRequests.get(i);
       int updatedPosition = sortedCurrentPositions.get(i);
@@ -136,9 +143,41 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
         log.info("reorderSecondaryRequestsForTenant:: swap positions: {} <-> {}, for tenant: {}",
           request.getPosition(), updatedPosition, tenantId);
         request.setPosition(updatedPosition);
-        requestService.updateRequestInStorage(request, tenantId);
+        reorderedRequests.add(request);
         log.debug("reorderSecondaryRequestsForTenant:: request {} updated", request);
       }
     });
+    return reorderedRequests;
+  }
+
+  private void updateReorderedRequests(List<Request> requestsWithUpdatedPositions,
+    String tenantId) {
+
+    if (requestsWithUpdatedPositions == null || requestsWithUpdatedPositions.isEmpty()) {
+      log.info("updateReorderedRequests:: no secondary requests with updated positions");
+      return;
+    }
+
+    Map<Integer, Request> updatedPositionMap = requestsWithUpdatedPositions.stream()
+      .collect(Collectors.toMap(Request::getPosition, request -> request));
+    String instanceId = requestsWithUpdatedPositions.get(0).getInstanceId();
+    List<Request> updatedQueue = new ArrayList<>(requestService.getRequestsQueueByInstanceId(
+      instanceId, tenantId));
+
+    for (int i = 0; i < updatedQueue.size(); i++) {
+      Request currentRequest = updatedQueue.get(i);
+      if (updatedPositionMap.containsKey(currentRequest.getPosition())) {
+        updatedQueue.set(i, updatedPositionMap.get(currentRequest.getPosition()));
+      }
+    }
+    ReorderQueue reorderQueue = new ReorderQueue();
+    updatedQueue.forEach(request -> reorderQueue.addReorderedQueueItem(new ReorderQueueReorderedQueueInner()
+        .id(request.getId())
+        .newPosition(request.getPosition())));
+    log.info("updateReorderedRequests:: reorderQueue: {}", reorderQueue);
+
+    List<Request> requests = requestService.reorderRequestsQueueForInstance(instanceId, tenantId,
+      reorderQueue);
+    log.debug("updateReorderedRequests:: result: {}", requests);
   }
 }

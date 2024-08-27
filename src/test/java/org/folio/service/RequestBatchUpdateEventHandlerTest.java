@@ -1,8 +1,10 @@
 package org.folio.service;
 
+import static org.folio.support.KafkaEvent.EventType.CREATED;
 import static org.folio.support.KafkaEvent.EventType.UPDATED;
 import static org.folio.util.TestUtils.buildEvent;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -15,6 +17,8 @@ import java.util.stream.Stream;
 
 import org.folio.api.BaseIT;
 import org.folio.domain.dto.EcsTlr;
+import org.folio.domain.dto.ReorderQueue;
+import org.folio.domain.dto.ReorderQueueReorderedQueueInner;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.RequestsBatchUpdate;
 import org.folio.domain.mapper.EcsTlrMapperImpl;
@@ -40,7 +44,7 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
   private KafkaEventListener eventListener;
 
   @Test
-  void shouldUpdateSecondaryRequestPositionsWhenPrimaryRequestsPositionsChanged() {
+  void shouldReorderTwoSecondaryRequestsWhenPrimaryRequestsReordered() {
     var requesterId = randomId();
     var pickupServicePointId = randomId();
     var instanceId = randomId();
@@ -81,23 +85,38 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
         fourthPrimaryRequest)
       .sorted(Comparator.comparing(Request::getPosition))
       .toList();
-
-    when(requestService.getRequestsByInstanceId(any())).thenReturn(requestsQueue);
+    when(requestService.getRequestsQueueByInstanceId(any())).thenReturn(requestsQueue);
+    when(requestService.getRequestsQueueByInstanceId(any(), eq(firstTenant))).thenReturn(
+      List.of(firstSecondaryRequest, secondSecondaryRequest));
+    when(requestService.getRequestsQueueByInstanceId(any(), eq(secondTenant))).thenReturn(
+      List.of(thirdSecondaryRequest, fourthSecondaryRequest));
     when(ecsTlrRepository.findByPrimaryRequestIdIn(any())).thenReturn(List.of(
       ecsTlrMapper.mapDtoToEntity(firstEcsTlr), ecsTlrMapper.mapDtoToEntity(secondEcsTlr),
       ecsTlrMapper.mapDtoToEntity(thirdEcsTlr), ecsTlrMapper.mapDtoToEntity(fourthEcsTlr)));
 
-    eventListener.handleRequestBatchUpdateEvent(serializeEvent(buildEvent(CENTRAL_TENANT_ID, UPDATED,
+    List<Request> secRequestsWithUpdatedPositions = List.of(
+      new Request()
+        .id(firstSecondaryRequest.getId())
+        .position(2),
+      new Request()
+        .id(secondSecondaryRequest.getId())
+        .position(1));
+    ReorderQueue reorderQueue = createReorderQueue(secRequestsWithUpdatedPositions);
+    when(requestService.reorderRequestsQueueForInstance(instanceId, firstTenant, reorderQueue))
+      .thenReturn(secRequestsWithUpdatedPositions);
+
+    eventListener.handleRequestBatchUpdateEvent(serializeEvent(buildEvent(CENTRAL_TENANT_ID, CREATED,
       null, new RequestsBatchUpdate().instanceId(instanceId))), getMessageHeaders(
         CENTRAL_TENANT_ID, CENTRAL_TENANT_ID));
-    verify(requestService, times(1)).updateRequestInStorage(firstSecondaryRequest, firstTenant);
-    verify(requestService, times(1)).updateRequestInStorage(secondSecondaryRequest, firstTenant);
-    verify(requestService, times(0)).updateRequestInStorage(thirdSecondaryRequest, secondTenant);
-    verify(requestService, times(0)).updateRequestInStorage(fourthSecondaryRequest, secondTenant);
+
+    verify(requestService, times(1)).reorderRequestsQueueForInstance(
+      eq(instanceId), eq(firstTenant), eq(reorderQueue));
+    verify(requestService, times(0)).reorderRequestsQueueForInstance(
+      eq(instanceId), eq(secondTenant), any());
   }
 
   @Test
-  void shouldReorderSecondaryRequestsFollowingChangesInPrimaryRequestOrder() {
+  void shouldReorderThreeSecondaryRequestsWhenPrimaryRequestsReordered() {
     var requesterId = randomId();
     var pickupServicePointId = randomId();
     var instanceId = randomId();
@@ -106,14 +125,14 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
 
     var firstEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, firstTenant);
     var secondEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, firstTenant);
-    var thirdEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, firstTenant);
-    var fourthEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, secondTenant);
+    var thirdEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, secondTenant);
+    var fourthEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, firstTenant);
     var fifthEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, secondTenant);
 
     var firstSecondaryRequest = buildSecondaryRequest(firstEcsTlr, 1);
     var secondSecondaryRequest = buildSecondaryRequest(secondEcsTlr, 2);
-    var thirdSecondaryRequest = buildSecondaryRequest(thirdEcsTlr, 3);
-    var fourthSecondaryRequest = buildSecondaryRequest(fourthEcsTlr, 1);
+    var thirdSecondaryRequest = buildSecondaryRequest(thirdEcsTlr, 1);
+    var fourthSecondaryRequest = buildSecondaryRequest(fourthEcsTlr, 3);
     var fifthSecondaryRequest = buildSecondaryRequest(fifthEcsTlr, 2);
 
     var firstPrimaryRequest = buildPrimaryRequest(firstEcsTlr, firstSecondaryRequest, 1);
@@ -141,22 +160,40 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
     when(requestService.getRequestFromStorage(fifthEcsTlr.getSecondaryRequestId(),
       fifthEcsTlr.getSecondaryRequestTenantId()))
       .thenReturn(fifthSecondaryRequest);
-    when(requestService.getRequestsByInstanceId(any()))
+    when(requestService.getRequestsQueueByInstanceId(any()))
       .thenReturn(List.of(firstPrimaryRequest, reorderedSecondPrimaryRequest, thirdPrimaryRequest,
         fourthPrimaryRequest, fifthPrimaryRequest));
+    when(requestService.getRequestsQueueByInstanceId(any(), eq(firstTenant))).thenReturn(
+      List.of(firstSecondaryRequest, secondSecondaryRequest, fourthSecondaryRequest));
+    when(requestService.getRequestsQueueByInstanceId(any(), eq(secondTenant))).thenReturn(
+      List.of(thirdSecondaryRequest, fifthSecondaryRequest));
+
     when(ecsTlrRepository.findByPrimaryRequestIdIn(any())).thenReturn(List.of(
       ecsTlrMapper.mapDtoToEntity(firstEcsTlr), ecsTlrMapper.mapDtoToEntity(secondEcsTlr),
       ecsTlrMapper.mapDtoToEntity(thirdEcsTlr), ecsTlrMapper.mapDtoToEntity(fourthEcsTlr),
       ecsTlrMapper.mapDtoToEntity(fifthEcsTlr)));
+    List<Request> secRequestsWithUpdatedPositions = List.of(
+      new Request()
+        .id(firstSecondaryRequest.getId())
+        .position(1),
+      new Request()
+        .id(secondSecondaryRequest.getId())
+        .position(3),
+      new Request()
+        .id(fourthSecondaryRequest.getId())
+        .position(2));
+    ReorderQueue reorderQueue = createReorderQueue(secRequestsWithUpdatedPositions);
+    when(requestService.reorderRequestsQueueForInstance(instanceId, firstTenant, reorderQueue))
+      .thenReturn(secRequestsWithUpdatedPositions);
 
     eventListener.handleRequestBatchUpdateEvent(serializeEvent(buildEvent(CENTRAL_TENANT_ID, UPDATED,
       null, new RequestsBatchUpdate().instanceId(instanceId))), getMessageHeaders(
         CENTRAL_TENANT_ID, CENTRAL_TENANT_ID));
-    verify(requestService, times(0)).updateRequestInStorage(firstSecondaryRequest, firstTenant);
-    verify(requestService, times(1)).updateRequestInStorage(secondSecondaryRequest, firstTenant);
-    verify(requestService, times(1)).updateRequestInStorage(thirdSecondaryRequest, firstTenant);
-    verify(requestService, times(0)).updateRequestInStorage(fourthSecondaryRequest, secondTenant);
-    verify(requestService, times(0)).updateRequestInStorage(fifthSecondaryRequest, secondTenant);
+
+    verify(requestService, times(1)).reorderRequestsQueueForInstance(
+      eq(instanceId), eq(firstTenant), eq(reorderQueue));
+    verify(requestService, times(0)).reorderRequestsQueueForInstance(
+      eq(instanceId), eq(secondTenant), any());
   }
 
   private static EcsTlr buildEcsTlr(String instanceId, String requesterId,
@@ -215,5 +252,13 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
   @SneakyThrows
   private String serializeEvent(KafkaEvent<RequestsBatchUpdate> event) {
     return new ObjectMapper().writeValueAsString(event);
+  }
+
+  private ReorderQueue createReorderQueue(List<Request> requests) {
+    ReorderQueue reorderQueue = new ReorderQueue();
+    requests.forEach(request -> reorderQueue.addReorderedQueueItem(new ReorderQueueReorderedQueueInner(
+      request.getId(), request.getPosition())));
+
+    return reorderQueue;
   }
 }
