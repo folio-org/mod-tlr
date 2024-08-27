@@ -42,14 +42,12 @@ public class AllowedServicePointsServiceImpl implements AllowedServicePointsServ
   public AllowedServicePointsResponse getAllowedServicePoints(AllowedServicePointsRequest request) {
     log.info("getAllowedServicePoints:: {}", request);
     return switch (request.getOperation()) {
-      case CREATE -> getAllowedServicePointsForCreate(request);
-      case REPLACE -> getAllowedServicePointsForReplace(request);
+      case CREATE -> getForCreate(request);
+      case REPLACE -> getForReplace(request);
     };
   }
 
-  public AllowedServicePointsResponse getAllowedServicePointsForCreate(
-    AllowedServicePointsRequest request) {
-
+  public AllowedServicePointsResponse getForCreate(AllowedServicePointsRequest request) {
     String instanceId = request.getInstanceId();
     String patronGroupId = userService.find(request.getRequesterId()).getPatronGroup();
     log.info("getForCreate:: patronGroupId={}", patronGroupId);
@@ -92,9 +90,7 @@ public class AllowedServicePointsServiceImpl implements AllowedServicePointsServ
     return availabilityCheckResult;
   }
 
-  private AllowedServicePointsResponse getAllowedServicePointsForReplace(
-    AllowedServicePointsRequest request) {
-
+  private AllowedServicePointsResponse getForReplace(AllowedServicePointsRequest request) {
     EcsTlrEntity ecsTlr = findEcsTlr(request);
     final boolean requestIsLinkedToItem = ecsTlr.getItemId() != null;
     log.info("getForReplace:: request is linked to an item: {}", requestIsLinkedToItem);
@@ -109,10 +105,10 @@ public class AllowedServicePointsServiceImpl implements AllowedServicePointsServ
 
   private EcsTlrEntity findEcsTlr(AllowedServicePointsRequest request) {
     final String primaryRequestId = request.getRequestId();
-    log.info("findEcsTlr:: looking for ECS TLR with primary request ID {}", primaryRequestId);
+    log.info("findEcsTlr:: looking for ECS TLR with primary request {}", primaryRequestId);
     EcsTlrEntity ecsTlr = ecsTlrRepository.findByPrimaryRequestId(UUID.fromString(primaryRequestId))
       .orElseThrow(() -> new EntityNotFoundException(String.format(
-        "ECS TLR for primary request with ID %s was not found", primaryRequestId)));
+        "ECS TLR for primary request %s was not found", primaryRequestId)));
 
     log.info("findEcsTlr:: ECS TLR found: {}", ecsTlr.getId());
     return ecsTlr;

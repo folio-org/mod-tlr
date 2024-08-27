@@ -18,12 +18,12 @@ public class AllowedServicePointsRequest {
     UUID requestId) {
 
     this.operation = RequestOperation.from(operation);
-    this.requesterId = toString(requesterId);
-    this.instanceId = toString(instanceId);
-    this.requestId = toString(requestId);
+    this.requesterId = asString(requesterId);
+    this.instanceId = asString(instanceId);
+    this.requestId = asString(requestId);
   }
 
-  private static String toString(UUID uuid) {
+  private static String asString(UUID uuid) {
     return Optional.ofNullable(uuid)
       .map(UUID::toString)
       .orElse(null);
