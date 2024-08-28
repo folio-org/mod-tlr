@@ -22,7 +22,6 @@ import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.KafkaEventHandler;
 import org.folio.service.RequestService;
-import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.folio.support.KafkaEvent;
 import org.springframework.stereotype.Service;
 
@@ -120,7 +119,6 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
         correctOrder), tenantId));
   }
 
-  //  private void reorderSecondaryRequestsForTenant(String tenantId, List<Request> secondaryRequests,
   private List<Request> reorderSecondaryRequestsForTenant(String tenantId,
     List<Request> secondaryRequests, Map<UUID, Integer> correctOrder) {
 
