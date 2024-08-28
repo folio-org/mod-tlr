@@ -14,11 +14,7 @@ spring:
   main:
     allow-bean-definition-overriding: true
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQL10Dialect
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
+    database: POSTGRESQL
     show-sql: false
   liquibase:
     enabled: true
