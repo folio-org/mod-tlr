@@ -114,7 +114,7 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
         CENTRAL_TENANT_ID, CENTRAL_TENANT_ID));
 
     verify(requestService, times(1)).reorderRequestsQueueForInstance(
-      eq(instanceId), eq(firstTenant), eq(reorderQueue));
+      instanceId, firstTenant, reorderQueue);
     verify(requestService, times(0)).reorderRequestsQueueForInstance(
       eq(instanceId), eq(secondTenant), any());
   }
@@ -189,7 +189,7 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
         CENTRAL_TENANT_ID, CENTRAL_TENANT_ID));
 
     verify(requestService, times(1)).reorderRequestsQueueForInstance(
-      eq(instanceId), eq(firstTenant), eq(reorderQueue));
+      instanceId, firstTenant, reorderQueue);
     verify(requestService, times(0)).reorderRequestsQueueForInstance(
       eq(instanceId), eq(secondTenant), any());
   }
