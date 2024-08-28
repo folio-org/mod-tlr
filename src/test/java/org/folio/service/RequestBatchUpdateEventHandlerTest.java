@@ -47,15 +47,14 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
   private EcsTlrRepository ecsTlrRepository;
   @Autowired
   private KafkaEventListener eventListener;
+  String requesterId = randomId();
+  String pickupServicePointId = randomId();
+  String instanceId = randomId();
+  String firstTenant = "tenant1";
+  String secondTenant = "tenant2";
 
   @Test
   void shouldReorderTwoSecondaryRequestsWhenPrimaryRequestsReordered() {
-    var requesterId = randomId();
-    var pickupServicePointId = randomId();
-    var instanceId = randomId();
-    var firstTenant = "tenant1";
-    var secondTenant = "tenant2";
-
     var firstEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, firstTenant);
     var secondEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, firstTenant);
     var thirdEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, secondTenant);
@@ -122,12 +121,6 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
 
   @Test
   void shouldReorderThreeSecondaryRequestsWhenPrimaryRequestsReordered() {
-    var requesterId = randomId();
-    var pickupServicePointId = randomId();
-    var instanceId = randomId();
-    var firstTenant = "tenant1";
-    var secondTenant = "tenant2";
-
     var firstEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, firstTenant);
     var secondEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, firstTenant);
     var thirdEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, secondTenant);
@@ -203,12 +196,6 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
 
   @Test
   void shouldNotReorderSecondaryRequestsWhenPrimaryRequestsOrderIsUnchanged() {
-    var requesterId = randomId();
-    var pickupServicePointId = randomId();
-    var instanceId = randomId();
-    var firstTenant = "tenant1";
-    var secondTenant = "tenant2";
-
     var firstEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, firstTenant);
     var secondEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, firstTenant);
     var thirdEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, secondTenant);
@@ -266,12 +253,6 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
   @MethodSource("provideLists")
   void shouldNotReorderSecondaryRequestsWhenPrimaryRequestsAreNullOrEmtpy(
     List<EcsTlrEntity> primaryRequests) {
-
-    var requesterId = randomId();
-    var pickupServicePointId = randomId();
-    var instanceId = randomId();
-    var firstTenant = "tenant1";
-    var secondTenant = "tenant2";
 
     var firstEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, firstTenant);
     var secondEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, firstTenant);
