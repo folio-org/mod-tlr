@@ -9,6 +9,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
@@ -21,11 +22,15 @@ import org.folio.domain.dto.ReorderQueue;
 import org.folio.domain.dto.ReorderQueueReorderedQueueInner;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.RequestsBatchUpdate;
+import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.domain.mapper.EcsTlrMapperImpl;
 import org.folio.listener.kafka.KafkaEventListener;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.support.KafkaEvent;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
@@ -255,6 +260,75 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
       eq(instanceId), eq(firstTenant), any());
     verify(requestService, times(0)).reorderRequestsQueueForInstance(
       eq(instanceId), eq(secondTenant), any());
+  }
+
+  @ParameterizedTest
+  @MethodSource("provideLists")
+  void shouldNotReorderSecondaryRequestsWhenPrimaryRequestsAreNullOrEmtpy(
+    List<EcsTlrEntity> primaryRequests) {
+
+    var requesterId = randomId();
+    var pickupServicePointId = randomId();
+    var instanceId = randomId();
+    var firstTenant = "tenant1";
+    var secondTenant = "tenant2";
+
+    var firstEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, firstTenant);
+    var secondEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, firstTenant);
+    var thirdEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, secondTenant);
+    var fourthEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, secondTenant);
+
+    var firstSecondaryRequest = buildSecondaryRequest(firstEcsTlr, 1);
+    var secondSecondaryRequest = buildSecondaryRequest(secondEcsTlr, 2);
+    var thirdSecondaryRequest = buildSecondaryRequest(thirdEcsTlr, 1);
+    var fourthSecondaryRequest = buildSecondaryRequest(fourthEcsTlr, 2);
+
+    var firstPrimaryRequest = buildPrimaryRequest(firstEcsTlr, firstSecondaryRequest, 1);
+    var thirdPrimaryRequest = buildPrimaryRequest(thirdEcsTlr, thirdSecondaryRequest, 3);
+    var fourthPrimaryRequest = buildPrimaryRequest(fourthEcsTlr, fourthSecondaryRequest, 4);
+    var reorderedSecondPrimaryRequest = buildPrimaryRequest(secondEcsTlr, secondSecondaryRequest, 4);
+
+    var ecsTlrMapper = new EcsTlrMapperImpl();
+    when(ecsTlrRepository.findBySecondaryRequestId(any()))
+      .thenReturn(Optional.of(ecsTlrMapper.mapDtoToEntity(firstEcsTlr)));
+    when(requestService.getRequestFromStorage(firstEcsTlr.getSecondaryRequestId(),
+      firstEcsTlr.getSecondaryRequestTenantId()))
+      .thenReturn(firstSecondaryRequest);
+    when(requestService.getRequestFromStorage(secondEcsTlr.getSecondaryRequestId(),
+      secondEcsTlr.getSecondaryRequestTenantId()))
+      .thenReturn(secondSecondaryRequest);
+    when(requestService.getRequestFromStorage(thirdEcsTlr.getSecondaryRequestId(),
+      thirdEcsTlr.getSecondaryRequestTenantId()))
+      .thenReturn(thirdSecondaryRequest);
+    when(requestService.getRequestFromStorage(fourthEcsTlr.getSecondaryRequestId(),
+      fourthEcsTlr.getSecondaryRequestTenantId()))
+      .thenReturn(fourthSecondaryRequest);
+    var requestsQueue = Stream.of(firstPrimaryRequest, reorderedSecondPrimaryRequest, thirdPrimaryRequest,
+        fourthPrimaryRequest)
+      .sorted(Comparator.comparing(Request::getPosition))
+      .toList();
+    when(requestService.getRequestsQueueByInstanceId(any())).thenReturn(requestsQueue);
+    when(requestService.getRequestsQueueByInstanceId(any(), eq(firstTenant))).thenReturn(
+      List.of(firstSecondaryRequest, secondSecondaryRequest));
+    when(requestService.getRequestsQueueByInstanceId(any(), eq(secondTenant))).thenReturn(
+      List.of(thirdSecondaryRequest, fourthSecondaryRequest));
+    when(ecsTlrRepository.findByPrimaryRequestIdIn(any())).thenReturn(primaryRequests);
+
+    eventListener.handleRequestBatchUpdateEvent(serializeEvent(buildEvent(CENTRAL_TENANT_ID, CREATED,
+      null, new RequestsBatchUpdate().instanceId(instanceId))), getMessageHeaders(
+      CENTRAL_TENANT_ID, CENTRAL_TENANT_ID));
+
+    verify(requestService, times(0)).reorderRequestsQueueForInstance(
+      eq(instanceId), eq(firstTenant), any());
+    verify(requestService, times(0)).reorderRequestsQueueForInstance(
+      eq(instanceId), eq(secondTenant), any());
+  }
+
+  private static Stream<Arguments> provideLists() {
+    return Stream.of(
+      Arguments.of(Collections.emptyList()),
+      Arguments.of((List<EcsTlrEntity>) null)
+    );
   }
 
   private static EcsTlr buildEcsTlr(String instanceId, String requesterId,
