@@ -52,6 +52,7 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
 
     List<UUID> sortedPrimaryRequestIds = unifiedQueue.stream()
       .filter(request -> PRIMARY == request.getEcsRequestPhase())
+      .filter(request -> request.getPosition() != null)
       .sorted(Comparator.comparing(Request::getPosition))
       .map(request -> UUID.fromString(request.getId()))
       .toList();
