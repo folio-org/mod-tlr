@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.folio.domain.RequestWrapper;
+import org.folio.domain.dto.ReorderQueue;
 import org.folio.domain.dto.Request;
 
 public interface RequestService {
@@ -15,5 +16,7 @@ public interface RequestService {
   Request getRequestFromStorage(String requestId, String tenantId);
   Request getRequestFromStorage(String requestId);
   Request updateRequestInStorage(Request request, String tenantId);
-  List<Request> getRequestsByInstanceId(String instanceId);
+  List<Request> getRequestsQueueByInstanceId(String instanceId, String tenantId);
+  List<Request> getRequestsQueueByInstanceId(String instanceId);
+  List<Request> reorderRequestsQueueForInstance(String instanceId, String tenantId, ReorderQueue reorderQueue);
 }

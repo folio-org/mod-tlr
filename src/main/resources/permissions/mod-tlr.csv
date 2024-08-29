@@ -9,6 +9,7 @@ search.instances.collection.get
 circulation.requests.instances.item.post
 circulation.requests.item.post
 circulation.requests.queue.collection.get
+circulation.requests.queue.reorder.collection.post
 circulation-storage.requests.item.get
 circulation-storage.requests.collection.get
 circulation-storage.requests.item.put

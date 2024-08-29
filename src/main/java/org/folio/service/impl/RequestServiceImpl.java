@@ -9,6 +9,7 @@ import org.folio.client.feign.CirculationClient;
 import org.folio.client.feign.RequestCirculationClient;
 import org.folio.client.feign.RequestStorageClient;
 import org.folio.domain.RequestWrapper;
+import org.folio.domain.dto.ReorderQueue;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.ServicePoint;
 import org.folio.domain.dto.User;
@@ -124,8 +125,31 @@ public class RequestServiceImpl implements RequestService {
   }
 
   @Override
-  public List<Request> getRequestsByInstanceId(String instanceId) {
+  public List<Request> getRequestsQueueByInstanceId(String instanceId, String tenantId) {
+    log.info("getRequestsQueueByInstanceId:: parameters instanceId: {}, tenantId: {}",
+      instanceId, tenantId);
+
+    return executionService.executeSystemUserScoped(tenantId,
+      () -> requestCirculationClient.getRequestsQueueByInstanceId(instanceId).getRequests());
+  }
+
+  @Override
+  public List<Request> getRequestsQueueByInstanceId(String instanceId) {
+    log.info("getRequestsQueueByInstanceId:: parameters instanceId: {}", instanceId);
+
     return requestCirculationClient.getRequestsQueueByInstanceId(instanceId).getRequests();
+  }
+
+  @Override
+  public List<Request> reorderRequestsQueueForInstance(String instanceId, String tenantId,
+    ReorderQueue reorderQueue) {
+
+    log.info("reorderRequestsQueueForInstance:: parameters instanceId: {}, tenantId: {}, " +
+        "reorderQueue: {}", instanceId, tenantId, reorderQueue);
+
+    return executionService.executeSystemUserScoped(tenantId,
+      () -> requestCirculationClient.reorderRequestsQueueForInstanceId(instanceId, reorderQueue)
+        .getRequests());
   }
 
   private void cloneRequester(User primaryRequestRequester) {
