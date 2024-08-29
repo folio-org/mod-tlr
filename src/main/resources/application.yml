@@ -14,11 +14,7 @@ spring:
   main:
     allow-bean-definition-overriding: true
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQL10Dialect
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
+    database: POSTGRESQL
     show-sql: false
   liquibase:
     enabled: true
@@ -46,6 +42,7 @@ folio:
   environment: ${ENV:folio}
   okapi-url: ${OKAPI_URL:http://okapi:9130}
   system-user:
+    enabled:  ${SYSTEM_USER_ENABLED:true}
     username: ${SYSTEM_USER_NAME:mod-tlr}
     password: ${SYSTEM_USER_PASSWORD:mod-tlr}
     lastname: System
