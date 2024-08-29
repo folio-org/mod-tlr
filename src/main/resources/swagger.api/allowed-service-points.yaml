@@ -44,7 +44,7 @@ components:
     requesterId:
       name: requesterId
       in: query
-      required: true
+      required: false
       schema:
         type: string
         format: uuid

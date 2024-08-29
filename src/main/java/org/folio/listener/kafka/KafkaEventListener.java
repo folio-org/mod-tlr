@@ -1,5 +1,7 @@
 package org.folio.listener.kafka;
 
+import static org.folio.domain.Constants.CENTRAL_TENANT_ID;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
@@ -29,7 +31,6 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public class KafkaEventListener {
   private static final ObjectMapper objectMapper = new ObjectMapper();
-  public static final String CENTRAL_TENANT_ID = "consortium";
   private final RequestEventHandler requestEventHandler;
   private final UserGroupEventHandler userGroupEventHandler;
   private final SystemUserScopedExecutionService systemUserScopedExecutionService;
