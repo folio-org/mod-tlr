@@ -26,6 +26,7 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public class EcsTlrServiceImpl implements EcsTlrService {
 
+  private static final String CENTRAL_TENANT_ID = "consortium";
   private final EcsTlrRepository ecsTlrRepository;
   private final EcsTlrMapper requestsMapper;
   private final TenantService tenantService;
@@ -54,8 +55,24 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       buildPrimaryRequest(secondaryRequest.request()), borrowingTenantId);
     updateEcsTlr(ecsTlr, primaryRequest, secondaryRequest);
     createDcbTransactions(ecsTlr, secondaryRequest.request());
+    updatePrimaryRequestTypeInSyncWithSecondary(primaryRequest, secondaryRequest);
 
     return requestsMapper.mapEntityToDto(save(ecsTlr));
+  }
+
+  private void updatePrimaryRequestTypeInSyncWithSecondary(RequestWrapper primaryRequest,
+    RequestWrapper secondaryRequest) {
+
+    var primaryRequestType = primaryRequest.request().getRequestType();
+    var secondaryRequestType = secondaryRequest.request().getRequestType();
+
+    if (primaryRequestType == secondaryRequestType) {
+      return;
+    }
+    var primaryRequestId = primaryRequest.request().getId();
+    var requestForUpdate = requestService.getRequestFromStorage(primaryRequestId, CENTRAL_TENANT_ID);
+    requestForUpdate.setRequestType(secondaryRequestType);
+    requestService.updateRequestInStorage(requestForUpdate, CENTRAL_TENANT_ID);
   }
 
   @Override
