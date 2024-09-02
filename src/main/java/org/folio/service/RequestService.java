@@ -14,6 +14,7 @@ public interface RequestService {
     Collection<String> lendingTenantIds);
 
   Request getRequestFromStorage(String requestId, String tenantId);
+  Request getRequestFromStorage(String requestId);
   Request updateRequestInStorage(Request request, String tenantId);
   List<Request> getRequestsQueueByInstanceId(String instanceId, String tenantId);
   List<Request> getRequestsQueueByInstanceId(String instanceId);
