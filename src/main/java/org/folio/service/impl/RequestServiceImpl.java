@@ -81,7 +81,7 @@ public class RequestServiceImpl implements RequestService {
 
           log.info("createSecondaryRequest:: creating secondary request {} in lending tenant ({})",
             requestId, lendingTenantId);
-          Request secondaryRequest = circulationClient.createInstanceRequest(request);
+          Request secondaryRequest = circulationClient.createRequest(request);
           log.info("createSecondaryRequest:: secondary request {} created in lending tenant ({})",
             requestId, lendingTenantId);
           log.debug("createSecondaryRequest:: secondary request: {}", () -> secondaryRequest);
