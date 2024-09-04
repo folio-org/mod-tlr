@@ -116,12 +116,14 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     return new Request()
       .id(secondaryRequest.getId())
       .instanceId(secondaryRequest.getInstanceId())
+      .itemId(secondaryRequest.getItemId())
+      .holdingsRecordId(secondaryRequest.getHoldingsRecordId())
       .requesterId(secondaryRequest.getRequesterId())
       .requestDate(secondaryRequest.getRequestDate())
-      .requestLevel(Request.RequestLevelEnum.TITLE)
+      .requestLevel(secondaryRequest.getRequestLevel())
       .requestType(Constants.PRIMARY_REQUEST_TYPE)
       .ecsRequestPhase(Request.EcsRequestPhaseEnum.PRIMARY)
-      .fulfillmentPreference(Request.FulfillmentPreferenceEnum.HOLD_SHELF)
+      .fulfillmentPreference(secondaryRequest.getFulfillmentPreference())
       .pickupServicePointId(secondaryRequest.getPickupServicePointId());
   }
 
