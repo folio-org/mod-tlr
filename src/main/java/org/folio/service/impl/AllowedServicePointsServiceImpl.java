@@ -12,9 +12,9 @@ import org.folio.client.feign.SearchClient;
 import org.folio.domain.Constants;
 import org.folio.domain.dto.AllowedServicePointsRequest;
 import org.folio.domain.dto.AllowedServicePointsResponse;
-import org.folio.domain.dto.Instance;
-import org.folio.domain.dto.Item;
 import org.folio.domain.dto.Request;
+import org.folio.domain.dto.SearchInstance;
+import org.folio.domain.dto.SearchItem;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.AllowedServicePointsService;
@@ -55,9 +55,9 @@ public class AllowedServicePointsServiceImpl implements AllowedServicePointsServ
     var searchInstancesResponse = searchClient.searchInstance(instanceId);
     // TODO: make call in parallel
     boolean availableForRequesting = searchInstancesResponse.getInstances().stream()
-      .map(Instance::getItems)
+      .map(SearchInstance::getItems)
       .flatMap(Collection::stream)
-      .map(Item::getTenantId)
+      .map(SearchItem::getTenantId)
       .filter(Objects::nonNull)
       .distinct()
       .anyMatch(tenantId -> checkAvailability(request, patronGroupId, tenantId));

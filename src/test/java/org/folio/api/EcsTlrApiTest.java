@@ -27,13 +27,13 @@ import org.folio.domain.dto.DcbItem;
 import org.folio.domain.dto.DcbTransaction;
 import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.EcsTlr.RequestTypeEnum;
-import org.folio.domain.dto.Instance;
-import org.folio.domain.dto.Item;
-import org.folio.domain.dto.ItemStatus;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.RequestInstance;
 import org.folio.domain.dto.RequestItem;
+import org.folio.domain.dto.SearchInstance;
 import org.folio.domain.dto.SearchInstancesResponse;
+import org.folio.domain.dto.SearchItem;
+import org.folio.domain.dto.SearchItemStatus;
 import org.folio.domain.dto.ServicePoint;
 import org.folio.domain.dto.TransactionStatusResponse;
 import org.folio.domain.dto.User;
@@ -106,7 +106,7 @@ class EcsTlrApiTest extends BaseIT {
     // 1. Create stubs for other modules
     // 1.1 Mock search endpoint
 
-    List<Item> items;
+    List<SearchItem> items;
     if (requestType == HOLD) {
       items = List.of(
         buildItem(randomId(), TENANT_ID_UNIVERSITY, "Paged"),
@@ -121,7 +121,7 @@ class EcsTlrApiTest extends BaseIT {
 
     SearchInstancesResponse mockSearchInstancesResponse = new SearchInstancesResponse()
       .totalRecords(2)
-      .instances(List.of(new Instance()
+      .instances(List.of(new SearchInstance()
         .id(INSTANCE_ID)
         .tenantId(TENANT_ID_CONSORTIUM)
         .items(items)
@@ -350,7 +350,7 @@ class EcsTlrApiTest extends BaseIT {
     SearchInstancesResponse mockSearchInstancesResponse = new SearchInstancesResponse()
       .totalRecords(2)
       .instances(List.of(
-        new Instance().id(INSTANCE_ID)
+        new SearchInstance().id(INSTANCE_ID)
           .tenantId(TENANT_ID_CONSORTIUM)
           .items(List.of(buildItem(randomId(), TENANT_ID_UNIVERSITY, "Available")))
       ));
@@ -381,7 +381,7 @@ class EcsTlrApiTest extends BaseIT {
     SearchInstancesResponse mockSearchInstancesResponse = new SearchInstancesResponse()
       .totalRecords(2)
       .instances(List.of(
-        new Instance().id(INSTANCE_ID)
+        new SearchInstance().id(INSTANCE_ID)
           .tenantId(TENANT_ID_CONSORTIUM)
           .items(List.of(buildItem(randomId(), TENANT_ID_UNIVERSITY, "Available")))
       ));
@@ -461,11 +461,11 @@ class EcsTlrApiTest extends BaseIT {
       .pickupServicePointId(secondaryRequest.getPickupServicePointId());
   }
 
-  private static Item buildItem(String id, String tenantId, String status) {
-    return new Item()
+  private static SearchItem buildItem(String id, String tenantId, String status) {
+    return new SearchItem()
       .id(id)
       .tenantId(tenantId)
-      .status(new ItemStatus().name(status));
+      .status(new SearchItemStatus().name(status));
   }
 
   private static User buildPrimaryRequestRequester(String userId) {

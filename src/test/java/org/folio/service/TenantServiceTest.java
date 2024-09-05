@@ -10,10 +10,10 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.folio.client.feign.SearchClient;
-import org.folio.domain.dto.Instance;
-import org.folio.domain.dto.Item;
-import org.folio.domain.dto.ItemStatus;
+import org.folio.domain.dto.SearchInstance;
 import org.folio.domain.dto.SearchInstancesResponse;
+import org.folio.domain.dto.SearchItem;
+import org.folio.domain.dto.SearchItemStatus;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.service.impl.TenantServiceImpl;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,7 +36,7 @@ class TenantServiceTest {
 
   @ParameterizedTest
   @MethodSource("parametersForGetLendingTenants")
-  void getLendingTenants(List<String> expectedTenantIds, Instance instance) {
+  void getLendingTenants(List<String> expectedTenantIds, SearchInstance instance) {
     Mockito.when(searchClient.searchInstance(Mockito.any()))
       .thenReturn(new SearchInstancesResponse().instances(singletonList(instance)));
     EcsTlrEntity ecsTlr = new EcsTlrEntity();
@@ -132,18 +132,18 @@ class TenantServiceTest {
     );
   }
 
-  private static Instance buildInstance(Item... items) {
-    return new Instance()
+  private static SearchInstance buildInstance(SearchItem... items) {
+    return new SearchInstance()
       .id(INSTANCE_ID.toString())
       .tenantId("centralTenant")
       .items(Arrays.stream(items).toList());
   }
 
-  private static Item buildItem(String tenantId, String status) {
-    return new Item()
+  private static SearchItem buildItem(String tenantId, String status) {
+    return new SearchItem()
       .id(UUID.randomUUID().toString())
       .tenantId(tenantId)
-      .status(new ItemStatus().name(status));
+      .status(new SearchItemStatus().name(status));
   }
 
 }
