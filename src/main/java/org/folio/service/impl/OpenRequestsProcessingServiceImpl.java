@@ -13,7 +13,7 @@ public class OpenRequestsProcessingServiceImpl implements OpenRequestsProcessing
 
   @Override
   public void processOpenRequests() {
-    log.info("processOpenRequests:: start");
+//    log.info("processOpenRequests:: start");
   }
 
 }

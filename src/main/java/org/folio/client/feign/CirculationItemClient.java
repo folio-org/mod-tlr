@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 @FeignClient(name = "circulation-item", url = "circulation-item", configuration = FeignClientConfiguration.class)
 public interface CirculationItemClient {
 
-  @PostMapping("/")
+  @PostMapping
   CirculationItem createCirculationItem(CirculationItem circulationItem);
 
 }
