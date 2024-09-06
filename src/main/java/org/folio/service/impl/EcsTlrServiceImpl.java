@@ -125,7 +125,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       .requesterId(secondaryRequest.getRequesterId())
       .requestDate(secondaryRequest.getRequestDate())
       .requestLevel(secondaryRequest.getRequestLevel())
-      .requestType(Constants.PRIMARY_REQUEST_TYPE)
+      .requestType(secondaryRequest.getRequestType())
       .ecsRequestPhase(Request.EcsRequestPhaseEnum.PRIMARY)
       .fulfillmentPreference(secondaryRequest.getFulfillmentPreference())
       .pickupServicePointId(secondaryRequest.getPickupServicePointId());
