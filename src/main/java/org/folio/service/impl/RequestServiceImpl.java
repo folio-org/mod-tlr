@@ -51,6 +51,8 @@ public class RequestServiceImpl implements RequestService {
   private final CloningService<ServicePoint> servicePointCloningService;
   private final SystemUserScopedExecutionService systemUserScopedExecutionService;
 
+  public static final String HOLDINGS_RECORD_ID = "10cd3a5a-d36f-4c7a-bc4f-e1ae3cf820c9";
+
   @Override
   public RequestWrapper createPrimaryRequest(Request request, String borrowingTenantId) {
     final String requestId = request.getId();
@@ -142,7 +144,7 @@ public class RequestServiceImpl implements RequestService {
 
     var circulationItem = new CirculationItem()
       .id(itemId)
-      .holdingsRecordId(UUID.fromString(item.getHoldingsRecordId()))
+      .holdingsRecordId(UUID.fromString(HOLDINGS_RECORD_ID))
       .status(new CirculationItemStatus()
         .name(CirculationItemStatus.NameEnum.fromValue(item.getStatus().getName().getValue()))
         .date(item.getStatus().getDate())
