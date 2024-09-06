@@ -141,7 +141,7 @@ public class RequestServiceImpl implements RequestService {
       () -> instanceClient.get(instanceId));
 
     var circulationItem = new CirculationItem()
-      .id(ecsTlr.getItemId())
+      .id(itemId)
       .holdingsRecordId(UUID.fromString(item.getHoldingsRecordId()))
       .status(new CirculationItemStatus()
         .name(CirculationItemStatus.NameEnum.fromValue(item.getStatus().getName().getValue()))
@@ -158,7 +158,7 @@ public class RequestServiceImpl implements RequestService {
 
     log.info("createCirculationItem:: Creating circulation item {}", circulationItem.toString());
 
-    return circulationItemClient.createCirculationItem(circulationItem);
+    return circulationItemClient.createCirculationItem(itemId.toString(), circulationItem);
   }
 
   @Override
