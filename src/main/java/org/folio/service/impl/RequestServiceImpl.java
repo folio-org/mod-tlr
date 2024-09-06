@@ -127,7 +127,7 @@ public class RequestServiceImpl implements RequestService {
       return null;
     }
 
-    var itemId = ecsTlr.getItemId();
+    var itemId = secondaryRequest.getItemId();
     var instanceId = secondaryRequest.getInstanceId();
 
     if (itemId == null || instanceId == null) {
@@ -135,7 +135,7 @@ public class RequestServiceImpl implements RequestService {
       return null;
     }
 
-    InventoryItem item = getItemFromStorage(itemId.toString(), lendingTenantId);
+    InventoryItem item = getItemFromStorage(itemId, lendingTenantId);
     InventoryInstance instance = getInstanceFromStorage(instanceId, lendingTenantId);
 
     var itemStatus = item.getStatus().getName();
@@ -145,7 +145,7 @@ public class RequestServiceImpl implements RequestService {
     }
 
     var circulationItem = new CirculationItem()
-      .id(itemId)
+      .id(UUID.fromString(itemId))
       .holdingsRecordId(UUID.fromString(HOLDINGS_RECORD_ID))
       .status(new CirculationItemStatus()
         .name(circulationItemStatus)
@@ -162,7 +162,7 @@ public class RequestServiceImpl implements RequestService {
 
     log.info("createCirculationItem:: Creating circulation item {}", circulationItem.toString());
 
-    return circulationItemClient.createCirculationItem(itemId.toString(), circulationItem);
+    return circulationItemClient.createCirculationItem(itemId, circulationItem);
   }
 
   @Override
