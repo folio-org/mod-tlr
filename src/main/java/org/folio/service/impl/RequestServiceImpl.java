@@ -17,6 +17,7 @@ import org.folio.domain.dto.CirculationItem;
 import org.folio.domain.dto.CirculationItemStatus;
 import org.folio.domain.dto.InventoryInstance;
 import org.folio.domain.dto.InventoryItem;
+import org.folio.domain.dto.InventoryItemStatus;
 import org.folio.domain.dto.ReorderQueue;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.ServicePoint;
@@ -134,19 +135,20 @@ public class RequestServiceImpl implements RequestService {
       return null;
     }
 
-    log.info("createCirculationItem:: Fetching item {} from tenant {}", itemId, lendingTenantId);
-    InventoryItem item = systemUserScopedExecutionService.executeSystemUserScoped(lendingTenantId,
-      () -> itemClient.get(itemId.toString()));
+    InventoryItem item = getItemFromStorage(itemId.toString(), lendingTenantId);
+    InventoryInstance instance = getInstanceFromStorage(instanceId, lendingTenantId);
 
-    log.info("createCirculationItem:: Fetching instance {} from tenant {}", instanceId, lendingTenantId);
-    InventoryInstance instance = systemUserScopedExecutionService.executeSystemUserScoped(lendingTenantId,
-      () -> instanceClient.get(instanceId));
+    var itemStatus = item.getStatus().getName();
+    var circulationItemStatus = CirculationItemStatus.NameEnum.fromValue(itemStatus.getValue());
+    if (itemStatus == InventoryItemStatus.NameEnum.PAGED) {
+      circulationItemStatus = CirculationItemStatus.NameEnum.AVAILABLE;
+    }
 
     var circulationItem = new CirculationItem()
       .id(itemId)
       .holdingsRecordId(UUID.fromString(HOLDINGS_RECORD_ID))
       .status(new CirculationItemStatus()
-        .name(CirculationItemStatus.NameEnum.fromValue(item.getStatus().getName().getValue()))
+        .name(circulationItemStatus)
         .date(item.getStatus().getDate())
       )
       .dcbItem(true)
@@ -161,6 +163,20 @@ public class RequestServiceImpl implements RequestService {
     log.info("createCirculationItem:: Creating circulation item {}", circulationItem.toString());
 
     return circulationItemClient.createCirculationItem(itemId.toString(), circulationItem);
+  }
+
+  @Override
+  public InventoryItem getItemFromStorage(String itemId, String tenantId) {
+    log.info("getItemFromStorage:: Fetching item {} from tenant {}", itemId, tenantId);
+    return systemUserScopedExecutionService.executeSystemUserScoped(tenantId,
+      () -> itemClient.get(itemId));
+  }
+
+  @Override
+  public InventoryInstance getInstanceFromStorage(String instanceId, String tenantId) {
+    log.info("getInstanceFromStorage:: Fetching instance {} from tenant {}", instanceId, tenantId);
+    return systemUserScopedExecutionService.executeSystemUserScoped(tenantId,
+      () -> instanceClient.get(instanceId));
   }
 
   @Override
