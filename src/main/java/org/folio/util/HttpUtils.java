@@ -1,7 +1,9 @@
 package org.folio.util;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.List;
 import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
@@ -35,9 +37,18 @@ public class HttpUtils {
     log.info("getCurrentRequest:: requestAttributes: {}", requestAttributes);
     log.info("getCurrentRequest:: requestAttributes type: {}", requestAttributes.getClass().getSimpleName());
 
-    Cookie[] cookies = ((ServletRequestAttributes) requestAttributes)
-      .getRequest()
+    HttpServletRequest request = ((ServletRequestAttributes) requestAttributes)
+      .getRequest();
+
+    List<String> headerNames = new ArrayList<>();
+    request.getHeaderNames().asIterator().forEachRemaining(headerNames::add);
+
+    headerNames.forEach(header -> log.info("header={}, value={}", header, request.getHeader(header)));
+
+    Cookie[] cookies = request
       .getCookies();
+
+    log.info("cookies are null: {}", cookies == null);
 
     Arrays.stream(cookies)
       .forEach(cookie -> log.info("{}={}", cookie.getName(), cookie.getValue()));
