@@ -5,6 +5,7 @@ import java.util.Base64;
 import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -29,6 +30,18 @@ public class HttpUtils {
   }
 
   public static Optional<HttpServletRequest> getCurrentRequest() {
+
+    RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+    log.info("getCurrentRequest:: requestAttributes: {}", requestAttributes);
+    log.info("getCurrentRequest:: requestAttributes type: {}", requestAttributes.getClass().getSimpleName());
+
+    Cookie[] cookies = ((ServletRequestAttributes) requestAttributes)
+      .getRequest()
+      .getCookies();
+
+    Arrays.stream(cookies)
+      .forEach(cookie -> log.info("{}={}", cookie.getName(), cookie.getValue()));
+
     return Optional.ofNullable(RequestContextHolder.getRequestAttributes())
       .filter(ServletRequestAttributes.class::isInstance)
       .map(ServletRequestAttributes.class::cast)
