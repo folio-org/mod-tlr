@@ -12,7 +12,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import jakarta.servlet.http.Cookie;
 
-public class HttpUtilsTest {
+class HttpUtilsTest {
 
   @AfterEach
   void tearDown() {
