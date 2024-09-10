@@ -24,13 +24,9 @@ public class HttpUtils {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   public static Optional<String> getTenantFromToken() {
-    return getToken()
-      .flatMap(HttpUtils::extractTenantFromToken);
-  }
-
-  public static Optional<String> getToken() {
     return getCurrentRequest()
-      .flatMap(HttpUtils::getToken);
+      .flatMap(HttpUtils::getToken)
+      .flatMap(HttpUtils::extractTenantFromToken);
   }
 
   public static Optional<HttpServletRequest> getCurrentRequest() {
