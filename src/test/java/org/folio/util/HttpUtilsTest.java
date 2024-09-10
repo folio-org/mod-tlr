@@ -2,6 +2,7 @@ package org.folio.util;
 
 import static org.folio.util.TestUtils.buildToken;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -40,6 +41,13 @@ public class HttpUtilsTest {
 
     String tenantFromToken = HttpUtils.getTenantFromToken().orElseThrow();
     assertEquals(tenantFromHeaders, tenantFromToken);
+  }
+
+  @Test
+  void tenantIsNotFound() {
+    RequestContextHolder.setRequestAttributes(
+      new ServletRequestAttributes(new MockHttpServletRequest()));
+    assertTrue(HttpUtils.getTenantFromToken().isEmpty());
   }
 
 }
