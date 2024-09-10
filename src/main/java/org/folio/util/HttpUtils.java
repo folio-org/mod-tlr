@@ -40,7 +40,7 @@ public class HttpUtils {
       .map(ServletRequestAttributes::getRequest);
   }
 
-  private Optional<String> getToken(HttpServletRequest request) {
+  private static Optional<String> getToken(HttpServletRequest request) {
     return getCookie(request, ACCESS_TOKEN_COOKIE_NAME)
       .or(() -> Optional.ofNullable(request.getHeader(XOkapiHeaders.TOKEN)));
   }
