@@ -76,8 +76,6 @@ class EcsTlrApiTest extends BaseIT {
   private static final Date REQUEST_DATE = new Date();
   private static final Date REQUEST_EXPIRATION_DATE = new Date();
 
-
-
   @BeforeEach
   public void beforeEach() {
     wireMockServer.resetAll();
