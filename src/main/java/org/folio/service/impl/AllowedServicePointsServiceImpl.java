@@ -7,6 +7,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+import org.apache.commons.lang3.StringUtils;
 import org.folio.client.feign.CirculationClient;
 import org.folio.client.feign.SearchClient;
 import org.folio.domain.Constants;
@@ -48,19 +49,32 @@ public class AllowedServicePointsServiceImpl implements AllowedServicePointsServ
   }
 
   public AllowedServicePointsResponse getForCreate(AllowedServicePointsRequest request) {
-    String instanceId = request.getInstanceId();
+    String instanceId = "";
     String patronGroupId = userService.find(request.getRequesterId()).getPatronGroup();
     log.info("getForCreate:: patronGroupId={}", patronGroupId);
+    boolean availableForRequesting = false;
+    if (request.isForTitleLevelRequest()) {
+      instanceId = request.getInstanceId();
+      var searchInstancesResponse = searchClient.searchInstance(instanceId);
+      // TODO: make call in parallel
+      availableForRequesting = searchInstancesResponse.getInstances().stream()
+        .map(Instance::getItems)
+        .flatMap(Collection::stream)
+        .map(Item::getTenantId)
+        .filter(Objects::nonNull)
+        .distinct()
+        .anyMatch(tenantId -> checkAvailability(request, patronGroupId, tenantId,
+          request.getInstanceId()));
 
-    var searchInstancesResponse = searchClient.searchInstance(instanceId);
-    // TODO: make call in parallel
-    boolean availableForRequesting = searchInstancesResponse.getInstances().stream()
-      .map(Instance::getItems)
-      .flatMap(Collection::stream)
-      .map(Item::getTenantId)
-      .filter(Objects::nonNull)
-      .distinct()
-      .anyMatch(tenantId -> checkAvailability(request, patronGroupId, tenantId));
+    } else if (request.isForItemLevelRequest()) {
+      String itemId = request.getItemId();
+      var searchItemResponse = searchClient.searchItem(itemId);
+      if (StringUtils.isNotEmpty(searchItemResponse.getTenantId())) {
+        instanceId = searchItemResponse.getInstanceId();
+        availableForRequesting = checkAvailability(request, patronGroupId,
+          searchItemResponse.getTenantId(), instanceId);
+      }
+    }
 
     if (availableForRequesting) {
       log.info("getForCreate:: Available for requesting, proxying call");
@@ -73,14 +87,14 @@ public class AllowedServicePointsServiceImpl implements AllowedServicePointsServ
   }
 
   private boolean checkAvailability(AllowedServicePointsRequest request, String patronGroupId,
-    String tenantId) {
+                                    String tenantId, String instanceId) {
 
     var allowedServicePointsResponse = executionService.executeSystemUserScoped(tenantId,
-      () -> circulationClient.allowedRoutingServicePoints(patronGroupId, request.getInstanceId(),
+      () -> circulationClient.allowedRoutingServicePoints(patronGroupId, instanceId,
         request.getOperation().getValue(), true));
 
     var availabilityCheckResult = Stream.of(allowedServicePointsResponse.getHold(),
-      allowedServicePointsResponse.getPage(), allowedServicePointsResponse.getRecall())
+        allowedServicePointsResponse.getPage(), allowedServicePointsResponse.getRecall())
       .filter(Objects::nonNull)
       .flatMap(Collection::stream)
       .anyMatch(Objects::nonNull);

@@ -29,13 +29,13 @@ public class AllowedServicePointsController implements AllowedServicePointsApi {
 
   @Override
   public ResponseEntity<AllowedServicePointsResponse> getAllowedServicePoints(String operation,
-    UUID requesterId, UUID instanceId, UUID requestId) {
+    UUID requesterId, UUID instanceId, UUID requestId, UUID itemId) {
 
     log.info("getAllowedServicePoints:: params: operation={}, requesterId={}, instanceId={}, " +
-        "requestId={}", operation, requesterId, instanceId, requestId);
+        "requestId={}, itemId={}", operation, requesterId, instanceId, requestId, itemId);
 
     AllowedServicePointsRequest request = new AllowedServicePointsRequest(
-      operation, requesterId, instanceId, requestId);
+      operation, requesterId, instanceId, requestId, itemId);
 
     if (validateAllowedServicePointsRequest(request)) {
       return ResponseEntity.status(OK)
@@ -50,20 +50,28 @@ public class AllowedServicePointsController implements AllowedServicePointsApi {
     final String requesterId = request.getRequesterId();
     final String instanceId = request.getInstanceId();
     final String requestId = request.getRequestId();
+    final String itemId = request.getItemId();
 
     boolean allowedCombinationOfParametersDetected = false;
 
     List<String> errors = new ArrayList<>();
 
     if (operation == CREATE && requesterId != null && instanceId != null &&
-      requestId == null) {
+      itemId == null && requestId == null) {
 
       log.info("validateAllowedServicePointsRequest:: TLR request creation case");
       allowedCombinationOfParametersDetected = true;
     }
 
+    if (operation == CREATE && requesterId != null && instanceId == null &&
+      itemId != null && requestId == null) {
+
+      log.info("validateAllowedServicePointsRequest:: ILR request creation case");
+      allowedCombinationOfParametersDetected = true;
+    }
+
     if (operation == REPLACE && requesterId == null && instanceId == null &&
-      requestId != null) {
+      requestId != null && itemId == null) {
 
       log.info("validateAllowedServicePointsRequest:: request replacement case");
       allowedCombinationOfParametersDetected = true;

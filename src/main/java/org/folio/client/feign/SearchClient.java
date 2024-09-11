@@ -1,6 +1,7 @@
 package org.folio.client.feign;
 
 import org.folio.domain.dto.SearchInstancesResponse;
+import org.folio.domain.dto.SearchItemResponse;
 import org.folio.spring.config.FeignClientConfiguration;
 import org.folio.support.CqlQuery;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -17,5 +18,8 @@ public interface SearchClient {
 
   @GetMapping("/instances?query=id=={instanceId}&expandAll=true")
   SearchInstancesResponse searchInstance(@PathVariable("instanceId") String instanceId);
+
+  @GetMapping("/consortium/item/{itemId}")
+  SearchItemResponse searchItem(@PathVariable("itemId") String itemId);
 
 }
