@@ -20,6 +20,7 @@ import org.folio.domain.dto.Instance;
 import org.folio.domain.dto.Item;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.SearchInstancesResponse;
+import org.folio.domain.dto.SearchItemResponse;
 import org.folio.domain.dto.User;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
@@ -332,6 +333,77 @@ class AllowedServicePointsApiTest extends BaseIT {
 
     doGet(ALLOWED_SERVICE_POINTS_FOR_REPLACE_URL)
       .expectStatus().isEqualTo(500);
+  }
+
+  @Test
+  void allowedServicePointWithItemLevelReturnsEmptyResultWhenNoRoutingSpInResponsesFromDataTenants() {
+    var searchItemResponse = new SearchItemResponse();
+    searchItemResponse.setTenantId(TENANT_ID_COLLEGE);
+    searchItemResponse.setInstanceId(INSTANCE_ID);
+    searchItemResponse.setId(ITEM_ID);
+
+    wireMockServer.stubFor(get(String.format("/search/consortium/item/%s",ITEM_ID))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(jsonResponse(asJsonString(searchItemResponse), SC_OK)));
+
+    var allowedSpResponseConsortium = new AllowedServicePointsResponse();
+    allowedSpResponseConsortium.setHold(Set.of(
+      buildAllowedServicePoint("SP_consortium_1"),
+      buildAllowedServicePoint("SP_consortium_2")));
+    allowedSpResponseConsortium.setPage(null);
+    allowedSpResponseConsortium.setRecall(Set.of(
+      buildAllowedServicePoint("SP_consortium_3")));
+
+    var allowedSpResponseCollege = new AllowedServicePointsResponse();
+    allowedSpResponseCollege.setHold(null);
+    allowedSpResponseCollege.setPage(null);
+    allowedSpResponseCollege.setRecall(null);
+
+    var allowedSpResponseCollegeWithRouting = new AllowedServicePointsResponse();
+    allowedSpResponseCollegeWithRouting.setHold(null);
+    allowedSpResponseCollegeWithRouting.setPage(Set.of(
+      buildAllowedServicePoint("SP_college_1")));
+    allowedSpResponseCollegeWithRouting.setRecall(null);
+
+
+    User requester = new User().patronGroup(PATRON_GROUP_ID);
+    wireMockServer.stubFor(get(urlMatching(USER_URL))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(jsonResponse(asJsonString(requester), SC_OK)));
+
+    wireMockServer.stubFor(get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(jsonResponse(asJsonString(allowedSpResponseConsortium), SC_OK)));
+
+    var collegeStubMapping = wireMockServer.stubFor(
+      get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL_PATTERN))
+        .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
+        .willReturn(jsonResponse(asJsonString(allowedSpResponseCollege), SC_OK)));
+
+    doGet(
+      ALLOWED_SERVICE_POINTS_URL + format("?operation=create&requesterId=%s&itemId=%s",
+        REQUESTER_ID, ITEM_ID))
+      .expectStatus().isEqualTo(200)
+      .expectBody().json("{}");
+
+    wireMockServer.removeStub(collegeStubMapping);
+    wireMockServer.stubFor(get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
+      .willReturn(jsonResponse(asJsonString(allowedSpResponseCollegeWithRouting),
+        SC_OK)));
+
+    doGet(
+      ALLOWED_SERVICE_POINTS_URL + format("?operation=create&requesterId=%s&itemId=%s",
+        REQUESTER_ID, ITEM_ID))
+      .expectStatus().isEqualTo(200)
+      .expectBody().json(asJsonString(allowedSpResponseConsortium));
+
+    wireMockServer.verify(getRequestedFor(urlMatching(
+      ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL_PATTERN))
+      .withQueryParam("patronGroupId", equalTo(PATRON_GROUP_ID))
+      .withQueryParam("instanceId", equalTo(INSTANCE_ID))
+      .withQueryParam("operation", equalTo("create"))
+      .withQueryParam("useStubItem", equalTo("true")));
   }
 
   private AllowedServicePointsInner buildAllowedServicePoint(String name) {
