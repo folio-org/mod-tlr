@@ -20,4 +20,3 @@ dcb.ecs-request.transactions.post
 circulation.requests.allowed-service-points.get
 dcb.transactions.get
 dcb.transactions.put
-consortium-search.items.item.get

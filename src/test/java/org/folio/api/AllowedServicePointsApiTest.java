@@ -337,7 +337,7 @@ class AllowedServicePointsApiTest extends BaseIT {
   }
 
   @Test
-  void allowedSPWithItemLevelReturnsEmptyResultWhenNoRoutingSpInResponsesFromDataTenants() {
+  void allowedSpWithItemLevelReturnsResultSpInResponsesFromDataTenant() {
     var searchItemResponse = new SearchItemResponse();
     searchItemResponse.setTenantId(TENANT_ID_COLLEGE);
     searchItemResponse.setInstanceId(INSTANCE_ID);
@@ -356,15 +356,11 @@ class AllowedServicePointsApiTest extends BaseIT {
       buildAllowedServicePoint("SP_consortium_3")));
 
     var allowedSpResponseCollege = new AllowedServicePointsResponse();
-    allowedSpResponseCollege.setHold(null);
-    allowedSpResponseCollege.setPage(null);
-    allowedSpResponseCollege.setRecall(null);
-
-    var allowedSpResponseCollegeWithRouting = new AllowedServicePointsResponse();
-    allowedSpResponseCollegeWithRouting.setHold(null);
-    allowedSpResponseCollegeWithRouting.setPage(Set.of(
+    allowedSpResponseCollege.setHold(Set.of(
       buildAllowedServicePoint("SP_college_1")));
-    allowedSpResponseCollegeWithRouting.setRecall(null);
+    allowedSpResponseCollege.setPage(null);
+    allowedSpResponseCollege.setRecall(Set.of(
+      buildAllowedServicePoint("SP_college_2")));
 
     User requester = new User().patronGroup(PATRON_GROUP_ID);
     wireMockServer.stubFor(get(urlMatching(USER_URL))
@@ -375,21 +371,10 @@ class AllowedServicePointsApiTest extends BaseIT {
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
       .willReturn(jsonResponse(asJsonString(allowedSpResponseConsortium), SC_OK)));
 
-    var collegeStubMapping = wireMockServer.stubFor(
-      get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL_PATTERN))
-        .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
-        .willReturn(jsonResponse(asJsonString(allowedSpResponseCollege), SC_OK)));
 
-    doGet(
-      ALLOWED_SERVICE_POINTS_URL + format("?operation=create&requesterId=%s&itemId=%s",
-        REQUESTER_ID, ITEM_ID))
-      .expectStatus().isEqualTo(200)
-      .expectBody().json("{}");
-
-    wireMockServer.removeStub(collegeStubMapping);
     wireMockServer.stubFor(get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL_PATTERN))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
-      .willReturn(jsonResponse(asJsonString(allowedSpResponseCollegeWithRouting),
+      .willReturn(jsonResponse(asJsonString(allowedSpResponseCollege),
         SC_OK)));
 
     doGet(

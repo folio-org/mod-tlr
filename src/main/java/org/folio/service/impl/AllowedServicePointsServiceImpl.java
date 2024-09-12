@@ -63,16 +63,14 @@ public class AllowedServicePointsServiceImpl implements AllowedServicePointsServ
         .map(Item::getTenantId)
         .filter(Objects::nonNull)
         .distinct()
-        .anyMatch(tenantId -> checkAvailability(request, patronGroupId, tenantId,
-          request.getInstanceId()));
+        .anyMatch(tenantId -> checkAvailability(request, patronGroupId, tenantId));
     }
     if (request.isForItemLevelRequest()) {
-      String itemId = request.getItemId();
-      var searchItemResponse = searchClient.searchItem(itemId);
+      var searchItemResponse = searchClient.searchItem(request.getItemId());
       if (StringUtils.isNotEmpty(searchItemResponse.getTenantId())) {
         instanceId = searchItemResponse.getInstanceId();
         availableForRequesting = checkAvailability(request, patronGroupId,
-          searchItemResponse.getTenantId(), instanceId);
+          searchItemResponse.getTenantId());
       }
     }
 
@@ -87,14 +85,22 @@ public class AllowedServicePointsServiceImpl implements AllowedServicePointsServ
   }
 
   private boolean checkAvailability(AllowedServicePointsRequest request, String patronGroupId,
-                                    String tenantId, String instanceId) {
+    String tenantId) {
 
-    var allowedServicePointsResponse = executionService.executeSystemUserScoped(tenantId,
-      () -> circulationClient.allowedRoutingServicePoints(patronGroupId, instanceId,
-        request.getOperation().getValue(), true));
+    AllowedServicePointsResponse allowedServicePointsResponse = null;
+    if (request.isForTitleLevelRequest()) {
+      allowedServicePointsResponse = executionService.executeSystemUserScoped(tenantId,
+        () -> circulationClient.allowedRoutingServicePoints(patronGroupId, request.getInstanceId(),
+          request.getOperation().getValue(), true));
+    }
+    if (request.isForItemLevelRequest()) {
+      allowedServicePointsResponse = executionService.executeSystemUserScoped(tenantId,
+        () -> circulationClient.allowedServicePointsWithItem(patronGroupId, request.getItemId(),
+          request.getOperation().getValue()));
+    }
 
     var availabilityCheckResult = Stream.of(allowedServicePointsResponse.getHold(),
-        allowedServicePointsResponse.getPage(), allowedServicePointsResponse.getRecall())
+      allowedServicePointsResponse.getPage(), allowedServicePointsResponse.getRecall())
       .filter(Objects::nonNull)
       .flatMap(Collection::stream)
       .anyMatch(Objects::nonNull);
