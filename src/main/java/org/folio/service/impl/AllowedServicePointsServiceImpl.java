@@ -65,8 +65,8 @@ public class AllowedServicePointsServiceImpl implements AllowedServicePointsServ
         .distinct()
         .anyMatch(tenantId -> checkAvailability(request, patronGroupId, tenantId,
           request.getInstanceId()));
-
-    } else if (request.isForItemLevelRequest()) {
+    }
+    if (request.isForItemLevelRequest()) {
       String itemId = request.getItemId();
       var searchItemResponse = searchClient.searchItem(itemId);
       if (StringUtils.isNotEmpty(searchItemResponse.getTenantId())) {
