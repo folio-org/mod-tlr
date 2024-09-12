@@ -15,7 +15,14 @@ public interface RequestCirculationClient {
   @GetMapping("/queue/instance/{instanceId}")
   Requests getRequestsQueueByInstanceId(@PathVariable String instanceId);
 
+  @GetMapping("/queue/item/{itemId}")
+  Requests getRequestsQueueByItemId(@PathVariable String itemId);
+
   @PostMapping("/queue/instance/{instanceId}/reorder")
   Requests reorderRequestsQueueForInstanceId(@PathVariable String instanceId,
+    @RequestBody ReorderQueue reorderQueue);
+
+  @PostMapping("/queue/item/{itemId}/reorder")
+  Requests reorderRequestsQueueForItemId(@PathVariable String itemId,
     @RequestBody ReorderQueue reorderQueue);
 }

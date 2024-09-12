@@ -141,6 +141,22 @@ public class RequestServiceImpl implements RequestService {
   }
 
   @Override
+  public List<Request> getRequestsQueueByItemId(String itemId) {
+    log.info("getRequestsQueueByItemId:: parameters itemId: {}", itemId);
+
+    return requestCirculationClient.getRequestsQueueByItemId(itemId).getRequests();
+  }
+
+  @Override
+  public List<Request> getRequestsQueueByItemId(String itemId, String tenantId) {
+    log.info("getRequestsQueueByItemId:: parameters itemId: {}, tenantId: {}",
+      itemId, tenantId);
+
+    return executionService.executeSystemUserScoped(tenantId,
+      () -> requestCirculationClient.getRequestsQueueByItemId(itemId).getRequests());
+  }
+
+  @Override
   public List<Request> reorderRequestsQueueForInstance(String instanceId, String tenantId,
     ReorderQueue reorderQueue) {
 
@@ -149,6 +165,18 @@ public class RequestServiceImpl implements RequestService {
 
     return executionService.executeSystemUserScoped(tenantId,
       () -> requestCirculationClient.reorderRequestsQueueForInstanceId(instanceId, reorderQueue)
+        .getRequests());
+  }
+
+  @Override
+  public List<Request> reorderRequestsQueueForItem(String itemId, String tenantId,
+    ReorderQueue reorderQueue) {
+
+    log.info("reorderRequestsQueueForItem:: parameters itemId: {}, tenantId: {}, " +
+      "reorderQueue: {}", itemId, tenantId, reorderQueue);
+
+    return executionService.executeSystemUserScoped(tenantId,
+      () -> requestCirculationClient.reorderRequestsQueueForItemId(itemId, reorderQueue)
         .getRequests());
   }
 
