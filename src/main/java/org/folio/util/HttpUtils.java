@@ -5,6 +5,7 @@ import java.util.Base64;
 import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
+import org.folio.spring.integration.XOkapiHeaders;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -24,7 +25,7 @@ public class HttpUtils {
 
   public static Optional<String> getTenantFromToken() {
     return getCurrentRequest()
-      .flatMap(request -> getCookie(request, ACCESS_TOKEN_COOKIE_NAME))
+      .flatMap(HttpUtils::getToken)
       .flatMap(HttpUtils::extractTenantFromToken);
   }
 
@@ -35,7 +36,18 @@ public class HttpUtils {
       .map(ServletRequestAttributes::getRequest);
   }
 
-  public static Optional<String> getCookie(HttpServletRequest request, String cookieName) {
+  private static Optional<String> getToken(HttpServletRequest request) {
+    return getCookie(request, ACCESS_TOKEN_COOKIE_NAME)
+      .or(() -> getHeader(request, XOkapiHeaders.TOKEN));
+  }
+
+  private static Optional<String> getHeader(HttpServletRequest request, String headerName) {
+    log.info("getHeader:: looking for header '{}'", headerName);
+    return Optional.ofNullable(request.getHeader(headerName));
+  }
+
+  private static Optional<String> getCookie(HttpServletRequest request, String cookieName) {
+    log.info("getCookie:: looking for cookie '{}'", cookieName);
     return Optional.ofNullable(request)
       .map(HttpServletRequest::getCookies)
       .flatMap(cookies -> getCookie(cookies, cookieName))
