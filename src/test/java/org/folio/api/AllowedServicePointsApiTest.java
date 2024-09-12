@@ -48,6 +48,7 @@ class AllowedServicePointsApiTest extends BaseIT {
   private static final String SEARCH_INSTANCES_URL = "/search/instances.*";
   private static final String USER_URL = "/users/" + REQUESTER_ID;
   private static final String REQUEST_STORAGE_URL = "/request-storage/requests";
+  private static final String SEARCH_ITEM_URL = "/search/consortium/item/" + ITEM_ID;
 
   @Autowired
   private EcsTlrRepository ecsTlrRepository;
@@ -336,13 +337,13 @@ class AllowedServicePointsApiTest extends BaseIT {
   }
 
   @Test
-  void allowedServicePointWithItemLevelReturnsEmptyResultWhenNoRoutingSpInResponsesFromDataTenants() {
+  void allowedSPWithItemLevelReturnsEmptyResultWhenNoRoutingSpInResponsesFromDataTenants() {
     var searchItemResponse = new SearchItemResponse();
     searchItemResponse.setTenantId(TENANT_ID_COLLEGE);
     searchItemResponse.setInstanceId(INSTANCE_ID);
     searchItemResponse.setId(ITEM_ID);
 
-    wireMockServer.stubFor(get(String.format("/search/consortium/item/%s",ITEM_ID))
+    wireMockServer.stubFor(get(urlMatching(SEARCH_ITEM_URL))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
       .willReturn(jsonResponse(asJsonString(searchItemResponse), SC_OK)));
 
@@ -364,7 +365,6 @@ class AllowedServicePointsApiTest extends BaseIT {
     allowedSpResponseCollegeWithRouting.setPage(Set.of(
       buildAllowedServicePoint("SP_college_1")));
     allowedSpResponseCollegeWithRouting.setRecall(null);
-
 
     User requester = new User().patronGroup(PATRON_GROUP_ID);
     wireMockServer.stubFor(get(urlMatching(USER_URL))
