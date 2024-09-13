@@ -135,6 +135,13 @@ public class RequestServiceImpl implements RequestService {
       return null;
     }
 
+    // check if circulation item already exists
+    CirculationItem existingCirculationItem = circulationItemClient.getCirculationItem(itemId);
+    if (existingCirculationItem != null) {
+      log.info("createCirculationItem:: circulation item already exists");
+      return existingCirculationItem;
+    }
+
     InventoryItem item = getItemFromStorage(itemId, lendingTenantId);
     InventoryInstance instance = getInstanceFromStorage(instanceId, lendingTenantId);
 
