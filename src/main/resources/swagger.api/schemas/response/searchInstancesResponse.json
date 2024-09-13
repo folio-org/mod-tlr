@@ -11,7 +11,7 @@
       "type": "array",
       "description": "List of instances found",
       "items": {
-        "$ref": "../instance.json"
+        "$ref": "../searchInstance.json"
       }
     }
   }

@@ -104,21 +104,27 @@ components:
     requests:
       $ref: 'schemas/requests.json'
     searchInstancesResponse:
-      $ref: schemas/response/searchInstancesResponse.json
+      $ref: 'schemas/response/searchInstancesResponse.json'
     user:
-      $ref: schemas/user.json
+      $ref: 'schemas/user.json'
     userTenant:
-      $ref: schemas/userTenant.json
+      $ref: 'schemas/userTenant.json'
     userTenantCollection:
-      $ref: schemas/userTenantCollection.json
+      $ref: 'schemas/userTenantCollection.json'
     servicePoint:
-      $ref: schemas/service-point.json
+      $ref: 'schemas/service-point.json'
     userGroup:
-      $ref: schemas/userGroup.json
+      $ref: 'schemas/userGroup.json'
     requestsBatchUpdate:
-      $ref: schemas/requests-batch-update.json
+      $ref: 'schemas/requests-batch-update.json'
     reorderQueue:
-      $ref: schemas/reorder-queue.json
+      $ref: 'schemas/reorder-queue.json'
+    circulationItem:
+      $ref: 'schemas/circulationItem.yaml#/CirculationItem'
+    inventoryItem:
+      $ref: 'schemas/inventory/item.json'
+    inventoryInstance:
+      $ref: 'schemas/inventory/instance.json'
   parameters:
     requestId:
       name: requestId

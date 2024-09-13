@@ -4,15 +4,25 @@ import static java.lang.String.format;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 
 import org.folio.client.feign.CirculationClient;
+import org.folio.client.feign.CirculationItemClient;
+import org.folio.client.feign.InstanceClient;
+import org.folio.client.feign.ItemClient;
 import org.folio.client.feign.RequestCirculationClient;
 import org.folio.client.feign.RequestStorageClient;
 import org.folio.domain.RequestWrapper;
+import org.folio.domain.dto.CirculationItem;
+import org.folio.domain.dto.CirculationItemStatus;
+import org.folio.domain.dto.InventoryInstance;
+import org.folio.domain.dto.InventoryItem;
+import org.folio.domain.dto.InventoryItemStatus;
 import org.folio.domain.dto.ReorderQueue;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.ServicePoint;
 import org.folio.domain.dto.User;
+import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.exception.RequestCreatingException;
 import org.folio.service.CloningService;
 import org.folio.service.RequestService;
@@ -31,12 +41,18 @@ public class RequestServiceImpl implements RequestService {
 
   private final SystemUserScopedExecutionService executionService;
   private final CirculationClient circulationClient;
+  private final CirculationItemClient circulationItemClient;
+  private final ItemClient itemClient;
+  private final InstanceClient instanceClient;
   private final RequestCirculationClient requestCirculationClient;
   private final RequestStorageClient requestStorageClient;
   private final UserService userService;
   private final ServicePointService servicePointService;
   private final CloningService<User> userCloningService;
   private final CloningService<ServicePoint> servicePointCloningService;
+  private final SystemUserScopedExecutionService systemUserScopedExecutionService;
+
+  public static final String HOLDINGS_RECORD_ID = "10cd3a5a-d36f-4c7a-bc4f-e1ae3cf820c9";
 
   @Override
   public RequestWrapper createPrimaryRequest(Request request, String borrowingTenantId) {
@@ -81,7 +97,7 @@ public class RequestServiceImpl implements RequestService {
 
           log.info("createSecondaryRequest:: creating secondary request {} in lending tenant ({})",
             requestId, lendingTenantId);
-          Request secondaryRequest = circulationClient.createInstanceRequest(request);
+          Request secondaryRequest = circulationClient.createRequest(request);
           log.info("createSecondaryRequest:: secondary request {} created in lending tenant ({})",
             requestId, lendingTenantId);
           log.debug("createSecondaryRequest:: secondary request: {}", () -> secondaryRequest);
@@ -100,6 +116,67 @@ public class RequestServiceImpl implements RequestService {
       request.getInstanceId(), lendingTenantIds);
     log.error("createSecondaryRequest:: {}", errorMessage);
     throw new RequestCreatingException(errorMessage);
+  }
+
+  @Override
+  public CirculationItem createCirculationItem(EcsTlrEntity ecsTlr, Request secondaryRequest,
+    String borrowingTenantId, String lendingTenantId) {
+
+    if (ecsTlr == null || secondaryRequest == null) {
+      log.info("createCirculationItem:: ECS TLR or secondary request is null, skipping");
+      return null;
+    }
+
+    var itemId = secondaryRequest.getItemId();
+    var instanceId = secondaryRequest.getInstanceId();
+
+    if (itemId == null || instanceId == null) {
+      log.info("createCirculationItem:: item ID is {}, instance ID is {}, skipping", itemId, instanceId);
+      return null;
+    }
+
+    InventoryItem item = getItemFromStorage(itemId, lendingTenantId);
+    InventoryInstance instance = getInstanceFromStorage(instanceId, lendingTenantId);
+
+    var itemStatus = item.getStatus().getName();
+    var circulationItemStatus = CirculationItemStatus.NameEnum.fromValue(itemStatus.getValue());
+    if (itemStatus == InventoryItemStatus.NameEnum.PAGED) {
+      circulationItemStatus = CirculationItemStatus.NameEnum.AVAILABLE;
+    }
+
+    var circulationItem = new CirculationItem()
+      .id(UUID.fromString(itemId))
+      .holdingsRecordId(UUID.fromString(HOLDINGS_RECORD_ID))
+      .status(new CirculationItemStatus()
+        .name(circulationItemStatus)
+        .date(item.getStatus().getDate())
+      )
+      .dcbItem(true)
+      .materialTypeId(item.getMaterialTypeId())
+      .permanentLoanTypeId(item.getPermanentLoanTypeId())
+      .instanceTitle(instance.getTitle())
+      .barcode(item.getBarcode())
+      .pickupLocation(secondaryRequest.getPickupServicePointId())
+      .effectiveLocationId(item.getEffectiveLocationId())
+      .lendingLibraryCode("TEST_CODE");
+
+    log.info("createCirculationItem:: Creating circulation item {}", circulationItem.toString());
+
+    return circulationItemClient.createCirculationItem(itemId, circulationItem);
+  }
+
+  @Override
+  public InventoryItem getItemFromStorage(String itemId, String tenantId) {
+    log.info("getItemFromStorage:: Fetching item {} from tenant {}", itemId, tenantId);
+    return systemUserScopedExecutionService.executeSystemUserScoped(tenantId,
+      () -> itemClient.get(itemId));
+  }
+
+  @Override
+  public InventoryInstance getInstanceFromStorage(String instanceId, String tenantId) {
+    log.info("getInstanceFromStorage:: Fetching instance {} from tenant {}", instanceId, tenantId);
+    return systemUserScopedExecutionService.executeSystemUserScoped(tenantId,
+      () -> instanceClient.get(instanceId));
   }
 
   @Override
