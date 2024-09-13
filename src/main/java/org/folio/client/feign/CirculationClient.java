@@ -28,11 +28,6 @@ public interface CirculationClient {
     @RequestParam("useStubItem") boolean useStubItem);
 
   @GetMapping("/requests/allowed-service-points")
-  AllowedServicePointsResponse allowedServicePointsWithItem(
-    @RequestParam("patronGroupId") String patronGroupId, @RequestParam("itemId") String itemId,
-    @RequestParam("operation") String operation);
-
-  @GetMapping("/requests/allowed-service-points")
   AllowedServicePointsResponse allowedRoutingServicePoints(
     @RequestParam("patronGroupId") String patronGroupId, @RequestParam("instanceId") String instanceId,
     @RequestParam("operation") String operation,
@@ -42,4 +37,11 @@ public interface CirculationClient {
   AllowedServicePointsResponse allowedRoutingServicePoints(
     @RequestParam("operation") String operation, @RequestParam("requestId") String requestId,
     @RequestParam("ecsRequestRouting") boolean ecsRequestRouting);
+
+  @GetMapping("/requests/allowed-service-points")
+  AllowedServicePointsResponse allowedRoutingServicePoints(
+    @RequestParam("patronGroupId") String patronGroupId,
+    @RequestParam("operation") String operation,
+    @RequestParam("ecsRequestRouting") boolean ecsRequestRouting,
+    @RequestParam("itemId") String itemId);
 }
