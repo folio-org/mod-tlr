@@ -80,7 +80,7 @@ public class AllowedServicePointsController implements AllowedServicePointsApi {
     }
 
     if (operation == REPLACE && requesterId == null && instanceId == null &&
-      requestId != null) {
+      itemId == null && requestId != null) {
 
       log.info("validateAllowedServicePointsRequest:: request replacement case");
       allowedCombinationOfParametersDetected = true;

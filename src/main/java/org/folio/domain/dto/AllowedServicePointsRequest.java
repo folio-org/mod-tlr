@@ -35,8 +35,4 @@ public class AllowedServicePointsRequest {
     return instanceId != null;
   }
 
-  public boolean isForItemLevelRequest() {
-    return itemId != null;
-  }
-
 }
