@@ -19,7 +19,7 @@ import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.springframework.stereotype.Service;
 
 @Log4j2
-@Service
+@Service("titleLevelSpService")
 public class TitleLevelServicePointServiceImpl extends AllowedServicePointsServiceImpl {
 
   public TitleLevelServicePointServiceImpl(SearchClient searchClient,

@@ -13,21 +13,27 @@ import org.folio.domain.dto.AllowedServicePointsRequest;
 import org.folio.domain.dto.AllowedServicePointsResponse;
 import org.folio.domain.dto.RequestOperation;
 import org.folio.rest.resource.AllowedServicePointsApi;
-import org.folio.service.impl.ItemLevelServicePointServiceImpl;
-import org.folio.service.impl.TitleLevelServicePointServiceImpl;
+import org.folio.service.AllowedServicePointsService;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
-import lombok.AllArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
 @RestController
 @Log4j2
-@AllArgsConstructor
 public class AllowedServicePointsController implements AllowedServicePointsApi {
 
-  private final ItemLevelServicePointServiceImpl itemLevelSpService;
-  private final TitleLevelServicePointServiceImpl titleLevelSpService;
+  private final AllowedServicePointsService itemLevelSpService;
+  private final AllowedServicePointsService titleLevelSpService;
+
+  public AllowedServicePointsController(
+    @Qualifier("itemLevelSpService") final AllowedServicePointsService itemLevelSpService,
+    @Qualifier("titleLevelSpService") final AllowedServicePointsService titleLevelSpService) {
+
+    this.itemLevelSpService = itemLevelSpService;
+    this.titleLevelSpService = titleLevelSpService;
+  }
 
   @Override
   public ResponseEntity<AllowedServicePointsResponse> getAllowedServicePoints(String operation,
