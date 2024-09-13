@@ -72,7 +72,7 @@ public abstract class AllowedServicePointsServiceImpl implements AllowedServiceP
       tenantId);
 
     var availabilityCheckResult = Stream.of(allowedServicePointsResponse.getHold(),
-        allowedServicePointsResponse.getPage(), allowedServicePointsResponse.getRecall())
+      allowedServicePointsResponse.getPage(), allowedServicePointsResponse.getRecall())
       .filter(Objects::nonNull)
       .flatMap(Collection::stream)
       .anyMatch(Objects::nonNull);
