@@ -49,27 +49,28 @@ public abstract class AllowedServicePointsServiceImpl implements AllowedServiceP
   protected AllowedServicePointsResponse getForCreate(AllowedServicePointsRequest request) {
     String patronGroupId = userService.find(request.getRequesterId()).getPatronGroup();
     log.info("getForCreate:: patronGroupId={}", patronGroupId);
-    boolean availableForRequesting = checkAvailabilityForLevelRequest(request, patronGroupId);
 
-    if (availableForRequesting) {
-      log.info("getForCreate:: Available for requesting, proxying call");
-      return circulationClient.allowedServicePointsWithStubItem(patronGroupId,
-        request.getInstanceId(),
-        request.getOperation().getValue(), true);
-    } else {
+    boolean isAvailableInLendingTenants = getLendingTenants(request)
+      .stream()
+      .anyMatch(tenant -> isAvailableInLendingTenant(request, patronGroupId, tenant));
+
+    if (!isAvailableInLendingTenants) {
       log.info("getForCreate:: Not available for requesting, returning empty result");
       return new AllowedServicePointsResponse();
     }
+
+    log.info("getForCreate:: Available for requesting, proxying call");
+    return circulationClient.allowedServicePointsWithStubItem(patronGroupId, request.getInstanceId(),
+      request.getOperation().getValue(), true);
   }
 
-  protected abstract boolean checkAvailabilityForLevelRequest(AllowedServicePointsRequest request,
-    String patronGroupId);
+  protected abstract Collection<String> getLendingTenants(AllowedServicePointsRequest request);
 
-  protected boolean checkAvailability(AllowedServicePointsRequest request, String patronGroupId,
+  protected boolean isAvailableInLendingTenant(AllowedServicePointsRequest request, String patronGroupId,
     String tenantId) {
 
-    var allowedServicePointsResponse = getAllowedServicePointsResponseFromTenant(request, patronGroupId,
-      tenantId);
+    var allowedServicePointsResponse = getAllowedServicePointsFromLendingTenant(request,
+      patronGroupId, tenantId);
 
     var availabilityCheckResult = Stream.of(allowedServicePointsResponse.getHold(),
       allowedServicePointsResponse.getPage(), allowedServicePointsResponse.getRecall())
@@ -77,11 +78,11 @@ public abstract class AllowedServicePointsServiceImpl implements AllowedServiceP
       .flatMap(Collection::stream)
       .anyMatch(Objects::nonNull);
 
-    log.info("checkAvailability:: result: {}", availabilityCheckResult);
+    log.info("isAvailableInLendingTenant:: result: {}", availabilityCheckResult);
     return availabilityCheckResult;
   }
 
-  protected abstract AllowedServicePointsResponse getAllowedServicePointsResponseFromTenant(
+  protected abstract AllowedServicePointsResponse getAllowedServicePointsFromLendingTenant(
     AllowedServicePointsRequest request, String patronGroupId, String tenantId);
 
   private AllowedServicePointsResponse getForReplace(AllowedServicePointsRequest request) {

@@ -2,6 +2,7 @@ package org.folio.service.impl;
 
 import java.util.Collection;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import lombok.extern.log4j.Log4j2;
 
@@ -31,22 +32,21 @@ public class AllowedServicePointsForTitleLevelRequestService extends AllowedServ
   }
 
   @Override
-  protected boolean checkAvailabilityForLevelRequest(AllowedServicePointsRequest request,
-    String patronGroupId) {
-
-    var searchInstancesResponse = searchClient.searchInstance(request.getInstanceId());
-    return searchInstancesResponse.getInstances().stream()
+  protected Collection<String> getLendingTenants(AllowedServicePointsRequest request) {
+    return searchClient.searchInstance(request.getInstanceId())
+      .getInstances()
+      .stream()
       .map(Instance::getItems)
       .flatMap(Collection::stream)
       .map(Item::getTenantId)
       .filter(Objects::nonNull)
-      .distinct()
-      .anyMatch(tenantId -> checkAvailability(request, patronGroupId, tenantId));
+      .collect(Collectors.toSet());
   }
 
   @Override
-  protected AllowedServicePointsResponse getAllowedServicePointsResponseFromTenant(
+  protected AllowedServicePointsResponse getAllowedServicePointsFromLendingTenant(
     AllowedServicePointsRequest request, String patronGroupId, String tenantId) {
+
     return executionService.executeSystemUserScoped(tenantId,
       () -> circulationClient.allowedRoutingServicePoints(patronGroupId, request.getInstanceId(),
         request.getOperation().getValue(), true));
