@@ -4,6 +4,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
 
 @Getter
@@ -11,7 +12,8 @@ import lombok.ToString;
 public class AllowedServicePointsRequest {
   private final RequestOperation operation;
   private final String requesterId;
-  private final String instanceId;
+  @Setter
+  private String instanceId;
   private final String requestId;
   private final String itemId;
 

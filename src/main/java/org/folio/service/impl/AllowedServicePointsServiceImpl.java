@@ -2,7 +2,10 @@ package org.folio.service.impl;
 
 import static org.folio.domain.dto.RequestOperation.REPLACE;
 
+import java.util.Collection;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import org.folio.client.feign.CirculationClient;
 import org.folio.client.feign.SearchClient;
@@ -34,7 +37,8 @@ public abstract class AllowedServicePointsServiceImpl implements AllowedServiceP
   private final RequestService requestService;
   private final EcsTlrRepository ecsTlrRepository;
 
-  public AllowedServicePointsResponse getAllowedServicePoints(AllowedServicePointsRequest request) {
+  public AllowedServicePointsResponse getAllowedServicePoints(
+    AllowedServicePointsRequest request) {
     log.info("getAllowedServicePoints:: {}", request);
     return switch (request.getOperation()) {
       case CREATE -> getForCreate(request);
@@ -42,11 +46,43 @@ public abstract class AllowedServicePointsServiceImpl implements AllowedServiceP
     };
   }
 
-  protected abstract AllowedServicePointsResponse getForCreate(
-    AllowedServicePointsRequest request);
+  protected AllowedServicePointsResponse getForCreate(AllowedServicePointsRequest request) {
+    String patronGroupId = userService.find(request.getRequesterId()).getPatronGroup();
+    log.info("getForCreate:: patronGroupId={}", patronGroupId);
+    boolean availableForRequesting = checkAvailabilityForLevelRequest(request, patronGroupId);
 
-  protected abstract boolean checkAvailability(AllowedServicePointsRequest request,
-    String patronGroupId, String tenantId);
+    if (availableForRequesting) {
+      log.info("getForCreate:: Available for requesting, proxying call");
+      return circulationClient.allowedServicePointsWithStubItem(patronGroupId,
+        request.getInstanceId(),
+        request.getOperation().getValue(), true);
+    } else {
+      log.info("getForCreate:: Not available for requesting, returning empty result");
+      return new AllowedServicePointsResponse();
+    }
+  }
+
+  protected abstract boolean checkAvailabilityForLevelRequest(AllowedServicePointsRequest request,
+    String patronGroupId);
+
+  protected boolean checkAvailability(AllowedServicePointsRequest request, String patronGroupId,
+    String tenantId) {
+
+    var allowedServicePointsResponse = getAllowedServicePointsResponseFromTenant(request, patronGroupId,
+      tenantId);
+
+    var availabilityCheckResult = Stream.of(allowedServicePointsResponse.getHold(),
+        allowedServicePointsResponse.getPage(), allowedServicePointsResponse.getRecall())
+      .filter(Objects::nonNull)
+      .flatMap(Collection::stream)
+      .anyMatch(Objects::nonNull);
+
+    log.info("checkAvailability:: result: {}", availabilityCheckResult);
+    return availabilityCheckResult;
+  }
+
+  protected abstract AllowedServicePointsResponse getAllowedServicePointsResponseFromTenant(
+    AllowedServicePointsRequest request, String patronGroupId, String tenantId);
 
   private AllowedServicePointsResponse getForReplace(AllowedServicePointsRequest request) {
     EcsTlrEntity ecsTlr = findEcsTlr(request);

@@ -14,26 +14,19 @@ import org.folio.domain.dto.AllowedServicePointsResponse;
 import org.folio.domain.dto.RequestOperation;
 import org.folio.rest.resource.AllowedServicePointsApi;
 import org.folio.service.AllowedServicePointsService;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
+import lombok.AllArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
 @RestController
 @Log4j2
+@AllArgsConstructor
 public class AllowedServicePointsController implements AllowedServicePointsApi {
 
-  private final AllowedServicePointsService itemLevelSpService;
-  private final AllowedServicePointsService titleLevelSpService;
-
-  public AllowedServicePointsController(
-    @Qualifier("itemLevelSpService") final AllowedServicePointsService itemLevelSpService,
-    @Qualifier("titleLevelSpService") final AllowedServicePointsService titleLevelSpService) {
-
-    this.itemLevelSpService = itemLevelSpService;
-    this.titleLevelSpService = titleLevelSpService;
-  }
+  private final AllowedServicePointsService allowedServicePointsForItemLevelRequestService;
+  private final AllowedServicePointsService allowedServicePointsForTitleLevelRequestService;
 
   @Override
   public ResponseEntity<AllowedServicePointsResponse> getAllowedServicePoints(String operation,
@@ -46,18 +39,19 @@ public class AllowedServicePointsController implements AllowedServicePointsApi {
       operation, requesterId, instanceId, requestId, itemId);
 
     if (validateAllowedServicePointsRequest(request)) {
-      var response = getAllowedServicePointsResponse(request);
+      var allowedServicePointsService = getAllowedServicePointsService(request);
+      var response = allowedServicePointsService.getAllowedServicePoints(request);
       return ResponseEntity.status(OK).body(response);
     } else {
       return ResponseEntity.status(UNPROCESSABLE_ENTITY).build();
     }
   }
 
-  private AllowedServicePointsResponse getAllowedServicePointsResponse(
+  private AllowedServicePointsService getAllowedServicePointsService(
     AllowedServicePointsRequest request) {
     return request.isForTitleLevelRequest() ?
-      titleLevelSpService.getAllowedServicePoints(request)
-      : itemLevelSpService.getAllowedServicePoints(request);
+      allowedServicePointsForTitleLevelRequestService
+      : allowedServicePointsForItemLevelRequestService;
   }
 
   private static boolean validateAllowedServicePointsRequest(AllowedServicePointsRequest request) {
