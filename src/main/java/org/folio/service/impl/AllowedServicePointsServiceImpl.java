@@ -12,8 +12,6 @@ import org.folio.client.feign.SearchClient;
 import org.folio.domain.Constants;
 import org.folio.domain.dto.AllowedServicePointsRequest;
 import org.folio.domain.dto.AllowedServicePointsResponse;
-import org.folio.domain.dto.Instance;
-import org.folio.domain.dto.Item;
 import org.folio.domain.dto.Request;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
@@ -30,12 +28,12 @@ import lombok.extern.log4j.Log4j2;
 @Service
 @RequiredArgsConstructor
 @Log4j2
-public class AllowedServicePointsServiceImpl implements AllowedServicePointsService {
+public abstract class AllowedServicePointsServiceImpl implements AllowedServicePointsService {
 
-  private final SearchClient searchClient;
-  private final CirculationClient circulationClient;
+  protected final SearchClient searchClient;
+  protected final CirculationClient circulationClient;
   private final UserService userService;
-  private final SystemUserScopedExecutionService executionService;
+  protected final SystemUserScopedExecutionService executionService;
   private final RequestService requestService;
   private final EcsTlrRepository ecsTlrRepository;
 
@@ -47,37 +45,31 @@ public class AllowedServicePointsServiceImpl implements AllowedServicePointsServ
     };
   }
 
-  public AllowedServicePointsResponse getForCreate(AllowedServicePointsRequest request) {
-    String instanceId = request.getInstanceId();
+  private AllowedServicePointsResponse getForCreate(AllowedServicePointsRequest request) {
     String patronGroupId = userService.find(request.getRequesterId()).getPatronGroup();
     log.info("getForCreate:: patronGroupId={}", patronGroupId);
 
-    var searchInstancesResponse = searchClient.searchInstance(instanceId);
-    // TODO: make call in parallel
-    boolean availableForRequesting = searchInstancesResponse.getInstances().stream()
-      .map(Instance::getItems)
-      .flatMap(Collection::stream)
-      .map(Item::getTenantId)
-      .filter(Objects::nonNull)
-      .distinct()
-      .anyMatch(tenantId -> checkAvailability(request, patronGroupId, tenantId));
+    boolean isAvailableInLendingTenants = getLendingTenants(request)
+      .stream()
+      .anyMatch(tenant -> isAvailableInLendingTenant(request, patronGroupId, tenant));
 
-    if (availableForRequesting) {
-      log.info("getForCreate:: Available for requesting, proxying call");
-      return circulationClient.allowedServicePointsWithStubItem(patronGroupId, instanceId,
-        request.getOperation().getValue(), true);
-    } else {
+    if (!isAvailableInLendingTenants) {
       log.info("getForCreate:: Not available for requesting, returning empty result");
       return new AllowedServicePointsResponse();
     }
+
+    log.info("getForCreate:: Available for requesting, proxying call");
+    return circulationClient.allowedServicePointsWithStubItem(patronGroupId, request.getInstanceId(),
+      request.getOperation().getValue(), true);
   }
 
-  private boolean checkAvailability(AllowedServicePointsRequest request, String patronGroupId,
+  protected abstract Collection<String> getLendingTenants(AllowedServicePointsRequest request);
+
+  private boolean isAvailableInLendingTenant(AllowedServicePointsRequest request, String patronGroupId,
     String tenantId) {
 
-    var allowedServicePointsResponse = executionService.executeSystemUserScoped(tenantId,
-      () -> circulationClient.allowedRoutingServicePoints(patronGroupId, request.getInstanceId(),
-        request.getOperation().getValue(), true));
+    var allowedServicePointsResponse = getAllowedServicePointsFromLendingTenant(request,
+      patronGroupId, tenantId);
 
     var availabilityCheckResult = Stream.of(allowedServicePointsResponse.getHold(),
       allowedServicePointsResponse.getPage(), allowedServicePointsResponse.getRecall())
@@ -85,10 +77,12 @@ public class AllowedServicePointsServiceImpl implements AllowedServicePointsServ
       .flatMap(Collection::stream)
       .anyMatch(Objects::nonNull);
 
-    log.info("checkAvailability:: result: {}", availabilityCheckResult);
-
+    log.info("isAvailableInLendingTenant:: result: {}", availabilityCheckResult);
     return availabilityCheckResult;
   }
+
+  protected abstract AllowedServicePointsResponse getAllowedServicePointsFromLendingTenant(
+    AllowedServicePointsRequest request, String patronGroupId, String tenantId);
 
   private AllowedServicePointsResponse getForReplace(AllowedServicePointsRequest request) {
     EcsTlrEntity ecsTlr = findEcsTlr(request);

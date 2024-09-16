@@ -58,7 +58,9 @@
             "users.collection.get",
             "search.instances.collection.get",
             "circulation-storage.requests.item.get",
-            "circulation-storage.requests.collection.get"
+            "circulation-storage.requests.collection.get",
+            "consortium-search.items.item.get",
+            "consortium-search.items.collection.get"
           ]
         }
       ]
