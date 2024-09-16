@@ -3,6 +3,7 @@ package org.folio.service.impl;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.folio.client.feign.CirculationClient;
 import org.folio.client.feign.SearchClient;
 import org.folio.domain.dto.AllowedServicePointsRequest;
@@ -32,9 +33,11 @@ public class AllowedServicePointsForItemLevelRequestService extends AllowedServi
   @Override
   protected Collection<String> getLendingTenants(AllowedServicePointsRequest request) {
     SearchItemResponse item = searchClient.searchItem(request.getItemId());
-    request.setInstanceId(item.getInstanceId());
-
-    return List.of(item.getTenantId());
+    if (StringUtils.isNotEmpty(item.getTenantId())) {
+      request.setInstanceId(item.getInstanceId());
+      return List.of(item.getTenantId());
+    }
+    return List.of();
   }
 
   @Override
