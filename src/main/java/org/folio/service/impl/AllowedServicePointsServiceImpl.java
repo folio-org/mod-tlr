@@ -32,13 +32,12 @@ public abstract class AllowedServicePointsServiceImpl implements AllowedServiceP
 
   protected final SearchClient searchClient;
   protected final CirculationClient circulationClient;
-  protected final UserService userService;
+  private final UserService userService;
   protected final SystemUserScopedExecutionService executionService;
   private final RequestService requestService;
   private final EcsTlrRepository ecsTlrRepository;
 
-  public AllowedServicePointsResponse getAllowedServicePoints(
-    AllowedServicePointsRequest request) {
+  public AllowedServicePointsResponse getAllowedServicePoints(AllowedServicePointsRequest request) {
     log.info("getAllowedServicePoints:: {}", request);
     return switch (request.getOperation()) {
       case CREATE -> getForCreate(request);
@@ -46,7 +45,7 @@ public abstract class AllowedServicePointsServiceImpl implements AllowedServiceP
     };
   }
 
-  protected AllowedServicePointsResponse getForCreate(AllowedServicePointsRequest request) {
+  private AllowedServicePointsResponse getForCreate(AllowedServicePointsRequest request) {
     String patronGroupId = userService.find(request.getRequesterId()).getPatronGroup();
     log.info("getForCreate:: patronGroupId={}", patronGroupId);
 
@@ -66,7 +65,7 @@ public abstract class AllowedServicePointsServiceImpl implements AllowedServiceP
 
   protected abstract Collection<String> getLendingTenants(AllowedServicePointsRequest request);
 
-  protected boolean isAvailableInLendingTenant(AllowedServicePointsRequest request, String patronGroupId,
+  private boolean isAvailableInLendingTenant(AllowedServicePointsRequest request, String patronGroupId,
     String tenantId) {
 
     var allowedServicePointsResponse = getAllowedServicePointsFromLendingTenant(request,

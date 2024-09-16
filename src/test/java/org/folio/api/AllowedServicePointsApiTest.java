@@ -384,6 +384,15 @@ class AllowedServicePointsApiTest extends BaseIT {
 
     wireMockServer.verify(getRequestedFor(urlMatching(
       ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
+      .withQueryParam("patronGroupId", equalTo(PATRON_GROUP_ID))
+      .withQueryParam("operation", equalTo("create"))
+      .withQueryParam("ecsRequestRouting", equalTo("true"))
+      .withQueryParam("itemId", equalTo(ITEM_ID)));
+
+    wireMockServer.verify(getRequestedFor(urlMatching(
+      ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
       .withQueryParam("patronGroupId", equalTo(PATRON_GROUP_ID))
       .withQueryParam("instanceId", equalTo(INSTANCE_ID))
       .withQueryParam("operation", equalTo("create"))

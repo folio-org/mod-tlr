@@ -49,8 +49,8 @@ public class AllowedServicePointsController implements AllowedServicePointsApi {
 
   private AllowedServicePointsService getAllowedServicePointsService(
     AllowedServicePointsRequest request) {
-    return request.isForTitleLevelRequest() ?
-      allowedServicePointsForTitleLevelRequestService
+    return request.isForTitleLevelRequest()
+      ? allowedServicePointsForTitleLevelRequestService
       : allowedServicePointsForItemLevelRequestService;
   }
 
