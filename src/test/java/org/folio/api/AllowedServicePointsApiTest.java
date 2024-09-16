@@ -19,6 +19,7 @@ import org.folio.domain.dto.AllowedServicePointsResponse;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.SearchInstance;
 import org.folio.domain.dto.SearchInstancesResponse;
+import org.folio.domain.dto.SearchItemResponse;
 import org.folio.domain.dto.SearchItem;
 import org.folio.domain.dto.User;
 import org.folio.domain.entity.EcsTlrEntity;
@@ -47,6 +48,7 @@ class AllowedServicePointsApiTest extends BaseIT {
   private static final String SEARCH_INSTANCES_URL = "/search/instances.*";
   private static final String USER_URL = "/users/" + REQUESTER_ID;
   private static final String REQUEST_STORAGE_URL = "/request-storage/requests";
+  private static final String SEARCH_ITEM_URL = "/search/consortium/item/" + ITEM_ID;
 
   @Autowired
   private EcsTlrRepository ecsTlrRepository;
@@ -332,6 +334,69 @@ class AllowedServicePointsApiTest extends BaseIT {
 
     doGet(ALLOWED_SERVICE_POINTS_FOR_REPLACE_URL)
       .expectStatus().isEqualTo(500);
+  }
+
+  @Test
+  void allowedSpWithItemLevelReturnsResultSpInResponsesFromDataTenant() {
+    var searchItemResponse = new SearchItemResponse();
+    searchItemResponse.setTenantId(TENANT_ID_COLLEGE);
+    searchItemResponse.setInstanceId(INSTANCE_ID);
+    searchItemResponse.setId(ITEM_ID);
+
+    wireMockServer.stubFor(get(urlMatching(SEARCH_ITEM_URL))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(jsonResponse(asJsonString(searchItemResponse), SC_OK)));
+
+    var allowedSpResponseConsortium = new AllowedServicePointsResponse();
+    allowedSpResponseConsortium.setHold(Set.of(
+      buildAllowedServicePoint("SP_consortium_1"),
+      buildAllowedServicePoint("SP_consortium_2")));
+    allowedSpResponseConsortium.setPage(null);
+    allowedSpResponseConsortium.setRecall(Set.of(
+      buildAllowedServicePoint("SP_consortium_3")));
+
+    var allowedSpResponseCollege = new AllowedServicePointsResponse();
+    allowedSpResponseCollege.setHold(Set.of(
+      buildAllowedServicePoint("SP_college_1")));
+    allowedSpResponseCollege.setPage(null);
+    allowedSpResponseCollege.setRecall(Set.of(
+      buildAllowedServicePoint("SP_college_2")));
+
+    User requester = new User().patronGroup(PATRON_GROUP_ID);
+    wireMockServer.stubFor(get(urlMatching(USER_URL))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(jsonResponse(asJsonString(requester), SC_OK)));
+
+    wireMockServer.stubFor(get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(jsonResponse(asJsonString(allowedSpResponseConsortium), SC_OK)));
+
+    wireMockServer.stubFor(get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
+      .willReturn(jsonResponse(asJsonString(allowedSpResponseCollege),
+        SC_OK)));
+
+    doGet(
+      ALLOWED_SERVICE_POINTS_URL + format("?operation=create&requesterId=%s&itemId=%s",
+        REQUESTER_ID, ITEM_ID))
+      .expectStatus().isEqualTo(200)
+      .expectBody().json(asJsonString(allowedSpResponseConsortium));
+
+    wireMockServer.verify(getRequestedFor(urlMatching(
+      ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
+      .withQueryParam("patronGroupId", equalTo(PATRON_GROUP_ID))
+      .withQueryParam("operation", equalTo("create"))
+      .withQueryParam("ecsRequestRouting", equalTo("true"))
+      .withQueryParam("itemId", equalTo(ITEM_ID)));
+
+    wireMockServer.verify(getRequestedFor(urlMatching(
+      ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .withQueryParam("patronGroupId", equalTo(PATRON_GROUP_ID))
+      .withQueryParam("instanceId", equalTo(INSTANCE_ID))
+      .withQueryParam("operation", equalTo("create"))
+      .withQueryParam("useStubItem", equalTo("true")));
   }
 
   private AllowedServicePointsInner buildAllowedServicePoint(String name) {

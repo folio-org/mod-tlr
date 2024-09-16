@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "description": "Item search result response",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Item ID"
+    },
+    "hrid": {
+      "type": "string",
+      "description": "Item HRID"
+    },
+    "tenantId": {
+      "type": "string",
+      "description": "Tenant ID of the Item"
+    },
+    "instanceId": {
+      "type": "string",
+      "description": "Related InstanceId"
+    },
+    "holdingsRecordId": {
+      "type": "string",
+      "description": "Related Holding Record Id"
+    },
+    "barcode": {
+      "type": "string",
+      "description": "Item barcode"
+    }
+  }
+}

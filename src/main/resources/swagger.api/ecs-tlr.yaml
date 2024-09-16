@@ -104,7 +104,9 @@ components:
     requests:
       $ref: 'schemas/requests.json'
     searchInstancesResponse:
-      $ref: 'schemas/response/searchInstancesResponse.json'
+      $ref: schemas/response/searchInstancesResponse.json
+    searchItemResponse:
+      $ref: schemas/response/searchItemResponse.json
     user:
       $ref: 'schemas/user.json'
     userTenant:

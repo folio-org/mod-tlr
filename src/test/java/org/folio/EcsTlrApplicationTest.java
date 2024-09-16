@@ -2,8 +2,6 @@ package org.folio;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import javax.validation.Valid;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -15,6 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.folio.spring.liquibase.FolioLiquibaseConfiguration;
 import org.folio.tenant.domain.dto.TenantAttributes;
 import org.folio.tenant.rest.resource.TenantApi;
+
+import jakarta.validation.Valid;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class EcsTlrApplicationTest {

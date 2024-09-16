@@ -14,6 +14,7 @@ paths:
         - $ref: '#/components/parameters/requesterId'
         - $ref: '#/components/parameters/instanceId'
         - $ref: '#/components/parameters/requestId'
+        - $ref: '#/components/parameters/itemId'
       tags:
         - allowedServicePoints
       responses:
@@ -57,6 +58,13 @@ components:
         format: uuid
     requestId:
       name: requestId
+      in: query
+      required: false
+      schema:
+        type: string
+        format: uuid
+    itemId:
+      name: itemId
       in: query
       required: false
       schema:
