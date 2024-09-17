@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.folio.client.feign.SearchClient;
-import org.folio.domain.dto.Instance;
+import org.folio.domain.dto.SearchInstance;
 import org.folio.domain.dto.SearchInstancesResponse;
 import org.folio.support.CqlQuery;
 import org.junit.jupiter.api.Test;
@@ -25,7 +25,7 @@ class SearchClientTest {
 
   @Test
   void canGetInstances() {
-    Instance instance = new Instance().id(UUID.randomUUID().toString()).tenantId("tenant1");
+    SearchInstance instance = new SearchInstance().id(UUID.randomUUID().toString()).tenantId("tenant1");
     SearchInstancesResponse mockResponse = new SearchInstancesResponse()
       .instances(List.of(instance))
       .totalRecords(1);

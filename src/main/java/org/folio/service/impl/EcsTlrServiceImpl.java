@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.folio.domain.Constants;
 import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.Request;
@@ -51,6 +50,10 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     Collection<String> lendingTenantIds = getLendingTenants(ecsTlr);
     RequestWrapper secondaryRequest = requestService.createSecondaryRequest(
       buildSecondaryRequest(ecsTlr), borrowingTenantId, lendingTenantIds);
+
+    log.info("create:: Creating circulation item for ECS TLR (ILR) {}", ecsTlrDto.getId());
+    requestService.createCirculationItem(ecsTlr, secondaryRequest.request(), borrowingTenantId, secondaryRequest.tenantId());
+
     RequestWrapper primaryRequest = requestService.createPrimaryRequest(
       buildPrimaryRequest(secondaryRequest.request()), borrowingTenantId);
     updateEcsTlr(ecsTlr, primaryRequest, secondaryRequest);
@@ -116,12 +119,14 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     return new Request()
       .id(secondaryRequest.getId())
       .instanceId(secondaryRequest.getInstanceId())
+      .itemId(secondaryRequest.getItemId())
+      .holdingsRecordId(secondaryRequest.getHoldingsRecordId())
       .requesterId(secondaryRequest.getRequesterId())
       .requestDate(secondaryRequest.getRequestDate())
-      .requestLevel(Request.RequestLevelEnum.TITLE)
-      .requestType(Constants.PRIMARY_REQUEST_TYPE)
+      .requestLevel(secondaryRequest.getRequestLevel())
+      .requestType(secondaryRequest.getRequestType())
       .ecsRequestPhase(Request.EcsRequestPhaseEnum.PRIMARY)
-      .fulfillmentPreference(Request.FulfillmentPreferenceEnum.HOLD_SHELF)
+      .fulfillmentPreference(secondaryRequest.getFulfillmentPreference())
       .pickupServicePointId(secondaryRequest.getPickupServicePointId());
   }
 

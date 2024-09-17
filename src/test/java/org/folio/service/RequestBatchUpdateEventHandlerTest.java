@@ -1,5 +1,7 @@
 package org.folio.service;
 
+import static org.folio.domain.dto.Request.RequestLevelEnum.ITEM;
+import static org.folio.domain.dto.Request.RequestLevelEnum.TITLE;
 import static org.folio.support.KafkaEvent.EventType.CREATED;
 import static org.folio.support.KafkaEvent.EventType.UPDATED;
 import static org.folio.util.TestUtils.buildEvent;
@@ -50,25 +52,26 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
   String requesterId = randomId();
   String pickupServicePointId = randomId();
   String instanceId = randomId();
+  String itemId = randomId();
   String firstTenant = "tenant1";
   String secondTenant = "tenant2";
 
   @Test
   void shouldReorderTwoSecondaryRequestsWhenPrimaryRequestsReordered() {
-    var firstEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, firstTenant);
-    var secondEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, firstTenant);
-    var thirdEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, secondTenant);
-    var fourthEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, secondTenant);
+    var firstEcsTlr = buildEcsTlrTitleLevel(instanceId, requesterId, pickupServicePointId, firstTenant);
+    var secondEcsTlr = buildEcsTlrTitleLevel(instanceId, requesterId, pickupServicePointId, firstTenant);
+    var thirdEcsTlr = buildEcsTlrTitleLevel(instanceId, requesterId, pickupServicePointId, secondTenant);
+    var fourthEcsTlr = buildEcsTlrTitleLevel(instanceId, requesterId, pickupServicePointId, secondTenant);
 
     var firstSecondaryRequest = buildSecondaryRequest(firstEcsTlr, 1);
     var secondSecondaryRequest = buildSecondaryRequest(secondEcsTlr, 2);
     var thirdSecondaryRequest = buildSecondaryRequest(thirdEcsTlr, 1);
     var fourthSecondaryRequest = buildSecondaryRequest(fourthEcsTlr, 2);
 
-    var secondPrimaryRequest = buildPrimaryRequest(secondEcsTlr, secondSecondaryRequest, 2);
-    var thirdPrimaryRequest = buildPrimaryRequest(thirdEcsTlr, thirdSecondaryRequest, 3);
-    var fourthPrimaryRequest = buildPrimaryRequest(fourthEcsTlr, fourthSecondaryRequest, 4);
-    var reorderedFirstPrimaryRequest = buildPrimaryRequest(firstEcsTlr, firstSecondaryRequest, 4);
+    var secondPrimaryRequest = buildPrimaryRequest(secondEcsTlr, secondSecondaryRequest, 2, TITLE);
+    var thirdPrimaryRequest = buildPrimaryRequest(thirdEcsTlr, thirdSecondaryRequest, 3, TITLE);
+    var fourthPrimaryRequest = buildPrimaryRequest(fourthEcsTlr, fourthSecondaryRequest, 4, TITLE);
+    var reorderedFirstPrimaryRequest = buildPrimaryRequest(firstEcsTlr, firstSecondaryRequest, 4, TITLE);
 
     var ecsTlrMapper = new EcsTlrMapperImpl();
     when(ecsTlrRepository.findBySecondaryRequestId(any()))
@@ -110,8 +113,10 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
       .thenReturn(secRequestsWithUpdatedPositions);
 
     eventListener.handleRequestBatchUpdateEvent(serializeEvent(buildEvent(CENTRAL_TENANT_ID, CREATED,
-      null, new RequestsBatchUpdate().instanceId(instanceId))), getMessageHeaders(
-        CENTRAL_TENANT_ID, CENTRAL_TENANT_ID));
+      null, new RequestsBatchUpdate()
+        .instanceId(instanceId)
+        .requestLevel(RequestsBatchUpdate.RequestLevelEnum.TITLE))),
+      getMessageHeaders(CENTRAL_TENANT_ID, CENTRAL_TENANT_ID));
 
     verify(requestService, times(1)).reorderRequestsQueueForInstance(
       instanceId, firstTenant, reorderQueue);
@@ -121,11 +126,11 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
 
   @Test
   void shouldReorderThreeSecondaryRequestsWhenPrimaryRequestsReordered() {
-    var firstEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, firstTenant);
-    var secondEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, firstTenant);
-    var thirdEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, secondTenant);
-    var fourthEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, firstTenant);
-    var fifthEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, secondTenant);
+    var firstEcsTlr = buildEcsTlrTitleLevel(instanceId, requesterId, pickupServicePointId, firstTenant);
+    var secondEcsTlr = buildEcsTlrTitleLevel(instanceId, requesterId, pickupServicePointId, firstTenant);
+    var thirdEcsTlr = buildEcsTlrTitleLevel(instanceId, requesterId, pickupServicePointId, secondTenant);
+    var fourthEcsTlr = buildEcsTlrTitleLevel(instanceId, requesterId, pickupServicePointId, firstTenant);
+    var fifthEcsTlr = buildEcsTlrTitleLevel(instanceId, requesterId, pickupServicePointId, secondTenant);
 
     var firstSecondaryRequest = buildSecondaryRequest(firstEcsTlr, 1);
     var secondSecondaryRequest = buildSecondaryRequest(secondEcsTlr, 2);
@@ -133,12 +138,12 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
     var fourthSecondaryRequest = buildSecondaryRequest(fourthEcsTlr, 3);
     var fifthSecondaryRequest = buildSecondaryRequest(fifthEcsTlr, 2);
 
-    var firstPrimaryRequest = buildPrimaryRequest(firstEcsTlr, firstSecondaryRequest, 1);
-    var thirdPrimaryRequest = buildPrimaryRequest(thirdEcsTlr, thirdSecondaryRequest, 3);
-    var fourthPrimaryRequest = buildPrimaryRequest(fourthEcsTlr, fourthSecondaryRequest, 4);
-    var fifthPrimaryRequest = buildPrimaryRequest(fifthEcsTlr, fifthSecondaryRequest, 5);
+    var firstPrimaryRequest = buildPrimaryRequest(firstEcsTlr, firstSecondaryRequest, 1, TITLE);
+    var thirdPrimaryRequest = buildPrimaryRequest(thirdEcsTlr, thirdSecondaryRequest, 3, TITLE);
+    var fourthPrimaryRequest = buildPrimaryRequest(fourthEcsTlr, fourthSecondaryRequest, 4, TITLE);
+    var fifthPrimaryRequest = buildPrimaryRequest(fifthEcsTlr, fifthSecondaryRequest, 5, TITLE);
     var reorderedSecondPrimaryRequest = buildPrimaryRequest(secondEcsTlr,
-      secondSecondaryRequest, 5);
+      secondSecondaryRequest, 5, TITLE);
 
     var ecsTlrMapper = new EcsTlrMapperImpl();
     when(ecsTlrRepository.findBySecondaryRequestId(any()))
@@ -185,8 +190,10 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
       .thenReturn(secRequestsWithUpdatedPositions);
 
     eventListener.handleRequestBatchUpdateEvent(serializeEvent(buildEvent(CENTRAL_TENANT_ID, UPDATED,
-      null, new RequestsBatchUpdate().instanceId(instanceId))), getMessageHeaders(
-        CENTRAL_TENANT_ID, CENTRAL_TENANT_ID));
+      null, new RequestsBatchUpdate()
+        .instanceId(instanceId)
+        .requestLevel(RequestsBatchUpdate.RequestLevelEnum.TITLE))),
+      getMessageHeaders(CENTRAL_TENANT_ID, CENTRAL_TENANT_ID));
 
     verify(requestService, times(1)).reorderRequestsQueueForInstance(
       instanceId, firstTenant, reorderQueue);
@@ -196,20 +203,20 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
 
   @Test
   void shouldNotReorderSecondaryRequestsWhenPrimaryRequestsOrderIsUnchanged() {
-    var firstEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, firstTenant);
-    var secondEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, firstTenant);
-    var thirdEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, secondTenant);
-    var fourthEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, secondTenant);
+    var firstEcsTlr = buildEcsTlrTitleLevel(instanceId, requesterId, pickupServicePointId, firstTenant);
+    var secondEcsTlr = buildEcsTlrTitleLevel(instanceId, requesterId, pickupServicePointId, firstTenant);
+    var thirdEcsTlr = buildEcsTlrTitleLevel(instanceId, requesterId, pickupServicePointId, secondTenant);
+    var fourthEcsTlr = buildEcsTlrTitleLevel(instanceId, requesterId, pickupServicePointId, secondTenant);
 
     var firstSecondaryRequest = buildSecondaryRequest(firstEcsTlr, 1);
     var secondSecondaryRequest = buildSecondaryRequest(secondEcsTlr, 2);
     var thirdSecondaryRequest = buildSecondaryRequest(thirdEcsTlr, 1);
     var fourthSecondaryRequest = buildSecondaryRequest(fourthEcsTlr, 2);
 
-    var firstPrimaryRequest = buildPrimaryRequest(firstEcsTlr, firstSecondaryRequest, 1);
-    var thirdPrimaryRequest = buildPrimaryRequest(thirdEcsTlr, thirdSecondaryRequest, 3);
-    var fourthPrimaryRequest = buildPrimaryRequest(fourthEcsTlr, fourthSecondaryRequest, 4);
-    var reorderedSecondPrimaryRequest = buildPrimaryRequest(secondEcsTlr, secondSecondaryRequest, 4);
+    var firstPrimaryRequest = buildPrimaryRequest(firstEcsTlr, firstSecondaryRequest, 1, TITLE);
+    var thirdPrimaryRequest = buildPrimaryRequest(thirdEcsTlr, thirdSecondaryRequest, 3, TITLE);
+    var fourthPrimaryRequest = buildPrimaryRequest(fourthEcsTlr, fourthSecondaryRequest, 4, TITLE);
+    var reorderedSecondPrimaryRequest = buildPrimaryRequest(secondEcsTlr, secondSecondaryRequest, 4, TITLE);
 
     var ecsTlrMapper = new EcsTlrMapperImpl();
     when(ecsTlrRepository.findBySecondaryRequestId(any()))
@@ -240,8 +247,10 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
       ecsTlrMapper.mapDtoToEntity(thirdEcsTlr), ecsTlrMapper.mapDtoToEntity(fourthEcsTlr)));
 
     eventListener.handleRequestBatchUpdateEvent(serializeEvent(buildEvent(CENTRAL_TENANT_ID, CREATED,
-      null, new RequestsBatchUpdate().instanceId(instanceId))), getMessageHeaders(
-      CENTRAL_TENANT_ID, CENTRAL_TENANT_ID));
+      null, new RequestsBatchUpdate()
+          .instanceId(instanceId)
+          .requestLevel(RequestsBatchUpdate.RequestLevelEnum.TITLE))),
+      getMessageHeaders(CENTRAL_TENANT_ID, CENTRAL_TENANT_ID));
 
     verify(requestService, times(0)).reorderRequestsQueueForInstance(
       eq(instanceId), eq(firstTenant), any());
@@ -254,20 +263,20 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
   void shouldNotReorderSecondaryRequestsWhenPrimaryRequestsAreNullOrEmtpy(
     List<EcsTlrEntity> primaryRequests) {
 
-    var firstEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, firstTenant);
-    var secondEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, firstTenant);
-    var thirdEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, secondTenant);
-    var fourthEcsTlr = buildEcsTlr(instanceId, requesterId, pickupServicePointId, secondTenant);
+    var firstEcsTlr = buildEcsTlrTitleLevel(instanceId, requesterId, pickupServicePointId, firstTenant);
+    var secondEcsTlr = buildEcsTlrTitleLevel(instanceId, requesterId, pickupServicePointId, firstTenant);
+    var thirdEcsTlr = buildEcsTlrTitleLevel(instanceId, requesterId, pickupServicePointId, secondTenant);
+    var fourthEcsTlr = buildEcsTlrTitleLevel(instanceId, requesterId, pickupServicePointId, secondTenant);
 
     var firstSecondaryRequest = buildSecondaryRequest(firstEcsTlr, 1);
     var secondSecondaryRequest = buildSecondaryRequest(secondEcsTlr, 2);
     var thirdSecondaryRequest = buildSecondaryRequest(thirdEcsTlr, 1);
     var fourthSecondaryRequest = buildSecondaryRequest(fourthEcsTlr, 2);
 
-    var firstPrimaryRequest = buildPrimaryRequest(firstEcsTlr, firstSecondaryRequest, 1);
-    var thirdPrimaryRequest = buildPrimaryRequest(thirdEcsTlr, thirdSecondaryRequest, 3);
-    var fourthPrimaryRequest = buildPrimaryRequest(fourthEcsTlr, fourthSecondaryRequest, 4);
-    var reorderedSecondPrimaryRequest = buildPrimaryRequest(secondEcsTlr, secondSecondaryRequest, 4);
+    var firstPrimaryRequest = buildPrimaryRequest(firstEcsTlr, firstSecondaryRequest, 1, TITLE);
+    var thirdPrimaryRequest = buildPrimaryRequest(thirdEcsTlr, thirdSecondaryRequest, 3, TITLE);
+    var fourthPrimaryRequest = buildPrimaryRequest(fourthEcsTlr, fourthSecondaryRequest, 4, TITLE);
+    var reorderedSecondPrimaryRequest = buildPrimaryRequest(secondEcsTlr, secondSecondaryRequest, 4, TITLE);
 
     var ecsTlrMapper = new EcsTlrMapperImpl();
     when(ecsTlrRepository.findBySecondaryRequestId(any()))
@@ -296,13 +305,84 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
     when(ecsTlrRepository.findByPrimaryRequestIdIn(any())).thenReturn(primaryRequests);
 
     eventListener.handleRequestBatchUpdateEvent(serializeEvent(buildEvent(CENTRAL_TENANT_ID, CREATED,
-      null, new RequestsBatchUpdate().instanceId(instanceId))), getMessageHeaders(
-      CENTRAL_TENANT_ID, CENTRAL_TENANT_ID));
+      null, new RequestsBatchUpdate()
+        .instanceId(instanceId)
+        .requestLevel(RequestsBatchUpdate.RequestLevelEnum.TITLE))),
+      getMessageHeaders(CENTRAL_TENANT_ID, CENTRAL_TENANT_ID));
 
     verify(requestService, times(0)).reorderRequestsQueueForInstance(
       eq(instanceId), eq(firstTenant), any());
     verify(requestService, times(0)).reorderRequestsQueueForInstance(
       eq(instanceId), eq(secondTenant), any());
+  }
+
+  @Test
+  void shouldReorderTwoSecondaryRequestsWhenPrimaryItemLevelRequestsReordered() {
+    var firstEcsTlr = buildEcsTlrItemLevel(itemId, requesterId, pickupServicePointId, firstTenant);
+    var secondEcsTlr = buildEcsTlrItemLevel(itemId, requesterId, pickupServicePointId, firstTenant);
+    var thirdEcsTlr = buildEcsTlrItemLevel(itemId, requesterId, pickupServicePointId, secondTenant);
+    var fourthEcsTlr = buildEcsTlrItemLevel(itemId, requesterId, pickupServicePointId, secondTenant);
+
+    var firstSecondaryRequest = buildSecondaryRequest(firstEcsTlr, 1);
+    var secondSecondaryRequest = buildSecondaryRequest(secondEcsTlr, 2);
+    var thirdSecondaryRequest = buildSecondaryRequest(thirdEcsTlr, 1);
+    var fourthSecondaryRequest = buildSecondaryRequest(fourthEcsTlr, 2);
+
+    var secondPrimaryRequest = buildPrimaryRequest(secondEcsTlr, secondSecondaryRequest, 2, ITEM);
+    var thirdPrimaryRequest = buildPrimaryRequest(thirdEcsTlr, thirdSecondaryRequest, 3, ITEM);
+    var fourthPrimaryRequest = buildPrimaryRequest(fourthEcsTlr, fourthSecondaryRequest, 4, ITEM);
+    var reorderedFirstPrimaryRequest = buildPrimaryRequest(firstEcsTlr, firstSecondaryRequest, 4, ITEM);
+
+    var ecsTlrMapper = new EcsTlrMapperImpl();
+    when(ecsTlrRepository.findBySecondaryRequestId(any()))
+      .thenReturn(Optional.of(ecsTlrMapper.mapDtoToEntity(firstEcsTlr)));
+    when(requestService.getRequestFromStorage(firstEcsTlr.getSecondaryRequestId(),
+      firstEcsTlr.getSecondaryRequestTenantId()))
+      .thenReturn(firstSecondaryRequest);
+    when(requestService.getRequestFromStorage(secondEcsTlr.getSecondaryRequestId(),
+      secondEcsTlr.getSecondaryRequestTenantId()))
+      .thenReturn(secondSecondaryRequest);
+    when(requestService.getRequestFromStorage(thirdEcsTlr.getSecondaryRequestId(),
+      thirdEcsTlr.getSecondaryRequestTenantId()))
+      .thenReturn(thirdSecondaryRequest);
+    when(requestService.getRequestFromStorage(fourthEcsTlr.getSecondaryRequestId(),
+      fourthEcsTlr.getSecondaryRequestTenantId()))
+      .thenReturn(fourthSecondaryRequest);
+    var requestsQueue = Stream.of(reorderedFirstPrimaryRequest, secondPrimaryRequest, thirdPrimaryRequest,
+        fourthPrimaryRequest)
+      .sorted(Comparator.comparing(Request::getPosition))
+      .toList();
+    when(requestService.getRequestsQueueByItemId(any())).thenReturn(requestsQueue);
+    when(requestService.getRequestsQueueByItemId(any(), eq(firstTenant))).thenReturn(
+      List.of(firstSecondaryRequest, secondSecondaryRequest));
+    when(requestService.getRequestsQueueByItemId(any(), eq(secondTenant))).thenReturn(
+      List.of(thirdSecondaryRequest, fourthSecondaryRequest));
+    when(ecsTlrRepository.findByPrimaryRequestIdIn(any())).thenReturn(List.of(
+      ecsTlrMapper.mapDtoToEntity(firstEcsTlr), ecsTlrMapper.mapDtoToEntity(secondEcsTlr),
+      ecsTlrMapper.mapDtoToEntity(thirdEcsTlr), ecsTlrMapper.mapDtoToEntity(fourthEcsTlr)));
+
+    List<Request> secRequestsWithUpdatedPositions = List.of(
+      new Request()
+        .id(firstSecondaryRequest.getId())
+        .position(2),
+      new Request()
+        .id(secondSecondaryRequest.getId())
+        .position(1));
+    ReorderQueue reorderQueue = createReorderQueue(secRequestsWithUpdatedPositions);
+    when(requestService.reorderRequestsQueueForItem(itemId, firstTenant, reorderQueue))
+      .thenReturn(secRequestsWithUpdatedPositions);
+
+    eventListener.handleRequestBatchUpdateEvent(serializeEvent(buildEvent(CENTRAL_TENANT_ID, CREATED,
+        null, new RequestsBatchUpdate()
+          .instanceId(instanceId)
+          .itemId(itemId)
+          .requestLevel(RequestsBatchUpdate.RequestLevelEnum.ITEM))),
+      getMessageHeaders(CENTRAL_TENANT_ID, CENTRAL_TENANT_ID));
+
+    verify(requestService, times(1)).reorderRequestsQueueForItem(
+      itemId, firstTenant, reorderQueue);
+    verify(requestService, times(0)).reorderRequestsQueueForItem(
+      eq(itemId), eq(secondTenant), any());
   }
 
   private static Stream<Arguments> provideLists() {
@@ -312,7 +392,7 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
     );
   }
 
-  private static EcsTlr buildEcsTlr(String instanceId, String requesterId,
+  private static EcsTlr buildEcsTlrTitleLevel(String instanceId, String requesterId,
     String pickupServicePointId, String secondaryRequestTenantId) {
 
     return new EcsTlr()
@@ -332,14 +412,36 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
       .primaryRequestTenantId(CENTRAL_TENANT_ID);
   }
 
-  private static Request buildPrimaryRequest(EcsTlr ecsTlr, Request secondaryRequest, int position) {
+  private static EcsTlr buildEcsTlrItemLevel(String itemId, String requesterId,
+    String pickupServicePointId, String secondaryRequestTenantId) {
+
+    return new EcsTlr()
+      .id(randomId())
+      .itemId(itemId)
+      .requesterId(requesterId)
+      .pickupServicePointId(pickupServicePointId)
+      .requestLevel(EcsTlr.RequestLevelEnum.ITEM)
+      .requestType(EcsTlr.RequestTypeEnum.PAGE)
+      .fulfillmentPreference(EcsTlr.FulfillmentPreferenceEnum.DELIVERY)
+      .patronComments("random comment")
+      .requestDate(new Date())
+      .requestExpirationDate(new Date())
+      .primaryRequestId(randomId())
+      .secondaryRequestId(randomId())
+      .secondaryRequestTenantId(secondaryRequestTenantId)
+      .primaryRequestTenantId(CENTRAL_TENANT_ID);
+  }
+
+  private static Request buildPrimaryRequest(EcsTlr ecsTlr, Request secondaryRequest, int position,
+    Request.RequestLevelEnum requestLevel) {
+
     return new Request()
       .id(ecsTlr.getPrimaryRequestId())
       .instanceId(secondaryRequest.getInstanceId())
       .requesterId(secondaryRequest.getRequesterId())
       .requestDate(secondaryRequest.getRequestDate())
       .requestExpirationDate(secondaryRequest.getRequestExpirationDate())
-      .requestLevel(Request.RequestLevelEnum.TITLE)
+      .requestLevel(requestLevel)
       .requestType(Request.RequestTypeEnum.HOLD)
       .ecsRequestPhase(Request.EcsRequestPhaseEnum.PRIMARY)
       .fulfillmentPreference(Request.FulfillmentPreferenceEnum.HOLD_SHELF)
