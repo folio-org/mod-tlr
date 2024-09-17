@@ -13,8 +13,6 @@ import org.folio.domain.Constants;
 import org.folio.domain.dto.AllowedServicePointsRequest;
 import org.folio.domain.dto.AllowedServicePointsResponse;
 import org.folio.domain.dto.Request;
-import org.folio.domain.dto.SearchInstance;
-import org.folio.domain.dto.SearchItem;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.AllowedServicePointsService;
@@ -54,15 +52,6 @@ public abstract class AllowedServicePointsServiceImpl implements AllowedServiceP
     boolean isAvailableInLendingTenants = getLendingTenants(request)
       .stream()
       .anyMatch(tenant -> isAvailableInLendingTenant(request, patronGroupId, tenant));
-    var searchInstancesResponse = searchClient.searchInstance(instanceId);
-    // TODO: make call in parallel
-    boolean availableForRequesting = searchInstancesResponse.getInstances().stream()
-      .map(SearchInstance::getItems)
-      .flatMap(Collection::stream)
-      .map(SearchItem::getTenantId)
-      .filter(Objects::nonNull)
-      .distinct()
-      .anyMatch(tenantId -> checkAvailability(request, patronGroupId, tenantId));
 
     if (!isAvailableInLendingTenants) {
       log.info("getForCreate:: Not available for requesting, returning empty result");

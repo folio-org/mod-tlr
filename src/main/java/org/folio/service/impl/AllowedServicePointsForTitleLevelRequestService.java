@@ -10,8 +10,8 @@ import org.folio.client.feign.CirculationClient;
 import org.folio.client.feign.SearchClient;
 import org.folio.domain.dto.AllowedServicePointsRequest;
 import org.folio.domain.dto.AllowedServicePointsResponse;
-import org.folio.domain.dto.Instance;
-import org.folio.domain.dto.Item;
+import org.folio.domain.dto.SearchInstance;
+import org.folio.domain.dto.SearchItem;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.RequestService;
 import org.folio.service.UserService;
@@ -36,9 +36,9 @@ public class AllowedServicePointsForTitleLevelRequestService extends AllowedServ
     return searchClient.searchInstance(request.getInstanceId())
       .getInstances()
       .stream()
-      .map(Instance::getItems)
+      .map(SearchInstance::getItems)
       .flatMap(Collection::stream)
-      .map(Item::getTenantId)
+      .map(SearchItem::getTenantId)
       .filter(Objects::nonNull)
       .collect(Collectors.toSet());
   }
