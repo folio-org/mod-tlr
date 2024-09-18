@@ -19,4 +19,8 @@ public interface CirculationItemClient {
   CirculationItem createCirculationItem(@PathVariable String circulationItemId,
     @RequestBody CirculationItem circulationItem);
 
+  @PostMapping(value = "/{circulationItemId}")
+  CirculationItem updateCirculationItem(@PathVariable String circulationItemId,
+    @RequestBody CirculationItem circulationItem);
+
 }

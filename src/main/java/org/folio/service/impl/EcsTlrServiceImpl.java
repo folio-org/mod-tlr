@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.folio.domain.RequestWrapper;
+import org.folio.domain.dto.CirculationItem;
 import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.Request;
 import org.folio.domain.entity.EcsTlrEntity;
@@ -52,10 +53,16 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       buildSecondaryRequest(ecsTlr), borrowingTenantId, lendingTenantIds);
 
     log.info("create:: Creating circulation item for ECS TLR (ILR) {}", ecsTlrDto.getId());
-    requestService.createCirculationItem(ecsTlr, secondaryRequest.request(), borrowingTenantId, secondaryRequest.tenantId());
+    CirculationItem circulationItem = requestService.createCirculationItem(ecsTlr,
+      secondaryRequest.request(), borrowingTenantId, secondaryRequest.tenantId());
 
     RequestWrapper primaryRequest = requestService.createPrimaryRequest(
       buildPrimaryRequest(secondaryRequest.request()), borrowingTenantId);
+
+
+    requestService.updateCirculationItemOnRequestCreation(circulationItem,
+      secondaryRequest.request());
+
     updateEcsTlr(ecsTlr, primaryRequest, secondaryRequest);
     createDcbTransactions(ecsTlr, secondaryRequest.request());
 

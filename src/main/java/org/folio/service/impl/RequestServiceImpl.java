@@ -173,6 +173,25 @@ public class RequestServiceImpl implements RequestService {
   }
 
   @Override
+  public CirculationItem updateCirculationItemOnRequestCreation(CirculationItem circulationItem,
+    Request secondaryRequest) {
+
+    log.info("updateCirculationItemOnRequestCreation:: updating circulation item {}",
+      circulationItem.getId());
+
+    if (secondaryRequest.getRequestType() == Request.RequestTypeEnum.PAGE) {
+      log.info("updateCirculationItemOnRequestCreation:: secondary request {} type is " +
+        "Page, updating circulation item {} with status Paged", secondaryRequest.getId(),
+        circulationItem.getId());
+
+      circulationItem.getStatus().setName(CirculationItemStatus.NameEnum.PAGED);
+      circulationItemClient.updateCirculationItem(circulationItem.getId().toString(),
+        circulationItem);
+    }
+    return circulationItem;
+  }
+
+  @Override
   public InventoryItem getItemFromStorage(String itemId, String tenantId) {
     log.info("getItemFromStorage:: Fetching item {} from tenant {}", itemId, tenantId);
     return systemUserScopedExecutionService.executeSystemUserScoped(tenantId,

@@ -17,7 +17,11 @@ public interface RequestService {
   RequestWrapper createSecondaryRequest(Request request, String borrowingTenantId,
     Collection<String> lendingTenantIds);
 
-  CirculationItem createCirculationItem(EcsTlrEntity ecsTlr, Request secondaryRequest, String borrowingTenantId, String lendingTenantId);
+  CirculationItem createCirculationItem(EcsTlrEntity ecsTlr, Request secondaryRequest,
+    String borrowingTenantId, String lendingTenantId);
+
+  CirculationItem updateCirculationItemOnRequestCreation(CirculationItem circulationItem,
+    Request secondaryRequest);
 
   InventoryItem getItemFromStorage(String itemId, String tenantId);
 
