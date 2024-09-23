@@ -129,6 +129,5 @@
     "metadata": {
       "$ref": "metadata.json"
     }
-  },
-  "required": ["notes"]
+  }
 }

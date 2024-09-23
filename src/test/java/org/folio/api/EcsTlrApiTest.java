@@ -1,5 +1,6 @@
 package org.folio.api;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.exactly;
@@ -23,10 +24,15 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.http.HttpStatus;
+import org.folio.domain.dto.CirculationItem;
+import org.folio.domain.dto.CirculationItemStatus;
 import org.folio.domain.dto.DcbItem;
 import org.folio.domain.dto.DcbTransaction;
 import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.EcsTlr.RequestTypeEnum;
+import org.folio.domain.dto.InventoryInstance;
+import org.folio.domain.dto.InventoryItem;
+import org.folio.domain.dto.InventoryItemStatus;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.RequestInstance;
 import org.folio.domain.dto.RequestItem;
@@ -180,20 +186,17 @@ class EcsTlrApiTest extends BaseIT {
     // 1.4 Mock request endpoints
 
     Request secondaryRequestPostRequest = buildSecondaryRequest(ecsTlr);
-    Request mockPostSecondaryRequestResponse = buildSecondaryRequest(ecsTlr).id(SECONDARY_REQUEST_ID);
-
-    if (requestType != HOLD) {
-      mockPostSecondaryRequestResponse
-        .itemId(ITEM_ID)
-        .holdingsRecordId(HOLDINGS_RECORD_ID)
-        .item(new RequestItem().barcode(ITEM_BARCODE))
-        .instance(new RequestInstance().title(INSTANCE_TITLE));
-    }
+    Request mockPostSecondaryRequestResponse = buildSecondaryRequest(ecsTlr)
+      .id(SECONDARY_REQUEST_ID)
+      .itemId(ITEM_ID)
+      .holdingsRecordId(HOLDINGS_RECORD_ID)
+      .item(new RequestItem().barcode(ITEM_BARCODE))
+      .instance(new RequestInstance().title(INSTANCE_TITLE));
 
     Request primaryRequestPostRequest = buildPrimaryRequest(secondaryRequestPostRequest);
     Request mockPostPrimaryRequestResponse = buildPrimaryRequest(mockPostSecondaryRequestResponse);
 
-    wireMockServer.stubFor(post(urlMatching(INSTANCE_REQUESTS_URL))
+    wireMockServer.stubFor(post(urlMatching(REQUESTS_URL))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
       .withRequestBody(equalToJson(asJsonString(secondaryRequestPostRequest)))
       .willReturn(jsonResponse(asJsonString(mockPostSecondaryRequestResponse), HttpStatus.SC_CREATED)));
@@ -229,6 +232,38 @@ class EcsTlrApiTest extends BaseIT {
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
       .withRequestBody(equalToJson(asJsonString(lenderTransactionPostRequest)))
       .willReturn(jsonResponse(mockPostEcsDcbTransactionResponse, HttpStatus.SC_CREATED)));
+
+    wireMockServer.stubFor(get(urlMatching("/circulation-item/" + ITEM_ID))
+      .willReturn(notFound()));
+
+    InventoryItem mockInventoryItem = new InventoryItem()
+      .id(ITEM_ID)
+      .status(requestType == HOLD
+        ? new InventoryItemStatus(InventoryItemStatus.NameEnum.CHECKED_OUT)
+        : new InventoryItemStatus(InventoryItemStatus.NameEnum.AVAILABLE));
+
+    wireMockServer.stubFor(get(urlMatching("/item-storage/items.*"))
+      .willReturn(aResponse()
+        .withHeader("Content-Type", "application/json")
+        .withBody(asJsonString(mockInventoryItem))
+        .withStatus(HttpStatus.SC_OK)));
+
+    InventoryInstance mockInventoryInstance = new InventoryInstance().title(INSTANCE_TITLE);
+    wireMockServer.stubFor(get(urlMatching("/instance-storage/instances/" + INSTANCE_ID))
+      .willReturn(jsonResponse(mockInventoryInstance, HttpStatus.SC_OK)));
+
+    CirculationItem mockCirculationItem = buildCirculationItem(mockInventoryItem, mockInventoryInstance);
+    wireMockServer.stubFor(post(urlMatching("/circulation-item.*"))
+      .willReturn(aResponse()
+        .withHeader("Content-Type", "application/json")
+        .withBody(asJsonString(mockInventoryItem))
+        .withStatus(HttpStatus.SC_CREATED)));
+
+    wireMockServer.stubFor(put(urlMatching("/circulation-item.*"))
+      .willReturn(aResponse()
+        .withHeader("Content-Type", "application/json")
+        .withBody(asJsonString(mockInventoryItem))
+        .withStatus(HttpStatus.SC_OK)));
 
     // 2. Create ECS TLR
 
@@ -269,7 +304,7 @@ class EcsTlrApiTest extends BaseIT {
     wireMockServer.verify(getRequestedFor(urlMatching(SERVICE_POINTS_URL + "/" + PICKUP_SERVICE_POINT_ID))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)));
 
-    wireMockServer.verify(postRequestedFor(urlMatching(INSTANCE_REQUESTS_URL))
+    wireMockServer.verify(postRequestedFor(urlMatching(REQUESTS_URL))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)) // because this tenant has available item
       .withRequestBody(equalToJson(asJsonString(secondaryRequestPostRequest))));
 
@@ -294,7 +329,6 @@ class EcsTlrApiTest extends BaseIT {
         .withRequestBody(equalToJson(asJsonString(secondaryRequestPickupServicePoint))));
     }
 
-    if (requestType != HOLD) {
       wireMockServer.verify(postRequestedFor(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
         .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
         .withRequestBody(equalToJson(asJsonString(borrowerTransactionPostRequest))));
@@ -302,9 +336,6 @@ class EcsTlrApiTest extends BaseIT {
       wireMockServer.verify(postRequestedFor(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
         .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
         .withRequestBody(equalToJson(asJsonString(lenderTransactionPostRequest))));
-    } else {
-      wireMockServer.verify(0, postRequestedFor(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN)));
-    }
   }
 
   @Test
@@ -445,17 +476,17 @@ class EcsTlrApiTest extends BaseIT {
   private static Request buildPrimaryRequest(Request secondaryRequest) {
     return new Request()
       .id(PRIMARY_REQUEST_ID)
-      .itemId(secondaryRequest.getItemId())
-      .holdingsRecordId(secondaryRequest.getHoldingsRecordId())
+      .itemId(ITEM_ID)
+      .holdingsRecordId(HOLDINGS_RECORD_ID)
       .instanceId(secondaryRequest.getInstanceId())
       .item(secondaryRequest.getItem())
       .instance(secondaryRequest.getInstance())
       .requesterId(secondaryRequest.getRequesterId())
       .requestDate(secondaryRequest.getRequestDate())
-      .requestLevel(Request.RequestLevelEnum.TITLE)
-      .requestType(Request.RequestTypeEnum.HOLD)
+      .requestLevel(secondaryRequest.getRequestLevel())
+      .requestType(secondaryRequest.getRequestType())
       .ecsRequestPhase(Request.EcsRequestPhaseEnum.PRIMARY)
-      .fulfillmentPreference(Request.FulfillmentPreferenceEnum.HOLD_SHELF)
+      .fulfillmentPreference(secondaryRequest.getFulfillmentPreference())
       .pickupServicePointId(secondaryRequest.getPickupServicePointId());
   }
 
@@ -482,7 +513,7 @@ class EcsTlrApiTest extends BaseIT {
 
   private static User buildSecondaryRequestRequester(User primaryRequestRequester,
     boolean secondaryRequestRequesterExists) {
-    
+
     return new User()
       .id(primaryRequestRequester.getId())
       .patronGroup(secondaryRequestRequesterExists ? PATRON_GROUP_ID_SECONDARY : PATRON_GROUP_ID_PRIMARY)
@@ -510,6 +541,22 @@ class EcsTlrApiTest extends BaseIT {
       .code(primaryRequestPickupServicePoint.getCode())
       .discoveryDisplayName(primaryRequestPickupServicePoint.getDiscoveryDisplayName())
       .pickupLocation(primaryRequestPickupServicePoint.getPickupLocation());
+  }
+
+  private static CirculationItem buildCirculationItem(InventoryItem item, InventoryInstance instance) {
+    return new CirculationItem()
+      .id(UUID.fromString(ITEM_ID))
+      .holdingsRecordId(UUID.fromString(HOLDINGS_RECORD_ID))
+      .status(new CirculationItemStatus()
+        .name(CirculationItemStatus.NameEnum.AVAILABLE)
+      )
+      .dcbItem(true)
+      .materialTypeId(item.getMaterialTypeId())
+      .permanentLoanTypeId(item.getPermanentLoanTypeId())
+      .instanceTitle(instance.getTitle())
+      .barcode(item.getBarcode())
+      .effectiveLocationId(item.getEffectiveLocationId())
+      .lendingLibraryCode("TEST_CODE");
   }
 
 }

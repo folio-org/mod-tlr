@@ -192,7 +192,6 @@
         "$ref": "holding.json"
       }
     }
-  },
-  "required": ["electronicAccess", "notes", "items", "holdings"]
+  }
 }
 

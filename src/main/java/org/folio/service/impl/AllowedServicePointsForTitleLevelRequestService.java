@@ -11,6 +11,7 @@ import org.folio.client.feign.SearchClient;
 import org.folio.domain.dto.AllowedServicePointsRequest;
 import org.folio.domain.dto.AllowedServicePointsResponse;
 import org.folio.domain.dto.SearchInstance;
+import org.folio.domain.dto.SearchInstancesResponse;
 import org.folio.domain.dto.SearchItem;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.RequestService;
@@ -33,9 +34,12 @@ public class AllowedServicePointsForTitleLevelRequestService extends AllowedServ
 
   @Override
   protected Collection<String> getLendingTenants(AllowedServicePointsRequest request) {
-    return searchClient.searchInstance(request.getInstanceId())
+    SearchInstancesResponse searchInstancesResponse = searchClient.searchInstance(request.getInstanceId());
+
+    return searchInstancesResponse
       .getInstances()
       .stream()
+      .filter(Objects::nonNull)
       .map(SearchInstance::getItems)
       .flatMap(Collection::stream)
       .map(SearchItem::getTenantId)
