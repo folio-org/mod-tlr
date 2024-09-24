@@ -24,8 +24,6 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.http.HttpStatus;
-import org.folio.domain.dto.CirculationItem;
-import org.folio.domain.dto.CirculationItemStatus;
 import org.folio.domain.dto.DcbItem;
 import org.folio.domain.dto.DcbTransaction;
 import org.folio.domain.dto.EcsTlr;
@@ -252,7 +250,6 @@ class EcsTlrApiTest extends BaseIT {
     wireMockServer.stubFor(get(urlMatching("/instance-storage/instances/" + INSTANCE_ID))
       .willReturn(jsonResponse(mockInventoryInstance, HttpStatus.SC_OK)));
 
-    CirculationItem mockCirculationItem = buildCirculationItem(mockInventoryItem, mockInventoryInstance);
     wireMockServer.stubFor(post(urlMatching("/circulation-item.*"))
       .willReturn(aResponse()
         .withHeader("Content-Type", "application/json")
@@ -541,22 +538,6 @@ class EcsTlrApiTest extends BaseIT {
       .code(primaryRequestPickupServicePoint.getCode())
       .discoveryDisplayName(primaryRequestPickupServicePoint.getDiscoveryDisplayName())
       .pickupLocation(primaryRequestPickupServicePoint.getPickupLocation());
-  }
-
-  private static CirculationItem buildCirculationItem(InventoryItem item, InventoryInstance instance) {
-    return new CirculationItem()
-      .id(UUID.fromString(ITEM_ID))
-      .holdingsRecordId(UUID.fromString(HOLDINGS_RECORD_ID))
-      .status(new CirculationItemStatus()
-        .name(CirculationItemStatus.NameEnum.AVAILABLE)
-      )
-      .dcbItem(true)
-      .materialTypeId(item.getMaterialTypeId())
-      .permanentLoanTypeId(item.getPermanentLoanTypeId())
-      .instanceTitle(instance.getTitle())
-      .barcode(item.getBarcode())
-      .effectiveLocationId(item.getEffectiveLocationId())
-      .lendingLibraryCode("TEST_CODE");
   }
 
 }
