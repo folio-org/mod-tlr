@@ -118,14 +118,16 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
     Map<String, List<Request>> groupedSecondaryRequestsByTenantId,
     List<EcsTlrEntity> sortedEcsTlrQueue, boolean isTlrRequestQueue) {
 
-    log.info("reorderSecondaryRequestsQueue:: parameters groupedSecondaryRequestsByTenantId: {}," +
+    log.info("reorderSecondaryRequestsQueue:: parameters groupedSecondaryRequestsByTenantId: {}, " +
       "sortedEcsTlrQueue: {}", groupedSecondaryRequestsByTenantId, sortedEcsTlrQueue);
 
     Map<UUID, Integer> correctOrder = IntStream.range(0, sortedEcsTlrQueue.size())
       .boxed()
+      .filter(i -> sortedEcsTlrQueue.get(i) != null)
       .collect(Collectors.toMap(
         i -> sortedEcsTlrQueue.get(i).getSecondaryRequestId(),
-        i -> i + 1));
+        i -> i + 1, (existing, replacement) -> existing));
+
     log.debug("reorderSecondaryRequestsQueue:: correctOrder: {}", correctOrder);
 
     groupedSecondaryRequestsByTenantId.forEach((tenantId, secondaryRequests) ->
