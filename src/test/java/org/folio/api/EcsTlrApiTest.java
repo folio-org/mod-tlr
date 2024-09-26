@@ -43,10 +43,12 @@ import org.folio.domain.dto.TransactionStatusResponse;
 import org.folio.domain.dto.User;
 import org.folio.domain.dto.UserPersonal;
 import org.folio.domain.dto.UserType;
+import org.junit.Ignore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 
@@ -103,7 +105,7 @@ class EcsTlrApiTest extends BaseIT {
   void ecsTlrIsCreated(RequestTypeEnum requestType, boolean secondaryRequestRequesterExists,
     boolean secondaryRequestPickupServicePointExists) {
 
-    EcsTlr ecsTlr = buildEcsTlr(requestType);
+    EcsTlr ecsTlr = buildEcsTlr(requestType, EcsTlr.RequestLevelEnum.TITLE);
 
     // 1. Create stubs for other modules
     // 1.1 Mock search endpoint
@@ -264,7 +266,7 @@ class EcsTlrApiTest extends BaseIT {
 
     // 2. Create ECS TLR
 
-    EcsTlr expectedPostEcsTlrResponse = buildEcsTlr(requestType)
+    EcsTlr expectedPostEcsTlrResponse = buildEcsTlr(requestType, EcsTlr.RequestLevelEnum.TITLE)
       .primaryRequestId(PRIMARY_REQUEST_ID)
       .primaryRequestTenantId(TENANT_ID_CONSORTIUM)
       .secondaryRequestId(SECONDARY_REQUEST_ID)
@@ -341,18 +343,22 @@ class EcsTlrApiTest extends BaseIT {
       .expectStatus().isEqualTo(NOT_FOUND);
   }
 
-  @Test
-  void canNotCreateEcsTlrWhenFailedToExtractBorrowingTenantIdFromToken() {
-    EcsTlr ecsTlr = buildEcsTlr(PAGE, randomId(), randomId());
+  @ParameterizedTest
+  @EnumSource(EcsTlr.RequestLevelEnum.class)
+  void canNotCreateEcsTlrWhenFailedToExtractBorrowingTenantIdFromToken(
+    EcsTlr.RequestLevelEnum requestLevel) {
+
+    EcsTlr ecsTlr = buildEcsTlr(PAGE, randomId(), randomId(), requestLevel);
     doPostWithToken(TLR_URL, ecsTlr, "not_a_token")
       .expectStatus().isEqualTo(500);
 
     wireMockServer.verify(exactly(0), getRequestedFor(urlMatching(SEARCH_INSTANCES_URL)));
   }
 
-  @Test
-  void canNotCreateEcsTlrWhenFailedToPickLendingTenant() {
-    EcsTlr ecsTlr = buildEcsTlr(PAGE, randomId(), randomId());
+  @ParameterizedTest
+  @EnumSource(EcsTlr.RequestLevelEnum.class)
+  void canNotCreateEcsTlrWhenFailedToPickLendingTenant(EcsTlr.RequestLevelEnum requestLevel) {
+    EcsTlr ecsTlr = buildEcsTlr(PAGE, randomId(), randomId(), requestLevel);
     SearchInstancesResponse mockSearchInstancesResponse = new SearchInstancesResponse()
       .totalRecords(0)
       .instances(List.of());
@@ -369,10 +375,13 @@ class EcsTlrApiTest extends BaseIT {
     wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(USERS_URL)));
   }
 
-  @Test
-  void canNotCreateEcsTlrWhenFailedToFindRequesterInBorrowingTenant() {
+  @ParameterizedTest
+  @EnumSource(EcsTlr.RequestLevelEnum.class)
+  void canNotCreateEcsTlrWhenFailedToFindRequesterInBorrowingTenant(
+    EcsTlr.RequestLevelEnum requestLevel) {
+
     String requesterId = randomId();
-    EcsTlr ecsTlr = buildEcsTlr(PAGE, requesterId, randomId());
+    EcsTlr ecsTlr = buildEcsTlr(PAGE, requesterId, randomId(), requestLevel);
     SearchInstancesResponse mockSearchInstancesResponse = new SearchInstancesResponse()
       .totalRecords(2)
       .instances(List.of(
@@ -400,10 +409,13 @@ class EcsTlrApiTest extends BaseIT {
     wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(REQUESTS_URL)));
   }
 
-  @Test
-  void canNotCreateEcsTlrWhenFailedToFindPickupServicePointInBorrowingTenant() {
+  @ParameterizedTest
+  @EnumSource(EcsTlr.RequestLevelEnum.class)
+  void canNotCreateEcsTlrWhenFailedToFindPickupServicePointInBorrowingTenant(
+    EcsTlr.RequestLevelEnum requestLevel) {
+
     String pickupServicePointId = randomId();
-    EcsTlr ecsTlr = buildEcsTlr(PAGE, REQUESTER_ID, pickupServicePointId);
+    EcsTlr ecsTlr = buildEcsTlr(PAGE, REQUESTER_ID, pickupServicePointId, requestLevel);
     SearchInstancesResponse mockSearchInstancesResponse = new SearchInstancesResponse()
       .totalRecords(2)
       .instances(List.of(
@@ -437,18 +449,18 @@ class EcsTlrApiTest extends BaseIT {
     wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(REQUESTS_URL)));
   }
 
-  private static EcsTlr buildEcsTlr(RequestTypeEnum requestType) {
-    return buildEcsTlr(requestType, REQUESTER_ID, PICKUP_SERVICE_POINT_ID);
+  private static EcsTlr buildEcsTlr(RequestTypeEnum requestType, EcsTlr.RequestLevelEnum requestLevel) {
+    return buildEcsTlr(requestType, REQUESTER_ID, PICKUP_SERVICE_POINT_ID, requestLevel);
   }
 
   private static EcsTlr buildEcsTlr(RequestTypeEnum requestType, String requesterId,
-    String pickupServicePointId) {
+    String pickupServicePointId, EcsTlr.RequestLevelEnum requestLevel) {
 
     return new EcsTlr()
       .instanceId(INSTANCE_ID)
       .requesterId(requesterId)
       .pickupServicePointId(pickupServicePointId)
-      .requestLevel(EcsTlr.RequestLevelEnum.TITLE)
+      .requestLevel(requestLevel)
       .requestType(requestType)
       .fulfillmentPreference(EcsTlr.FulfillmentPreferenceEnum.DELIVERY)
       .patronComments("random comment")
