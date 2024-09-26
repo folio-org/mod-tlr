@@ -102,6 +102,6 @@ class RequestServiceTest {
       .instanceTitle(instanceTitle)
       .lendingLibraryCode(LENDING_LIBRARY_CODE);
     requestService.createCirculationItem(ecsTlrEntity, secondaryRequest, BORROWER_ID, LENDER_ID);
-    verify(circulationItemClient).createCirculationItem(eq(ITEM_ID), eq(expectedCirculationItem));
+    verify(circulationItemClient).createCirculationItem(ITEM_ID, expectedCirculationItem);
   }
 }
