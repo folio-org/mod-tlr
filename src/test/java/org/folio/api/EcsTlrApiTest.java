@@ -43,7 +43,6 @@ import org.folio.domain.dto.TransactionStatusResponse;
 import org.folio.domain.dto.User;
 import org.folio.domain.dto.UserPersonal;
 import org.folio.domain.dto.UserType;
-import org.junit.Ignore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -89,23 +88,35 @@ class EcsTlrApiTest extends BaseIT {
 
   @ParameterizedTest
   @CsvSource(value = {
-    "PAGE, true,  true",
-    "PAGE, true,  false",
-    "PAGE, false, true",
-    "PAGE, false, false",
-    "HOLD, true,  true",
-    "HOLD, true,  false",
-    "HOLD, false, true",
-    "HOLD, false, false",
-    "RECALL, true,  true",
-    "RECALL, true,  false",
-    "RECALL, false, true",
-    "RECALL, false, false"
+    "PAGE, true,  true, TITLE",
+    "PAGE, true,  false, TITLE",
+    "PAGE, false, true, TITLE",
+    "PAGE, false, false, TITLE",
+    "HOLD, true,  true, TITLE",
+    "HOLD, true,  false, TITLE",
+    "HOLD, false, true, TITLE",
+    "HOLD, false, false, TITLE",
+    "RECALL, true,  true, TITLE",
+    "RECALL, true,  false, TITLE",
+    "RECALL, false, true, TITLE",
+    "RECALL, false, false, TITLE",
+    "PAGE, true,  true, ITEM",
+    "PAGE, true,  false, ITEM",
+    "PAGE, false, true, ITEM",
+    "PAGE, false, false, ITEM",
+    "HOLD, true,  true, ITEM",
+    "HOLD, true,  false, ITEM",
+    "HOLD, false, true, ITEM",
+    "HOLD, false, false, ITEM",
+    "RECALL, true,  true, ITEM",
+    "RECALL, true,  false, ITEM",
+    "RECALL, false, true, ITEM",
+    "RECALL, false, false, ITEM"
   })
   void ecsTlrIsCreated(RequestTypeEnum requestType, boolean secondaryRequestRequesterExists,
-    boolean secondaryRequestPickupServicePointExists) {
+    boolean secondaryRequestPickupServicePointExists, EcsTlr.RequestLevelEnum requestLevel) {
 
-    EcsTlr ecsTlr = buildEcsTlr(requestType, EcsTlr.RequestLevelEnum.TITLE);
+    EcsTlr ecsTlr = buildEcsTlr(requestType, requestLevel);
 
     // 1. Create stubs for other modules
     // 1.1 Mock search endpoint
@@ -266,7 +277,7 @@ class EcsTlrApiTest extends BaseIT {
 
     // 2. Create ECS TLR
 
-    EcsTlr expectedPostEcsTlrResponse = buildEcsTlr(requestType, EcsTlr.RequestLevelEnum.TITLE)
+    EcsTlr expectedPostEcsTlrResponse = buildEcsTlr(requestType, requestLevel)
       .primaryRequestId(PRIMARY_REQUEST_ID)
       .primaryRequestTenantId(TENANT_ID_CONSORTIUM)
       .secondaryRequestId(SECONDARY_REQUEST_ID)
