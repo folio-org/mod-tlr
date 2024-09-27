@@ -70,6 +70,8 @@ public abstract class AllowedServicePointsServiceImpl implements AllowedServiceP
 
     var allowedServicePointsResponse = getAllowedServicePointsFromLendingTenant(request,
       patronGroupId, tenantId);
+    log.info("isAvailableInLendingTenant:: allowedServicePointsResponse: {}",
+      allowedServicePointsResponse);
 
     var availabilityCheckResult = Stream.of(allowedServicePointsResponse.getHold(),
       allowedServicePointsResponse.getPage(), allowedServicePointsResponse.getRecall())

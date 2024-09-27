@@ -182,7 +182,7 @@
       "type": "array",
       "description": "List of instance items",
       "items": {
-        "$ref": "item.json"
+        "$ref": "searchItem.json"
       }
     },
     "holdings": {
@@ -192,7 +192,6 @@
         "$ref": "holding.json"
       }
     }
-  },
-  "required": ["electronicAccess", "notes", "items", "holdings"]
+  }
 }
 

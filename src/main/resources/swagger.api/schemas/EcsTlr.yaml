@@ -40,6 +40,9 @@ EcsTlr:
     itemId:
       description: "ID of the item being requested"
       $ref: "uuid.yaml"
+    holdingsRecordId:
+      description: "ID of the holdings record being requested"
+      $ref: "uuid.yaml"
     primaryRequestId:
       description: "Primary request ID"
       $ref: "uuid.yaml"

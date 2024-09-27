@@ -44,6 +44,9 @@ public class AllowedServicePointsForItemLevelRequestService extends AllowedServi
   protected AllowedServicePointsResponse getAllowedServicePointsFromLendingTenant(
     AllowedServicePointsRequest request, String patronGroupId, String tenantId) {
 
+    log.info("getAllowedServicePointsFromLendingTenant:: parameters: request: {}, " +
+      "patronGroupId: {}, tenantId: {}", request, patronGroupId, tenantId);
+
     return executionService.executeSystemUserScoped(tenantId,
       () -> circulationClient.allowedRoutingServicePoints(patronGroupId,
         request.getOperation().getValue(), true, request.getItemId()));

@@ -5,8 +5,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.folio.domain.Constants;
 import org.folio.domain.RequestWrapper;
+import org.folio.domain.dto.CirculationItem;
 import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.Request;
 import org.folio.domain.entity.EcsTlrEntity;
@@ -43,16 +43,25 @@ public class EcsTlrServiceImpl implements EcsTlrService {
 
   @Override
   public EcsTlr create(EcsTlr ecsTlrDto) {
-    log.info("create:: creating ECS TLR {} for instance {} and requester {}", ecsTlrDto.getId(),
-      ecsTlrDto.getInstanceId(), ecsTlrDto.getRequesterId());
+    log.info("create:: creating ECS TLR {} instance {}, item {}, requester {}", ecsTlrDto.getId(),
+      ecsTlrDto.getInstanceId(), ecsTlrDto.getItemId(), ecsTlrDto.getRequesterId());
 
     final EcsTlrEntity ecsTlr = requestsMapper.mapDtoToEntity(ecsTlrDto);
     String borrowingTenantId = getBorrowingTenant(ecsTlr);
     Collection<String> lendingTenantIds = getLendingTenants(ecsTlr);
     RequestWrapper secondaryRequest = requestService.createSecondaryRequest(
       buildSecondaryRequest(ecsTlr), borrowingTenantId, lendingTenantIds);
+
+    log.info("create:: Creating circulation item for ECS TLR (ILR) {}", ecsTlrDto.getId());
+    CirculationItem circulationItem = requestService.createCirculationItem(ecsTlr,
+      secondaryRequest.request(), borrowingTenantId, secondaryRequest.tenantId());
+
     RequestWrapper primaryRequest = requestService.createPrimaryRequest(
       buildPrimaryRequest(secondaryRequest.request()), borrowingTenantId);
+
+    requestService.updateCirculationItemOnRequestCreation(circulationItem,
+      secondaryRequest.request());
+
     updateEcsTlr(ecsTlr, primaryRequest, secondaryRequest);
     createDcbTransactions(ecsTlr, secondaryRequest.request());
 
@@ -116,12 +125,14 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     return new Request()
       .id(secondaryRequest.getId())
       .instanceId(secondaryRequest.getInstanceId())
+      .itemId(secondaryRequest.getItemId())
+      .holdingsRecordId(secondaryRequest.getHoldingsRecordId())
       .requesterId(secondaryRequest.getRequesterId())
       .requestDate(secondaryRequest.getRequestDate())
-      .requestLevel(Request.RequestLevelEnum.TITLE)
-      .requestType(Constants.PRIMARY_REQUEST_TYPE)
+      .requestLevel(secondaryRequest.getRequestLevel())
+      .requestType(secondaryRequest.getRequestType())
       .ecsRequestPhase(Request.EcsRequestPhaseEnum.PRIMARY)
-      .fulfillmentPreference(Request.FulfillmentPreferenceEnum.HOLD_SHELF)
+      .fulfillmentPreference(secondaryRequest.getFulfillmentPreference())
       .pickupServicePointId(secondaryRequest.getPickupServicePointId());
   }
 

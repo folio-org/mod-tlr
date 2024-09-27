@@ -25,6 +25,8 @@ import org.folio.service.impl.EcsTlrServiceImpl;
 import org.joda.time.DateTime;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -54,14 +56,14 @@ class EcsTlrServiceTest {
     verify(ecsTlrRepository).findById(any());
   }
 
-  @Test
-  void ecsTlrShouldBeCreatedThenUpdatedAndDeleted() {
+  @ParameterizedTest
+  @EnumSource(EcsTlr.RequestLevelEnum.class)
+  void ecsTlrShouldBeCreatedThenUpdatedAndDeleted(EcsTlr.RequestLevelEnum requestLevel) {
     var id = UUID.randomUUID();
     var instanceId = UUID.randomUUID();
     var requesterId = UUID.randomUUID();
     var pickupServicePointId = UUID.randomUUID();
     var requestType = EcsTlr.RequestTypeEnum.PAGE;
-    var requestLevel = EcsTlr.RequestLevelEnum.TITLE;
     var fulfillmentPreference = EcsTlr.FulfillmentPreferenceEnum.HOLD_SHELF;
     var requestExpirationDate = DateTime.now().plusDays(7).toDate();
     var requestDate = DateTime.now().toDate();
