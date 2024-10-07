@@ -9,16 +9,18 @@ import org.folio.domain.dto.InventoryInstance;
 import org.folio.domain.dto.InventoryItem;
 import org.folio.domain.dto.ReorderQueue;
 import org.folio.domain.dto.Request;
-import org.folio.domain.entity.EcsTlrEntity;
 
 public interface RequestService {
-  RequestWrapper createPrimaryRequest(Request request, String borrowingTenantId);
+  RequestWrapper createPrimaryRequest(Request request, String primaryRequestTenantId);
 
-  RequestWrapper createSecondaryRequest(Request request, String borrowingTenantId,
-    Collection<String> lendingTenantIds);
+  RequestWrapper createSecondaryRequest(Request request, String primaryRequestTenantId,
+    Collection<String> secondaryRequestTenantIds);
 
-  CirculationItem createCirculationItem(EcsTlrEntity ecsTlr, Request secondaryRequest,
-    String borrowingTenantId, String lendingTenantId);
+//  CirculationItem createCirculationItem(String itemId, String instanceId,
+//    String circulationItemTenantId, String inventoryTenantId);
+
+  CirculationItem createCirculationItem(String itemId, String instanceId,
+    String pickupLocation, String circulationItemTenantId, String inventoryTenantId);
 
   CirculationItem updateCirculationItemOnRequestCreation(CirculationItem circulationItem,
     Request secondaryRequest);

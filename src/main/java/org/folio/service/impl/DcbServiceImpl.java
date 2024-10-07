@@ -2,6 +2,7 @@ package org.folio.service.impl;
 
 import static org.folio.domain.dto.DcbTransaction.RoleEnum.BORROWER;
 import static org.folio.domain.dto.DcbTransaction.RoleEnum.LENDER;
+import static org.folio.domain.dto.DcbTransaction.RoleEnum.PICKUP;
 
 import java.util.UUID;
 
@@ -50,7 +51,7 @@ public class DcbServiceImpl implements DcbService {
   }
 
   @Override
-  public void createBorrowingTransaction(EcsTlrEntity ecsTlr, Request request) {
+  public void createBorrowingTransaction(EcsTlrEntity ecsTlr, Request request, String tenantId) {
     log.info("createBorrowingTransaction:: creating borrowing transaction for ECS TLR {}", ecsTlr::getId);
     DcbItem dcbItem = new DcbItem()
       .id(request.getItemId())
@@ -60,10 +61,27 @@ public class DcbServiceImpl implements DcbService {
       .requestId(ecsTlr.getPrimaryRequestId().toString())
       .item(dcbItem)
       .role(BORROWER);
-    final UUID borrowingTransactionId = createTransaction(transaction, ecsTlr.getPrimaryRequestTenantId());
+    final UUID borrowingTransactionId = createTransaction(transaction, tenantId);
     ecsTlr.setPrimaryRequestDcbTransactionId(borrowingTransactionId);
     log.info("createBorrowingTransaction:: borrowing transaction {} for ECS TLR {} created",
       () -> borrowingTransactionId, ecsTlr::getId);
+  }
+
+  @Override
+  public void createPickupTransaction(EcsTlrEntity ecsTlr, Request request, String tenantId) {
+    log.info("createPickupTransaction:: creating borrowing transaction for ECS TLR {}", ecsTlr::getId);
+    DcbItem dcbItem = new DcbItem()
+      .id(request.getItemId())
+      .title(request.getInstance().getTitle())
+      .barcode(request.getItem().getBarcode());
+    DcbTransaction transaction = new DcbTransaction()
+      .requestId(ecsTlr.getPrimaryRequestId().toString())
+      .item(dcbItem)
+      .role(PICKUP);
+    final UUID transactionId = createTransaction(transaction, tenantId);
+    ecsTlr.setIntermediateRequestDcbTransactionId(transactionId);
+    log.info("createPickupTransaction:: pickup transaction {} for ECS TLR {} created",
+      () -> transactionId, ecsTlr::getId);
   }
 
   private UUID createTransaction(DcbTransaction transaction, String tenantId) {

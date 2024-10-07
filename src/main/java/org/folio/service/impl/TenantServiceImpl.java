@@ -44,19 +44,19 @@ public class TenantServiceImpl implements TenantService {
   private final SearchClient searchClient;
 
   @Override
-  public Optional<String> getBorrowingTenant(EcsTlrEntity ecsTlr) {
-    log.info("getBorrowingTenant:: getting borrowing tenant");
+  public Optional<String> getPrimaryRequestTenantId(EcsTlrEntity ecsTlr) {
+    log.info("getPrimaryRequestTenantId:: getting borrowing tenant");
     return HttpUtils.getTenantFromToken();
   }
 
   @Override
-  public List<String> getLendingTenants(EcsTlrEntity ecsTlr) {
+  public List<String> getSecondaryRequestTenants(EcsTlrEntity ecsTlr) {
     final String instanceId = ecsTlr.getInstanceId().toString();
-    log.info("getLendingTenants:: looking for potential lending tenants for instance {}", instanceId);
+    log.info("getSecondaryRequestTenants:: looking for potential secondary request tenants for instance {}", instanceId);
     var itemStatusOccurrencesByTenant = getItemStatusOccurrencesByTenant(instanceId);
-    log.info("getLendingTenants:: item status occurrences by tenant: {}", itemStatusOccurrencesByTenant);
+    log.info("getSecondaryRequestTenants:: item status occurrences by tenant: {}", itemStatusOccurrencesByTenant);
 
-    List<String> lendingTenantIds = itemStatusOccurrencesByTenant.entrySet()
+    List<String> tenantIds = itemStatusOccurrencesByTenant.entrySet()
       .stream()
       .sorted(compareByItemCount(AVAILABLE)
         .thenComparing(compareByItemCount(CHECKED_OUT, IN_TRANSIT))
@@ -64,13 +64,13 @@ public class TenantServiceImpl implements TenantService {
       .map(Entry::getKey)
       .toList();
 
-    if (lendingTenantIds.isEmpty()) {
-      log.warn("getLendingTenants:: failed to find lending tenants for instance {}", instanceId);
+    if (tenantIds.isEmpty()) {
+      log.warn("getSecondaryRequestTenants:: failed to find secondary request tenants for instance {}", instanceId);
     } else {
-      log.info("getLendingTenants:: found tenants for instance {}: {}", instanceId, lendingTenantIds);
+      log.info("getSecondaryRequestTenants:: found tenants for instance {}: {}", instanceId, tenantIds);
     }
 
-    return lendingTenantIds;
+    return tenantIds;
   }
 
   private Map<String, Map<String, Long>> getItemStatusOccurrencesByTenant(String instanceId) {

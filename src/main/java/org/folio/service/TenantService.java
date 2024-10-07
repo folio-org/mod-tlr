@@ -6,7 +6,7 @@ import java.util.Optional;
 import org.folio.domain.entity.EcsTlrEntity;
 
 public interface TenantService {
-  Optional<String> getBorrowingTenant(EcsTlrEntity ecsTlr);
+  Optional<String> getPrimaryRequestTenantId(EcsTlrEntity ecsTlr);
 
-  List<String> getLendingTenants(EcsTlrEntity ecsTlr);
+  List<String> getSecondaryRequestTenants(EcsTlrEntity ecsTlr);
 }
