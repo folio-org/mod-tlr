@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.CirculationItem;
@@ -49,7 +50,9 @@ public class EcsTlrServiceImpl implements EcsTlrService {
 
     final EcsTlrEntity ecsTlr = requestsMapper.mapDtoToEntity(ecsTlrDto);
     String primaryRequestTenantId = getPrimaryRequestTenant(ecsTlr);
-    Collection<String> secondaryRequestsTenantIds = getSecondaryRequestTenants(ecsTlr);
+    Collection<String> secondaryRequestsTenantIds = getSecondaryRequestTenants(ecsTlr).stream()
+      .filter(tenantId -> !tenantId.equals(primaryRequestTenantId))
+      .collect(Collectors.toList());
 
     log.info("create:: Creating secondary request for ECS TLR (ILR) {}", ecsTlrDto.getId());
     RequestWrapper secondaryRequestWrapper = requestService.createSecondaryRequest(
