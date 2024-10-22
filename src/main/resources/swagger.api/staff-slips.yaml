@@ -11,6 +11,8 @@ paths:
       operationId: getPickSlips
       tags:
         - pickSlips
+      parameters:
+        - $ref: '#/components/parameters/servicePointId'
       responses:
         '200':
           $ref: '#/components/responses/staff-slips'
@@ -24,6 +26,14 @@ components:
   schemas:
     errorResponse:
       $ref: 'schemas/errors.json'
+  parameters:
+    servicePointId:
+      name: servicePointId
+      in: query
+      required: true
+      schema:
+        type: string
+        format: uuid
   responses:
     staff-slips:
       description: Staff slips
