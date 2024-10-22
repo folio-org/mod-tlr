@@ -1,0 +1,63 @@
+openapi: 3.0.0
+info:
+  title: Staff Slips API
+  version: v1
+tags:
+  - name: staffSlips
+paths:
+  /tlr/staff-slips/pick-slips:
+    get:
+      description: Get pick slips
+      operationId: getPickSlips
+      tags:
+        - pickSlips
+      responses:
+        '200':
+          $ref: '#/components/responses/staff-slips'
+        '400':
+          $ref: '#/components/responses/badRequestResponse'
+        '404':
+          $ref: '#/components/responses/notFoundResponse'
+        '500':
+          $ref: '#/components/responses/internalServerErrorResponse'
+components:
+  schemas:
+    errorResponse:
+      $ref: 'schemas/errors.json'
+  responses:
+    staff-slips:
+      description: Staff slips
+      content:
+        application/json:
+          schema:
+            $ref: 'schemas/staff-slips-response.json'
+    badRequestResponse:
+      description: Validation errors
+      content:
+        application/json:
+          example:
+            errors:
+              - message: Request is invalid
+            total_records: 1
+          schema:
+            $ref: "#/components/schemas/errorResponse"
+    notFoundResponse:
+      description: Not found
+      content:
+        application/json:
+          example:
+            errors:
+              - message: Request not found
+            total_records: 1
+          schema:
+            $ref: "#/components/schemas/errorResponse"
+    internalServerErrorResponse:
+      description: When unhandled exception occurred during code execution, e.g. NullPointerException
+      content:
+        application/json:
+          example:
+            errors:
+              - message: Unexpected error
+            total_records: 1
+          schema:
+            $ref: "#/components/schemas/errorResponse"
