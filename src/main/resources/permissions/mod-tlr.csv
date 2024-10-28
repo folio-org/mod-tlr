@@ -25,3 +25,5 @@ inventory-storage.items.collection.get
 inventory-storage.instances.item.get
 inventory-storage.instances.collection.get
 circulation-item.item.post
+circulation-item.item.get
+circulation-item.collection.get
