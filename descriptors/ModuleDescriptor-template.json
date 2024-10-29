@@ -21,6 +21,7 @@
             "circulation.requests.item.post",
             "circulation-item.item.get",
             "circulation-item.collection.get",
+            "circulation-item.item.post",
             "search.instances.collection.get",
             "users.item.get",
             "users.collection.get",
