@@ -19,6 +19,8 @@
           "modulePermissions": [
             "circulation.requests.instances.item.post",
             "circulation.requests.item.post",
+            "circulation-item.item.get",
+            "circulation-item.collection.get",
             "search.instances.collection.get",
             "users.item.get",
             "users.collection.get",
