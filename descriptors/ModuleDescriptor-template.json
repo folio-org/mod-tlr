@@ -22,6 +22,7 @@
             "circulation-item.item.get",
             "circulation-item.collection.get",
             "circulation-item.item.post",
+            "circulation-item.item.put",
             "search.instances.collection.get",
             "users.item.get",
             "users.collection.get",
