@@ -1,17 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
     <version>3.2.6</version>
-    <relativePath/>
+    <relativePath />
   </parent>
   <groupId>org.folio</groupId>
   <artifactId>mod-tlr</artifactId>
   <name>mod-tlr</name>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>1.0.0</version>
   <description>FOLIO mod-tlr module</description>
   <packaging>jar</packaging>
 
@@ -30,7 +29,7 @@
       <!-- define sonar exclusions here -->
       src/main/java/org/folio/EcsTlrApplication.java
     </sonar.exclusions>
-    <argLine/>
+    <argLine />
 
     <!-- runtime dependencies -->
     <folio-spring-support.version>8.1.2</folio-spring-support.version>
@@ -425,7 +424,7 @@
     <url>https://github.com/folio-org/${project.artifactId}</url>
     <connection>scm:git:git://github.com/folio-org/${project.artifactId}.git</connection>
     <developerConnection>scm:git:git@github.com:folio-org/${project.artifactId}.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>v1.0.0</tag>
   </scm>
 
 </project>
