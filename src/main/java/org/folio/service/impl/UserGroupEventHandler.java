@@ -72,7 +72,7 @@ public class UserGroupEventHandler implements KafkaEventHandler<UserGroup> {
 
   private void processUserGroupForAllDataTenants(String consortiumId, Runnable action) {
     log.debug("processUserGroupForAllDataTenants:: params: consortiumId={}", consortiumId);
-    consortiaService.getAllDataTenants(consortiumId).getTenants().stream()
+    consortiaService.getAllConsortiumTenants(consortiumId).getTenants().stream()
       .filter(tenant -> !tenant.getIsCentral())
       .forEach(tenant -> systemUserScopedExecutionService.executeAsyncSystemUserScoped(
         tenant.getId(), action));

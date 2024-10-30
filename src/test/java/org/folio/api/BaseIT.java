@@ -29,6 +29,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -71,6 +72,7 @@ import lombok.extern.log4j.Log4j2;
 @Testcontainers
 @DirtiesContext
 @Log4j2
+@AutoConfigureMockMvc
 public class BaseIT {
   private static final String FOLIO_ENVIRONMENT = "folio";
   protected static final String HEADER_TENANT = "x-okapi-tenant";
@@ -104,6 +106,8 @@ public class BaseIT {
   protected static AdminClient kafkaAdminClient;
   @Autowired
   protected KafkaTemplate<String, String> kafkaTemplate;
+  @Autowired
+  protected MockMvc mockMvc;
 
   @Container
   private static final PostgreSQLContainer<?> postgresDBContainer =
@@ -164,7 +168,7 @@ public class BaseIT {
     final HttpHeaders httpHeaders = new HttpHeaders();
 
     httpHeaders.setContentType(APPLICATION_JSON);
-    httpHeaders.put(XOkapiHeaders.TENANT, List.of(TENANT_ID_CONSORTIUM));
+    httpHeaders.add(XOkapiHeaders.TENANT, TENANT_ID_CONSORTIUM);
     httpHeaders.add(XOkapiHeaders.URL, wireMockServer.baseUrl());
     httpHeaders.add(XOkapiHeaders.TOKEN, TOKEN);
     httpHeaders.add(XOkapiHeaders.USER_ID, "08d51c7a-0f36-4f3d-9e35-d285612a23df");

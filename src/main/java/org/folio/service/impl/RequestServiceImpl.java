@@ -20,15 +20,18 @@ import org.folio.domain.dto.InventoryItem;
 import org.folio.domain.dto.InventoryItemStatus;
 import org.folio.domain.dto.ReorderQueue;
 import org.folio.domain.dto.Request;
+import org.folio.domain.dto.Requests;
 import org.folio.domain.dto.ServicePoint;
 import org.folio.domain.dto.User;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.exception.RequestCreatingException;
+import org.folio.service.BulkFetchingService;
 import org.folio.service.CloningService;
 import org.folio.service.RequestService;
 import org.folio.service.ServicePointService;
 import org.folio.service.UserService;
 import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.support.CqlQuery;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -51,6 +54,7 @@ public class RequestServiceImpl implements RequestService {
   private final CloningService<User> userCloningService;
   private final CloningService<ServicePoint> servicePointCloningService;
   private final SystemUserScopedExecutionService systemUserScopedExecutionService;
+  private final BulkFetchingService bulkFetchingService;
 
   public static final String HOLDINGS_RECORD_ID = "10cd3a5a-d36f-4c7a-bc4f-e1ae3cf820c9";
 
@@ -215,6 +219,16 @@ public class RequestServiceImpl implements RequestService {
   public Request getRequestFromStorage(String requestId) {
     log.info("getRequestFromStorage:: getting request {} from storage", requestId);
     return requestStorageClient.getRequest(requestId);
+  }
+
+  @Override
+  public Collection<Request> getRequestsFromStorage(CqlQuery query, String idIndex,
+    Collection<String> ids) {
+
+    log.info("getRequestsFromStorage:: searching requests by {} IDs: query={}, idIndex={}",
+      ids.size(), query, idIndex);
+
+    return bulkFetchingService.fetch(requestStorageClient, query, idIndex, ids, Requests::getRequests);
   }
 
   @Override
