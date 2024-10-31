@@ -42,6 +42,12 @@ public record CqlQuery(String query) {
   }
 
   public CqlQuery and(CqlQuery other) {
+    if (other == null) {
+      return this;
+    }
+    if (StringUtils.isBlank(other.query())) {
+      return this;
+    }
     if (StringUtils.isBlank(query)) {
       return other;
     }
