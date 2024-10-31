@@ -14,9 +14,11 @@ import org.folio.client.feign.GetByQueryClient;
 
 import com.google.common.collect.Lists;
 
+import lombok.experimental.UtilityClass;
 import lombok.extern.log4j.Log4j2;
 
 @Log4j2
+@UtilityClass
 public class BulkFetcher {
   private static final int MAX_IDS_PER_QUERY = 70;
 
