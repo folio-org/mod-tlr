@@ -7,11 +7,11 @@ import static java.util.stream.Collectors.toMap;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.Function;
 
 import javax.annotation.PostConstruct;
 
+import org.apache.commons.lang3.StringUtils;
 import org.folio.client.feign.GetByQueryClient;
 import org.folio.service.BulkFetchingService;
 import org.folio.support.CqlQuery;
@@ -76,7 +76,7 @@ public class BulkFetchingServiceImpl implements BulkFetchingService {
 
   private static Collection<CqlQuery> buildQueries(CqlQuery commonQuery, String index, Collection<String> ids) {
     List<String> uniqueIds = ids.stream()
-      .peek(UUID::fromString)
+      .filter(StringUtils::isNotBlank)
       .distinct()
       .toList();
 
