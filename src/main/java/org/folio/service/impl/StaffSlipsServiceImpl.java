@@ -139,76 +139,77 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
   }
 
   private static StaffSlip buildStaffSlip(StaffSlipContext context) {
-    Request request = context.request();
+    return new StaffSlip()
+      .currentDateTime(new Date())
+      .item(buildStaffSlipItem(context))
+      .request(buildStaffSlipRequest(context));
+  }
+
+  private static StaffSlipItem buildStaffSlipItem(StaffSlipContext context) {
     Item item = context.item();
+    if (item == null) {
+      return null;
+    }
+
+    String yearCaptions = Optional.ofNullable(item.getYearCaption())
+      .map(captions -> String.join("; ", captions))
+      .orElse(null);
+
+    String copyNumber = Optional.ofNullable(item.getCopyNumber()).orElse("");
+
+    StaffSlipItem staffSlipItem = new StaffSlipItem()
+      .title(null) // get from instance
+      .primaryContributor(null) // get from instance
+      .allContributors(null) // get from instance
+      .barcode(item.getBarcode())
+      .status(item.getStatus().getName().getValue())
+      .enumeration(item.getEnumeration())
+      .volume(item.getVolume())
+      .chronology(item.getChronology())
+      .yearCaption(yearCaptions)
+      .materialType(null) // get from material type
+      .loanType(null) // get from loan type
+      .copy(copyNumber)
+      .numberOfPieces(item.getNumberOfPieces())
+      .displaySummary(item.getDisplaySummary())
+      .descriptionOfPieces(item.getDescriptionOfPieces());
+
     Location location = context.location();
-
-    StaffSlip staffSlip = new StaffSlip()
-      .currentDateTime(new Date());
-
-    if (item != null) {
-      String yearCaptions = Optional.ofNullable(item.getYearCaption())
-        .map(captions -> String.join("; ", captions))
-        .orElse(null);
-
-      String copyNumber = Optional.ofNullable(item.getCopyNumber()).orElse("");
-
-      StaffSlipItem staffSlipItem = new StaffSlipItem()
-        .title(null) // get from instance
-        .primaryContributor(null) // get from instance
-        .allContributors(null) // get from instance
-        .barcode(item.getBarcode())
-        .status(item.getStatus().getName().getValue())
-        .enumeration(item.getEnumeration())
-        .volume(item.getVolume())
-        .chronology(item.getChronology())
-        .yearCaption(yearCaptions)
-        .materialType(null) // get from material type
-        .loanType(null) // get from loan type
-        .copy(copyNumber)
-        .numberOfPieces(item.getNumberOfPieces())
-        .displaySummary(item.getDisplaySummary())
-        .descriptionOfPieces(item.getDescriptionOfPieces());
-
-      if (location != null) {
-        staffSlipItem
-          .effectiveLocationSpecific(location.getName())
-          .effectiveLocationLibrary(null) // get from library
-          .effectiveLocationCampus(null) // get from library
-          .effectiveLocationInstitution(null) // item.isDcbItem() ? item.getLendingLibraryCode() : location.getInstitutionName())
-          .effectiveLocationDiscoveryDisplayName(location.getDiscoveryDisplayName());
-
-        //      if (primaryServicePoint != null) {
-        //        staffSlipItem.effectiveLocationPrimaryServicePointName(primaryServicePoint.getName());
-        //      }
-
-        ItemEffectiveCallNumberComponents callNumberComponents = item.getEffectiveCallNumberComponents();
-        if (callNumberComponents != null) {
-          staffSlipItem.callNumber(callNumberComponents.getCallNumber())
-            .callNumberPrefix(callNumberComponents.getPrefix())
-            .callNumberSuffix(callNumberComponents.getSuffix());
-        }
-      }
-
-      staffSlip.setItem(staffSlipItem);
+    if (location != null) {
+      staffSlipItem
+        .effectiveLocationSpecific(location.getName())
+        .effectiveLocationLibrary(null) // get from library
+        .effectiveLocationCampus(null) // get from library
+        .effectiveLocationInstitution(null) // get from library or location
+        .effectiveLocationDiscoveryDisplayName(location.getDiscoveryDisplayName());
     }
 
-    if (request != null) {
-      StaffSlipRequest staffSlipRequest = new StaffSlipRequest()
-        .requestId(UUID.fromString(request.getId()))
-        .servicePointPickup(null) // get name from pickup service point
-        .requestDate(request.getRequestDate())
-        .requestExpirationDate(request.getRequestExpirationDate())
-        .holdShelfExpirationDate(request.getHoldShelfExpirationDate())
-        .additionalInfo(request.getCancellationAdditionalInformation())
-        .reasonForCancellation(null) // get from cancellation reason
-        .deliveryAddressType(null) // get from delivery address type
-        .patronComments(request.getPatronComments());
-
-      staffSlip.setRequest(staffSlipRequest);
+    ItemEffectiveCallNumberComponents callNumberComponents = item.getEffectiveCallNumberComponents();
+    if (callNumberComponents != null) {
+      staffSlipItem.callNumber(callNumberComponents.getCallNumber())
+        .callNumberPrefix(callNumberComponents.getPrefix())
+        .callNumberSuffix(callNumberComponents.getSuffix());
     }
 
-    return staffSlip;
+    return staffSlipItem;
+  }
+
+  private static StaffSlipRequest buildStaffSlipRequest(StaffSlipContext context) {
+    Request request = context.request();
+    if (request == null) {
+      return null;
+    }
+
+    return new StaffSlipRequest()
+      .requestId(UUID.fromString(request.getId()))
+      .servicePointPickup(null) // get name from pickup service point
+      .requestDate(request.getRequestDate())
+      .requestExpirationDate(request.getRequestExpirationDate())
+      .holdShelfExpirationDate(request.getHoldShelfExpirationDate())
+      .additionalInfo(request.getCancellationAdditionalInformation())
+      .reasonForCancellation(null) // get from cancellation reason
+      .deliveryAddressType(null) // get from delivery address type
+      .patronComments(request.getPatronComments());
   }
 
   private static <T> Collector<T, ?, Map<String, T>> mapById(Function<T, String> keyMapper) {
