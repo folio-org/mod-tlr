@@ -93,7 +93,7 @@
       "handlers": [
         {
           "methods": ["GET"],
-          "pathPattern": "/tlr/staff-slips/pick-slips",
+          "pathPattern": "/tlr/staff-slips/pick-slips/{servicePointId}",
           "permissionsRequired": ["tlr.staff-slips.pick-slips.get"],
           "modulePermissions": [
             "circulation-item.item.get",
