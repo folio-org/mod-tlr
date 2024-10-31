@@ -23,7 +23,7 @@ import org.folio.domain.dto.Locations;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.Requests;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.MediaType;
+import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.test.web.servlet.ResultActions;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -86,11 +86,12 @@ public class StaffSlipsApiTest extends BaseIT {
       .willReturn(okJson(asJsonString(new Requests().addRequestsItem(request)))));
 
     getPickSlips()
-      .andExpect(status().isOk())
-      .andExpect(jsonPath("pickSlips", hasSize(1)))
-      .andExpect(jsonPath("totalRecords", is(1)))
-      .andExpect(jsonPath("pickSlips[0].item").exists())
-      .andExpect(jsonPath("pickSlips[0].request").exists());
+      .expectStatus().isOk()
+      .expectBody()
+      .jsonPath("pickSlips").value(hasSize(1))
+      .jsonPath("totalRecords").value(is(1))
+      .jsonPath("pickSlips[0].item").exists()
+      .jsonPath("pickSlips[0].request").exists();
 
     wireMockServer.verify(0, getRequestedFor(urlPathMatching(ITEM_STORAGE_URL))
       .withHeader(HEADER_TENANT, not(equalTo(TENANT_ID_COLLEGE))));
@@ -98,15 +99,12 @@ public class StaffSlipsApiTest extends BaseIT {
       .withHeader(HEADER_TENANT, not(equalTo(TENANT_ID_COLLEGE))));
   }
 
-  private ResultActions getPickSlips() {
+  private WebTestClient.ResponseSpec getPickSlips() {
     return getPickSlips(SERVICE_POINT_ID);
   }
 
   @SneakyThrows
-  private ResultActions getPickSlips(String servicePointId) {
-    return mockMvc.perform(
-      get(PICK_SLIPS_URL + "/" + servicePointId)
-        .headers(defaultHeaders())
-        .contentType(MediaType.APPLICATION_JSON));
+  private WebTestClient.ResponseSpec getPickSlips(String servicePointId) {
+    return doGet(PICK_SLIPS_URL + "/" + servicePointId);
   }
 }
