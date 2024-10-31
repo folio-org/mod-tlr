@@ -25,12 +25,12 @@ import org.folio.domain.dto.ServicePoint;
 import org.folio.domain.dto.User;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.exception.RequestCreatingException;
-import org.folio.service.BulkFetchingService;
 import org.folio.service.CloningService;
 import org.folio.service.RequestService;
 import org.folio.service.ServicePointService;
 import org.folio.service.UserService;
 import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.support.BulkFetcher;
 import org.folio.support.CqlQuery;
 import org.springframework.stereotype.Service;
 
@@ -54,7 +54,6 @@ public class RequestServiceImpl implements RequestService {
   private final CloningService<User> userCloningService;
   private final CloningService<ServicePoint> servicePointCloningService;
   private final SystemUserScopedExecutionService systemUserScopedExecutionService;
-  private final BulkFetchingService bulkFetchingService;
 
   public static final String HOLDINGS_RECORD_ID = "10cd3a5a-d36f-4c7a-bc4f-e1ae3cf820c9";
 
@@ -228,7 +227,7 @@ public class RequestServiceImpl implements RequestService {
     log.info("getRequestsFromStorage:: searching requests by {} IDs: query={}, idIndex={}",
       ids.size(), query, idIndex);
 
-    return bulkFetchingService.fetch(requestStorageClient, query, idIndex, ids, Requests::getRequests);
+    return BulkFetcher.fetch(requestStorageClient, query, idIndex, ids, Requests::getRequests);
   }
 
   @Override

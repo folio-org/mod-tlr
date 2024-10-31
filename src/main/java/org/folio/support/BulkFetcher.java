@@ -1,4 +1,4 @@
-package org.folio.service.impl;
+package org.folio.support;
 
 import static java.util.Collections.emptyList;
 import static java.util.function.UnaryOperator.identity;
@@ -9,34 +9,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import javax.annotation.PostConstruct;
-
 import org.apache.commons.lang3.StringUtils;
 import org.folio.client.feign.GetByQueryClient;
-import org.folio.service.BulkFetchingService;
-import org.folio.support.CqlQuery;
-import org.springframework.stereotype.Service;
 
 import com.google.common.collect.Lists;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
-@RequiredArgsConstructor
-@Service
 @Log4j2
-public class BulkFetchingServiceImpl implements BulkFetchingService {
+public class BulkFetcher {
   private static final int MAX_IDS_PER_QUERY = 70;
 
-  @Override
-  public <C, E> Collection<E> fetch(GetByQueryClient<C> client, Collection<String> ids,
+  public static <C, E> Collection<E> fetch(GetByQueryClient<C> client, Collection<String> ids,
     Function<C, Collection<E>> collectionExtractor) {
 
     return fetch(buildQueries(ids), client, collectionExtractor);
   }
 
-  @Override
-  public <C, E> Map<String, E> fetch(GetByQueryClient<C> client, Collection<String> ids,
+  public static <C, E> Map<String, E> fetch(GetByQueryClient<C> client, Collection<String> ids,
     Function<C, Collection<E>> collectionExtractor, Function<E, String> keyMapper) {
 
     return fetch(client, ids, collectionExtractor)
@@ -44,15 +34,22 @@ public class BulkFetchingServiceImpl implements BulkFetchingService {
       .collect(toMap(keyMapper, identity()));
   }
 
-  @Override
-  public <C, E> Collection<E> fetch(GetByQueryClient<C> client, CqlQuery commonQuery, String idIndex,
+  public static <C, E> Collection<E> fetch(GetByQueryClient<C> client, CqlQuery commonQuery, String idIndex,
     Collection<String> ids, Function<C, Collection<E>> collectionExtractor) {
 
     return fetch(buildQueries(commonQuery, idIndex, ids), client, collectionExtractor);
   }
 
+  public static <C, E> Map<String, E> fetch(GetByQueryClient<C> client, CqlQuery commonQuery,
+    String idIndex, Collection<String> ids, Function<C, Collection<E>> collectionExtractor,
+    Function<E, String> keyMapper) {
 
-  private <C, E> List<E> fetch(Collection<CqlQuery> queries, GetByQueryClient<C> client,
+    return fetch(client, commonQuery, idIndex, ids, collectionExtractor)
+      .stream()
+      .collect(toMap(keyMapper, identity()));
+  }
+
+  public static <C, E> List<E> fetch(Collection<CqlQuery> queries, GetByQueryClient<C> client,
     Function<C, Collection<E>> collectionExtractor) {
 
     if (queries.isEmpty()) {
@@ -94,11 +91,6 @@ public class BulkFetchingServiceImpl implements BulkFetchingService {
     log.debug("buildQueries:: queries={}", queries);
 
     return queries;
-  }
-
-  @PostConstruct
-  private void postConstruct() {
-    log.info("postConstruct:: MAX_IDS_PER_QUERY={}", MAX_IDS_PER_QUERY);
   }
 
 }

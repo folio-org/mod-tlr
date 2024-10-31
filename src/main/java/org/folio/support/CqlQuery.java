@@ -3,10 +3,9 @@ package org.folio.support;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.joining;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 import java.util.Collection;
-
-import org.apache.commons.lang3.StringUtils;
 
 public record CqlQuery(String query) {
 
@@ -27,7 +26,7 @@ public record CqlQuery(String query) {
   }
 
   public static CqlQuery exactMatchAny(String index, Collection<String> values) {
-    if (StringUtils.isBlank(index)) {
+    if (isBlank(index)) {
       throw new IllegalArgumentException("Index cannot be blank");
     }
     if (values == null || values.isEmpty()) {
@@ -42,13 +41,10 @@ public record CqlQuery(String query) {
   }
 
   public CqlQuery and(CqlQuery other) {
-    if (other == null) {
+    if (other == null || isBlank(other.query())) {
       return this;
     }
-    if (StringUtils.isBlank(other.query())) {
-      return this;
-    }
-    if (StringUtils.isBlank(query)) {
+    if (isBlank(query)) {
       return other;
     }
 

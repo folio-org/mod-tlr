@@ -70,7 +70,6 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
 
     Map<String, Location> locationsById = locations.stream()
       .collect(mapById(Location::getId));
-
     Map<String, Item> itemsById = items.stream()
       .collect(mapById(Item::getId));
 
