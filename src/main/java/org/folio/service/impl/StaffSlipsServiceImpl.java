@@ -154,7 +154,9 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
       .map(captions -> String.join("; ", captions))
       .orElse(null);
 
-    String copyNumber = Optional.ofNullable(item.getCopyNumber()).orElse("");
+    String copyNumber = Optional.ofNullable(item.getCopyNumber())
+//      .or(holdings.getCopyNumber())
+      .orElse("");
 
     StaffSlipItem staffSlipItem = new StaffSlipItem()
       .title(null) // get from instance
