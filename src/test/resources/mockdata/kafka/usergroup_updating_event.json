@@ -1,0 +1,28 @@
+{
+  "id":"baea431b-c84d-4f34-a498-230163d39779",
+  "type":"UPDATED",
+  "tenant":"diku",
+  "timestamp":1716804011310,
+  "data":{
+    "old":{
+      "group":"test-group",
+      "id":"a1070927-53a1-4c3b-86be-f9f32b5bcab3",
+      "metadata":{
+        "createdDate":"2024-05-27T09:58:06.813+00:00",
+        "createdByUserId":"f21b2681-86ef-451a-9f5e-f1743cce2474",
+        "updatedDate":"2024-05-27T09:58:06.813+00:00",
+        "updatedByUserId":"f21b2681-86ef-451a-9f5e-f1743cce2474"
+      }
+    },
+    "new":{
+      "group":"test-group-updated",
+      "id":"a1070927-53a1-4c3b-86be-f9f32b5bcab3",
+      "metadata":{
+        "createdDate":"2024-05-27T09:58:06.813+00:00",
+        "createdByUserId":"f21b2681-86ef-451a-9f5e-f1743cce2474",
+        "updatedDate":"2024-05-27T10:00:11.290+00:00",
+        "updatedByUserId":"f21b2681-86ef-451a-9f5e-f1743cce2474"
+      }
+    }
+  }
+}

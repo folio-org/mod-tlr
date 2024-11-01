@@ -1,0 +1,49 @@
+Tenant:
+  type: object
+  properties:
+    id:
+      type: string
+    code:
+      type: string
+      minLength: 2
+      maxLength: 5
+      pattern: "^[a-zA-Z0-9]*$"
+    name:
+      type: string
+      minLength: 2
+      maxLength: 150
+    isCentral:
+      type: boolean
+    isDeleted:
+      type: boolean
+  additionalProperties: false
+  required:
+    - id
+    - code
+    - name
+    - isCentral
+
+TenantDetails:
+  allOf:
+    - $ref: "tenant.yaml#/Tenant"
+    - type: object
+      properties:
+        setupStatus:
+          type: string
+          enum: [ "IN_PROGRESS", "COMPLETED", "COMPLETED_WITH_ERRORS", "FAILED" ]
+
+TenantCollection:
+  type: object
+  properties:
+    tenants:
+      type: array
+      description: "Tenants"
+      items:
+        type: object
+        $ref: "tenant.yaml#/Tenant"
+    totalRecords:
+      type: integer
+  additionalProperties: false
+  required:
+    - tenants
+    - totalRecords

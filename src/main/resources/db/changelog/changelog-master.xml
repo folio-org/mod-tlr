@@ -5,4 +5,5 @@
                    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
 
   <include file="changes/initial_schema.xml" relativeToChangelogFile="true"/>
+  <include file="changes/2024-09-05-add-holdings-record-id-column.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

@@ -25,6 +25,8 @@ import org.folio.service.impl.EcsTlrServiceImpl;
 import org.joda.time.DateTime;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -42,9 +44,9 @@ class EcsTlrServiceTest {
   @Mock
   private EcsTlrRepository ecsTlrRepository;
   @Mock
-  private TenantScopedExecutionService tenantScopedExecutionService;
-  @Mock
   private TenantService tenantService;
+  @Mock
+  private DcbService dcbService;
   @Spy
   private final EcsTlrMapper ecsTlrMapper = new EcsTlrMapperImpl();
 
@@ -54,14 +56,14 @@ class EcsTlrServiceTest {
     verify(ecsTlrRepository).findById(any());
   }
 
-  @Test
-  void ecsTlrShouldBeCreatedThenUpdatedAndDeleted() {
+  @ParameterizedTest
+  @EnumSource(EcsTlr.RequestLevelEnum.class)
+  void ecsTlrShouldBeCreatedThenUpdatedAndDeleted(EcsTlr.RequestLevelEnum requestLevel) {
     var id = UUID.randomUUID();
     var instanceId = UUID.randomUUID();
     var requesterId = UUID.randomUUID();
     var pickupServicePointId = UUID.randomUUID();
     var requestType = EcsTlr.RequestTypeEnum.PAGE;
-    var requestLevel = EcsTlr.RequestLevelEnum.TITLE;
     var fulfillmentPreference = EcsTlr.FulfillmentPreferenceEnum.HOLD_SHELF;
     var requestExpirationDate = DateTime.now().plusDays(7).toDate();
     var requestDate = DateTime.now().toDate();
@@ -93,15 +95,20 @@ class EcsTlrServiceTest {
     ecsTlr.setFulfillmentPreference(fulfillmentPreference);
     ecsTlr.setPickupServicePointId(pickupServicePointId.toString());
 
+    Request primaryRequest = new Request().id(UUID.randomUUID().toString());
+    Request secondaryRequest = new Request()
+      .id(UUID.randomUUID().toString())
+      .itemId(UUID.randomUUID().toString());
+
     when(ecsTlrRepository.save(any(EcsTlrEntity.class))).thenReturn(mockEcsTlrEntity);
-    when(tenantService.getBorrowingTenant(any(EcsTlr.class)))
+    when(tenantService.getBorrowingTenant(any(EcsTlrEntity.class)))
       .thenReturn(Optional.of(borrowingTenant));
-    when(tenantService.getLendingTenants(any(EcsTlr.class)))
+    when(tenantService.getLendingTenants(any(EcsTlrEntity.class)))
       .thenReturn(List.of(lendingTenant));
     when(requestService.createPrimaryRequest(any(Request.class), any(String.class)))
-      .thenReturn(new RequestWrapper(new Request(), borrowingTenant));
+      .thenReturn(new RequestWrapper(primaryRequest, borrowingTenant));
     when(requestService.createSecondaryRequest(any(Request.class), any(String.class), any()))
-      .thenReturn(new RequestWrapper(new Request(), borrowingTenant));
+      .thenReturn(new RequestWrapper(secondaryRequest, borrowingTenant));
 
     var postEcsTlr = ecsTlrService.create(ecsTlr);
 
@@ -128,7 +135,7 @@ class EcsTlrServiceTest {
   void canNotCreateEcsTlrWhenFailedToGetBorrowingTenantId() {
     String instanceId = UUID.randomUUID().toString();
     EcsTlr ecsTlr = new EcsTlr().instanceId(instanceId);
-    when(tenantService.getBorrowingTenant(ecsTlr))
+    when(tenantService.getBorrowingTenant(any(EcsTlrEntity.class)))
       .thenReturn(Optional.empty());
 
     TenantPickingException exception = assertThrows(TenantPickingException.class,
@@ -141,9 +148,9 @@ class EcsTlrServiceTest {
   void canNotCreateEcsTlrWhenFailedToGetLendingTenants() {
     String instanceId = UUID.randomUUID().toString();
     EcsTlr ecsTlr = new EcsTlr().instanceId(instanceId);
-    when(tenantService.getBorrowingTenant(ecsTlr))
+    when(tenantService.getBorrowingTenant(any(EcsTlrEntity.class)))
       .thenReturn(Optional.of("borrowing_tenant"));
-    when(tenantService.getLendingTenants(ecsTlr))
+    when(tenantService.getLendingTenants(any(EcsTlrEntity.class)))
       .thenReturn(emptyList());
 
     TenantPickingException exception = assertThrows(TenantPickingException.class,
