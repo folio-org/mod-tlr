@@ -224,8 +224,9 @@ public class RequestServiceImpl implements RequestService {
   public Collection<Request> getRequestsFromStorage(CqlQuery query, String idIndex,
     Collection<String> ids) {
 
-    log.info("getRequestsFromStorage:: searching requests by {} IDs: query={}, idIndex={}",
-      ids.size(), query, idIndex);
+    log.info("getRequestsFromStorage:: searching requests by query and index: query={}, index={}, ids={}",
+     query, idIndex, ids.size());
+    log.debug("getRequestsFromStorage:: ids={}", ids);
 
     return BulkFetcher.fetch(requestStorageClient, query, idIndex, ids, Requests::getRequests);
   }

@@ -51,11 +51,14 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
   @Override
   public Collection<StaffSlip> getStaffSlips(String servicePointId) {
     log.info("getStaffSlips:: building staff slips for service point {}", servicePointId);
-    return getConsortiumTenants()
+    List<StaffSlip> staffSlips = getConsortiumTenants()
       .stream()
       .map(tenantId -> buildStaffSlips(servicePointId, tenantId))
       .flatMap(Collection::stream)
       .toList();
+
+    log.info("buildStaffSlips:: successfully built {} staff slips", staffSlips::size);
+    return staffSlips;
   }
 
   private Collection<StaffSlip> buildStaffSlips(String servicePointId, String tenantId) {
@@ -75,8 +78,10 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
 
     return requests.stream()
       .map(request -> {
+        log.info("buildStaffSlips:: building staff slip for request {}", request::getId);
         Item item = itemsById.get(request.getItemId());
-        return new StaffSlipContext(request, item, locationsById.get(item.getEffectiveLocationId()));
+        return new StaffSlipContext(request, item,
+          locationsById.get(item.getEffectiveLocationId()));
       })
       .map(StaffSlipsServiceImpl::buildStaffSlip)
       .toList();

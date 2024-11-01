@@ -21,7 +21,9 @@ public class ItemServiceImpl implements ItemService {
 
   @Override
   public Collection<Item> findItems(CqlQuery query, String idIndex, Collection<String> ids) {
-    log.info("findItems:: searching items by {} IDs: query={}, idIndex={}", ids.size(), query, idIndex);
+    log.info("findItems:: searching items by query and index: query={}, index={}, ids={}",
+      query, idIndex, ids.size());
+    log.debug("findItems:: ids={}", ids);
     Collection<Item> items = BulkFetcher.fetch(itemClient, query, idIndex, ids, Items::getItems);
     log.info("findItems:: found {} items", items::size);
     return items;
