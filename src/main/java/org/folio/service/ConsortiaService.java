@@ -1,7 +1,11 @@
 package org.folio.service;
 
+import java.util.Collection;
+
+import org.folio.domain.dto.Tenant;
 import org.folio.domain.dto.TenantCollection;
 
 public interface ConsortiaService {
-  TenantCollection getAllDataTenants(String consortiumId);
+  TenantCollection getAllConsortiumTenants(String consortiumId);
+  Collection<Tenant> getAllConsortiumTenants();
 }

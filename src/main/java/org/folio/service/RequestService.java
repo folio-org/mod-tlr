@@ -10,6 +10,7 @@ import org.folio.domain.dto.InventoryItem;
 import org.folio.domain.dto.ReorderQueue;
 import org.folio.domain.dto.Request;
 import org.folio.domain.entity.EcsTlrEntity;
+import org.folio.support.CqlQuery;
 
 public interface RequestService {
   RequestWrapper createPrimaryRequest(Request request, String borrowingTenantId);
@@ -29,6 +30,7 @@ public interface RequestService {
 
   Request getRequestFromStorage(String requestId, String tenantId);
   Request getRequestFromStorage(String requestId);
+  Collection<Request> getRequestsFromStorage(CqlQuery query, String idIndex, Collection<String> ids);
   Request updateRequestInStorage(Request request, String tenantId);
   List<Request> getRequestsQueueByInstanceId(String instanceId, String tenantId);
   List<Request> getRequestsQueueByInstanceId(String instanceId);

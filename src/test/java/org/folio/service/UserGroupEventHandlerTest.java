@@ -49,7 +49,7 @@ class UserGroupEventHandlerTest extends BaseIT {
   @Test
   void handleUserGroupCreatingEventShouldCreateUserGroupForAllDataTenants() {
     when(userTenantsService.findFirstUserTenant()).thenReturn(mockUserTenant());
-    when(consortiaService.getAllDataTenants(anyString())).thenReturn(mockTenantCollection());
+    when(consortiaService.getAllConsortiumTenants(anyString())).thenReturn(mockTenantCollection());
     when(userGroupService.create(any(UserGroup.class))).thenReturn(new UserGroup());
 
     doAnswer(invocation -> {
@@ -69,7 +69,7 @@ class UserGroupEventHandlerTest extends BaseIT {
   @Test
   void handleUserGroupUpdatingEventShouldUpdateUserGroupForAllDataTenants() {
     when(userTenantsService.findFirstUserTenant()).thenReturn(mockUserTenant());
-    when(consortiaService.getAllDataTenants(anyString())).thenReturn(mockTenantCollection());
+    when(consortiaService.getAllConsortiumTenants(anyString())).thenReturn(mockTenantCollection());
     when(userGroupService.update(any(UserGroup.class))).thenReturn(new UserGroup());
 
     doAnswer(invocation -> {
@@ -90,7 +90,7 @@ class UserGroupEventHandlerTest extends BaseIT {
   @SneakyThrows
   void handleUserGroupCreatingEventShouldNotCreateUserGroupWithEmptyHeaders() {
     when(userTenantsService.findFirstUserTenant()).thenReturn(mockUserTenant());
-    when(consortiaService.getAllDataTenants(anyString())).thenReturn(mockTenantCollection());
+    when(consortiaService.getAllConsortiumTenants(anyString())).thenReturn(mockTenantCollection());
     when(userGroupService.create(any(UserGroup.class))).thenReturn(new UserGroup());
 
     doAnswer(invocation -> {
