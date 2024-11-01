@@ -24,11 +24,11 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import org.folio.client.feign.SearchClient;
-import org.folio.domain.dto.EcsTlr;
-import org.folio.domain.dto.Instance;
-import org.folio.domain.dto.Item;
-import org.folio.domain.dto.ItemStatus;
 import org.folio.domain.dto.ItemStatusEnum;
+import org.folio.domain.dto.SearchInstance;
+import org.folio.domain.dto.SearchItem;
+import org.folio.domain.dto.SearchItemStatus;
+import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.service.TenantService;
 import org.folio.util.HttpUtils;
 import org.jetbrains.annotations.NotNull;
@@ -44,14 +44,14 @@ public class TenantServiceImpl implements TenantService {
   private final SearchClient searchClient;
 
   @Override
-  public Optional<String> getBorrowingTenant(EcsTlr ecsTlr) {
+  public Optional<String> getBorrowingTenant(EcsTlrEntity ecsTlr) {
     log.info("getBorrowingTenant:: getting borrowing tenant");
     return HttpUtils.getTenantFromToken();
   }
 
   @Override
-  public List<String> getLendingTenants(EcsTlr ecsTlr) {
-    final String instanceId = ecsTlr.getInstanceId();
+  public List<String> getLendingTenants(EcsTlrEntity ecsTlr) {
+    final String instanceId = ecsTlr.getInstanceId().toString();
     log.info("getLendingTenants:: looking for potential lending tenants for instance {}", instanceId);
     var itemStatusOccurrencesByTenant = getItemStatusOccurrencesByTenant(instanceId);
     log.info("getLendingTenants:: item status occurrences by tenant: {}", itemStatusOccurrencesByTenant);
@@ -78,25 +78,25 @@ public class TenantServiceImpl implements TenantService {
       .getInstances()
       .stream()
       .filter(notNull())
-      .map(Instance::getItems)
+      .map(SearchInstance::getItems)
       .flatMap(Collection::stream)
       .filter(item -> item.getTenantId() != null)
-      .collect(collectingAndThen(groupingBy(Item::getTenantId),
+      .collect(collectingAndThen(groupingBy(SearchItem::getTenantId),
         TenantServiceImpl::mapItemsToItemStatusOccurrences));
   }
 
   @NotNull
   private static Map<String, Map<String, Long>> mapItemsToItemStatusOccurrences(
-    Map<String, List<Item>> itemsByTenant) {
+    Map<String, List<SearchItem>> itemsByTenant) {
 
     return itemsByTenant.entrySet()
       .stream()
       .collect(toMap(Entry::getKey, entry -> entry.getValue()
         .stream()
         .distinct()
-        .map(Item::getStatus)
+        .map(SearchItem::getStatus)
         .filter(notNull())
-        .map(ItemStatus::getName)
+        .map(SearchItemStatus::getName)
         .filter(notNull())
         .collect(groupingBy(identity(), counting()))
       ));

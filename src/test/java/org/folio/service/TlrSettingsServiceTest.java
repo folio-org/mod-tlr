@@ -29,13 +29,14 @@ import org.springframework.data.domain.PageRequest;
 
 @ExtendWith(MockitoExtension.class)
 class TlrSettingsServiceTest {
-
-  @InjectMocks
-  private TlrSettingsServiceImpl tlrSettingsService;
   @Mock
   private TlrSettingsRepository tlrSettingsRepository;
   @Spy
   private final TlrSettingsMapper tlrSettingsMapper = new TlrSettingsMapperImpl();
+  @Mock
+  private PublishCoordinatorService<TlrSettings> publishCoordinatorService;
+  @InjectMocks
+  private TlrSettingsServiceImpl tlrSettingsService;
 
   @Test
   void getTlrSettings() {
@@ -66,11 +67,14 @@ class TlrSettingsServiceTest {
     when(tlrSettingsRepository.save(any(TlrSettingsEntity.class)))
       .thenReturn(tlrSettingsEntity);
 
-    Optional<TlrSettings> tlrSettings = tlrSettingsService.updateTlrSettings(new TlrSettings());
+    TlrSettings tlrSettings = new TlrSettings();
+    tlrSettings.ecsTlrFeatureEnabled(true);
+    Optional<TlrSettings> tlrSettingsResponse = tlrSettingsService.updateTlrSettings(tlrSettings);
     verify(tlrSettingsRepository, times(1)).findAll(any(PageRequest.class));
     verify(tlrSettingsRepository, times(1)).save(any(TlrSettingsEntity.class));
-    assertTrue(tlrSettings.isPresent());
-    assertTrue(tlrSettings.map(TlrSettings::getEcsTlrFeatureEnabled).orElse(false));
+    verify(publishCoordinatorService, times(1)).updateForAllTenants(any(TlrSettings.class));
+    assertTrue(tlrSettingsResponse.isPresent());
+    assertTrue(tlrSettingsResponse.map(TlrSettings::getEcsTlrFeatureEnabled).orElse(false));
   }
 
   @Test

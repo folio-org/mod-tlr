@@ -1,5 +1,6 @@
 package org.folio.domain.entity;
 
+import jakarta.persistence.GeneratedValue;
 import java.util.Date;
 import java.util.UUID;
 
@@ -20,10 +21,10 @@ import lombok.NoArgsConstructor;
 public class EcsTlrEntity {
 
   @Id
+  @GeneratedValue
   private UUID id;
   private UUID instanceId;
   private UUID requesterId;
-  private UUID secondaryRequestId;
   private String requestType;
   private String requestLevel;
   private Date requestExpirationDate;
@@ -32,5 +33,11 @@ public class EcsTlrEntity {
   private String fulfillmentPreference;
   private UUID pickupServicePointId;
   private UUID itemId;
+  private UUID holdingsRecordId;
+  private UUID primaryRequestId;
+  private String primaryRequestTenantId;
+  private UUID primaryRequestDcbTransactionId;
+  private UUID secondaryRequestId;
   private String secondaryRequestTenantId;
+  private UUID secondaryRequestDcbTransactionId;
 }

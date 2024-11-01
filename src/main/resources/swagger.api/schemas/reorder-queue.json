@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Reordered queue",
+  "description": "New positions for all requests in the queue",
+  "type": "object",
+  "properties": {
+    "reorderedQueue" : {
+      "type": "array",
+      "description": "All request from the item queue and their's new positions in the queue.",
+      "items": {
+        "description": "Reorder request",
+        "type": "object",
+        "properties": {
+          "id" : {
+            "description": "Request id",
+            "type": "string",
+            "$ref": "uuid.json"
+          },
+          "newPosition": {
+            "description": "New position for the request",
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "newPosition"
+        ]
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "reorderedQueue"
+  ]
+}
