@@ -14,8 +14,6 @@ import org.folio.spring.liquibase.FolioLiquibaseConfiguration;
 import org.folio.tenant.domain.dto.TenantAttributes;
 import org.folio.tenant.rest.resource.TenantApi;
 
-import jakarta.validation.Valid;
-
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class EcsTlrApplicationTest {
 
