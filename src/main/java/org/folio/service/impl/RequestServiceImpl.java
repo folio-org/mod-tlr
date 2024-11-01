@@ -228,7 +228,11 @@ public class RequestServiceImpl implements RequestService {
      query, idIndex, ids.size());
     log.debug("getRequestsFromStorage:: ids={}", ids);
 
-    return BulkFetcher.fetch(requestStorageClient, query, idIndex, ids, Requests::getRequests);
+    Collection<Request> requests = BulkFetcher.fetch(requestStorageClient, query, idIndex, ids,
+      Requests::getRequests);
+
+    log.info("getRequestsFromStorage:: found {} requests", requests::size);
+    return requests;
   }
 
   @Override
