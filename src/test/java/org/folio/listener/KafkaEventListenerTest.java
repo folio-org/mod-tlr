@@ -3,6 +3,7 @@ package org.folio.listener;
 import static org.folio.spring.integration.XOkapiHeaders.TENANT;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 
 import java.util.Map;
 
@@ -18,7 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.MessageHeaders;
 
 @ExtendWith(MockitoExtension.class)
-public class KafkaEventListenerTest {
+class KafkaEventListenerTest {
   @Mock
   RequestEventHandler requestEventHandler;
   @Mock
@@ -36,5 +37,7 @@ public class KafkaEventListenerTest {
       requestBatchEventHandler, systemUserScopedExecutionService, userGroupEventHandler);
     kafkaEventListener.handleRequestEvent("{}",
       new MessageHeaders(Map.of(TENANT, "default".getBytes())));
+
+    verify(systemUserScopedExecutionService).executeAsyncSystemUserScoped(any(), any());
   }
 }
