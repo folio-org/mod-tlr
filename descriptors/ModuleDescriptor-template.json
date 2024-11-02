@@ -88,6 +88,20 @@
       ]
     },
     {
+      "id": "staff-slips",
+      "version": "1.0",
+      "handlers": [
+        {
+          "methods": ["GET"],
+          "pathPattern": "/tlr/staff-slips/pick-slips/{servicePointId}",
+          "permissionsRequired": ["tlr.staff-slips.pick-slips.get"],
+          "modulePermissions": [
+            "user-tenants.collection.get"
+          ]
+        }
+      ]
+    },
+    {
       "id": "_tenant",
       "version": "2.0",
       "interfaceType": "system",
@@ -186,6 +200,11 @@
       "permissionName": "tlr.ecs-tlr-allowed-service-points.get",
       "displayName": "ecs-tlr - allowed service points",
       "description": "Get ECS TLR allowed service points"
+    },
+    {
+      "permissionName": "tlr.staff-slips.pick-slips.get",
+      "displayName": "ecs-tlr - pick slips",
+      "description": "Get pick slips"
     }
   ],
   "requires": [
