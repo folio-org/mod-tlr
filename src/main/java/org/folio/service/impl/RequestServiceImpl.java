@@ -179,6 +179,11 @@ public class RequestServiceImpl implements RequestService {
   public CirculationItem updateCirculationItemOnRequestCreation(CirculationItem circulationItem,
     Request secondaryRequest) {
 
+    if (circulationItem == null) {
+      log.info("updateCirculationItemOnRequestCreation:: circulation item is null, skipping");
+      return null;
+    }
+
     log.info("updateCirculationItemOnRequestCreation:: updating circulation item {}",
       circulationItem.getId());
 

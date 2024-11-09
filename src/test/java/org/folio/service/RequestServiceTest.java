@@ -104,4 +104,9 @@ class RequestServiceTest {
     requestService.createCirculationItem(ecsTlrEntity, secondaryRequest, BORROWER_ID, LENDER_ID);
     verify(circulationItemClient).createCirculationItem(ITEM_ID, expectedCirculationItem);
   }
+
+  @Test
+  void circulationItemUpdateShouldBeSkippedWhenNull() {
+    assertNull(requestService.updateCirculationItemOnRequestCreation(null, null));
+  }
 }
