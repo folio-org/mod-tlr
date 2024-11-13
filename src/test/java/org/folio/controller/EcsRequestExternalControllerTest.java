@@ -48,4 +48,25 @@ class EcsRequestExternalControllerTest {
     assertEquals(CREATED, response.getStatusCode());
     assertEquals(recallEcsTlr, response.getBody());
   }
+
+  @Test
+  void ecsRequestExternalShouldSuccessfullyBeCreatedForHoldRequestType() {
+    EcsRequestExternal ecsRequestExternal = new EcsRequestExternal()
+      .instanceId(UUID.randomUUID().toString())
+      .requesterId(UUID.randomUUID().toString())
+      .requestLevel(EcsRequestExternal.RequestLevelEnum.TITLE)
+      .fulfillmentPreference(EcsRequestExternal.FulfillmentPreferenceEnum.HOLD_SHELF)
+      .requestDate(new Date());
+    EcsTlr holdEcsTlr = new EcsTlr().requestType(EcsTlr.RequestTypeEnum.HOLD);
+
+    when(ecsTlrService.create(any(EcsTlr.class)))
+      .thenReturn(null)
+      .thenReturn(null)
+      .thenReturn(holdEcsTlr);
+
+    var response = ecsRequestExternalController.postEcsRequestExternal(ecsRequestExternal);
+
+    assertEquals(CREATED, response.getStatusCode());
+    assertEquals(holdEcsTlr, response.getBody());
+  }
 }
