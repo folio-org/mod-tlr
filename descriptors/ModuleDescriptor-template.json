@@ -223,6 +223,16 @@
       "visible": true
     },
     {
+      "permissionName": "tlr.ecs-tlr-allowed-service-points.get",
+      "displayName": "ecs-tlr - allowed service points",
+      "description": "Get ECS TLR allowed service points"
+    },
+    {
+      "permissionName": "tlr.staff-slips.pick-slips.get",
+      "displayName": "ecs-tlr - pick slips",
+      "description": "Get pick slips"
+    },
+    {
       "permissionName": "tlr.ecs-request-external.post",
       "displayName": "ecs-request-external - create ECS request external",
       "description": "Create ECS request external"
