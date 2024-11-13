@@ -6,6 +6,7 @@
 
 <!--    Changeset for creating table ecs_tlr with all the required fields -->
     <changeSet id="createEcsTlrTable" author="OleksandrVidinieiev">
+        <validCheckSum>ANY</validCheckSum>
         <comment>
             Create ecs_tlr table
         </comment>
