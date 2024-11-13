@@ -108,7 +108,7 @@ components:
     searchItemResponse:
       $ref: schemas/response/searchItemResponse.json
     user:
-      $ref: 'schemas/user.json'
+      $ref: 'schemas/users/user.json'
     userTenant:
       $ref: 'schemas/userTenant.json'
     userTenantCollection:
@@ -116,7 +116,7 @@ components:
     servicePoint:
       $ref: 'schemas/service-point.json'
     userGroup:
-      $ref: 'schemas/userGroup.json'
+      $ref: 'schemas/users/userGroup.json'
     requestsBatchUpdate:
       $ref: 'schemas/requests-batch-update.json'
     reorderQueue:

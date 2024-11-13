@@ -30,6 +30,12 @@ components:
       $ref: 'schemas/inventory/locations.json'
     items:
       $ref: 'schemas/inventory/items.json'
+    users:
+      $ref: 'schemas/users/users.json'
+    departments:
+      $ref: 'schemas/users/departments.json'
+    addressTypes:
+      $ref: 'schemas/users/addressTypes.json'
   parameters:
     servicePointId:
       name: servicePointId

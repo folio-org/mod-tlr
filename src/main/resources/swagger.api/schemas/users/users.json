@@ -1,24 +1,26 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "description": "A collection of item records",
   "type": "object",
+  "description": "Collection of users",
   "properties": {
-    "items": {
-      "description": "List of item records",
-      "id": "items",
+    "users": {
+      "description": "List of users",
       "type": "array",
       "items": {
         "type": "object",
-        "$ref": "item.json"
+        "$ref": "user.json"
       }
     },
     "totalRecords": {
-      "description": "Estimated or exact total number of records",
       "type": "integer"
     },
     "resultInfo": {
       "$ref": "../resultInfo.json",
       "readonly": true
     }
-  }
+  },
+  "required": [
+    "users",
+    "totalRecords"
+  ]
 }

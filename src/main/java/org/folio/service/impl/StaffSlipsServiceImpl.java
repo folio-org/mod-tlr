@@ -1,19 +1,29 @@
 package org.folio.service.impl;
 
 import static java.util.Collections.emptyList;
+import static java.util.Locale.getISOCountries;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Collectors.toSet;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
+import org.folio.domain.dto.AddressType;
+import org.folio.domain.dto.Department;
 import org.folio.domain.dto.Item;
 import org.folio.domain.dto.ItemEffectiveCallNumberComponents;
 import org.folio.domain.dto.ItemStatus;
@@ -22,12 +32,19 @@ import org.folio.domain.dto.Request;
 import org.folio.domain.dto.StaffSlip;
 import org.folio.domain.dto.StaffSlipItem;
 import org.folio.domain.dto.StaffSlipRequest;
+import org.folio.domain.dto.StaffSlipRequester;
 import org.folio.domain.dto.Tenant;
+import org.folio.domain.dto.User;
+import org.folio.domain.dto.UserPersonal;
+import org.folio.domain.dto.UserPersonalAddressesInner;
+import org.folio.service.AddressTypeService;
 import org.folio.service.ConsortiaService;
+import org.folio.service.DepartmentService;
 import org.folio.service.ItemService;
 import org.folio.service.LocationService;
 import org.folio.service.RequestService;
 import org.folio.service.StaffSlipsService;
+import org.folio.service.UserService;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.folio.support.CqlQuery;
 
@@ -47,6 +64,9 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
   private final RequestService requestService;
   private final ConsortiaService consortiaService;
   private final SystemUserScopedExecutionService executionService;
+  private final UserService userService;
+  private final DepartmentService departmentService;
+  private final AddressTypeService addressTypeService;
 
   @Override
   public Collection<StaffSlip> getStaffSlips(String servicePointId) {
@@ -70,18 +90,51 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
     Collection<Location> locations = findLocations(servicePointId);
     Collection<Item> items = findItems(locations);
     Collection<Request> requests = findRequests(items);
+    Collection<User> requesters = findRequesters(requests);
+    Collection<Department> departments = findDepartments(requesters);
+    Collection<AddressType> addressTypes = findAddressTypes(requesters);
 
     Map<String, Location> locationsById = locations.stream()
       .collect(mapById(Location::getId));
     Map<String, Item> itemsById = items.stream()
       .collect(mapById(Item::getId));
+    Map<String, User> requestersById = requesters.stream()
+      .collect(mapById(User::getId));
+    Map<String, Department> departmentsById = departments.stream()
+      .collect(mapById(Department::getId));
+    Map<String, AddressType> addressTypesById = addressTypes.stream()
+      .collect(mapById(AddressType::getId));
 
     return requests.stream()
       .map(request -> {
         log.info("buildStaffSlips:: building staff slip for request {}", request::getId);
         Item item = itemsById.get(request.getItemId());
-        return new StaffSlipContext(request, item,
-          locationsById.get(item.getEffectiveLocationId()));
+        User requester = requestersById.get(request.getRequesterId());
+
+        Collection<Department> requesterDepartments = requester.getDepartments()
+          .stream()
+          .filter(Objects::nonNull)
+          .map(departmentsById::get)
+          .toList();
+
+        AddressType primaryRequesterAddress = Optional.ofNullable(requester.getPersonal())
+          .map(UserPersonal::getAddresses)
+          .flatMap(addresses -> addresses.stream()
+            .filter(UserPersonalAddressesInner::getPrimaryAddress)
+            .findFirst()
+            .map(UserPersonalAddressesInner::getId)
+            .map(addressTypesById::get))
+          .orElse(null);
+
+        return new StaffSlipContext(
+          request,
+          item,
+          locationsById.get(item.getEffectiveLocationId()),
+          requester,
+          requesterDepartments,
+          primaryRequesterAddress,
+          addressTypesById.get(request.getDeliveryAddressTypeId())
+        );
       })
       .map(StaffSlipsServiceImpl::buildStaffSlip)
       .toList();
@@ -142,16 +195,64 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
     return requestService.getRequestsFromStorage(query, "itemId", itemIds);
   }
 
+  private Collection<User> findRequesters(Collection<Request> requests) {
+    if (requests.isEmpty()) {
+      log.info("findRequesters:: no requests to search requesters for, doing nothing");
+      return emptyList();
+    }
+
+    Set<String> requesterIds = requests.stream()
+      .map(Request::getRequesterId)
+      .collect(toSet());
+
+    return userService.find(requesterIds);
+  }
+
+  private Collection<Department> findDepartments(Collection<User> requesters) {
+    if (requesters.isEmpty()) {
+      log.info("findDepartments:: no requesters to search departments for, doing nothing");
+      return emptyList();
+    }
+
+    Set<String> departmentIds = requesters.stream()
+      .map(User::getDepartments)
+      .filter(Objects::nonNull)
+      .flatMap(Collection::stream)
+      .collect(toSet());
+
+    return departmentService.findDepartments(departmentIds);
+  }
+
+  private Collection<AddressType> findAddressTypes(Collection<User> requesters) {
+    if (requesters.isEmpty()) {
+      log.info("findAddressTypes:: no requesters to search address types for, doing nothing");
+      return emptyList();
+    }
+
+    Set<String> addressTypeIds = requesters.stream()
+      .map(User::getPersonal)
+      .filter(Objects::nonNull)
+      .map(UserPersonal::getAddresses)
+      .filter(Objects::nonNull)
+      .flatMap(Collection::stream)
+      .map(UserPersonalAddressesInner::getAddressTypeId)
+      .collect(toSet());
+
+    return addressTypeService.findAddressTypes(addressTypeIds);
+  }
+
   private static StaffSlip buildStaffSlip(StaffSlipContext context) {
     return new StaffSlip()
       .currentDateTime(new Date())
       .item(buildStaffSlipItem(context))
-      .request(buildStaffSlipRequest(context));
+      .request(buildStaffSlipRequest(context))
+      .requester(buildStaffSlipRequester(context));
   }
 
   private static StaffSlipItem buildStaffSlipItem(StaffSlipContext context) {
     Item item = context.item();
     if (item == null) {
+      log.warn("buildStaffSlipItem:: item is null, doing nothing");
       return null;
     }
 
@@ -203,8 +304,13 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
   private static StaffSlipRequest buildStaffSlipRequest(StaffSlipContext context) {
     Request request = context.request();
     if (request == null) {
+      log.warn("buildStaffSlipRequest:: request is null, doing nothing");
       return null;
     }
+
+    String deliveryAddressType = Optional.ofNullable(context.deliveryAddressType())
+      .map(AddressType::getAddressType)
+      .orElse(null);
 
     return new StaffSlipRequest()
       .requestId(UUID.fromString(request.getId()))
@@ -214,14 +320,99 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
       .holdShelfExpirationDate(request.getHoldShelfExpirationDate())
       .additionalInfo(request.getCancellationAdditionalInformation())
       .reasonForCancellation(null) // get from cancellation reason
-      .deliveryAddressType(null) // get from delivery address type
+      .deliveryAddressType(deliveryAddressType)
       .patronComments(request.getPatronComments());
+  }
+
+  private static StaffSlipRequester buildStaffSlipRequester(StaffSlipContext context) {
+    User requester = context.requester();
+    if (requester == null) {
+      log.warn("buildStaffSlipRequester:: requester is null, doing nothing");
+      return null;
+    }
+
+    String departments = context.departments()
+      .stream()
+      .map(Department::getName)
+      .collect(Collectors.joining("; "));
+
+    StaffSlipRequester staffSlipRequester = new StaffSlipRequester()
+      .barcode(requester.getBarcode())
+      .patronGroup(Optional.ofNullable(requester.getPatronGroup()).orElse(""))
+      .departments(departments);
+
+    UserPersonal personal = requester.getPersonal();
+    if (personal != null) {
+      String preferredFirstName = Optional.ofNullable(personal.getPreferredFirstName())
+        .orElseGet(personal::getFirstName);
+
+      String primaryAddressType = Optional.ofNullable(context.primaryAddressType())
+        .map(AddressType::getAddressType)
+        .orElse(null);
+
+      String deliveryAddressType = Optional.ofNullable(context.deliveryAddressType())
+        .map(AddressType::getAddressType)
+        .orElse(null);
+
+      staffSlipRequester
+        .firstName(personal.getFirstName())
+        .preferredFirstName(preferredFirstName)
+        .lastName(personal.getLastName())
+        .middleName(personal.getMiddleName());
+
+      List<UserPersonalAddressesInner> addresses = personal.getAddresses();
+      if (addresses != null) {
+        String deliveryAddressTypeId = context.request().getDeliveryAddressTypeId();
+        if (deliveryAddressTypeId != null) {
+          personal.getAddresses()
+            .stream()
+            .filter(address -> deliveryAddressTypeId.equals(address.getAddressTypeId()))
+            .findFirst()
+            .ifPresent(deliveryAddress -> staffSlipRequester
+              .addressLine1(deliveryAddress.getAddressLine1())
+              .addressLine2(deliveryAddress.getAddressLine2())
+              .city(deliveryAddress.getCity())
+              .region(deliveryAddress.getRegion())
+              .postalCode(deliveryAddress.getPostalCode())
+              .countryId(deliveryAddress.getCountryId())
+              .addressType(deliveryAddressType)
+            );
+        }
+
+        personal.getAddresses()
+          .stream()
+          .filter(UserPersonalAddressesInner::getPrimaryAddress)
+          .findFirst()
+          .ifPresent(primaryAddress -> staffSlipRequester
+            .primaryAddressLine1(primaryAddress.getAddressLine1())
+            .primaryAddressLine2(primaryAddress.getAddressLine2())
+            .primaryCity(primaryAddress.getCity())
+            .primaryStateProvRegion(primaryAddress.getRegion())
+            .primaryZipPostalCode(primaryAddress.getPostalCode())
+            .primaryCountry(getCountryName(primaryAddress.getCountryId()))
+            .primaryDeliveryAddressType(primaryAddressType)
+          );
+      }
+    }
+
+    return  staffSlipRequester;
   }
 
   private static <T> Collector<T, ?, Map<String, T>> mapById(Function<T, String> keyMapper) {
     return toMap(keyMapper, identity());
   }
 
-  private record StaffSlipContext(Request request, Item item, Location location) {}
+  public static String getCountryName(String countryCode) {
+    if (isBlank(countryCode) || !Arrays.asList(getISOCountries()).contains(countryCode)) {
+      log.warn("getCountryName:: unknown country code: {}", countryCode);
+      return null;
+    }
+
+    return new Locale("", countryCode).getDisplayName();
+  }
+
+  private record StaffSlipContext(Request request, Item item, Location location, User requester,
+    Collection<Department> departments, AddressType primaryAddressType,
+    AddressType deliveryAddressType) {}
 
 }

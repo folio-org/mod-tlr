@@ -46,3 +46,5 @@ inventory-storage.identifier-types.item.get
 inventory-storage.identifier-types.collection.get
 addresstypes.item.get
 addresstypes.collection.get
+departments.item.get
+departments.collection.get
