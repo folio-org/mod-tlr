@@ -37,6 +37,7 @@
         </createTable>
     </changeSet>
   <changeSet id="insertDefaultTlrSettings" author="RomanBarannyk">
+    <validCheckSum>ANY</validCheckSum>
     <createTable tableName="tlr_settings">
       <column name="id" type="uuid">
         <constraints primaryKey="true"/>
