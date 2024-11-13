@@ -30,6 +30,25 @@ class EcsRequestExternalControllerTest {
   private EcsRequestExternalController ecsRequestExternalController;
 
   @Test
+  void ecsRequestExternalShouldSuccessfullyBeCreatedForPageRequestType() {
+    EcsRequestExternal ecsRequestExternal = new EcsRequestExternal()
+      .instanceId(UUID.randomUUID().toString())
+      .requesterId(UUID.randomUUID().toString())
+      .requestLevel(EcsRequestExternal.RequestLevelEnum.TITLE)
+      .fulfillmentPreference(EcsRequestExternal.FulfillmentPreferenceEnum.HOLD_SHELF)
+      .requestDate(new Date());
+    EcsTlr pageEcsTlr = new EcsTlr().requestType(EcsTlr.RequestTypeEnum.PAGE);
+
+    when(ecsTlrService.create(any(EcsTlr.class)))
+      .thenReturn(pageEcsTlr);
+
+    var response = ecsRequestExternalController.postEcsRequestExternal(ecsRequestExternal);
+
+    assertEquals(CREATED, response.getStatusCode());
+    assertEquals(pageEcsTlr, response.getBody());
+  }
+
+  @Test
   void ecsRequestExternalShouldSuccessfullyBeCreatedForRecallRequestType() {
     EcsRequestExternal ecsRequestExternal = new EcsRequestExternal()
       .instanceId(UUID.randomUUID().toString())
