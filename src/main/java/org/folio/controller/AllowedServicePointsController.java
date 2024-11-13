@@ -5,8 +5,6 @@ import static org.folio.domain.dto.RequestOperation.REPLACE;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 import org.folio.domain.dto.AllowedServicePointsRequest;
@@ -38,20 +36,14 @@ public class AllowedServicePointsController implements AllowedServicePointsApi {
     AllowedServicePointsRequest request = new AllowedServicePointsRequest(
       operation, requesterId, instanceId, requestId, itemId);
 
-    if (validateAllowedServicePointsRequest(request)) {
-      var allowedServicePointsService = getAllowedServicePointsService(request);
-      var response = allowedServicePointsService.getAllowedServicePoints(request);
-      return ResponseEntity.status(OK).body(response);
-    } else {
+    if (!validateAllowedServicePointsRequest(request)) {
       return ResponseEntity.status(UNPROCESSABLE_ENTITY).build();
     }
-  }
-
-  private AllowedServicePointsService getAllowedServicePointsService(
-    AllowedServicePointsRequest request) {
-    return request.isForTitleLevelRequest()
+    var allowedServicePointsService = request.isForTitleLevelRequest()
       ? allowedServicePointsForTitleLevelRequestService
       : allowedServicePointsForItemLevelRequestService;
+    var response = allowedServicePointsService.getAllowedServicePoints(request);
+    return ResponseEntity.status(OK).body(response);
   }
 
   private static boolean validateAllowedServicePointsRequest(AllowedServicePointsRequest request) {
@@ -62,8 +54,6 @@ public class AllowedServicePointsController implements AllowedServicePointsApi {
     final String itemId = request.getItemId();
 
     boolean allowedCombinationOfParametersDetected = false;
-
-    List<String> errors = new ArrayList<>();
 
     if (operation == CREATE && requesterId != null && instanceId != null &&
       itemId == null && requestId == null) {
@@ -87,13 +77,8 @@ public class AllowedServicePointsController implements AllowedServicePointsApi {
     }
 
     if (!allowedCombinationOfParametersDetected) {
-      String errorMessage = "Invalid combination of query parameters";
-      errors.add(errorMessage);
-    }
-
-    if (!errors.isEmpty()) {
-      String errorMessage = String.join(" ", errors);
-      log.error("validateRequest:: allowed service points request failed: {}", errorMessage);
+      log.error("validateRequest:: allowed service points request failed: " +
+        "Invalid combination of query parameters");
       return false;
     }
 

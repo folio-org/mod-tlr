@@ -41,15 +41,15 @@ public class AllowedServicePointsForItemLevelRequestService extends AllowedServi
   }
 
   @Override
-  protected AllowedServicePointsResponse getAllowedServicePointsFromLendingTenant(
+  protected AllowedServicePointsResponse getAllowedServicePointsFromTenant(
     AllowedServicePointsRequest request, String patronGroupId, String tenantId) {
 
     log.info("getAllowedServicePointsFromLendingTenant:: parameters: request: {}, " +
       "patronGroupId: {}, tenantId: {}", request, patronGroupId, tenantId);
 
     return executionService.executeSystemUserScoped(tenantId,
-      () -> circulationClient.allowedRoutingServicePoints(patronGroupId,
-        request.getOperation().getValue(), true, request.getItemId()));
+      () -> circulationClient.allowedServicePointsByItem(patronGroupId,
+        request.getOperation().getValue(), request.getItemId()));
   }
 
 }
