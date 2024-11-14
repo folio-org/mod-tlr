@@ -44,7 +44,7 @@ public class AllowedServicePointsForItemLevelRequestService extends AllowedServi
   protected AllowedServicePointsResponse getAllowedServicePointsFromTenant(
     AllowedServicePointsRequest request, String patronGroupId, String tenantId) {
 
-    log.info("getAllowedServicePointsFromLendingTenant:: parameters: request: {}, " +
+    log.info("getAllowedServicePointsFromTenant:: parameters: request: {}, " +
       "patronGroupId: {}, tenantId: {}", request, patronGroupId, tenantId);
 
     return executionService.executeSystemUserScoped(tenantId,

@@ -89,7 +89,7 @@ public abstract class AllowedServicePointsServiceImpl implements AllowedServiceP
   private AllowedServicePointsResponse getForReplace(AllowedServicePointsRequest request) {
     EcsTlrEntity ecsTlr = findEcsTlr(request);
 
-    log.info("getForReplace:: fetching allowed service points from borrowing tenant");
+    log.info("getForReplace:: fetching allowed service points from secondary request tenant");
     var allowedServicePoints = executionService.executeSystemUserScoped(
       ecsTlr.getSecondaryRequestTenantId(), () -> circulationClient.allowedServicePoints(
         REPLACE.getValue(), ecsTlr.getSecondaryRequestId().toString()));
@@ -97,8 +97,7 @@ public abstract class AllowedServicePointsServiceImpl implements AllowedServiceP
     Request secondaryRequest = requestService.getRequestFromStorage(
       ecsTlr.getSecondaryRequestId().toString(), ecsTlr.getSecondaryRequestTenantId());
     Request.RequestTypeEnum secondaryRequestType = secondaryRequest.getRequestType();
-    log.info("isRequestingNotAllowedInLendingTenant:: secondary request type: {}",
-      secondaryRequestType.getValue());
+    log.info("getForReplace:: secondary request type: {}", secondaryRequestType.getValue());
 
     return switch (secondaryRequestType) {
       case PAGE -> new AllowedServicePointsResponse().page(allowedServicePoints.getPage());
