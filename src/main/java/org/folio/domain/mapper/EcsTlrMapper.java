@@ -51,7 +51,8 @@ public interface EcsTlrMapper {
     EcsRequestExternal.RequestLevelEnum ecsRequestExternalRequestLevel) {
 
     return ecsRequestExternalRequestLevel != null
-      ? EcsTlr.RequestLevelEnum.fromValue(ecsRequestExternalRequestLevel.getValue()) : null;
+      ? EcsTlr.RequestLevelEnum.fromValue(ecsRequestExternalRequestLevel.getValue())
+      : null;
   }
 
   @Named("StringToRequestLevel")
