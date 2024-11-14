@@ -20,6 +20,7 @@ import org.folio.domain.dto.InventoryItem;
 import org.folio.domain.dto.InventoryItemStatus;
 import org.folio.domain.dto.ReorderQueue;
 import org.folio.domain.dto.Request;
+import org.folio.domain.dto.Requests;
 import org.folio.domain.dto.ServicePoint;
 import org.folio.domain.dto.User;
 import org.folio.exception.RequestCreatingException;
@@ -29,6 +30,8 @@ import org.folio.service.RequestService;
 import org.folio.service.ServicePointService;
 import org.folio.service.UserService;
 import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.support.BulkFetcher;
+import org.folio.support.CqlQuery;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -184,6 +187,11 @@ public class RequestServiceImpl implements RequestService {
   public CirculationItem updateCirculationItemOnRequestCreation(CirculationItem circulationItem,
     Request secondaryRequest) {
 
+    if (circulationItem == null) {
+      log.info("updateCirculationItemOnRequestCreation:: circulation item is null, skipping");
+      return null;
+    }
+
     log.info("updateCirculationItemOnRequestCreation:: updating circulation item {}",
       circulationItem.getId());
 
@@ -223,6 +231,21 @@ public class RequestServiceImpl implements RequestService {
   public Request getRequestFromStorage(String requestId) {
     log.info("getRequestFromStorage:: getting request {} from storage", requestId);
     return requestStorageClient.getRequest(requestId);
+  }
+
+  @Override
+  public Collection<Request> getRequestsFromStorage(CqlQuery query, String idIndex,
+    Collection<String> ids) {
+
+    log.info("getRequestsFromStorage:: searching requests by query and index: query={}, index={}, ids={}",
+     query, idIndex, ids.size());
+    log.debug("getRequestsFromStorage:: ids={}", ids);
+
+    Collection<Request> requests = BulkFetcher.fetch(requestStorageClient, query, idIndex, ids,
+      Requests::getRequests);
+
+    log.info("getRequestsFromStorage:: found {} requests", requests::size);
+    return requests;
   }
 
   @Override

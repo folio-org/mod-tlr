@@ -72,8 +72,12 @@ public class KafkaEventListener {
   }
 
   private <T> void handleEvent(KafkaEvent<T> event, KafkaEventHandler<T> handler) {
-    systemUserScopedExecutionService.executeAsyncSystemUserScoped(CENTRAL_TENANT_ID,
-      () -> handler.handle(event));
+    try {
+      systemUserScopedExecutionService.executeAsyncSystemUserScoped(CENTRAL_TENANT_ID,
+        () -> handler.handle(event));
+    } catch (Exception e) {
+      log.error("handleEvent:: Failed to handle Kafka event in tenant {}", CENTRAL_TENANT_ID);
+    }
   }
 
   @KafkaListener(

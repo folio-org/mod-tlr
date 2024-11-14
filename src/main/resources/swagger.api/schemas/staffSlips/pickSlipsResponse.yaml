@@ -1,0 +1,11 @@
+description: "Pick slips response"
+type: "object"
+properties:
+  totalRecords:
+    type: "integer"
+    description: "Total number of pick slips"
+  pickSlips:
+    type: "array"
+    description: "Collection of pick clips"
+    items:
+      $ref: "staffSlip.yaml"

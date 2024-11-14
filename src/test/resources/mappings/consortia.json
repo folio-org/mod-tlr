@@ -1,0 +1,42 @@
+{
+  "mappings": [
+    {
+      "request": {
+        "method": "GET",
+        "url": "/consortia/23085034-7e68-4927-9d17-1de20a06a512/tenants"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "tenants": [
+            {
+              "id": "college",
+              "code": "COL",
+              "name": "College",
+              "isCentral": false,
+              "isDeleted": false
+            },
+            {
+              "id": "consortium",
+              "code": "MCO",
+              "name": "Consortium",
+              "isCentral": true,
+              "isDeleted": false
+            },
+            {
+              "id": "university",
+              "code": "UNI",
+              "name": "University",
+              "isCentral": false,
+              "isDeleted": false
+            }
+          ],
+          "totalRecords": 3
+        }
+      }
+    }
+  ]
+}
