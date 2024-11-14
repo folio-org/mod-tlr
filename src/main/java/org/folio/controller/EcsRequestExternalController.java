@@ -1,5 +1,6 @@
 package org.folio.controller;
 
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CREATED;
 
 import org.folio.domain.dto.EcsRequestExternal;
@@ -39,8 +40,11 @@ public class EcsRequestExternalController implements EcsRequestExternalApi {
     }
     // Fallback to 'HOLD' type if both 'PAGE' and 'RECALL' types failed
     resultEcsTlr = ecsTlrService.create(ecsTlr.requestType(EcsTlr.RequestTypeEnum.HOLD));
-    log.info("postEcsRequestExternal:: resultEcsTlr for HOLD request type is {}", resultEcsTlr);
+    if (resultEcsTlr != null) {
+      log.info("postEcsRequestExternal:: resultEcsTlr for HOLD request type is {}", resultEcsTlr);
+      return ResponseEntity.status(CREATED).body(resultEcsTlr);
+    }
 
-    return ResponseEntity.status(CREATED).body(resultEcsTlr);
+    return ResponseEntity.status(BAD_REQUEST).build();
   }
 }
