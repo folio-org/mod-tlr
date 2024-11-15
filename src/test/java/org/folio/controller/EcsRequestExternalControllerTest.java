@@ -13,6 +13,7 @@ import org.folio.domain.dto.EcsRequestExternal;
 import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.mapper.ExternalEcsRequestMapper;
 import org.folio.domain.mapper.ExternalEcsRequestMapperImpl;
+import org.folio.exception.RequestCreatingException;
 import org.folio.service.EcsTlrService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -61,7 +62,7 @@ class EcsRequestExternalControllerTest {
     EcsTlr recallEcsTlr = new EcsTlr().requestType(EcsTlr.RequestTypeEnum.RECALL);
 
     when(ecsTlrService.create(any(EcsTlr.class)))
-      .thenReturn(null)
+      .thenThrow(new RequestCreatingException("Error message"))
       .thenReturn(recallEcsTlr);
 
     var response = ecsRequestExternalController.postEcsRequestExternal(ecsRequestExternal);
@@ -81,8 +82,8 @@ class EcsRequestExternalControllerTest {
     EcsTlr holdEcsTlr = new EcsTlr().requestType(EcsTlr.RequestTypeEnum.HOLD);
 
     when(ecsTlrService.create(any(EcsTlr.class)))
-      .thenReturn(null)
-      .thenReturn(null)
+      .thenThrow(new RequestCreatingException("Error message"))
+      .thenThrow(new RequestCreatingException("Error message"))
       .thenReturn(holdEcsTlr);
 
     var response = ecsRequestExternalController.postEcsRequestExternal(ecsRequestExternal);
@@ -101,9 +102,9 @@ class EcsRequestExternalControllerTest {
       .requestDate(new Date());
 
     when(ecsTlrService.create(any(EcsTlr.class)))
-      .thenReturn(null)
-      .thenReturn(null)
-      .thenReturn(null);
+      .thenThrow(new RequestCreatingException("Error message"))
+      .thenThrow(new RequestCreatingException("Error message"))
+      .thenThrow(new RequestCreatingException("Error message"));
 
     assertEquals(BAD_REQUEST, ecsRequestExternalController.postEcsRequestExternal(
       ecsRequestExternal).getStatusCode());
