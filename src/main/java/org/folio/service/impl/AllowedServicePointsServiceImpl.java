@@ -78,7 +78,7 @@ public abstract class AllowedServicePointsServiceImpl implements AllowedServiceP
     }
     toAdd.stream()
       .filter(Objects::nonNull)
-      .forEach(t -> servicePoints.put(t.getId(), t));
+      .forEach(allowedSp -> servicePoints.put(allowedSp.getId(), allowedSp));
   }
 
   protected abstract Collection<String> getLendingTenants(AllowedServicePointsRequest request);
