@@ -97,7 +97,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       log.info("create:: Creating intermediate request for ECS TLR (ILR), instance {}, item {}, requester {}",
         ecsTlrDto.getInstanceId(), ecsTlrDto.getItemId(), ecsTlrDto.getRequesterId());
       intermediateRequest = requestService.createIntermediateRequest(
-        buildPrimaryRequest(secondaryRequest), centralTenantId);
+        buildPrimaryRequest(secondaryRequest), primaryRequestTenantId, centralTenantId);
 
       log.info("create::  Intermediate request {} created, updating circulation item",
         of(intermediateRequest)

@@ -124,15 +124,49 @@ public class RequestServiceImpl implements RequestService {
   }
 
   @Override
-  public RequestWrapper createIntermediateRequest(Request request, String intermediateRequestTenantId) {
+  public RequestWrapper createIntermediateRequest(Request request, String primaryRequestTenantId, String intermediateRequestTenantId) {
     log.info("createIntermediateRequest:: creating intermediate request in tenant {}, instance {}, item {}, requester {}",
       intermediateRequestTenantId, request.getInstanceId(), request.getItemId(), request.getRequesterId());
-    Request intermediateRequest = executionService.executeSystemUserScoped(intermediateRequestTenantId,
-      () -> circulationClient.createRequest(request));
-    log.info("createIntermediateRequest:: intermediate request created in tenant ({})", intermediateRequestTenantId);
-    log.info("createIntermediateRequest:: intermediate request: {}", () -> intermediateRequest);
 
-    return new RequestWrapper(intermediateRequest, intermediateRequestTenantId);
+//    Request intermediateRequest = executionService.executeSystemUserScoped(intermediateRequestTenantId,
+//      () -> circulationClient.createRequest(request));
+    try {
+    return executionService.executeSystemUserScoped(intermediateRequestTenantId, () -> {
+      final String requesterId = request.getRequesterId();
+      final String pickupServicePointId = request.getPickupServicePointId();
+
+      User primaryRequestRequester = executionService.executeSystemUserScoped(primaryRequestTenantId,
+        () -> userService.find(requesterId));
+      ServicePoint primaryRequestPickupServicePoint = executionService.executeSystemUserScoped(
+        primaryRequestTenantId, () -> servicePointService.find(pickupServicePointId));
+
+      log.info("createIntermediateRequest:: creating requester {} in tenant ({})",
+        requesterId, intermediateRequestTenantId);
+      cloneRequester(primaryRequestRequester);
+
+      log.info("createIntermediateRequest:: creating pickup service point {} in tenant ({})",
+        pickupServicePointId, intermediateRequestTenantId);
+      servicePointCloningService.clone(primaryRequestPickupServicePoint);
+
+      log.info("createIntermediateRequest:: creating intermediate request in tenant {}",
+        intermediateRequestTenantId);
+      Request intermediateRequest = circulationClient.createRequest(request);
+      log.info("createIntermediateRequest:: intermediate request created in tenant ({})", intermediateRequestTenantId);
+      log.info("createIntermediateRequest:: intermediate request: {}", () -> intermediateRequest);
+
+      return new RequestWrapper(intermediateRequest, intermediateRequestTenantId);
+    });
+    } catch (Exception e) {
+      log.error("createIntermediateRequest:: failed to create secondary request in tenant {}: {}",
+        intermediateRequestTenantId, e.getMessage());
+      log.debug("createSecondaryRequest:: ", e);
+    }
+
+    String errorMessage = format(
+      "Failed to create intermediate request for instance %s, item %s, requester %s in tenant %s",
+      request.getInstanceId(), request.getItemId(), request.getRequesterId(), intermediateRequestTenantId);
+    log.error("createIntermediateRequest:: {}", errorMessage);
+    throw new RequestCreatingException(errorMessage);
   }
 
   @Override

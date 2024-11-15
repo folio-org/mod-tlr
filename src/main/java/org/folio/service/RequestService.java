@@ -17,7 +17,7 @@ public interface RequestService {
   RequestWrapper createSecondaryRequest(Request request, String primaryRequestTenantId,
     Collection<String> secondaryRequestTenantIds);
 
-  RequestWrapper createIntermediateRequest(Request request, String intermediateRequestTenantId);
+  RequestWrapper createIntermediateRequest(Request request, String primaryRequestTenantId, String intermediateRequestTenantId);
 
 //  CirculationItem createCirculationItem(String itemId, String instanceId,
 //    String circulationItemTenantId, String inventoryTenantId);
