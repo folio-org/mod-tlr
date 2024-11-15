@@ -78,7 +78,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   }
 
   private EcsTlr processCreationOfEcsTlr(EcsTlr ecsTlrDto) {
-    final EcsTlrEntity ecsTlr = requestsMapper.mapDtoToEntity(ecsTlrDto);
+    EcsTlrEntity ecsTlr = requestsMapper.mapDtoToEntity(ecsTlrDto);
     String borrowingTenantId = getBorrowingTenant(ecsTlr);
     Collection<String> lendingTenantIds = getLendingTenants(ecsTlr);
     RequestWrapper secondaryRequest = requestService.createSecondaryRequest(
