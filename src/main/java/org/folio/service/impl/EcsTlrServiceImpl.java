@@ -46,13 +46,27 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   public EcsTlr create(EcsTlr ecsTlrDto) {
     log.info("create:: creating ECS TLR {} instance {}, item {}, requester {}", ecsTlrDto.getId(),
       ecsTlrDto.getInstanceId(), ecsTlrDto.getItemId(), ecsTlrDto.getRequesterId());
-    try {
-      return placeEcsRequest(ecsTlrDto);
-    } catch (RequestCreatingException e) {
-      log.warn("create:: error request creation, message: {}, cause: {}",
-        e.getMessage(), e.getCause());
-      return null;
-    }
+
+    EcsTlrEntity ecsTlr = requestsMapper.mapDtoToEntity(ecsTlrDto);
+    String borrowingTenantId = getBorrowingTenant(ecsTlr);
+    Collection<String> lendingTenantIds = getLendingTenants(ecsTlr);
+    RequestWrapper secondaryRequest = requestService.createSecondaryRequest(
+      buildSecondaryRequest(ecsTlr), borrowingTenantId, lendingTenantIds);
+
+    log.info("processCreationOfEcsTlr:: Creating circulation item for ECS TLR (ILR) {}", ecsTlrDto.getId());
+    CirculationItem circulationItem = requestService.createCirculationItem(ecsTlr,
+      secondaryRequest.request(), borrowingTenantId, secondaryRequest.tenantId());
+
+    RequestWrapper primaryRequest = requestService.createPrimaryRequest(
+      buildPrimaryRequest(secondaryRequest.request()), borrowingTenantId);
+
+    requestService.updateCirculationItemOnRequestCreation(circulationItem,
+      secondaryRequest.request());
+
+    updateEcsTlr(ecsTlr, primaryRequest, secondaryRequest);
+    createDcbTransactions(ecsTlr, secondaryRequest.request());
+
+    return requestsMapper.mapEntityToDto(save(ecsTlr));
   }
 
   @Override
@@ -75,29 +89,6 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       return true;
     }
     return false;
-  }
-
-  private EcsTlr placeEcsRequest(EcsTlr ecsTlrDto) {
-    EcsTlrEntity ecsTlr = requestsMapper.mapDtoToEntity(ecsTlrDto);
-    String borrowingTenantId = getBorrowingTenant(ecsTlr);
-    Collection<String> lendingTenantIds = getLendingTenants(ecsTlr);
-    RequestWrapper secondaryRequest = requestService.createSecondaryRequest(
-      buildSecondaryRequest(ecsTlr), borrowingTenantId, lendingTenantIds);
-
-    log.info("processCreationOfEcsTlr:: Creating circulation item for ECS TLR (ILR) {}", ecsTlrDto.getId());
-    CirculationItem circulationItem = requestService.createCirculationItem(ecsTlr,
-      secondaryRequest.request(), borrowingTenantId, secondaryRequest.tenantId());
-
-    RequestWrapper primaryRequest = requestService.createPrimaryRequest(
-      buildPrimaryRequest(secondaryRequest.request()), borrowingTenantId);
-
-    requestService.updateCirculationItemOnRequestCreation(circulationItem,
-      secondaryRequest.request());
-
-    updateEcsTlr(ecsTlr, primaryRequest, secondaryRequest);
-    createDcbTransactions(ecsTlr, secondaryRequest.request());
-
-    return requestsMapper.mapEntityToDto(save(ecsTlr));
   }
 
   private String getBorrowingTenant(EcsTlrEntity ecsTlr) {
