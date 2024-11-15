@@ -42,9 +42,9 @@ public class AllowedServicePointsController implements AllowedServicePointsApi {
     var allowedServicePointsService = request.isForTitleLevelRequest()
       ? allowedServicePointsForTitleLevelRequestService
       : allowedServicePointsForItemLevelRequestService;
-    var response = allowedServicePointsService.getAllowedServicePoints(request);
-    
-    return ResponseEntity.status(OK).body(response);
+
+    return ResponseEntity.status(OK).body(allowedServicePointsService
+      .getAllowedServicePoints(request));
   }
 
   private static boolean validateAllowedServicePointsRequest(AllowedServicePointsRequest request) {
