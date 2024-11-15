@@ -104,7 +104,7 @@ public class RequestServiceImpl implements RequestService {
             requestId, secondaryRequestTenantId);
           Request secondaryRequest = circulationClient.createRequest(request);
           log.info("createSecondaryRequest:: secondary request {} created in tenant ({})",
-            requestId, secondaryRequestTenantId);
+            secondaryRequest.getId(), secondaryRequestTenantId);
           log.debug("createSecondaryRequest:: secondary request: {}", () -> secondaryRequest);
 
           return new RequestWrapper(secondaryRequest, secondaryRequestTenantId);
@@ -121,6 +121,18 @@ public class RequestServiceImpl implements RequestService {
       request.getInstanceId(), secondaryRequestTenantIds);
     log.error("createSecondaryRequest:: {}", errorMessage);
     throw new RequestCreatingException(errorMessage);
+  }
+
+  @Override
+  public RequestWrapper createIntermediateRequest(Request request, String intermediateRequestTenantId) {
+    log.info("createIntermediateRequest:: creating intermediate request in tenant {}, instance {}, item {}, requester {}",
+      intermediateRequestTenantId, request.getInstanceId(), request.getItemId(), request.getRequesterId());
+    Request intermediateRequest = executionService.executeSystemUserScoped(intermediateRequestTenantId,
+      () -> circulationClient.createRequest(request));
+    log.info("createIntermediateRequest:: intermediate request created in tenant ({})", intermediateRequestTenantId);
+    log.info("createIntermediateRequest:: intermediate request: {}", () -> intermediateRequest);
+
+    return new RequestWrapper(intermediateRequest, intermediateRequestTenantId);
   }
 
   @Override
