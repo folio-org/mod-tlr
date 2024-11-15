@@ -3,6 +3,7 @@ package org.folio.controller;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CREATED;
 
 import java.util.Date;
@@ -87,5 +88,23 @@ class EcsRequestExternalControllerTest {
 
     assertEquals(CREATED, response.getStatusCode());
     assertEquals(holdEcsTlr, response.getBody());
+  }
+
+  @Test
+  void ecsRequestExternalShouldReturnBadRequest() {
+    EcsRequestExternal ecsRequestExternal = new EcsRequestExternal()
+      .instanceId(UUID.randomUUID().toString())
+      .requesterId(UUID.randomUUID().toString())
+      .requestLevel(EcsRequestExternal.RequestLevelEnum.TITLE)
+      .fulfillmentPreference(EcsRequestExternal.FulfillmentPreferenceEnum.HOLD_SHELF)
+      .requestDate(new Date());
+
+    when(ecsTlrService.create(any(EcsTlr.class)))
+      .thenReturn(null)
+      .thenReturn(null)
+      .thenReturn(null);
+
+    assertEquals(BAD_REQUEST, ecsRequestExternalController.postEcsRequestExternal(
+      ecsRequestExternal).getStatusCode());
   }
 }
