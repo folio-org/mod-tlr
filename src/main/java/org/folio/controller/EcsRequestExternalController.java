@@ -26,25 +26,22 @@ public class EcsRequestExternalController implements EcsRequestExternalApi {
   public ResponseEntity<EcsTlr> postEcsRequestExternal(EcsRequestExternal ecsRequestExternal) {
     log.info("postEcsRequestExternal:: parameters ecsRequestExternal: {}", ecsRequestExternal);
     EcsTlr ecsTlr = ecsTlrMapper.mapEcsRequestExternalToEcsTlr(ecsRequestExternal);
-    // Try to create ECS TLR for 'PAGE' type
-    EcsTlr resultEcsTlr = ecsTlrService.create(ecsTlr.requestType(EcsTlr.RequestTypeEnum.PAGE));
-    if (resultEcsTlr != null) {
-      log.info("postEcsRequestExternal:: resultEcsTlr for PAGE request type is {}", resultEcsTlr);
-      return ResponseEntity.status(CREATED).body(resultEcsTlr);
-    }
-    // Fallback to 'RECALL' type if 'PAGE' type failed
-    resultEcsTlr = ecsTlrService.create(ecsTlr.requestType(EcsTlr.RequestTypeEnum.RECALL));
-    if (resultEcsTlr != null) {
-      log.info("postEcsRequestExternal:: resultEcsTlr for RECALL request type is {}", resultEcsTlr);
-      return ResponseEntity.status(CREATED).body(resultEcsTlr);
-    }
-    // Fallback to 'HOLD' type if both 'PAGE' and 'RECALL' types failed
-    resultEcsTlr = ecsTlrService.create(ecsTlr.requestType(EcsTlr.RequestTypeEnum.HOLD));
-    if (resultEcsTlr != null) {
-      log.info("postEcsRequestExternal:: resultEcsTlr for HOLD request type is {}", resultEcsTlr);
-      return ResponseEntity.status(CREATED).body(resultEcsTlr);
+    // List of request types to be tried in their respective order
+    EcsTlr.RequestTypeEnum[] requestTypes = {
+      EcsTlr.RequestTypeEnum.PAGE,
+      EcsTlr.RequestTypeEnum.RECALL,
+      EcsTlr.RequestTypeEnum.HOLD
+    };
+
+    for (EcsTlr.RequestTypeEnum requestType : requestTypes) {
+      EcsTlr ecsTlrResult = ecsTlrService.create(ecsTlr.requestType(requestType));
+      if (ecsTlrResult != null) {
+        log.info("postEcsRequestExternal:: resultEcsTlr for {} request type is {}", requestType, ecsTlrResult);
+        return ResponseEntity.status(CREATED).body(ecsTlrResult);
+      }
     }
 
+    log.warn("postEcsRequestExternal:: failed to create EcsTlr for any request type");
     return ResponseEntity.status(BAD_REQUEST).build();
   }
 }
