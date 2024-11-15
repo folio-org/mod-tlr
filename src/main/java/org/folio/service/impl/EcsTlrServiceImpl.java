@@ -11,7 +11,6 @@ import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.Request;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.domain.mapper.EcsTlrMapper;
-import org.folio.exception.RequestCreatingException;
 import org.folio.exception.TenantPickingException;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.DcbService;
