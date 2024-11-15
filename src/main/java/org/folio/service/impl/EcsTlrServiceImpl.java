@@ -47,13 +47,13 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     log.info("create:: creating ECS TLR {} instance {}, item {}, requester {}", ecsTlrDto.getId(),
       ecsTlrDto.getInstanceId(), ecsTlrDto.getItemId(), ecsTlrDto.getRequesterId());
 
-    EcsTlrEntity ecsTlr = requestsMapper.mapDtoToEntity(ecsTlrDto);
+    final EcsTlrEntity ecsTlr = requestsMapper.mapDtoToEntity(ecsTlrDto);
     String borrowingTenantId = getBorrowingTenant(ecsTlr);
     Collection<String> lendingTenantIds = getLendingTenants(ecsTlr);
     RequestWrapper secondaryRequest = requestService.createSecondaryRequest(
       buildSecondaryRequest(ecsTlr), borrowingTenantId, lendingTenantIds);
 
-    log.info("processCreationOfEcsTlr:: Creating circulation item for ECS TLR (ILR) {}", ecsTlrDto.getId());
+    log.info("create:: Creating circulation item for ECS TLR (ILR) {}", ecsTlrDto.getId());
     CirculationItem circulationItem = requestService.createCirculationItem(ecsTlr,
       secondaryRequest.request(), borrowingTenantId, secondaryRequest.tenantId());
 
