@@ -97,7 +97,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       log.info("create:: Creating intermediate request for ECS TLR (ILR), instance {}, item {}, requester {}",
         ecsTlrDto.getInstanceId(), ecsTlrDto.getItemId(), ecsTlrDto.getRequesterId());
       intermediateRequest = requestService.createIntermediateRequest(
-        buildPrimaryRequest(secondaryRequest), primaryRequestTenantId, centralTenantId);
+        buildIntermediateRequest(secondaryRequest), primaryRequestTenantId, centralTenantId);
 
       log.info("create::  Intermediate request {} created, updating circulation item",
         of(intermediateRequest)
@@ -178,6 +178,21 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       .requestLevel(secondaryRequest.getRequestLevel())
       .requestType(secondaryRequest.getRequestType())
       .ecsRequestPhase(Request.EcsRequestPhaseEnum.PRIMARY)
+      .fulfillmentPreference(secondaryRequest.getFulfillmentPreference())
+      .pickupServicePointId(secondaryRequest.getPickupServicePointId());
+  }
+
+  private static Request buildIntermediateRequest(Request secondaryRequest) {
+    return new Request()
+      .id(secondaryRequest.getId())
+      .instanceId(secondaryRequest.getInstanceId())
+      .itemId(secondaryRequest.getItemId())
+      .holdingsRecordId(secondaryRequest.getHoldingsRecordId())
+      .requesterId(secondaryRequest.getRequesterId())
+      .requestDate(secondaryRequest.getRequestDate())
+      .requestLevel(secondaryRequest.getRequestLevel())
+      .requestType(secondaryRequest.getRequestType())
+      .ecsRequestPhase(Request.EcsRequestPhaseEnum.INTERMEDIATE)
       .fulfillmentPreference(secondaryRequest.getFulfillmentPreference())
       .pickupServicePointId(secondaryRequest.getPickupServicePointId());
   }
