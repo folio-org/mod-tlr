@@ -1,6 +1,5 @@
 package org.folio.domain.mapper;
 
-import org.folio.domain.dto.EcsRequestExternal;
 import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.Request;
 import org.folio.domain.entity.EcsTlrEntity;
@@ -16,10 +15,6 @@ public interface EcsTlrMapper {
   @Mapping(target = "requestLevel", qualifiedByName = "StringToEcsTlrRequestLevel")
   @Mapping(target = "fulfillmentPreference", qualifiedByName = "StringToEcsTlrFulfillmentPreference")
   EcsTlr mapEntityToDto(EcsTlrEntity ecsTlrEntity);
-
-  @Mapping(target = "requestLevel", qualifiedByName = "EcsRequestExternalToEcsTlrRequestLevel")
-  @Mapping(target = "fulfillmentPreference", qualifiedByName = "EcsRequestExternalToEcsTlrFulfillmentPreference")
-  EcsTlr mapEcsRequestExternalToEcsTlr(EcsRequestExternal ecsRequestExternal);
 
   @Mapping(target = "requestType", qualifiedByName = "RequestTypeToString")
   @Mapping(target = "requestLevel", qualifiedByName = "RequestLevelToString")
@@ -46,15 +41,6 @@ public interface EcsTlrMapper {
     return requestLevel != null ? EcsTlr.RequestLevelEnum.fromValue(requestLevel) : null;
   }
 
-  @Named("EcsRequestExternalToEcsTlrRequestLevel")
-  default EcsTlr.RequestLevelEnum mapFromRequestExternalToDtoRequestLevel(
-    EcsRequestExternal.RequestLevelEnum ecsRequestExternalRequestLevel) {
-
-    return ecsRequestExternalRequestLevel != null
-      ? EcsTlr.RequestLevelEnum.fromValue(ecsRequestExternalRequestLevel.getValue())
-      : null;
-  }
-
   @Named("StringToRequestLevel")
   default Request.RequestLevelEnum mapRequestLevel(String requestLevel) {
     return requestLevel != null ? Request.RequestLevelEnum.fromValue(requestLevel) : null;
@@ -63,14 +49,6 @@ public interface EcsTlrMapper {
   @Named("StringToEcsTlrFulfillmentPreference")
   default EcsTlr.FulfillmentPreferenceEnum mapDtoFulfillmentPreference(String fulfillmentPreference) {
     return fulfillmentPreference != null ? EcsTlr.FulfillmentPreferenceEnum.fromValue(fulfillmentPreference) : null;
-  }
-
-  @Named("EcsRequestExternalToEcsTlrFulfillmentPreference")
-  default EcsTlr.FulfillmentPreferenceEnum mapDtoFulfillmentPreference(
-    EcsRequestExternal.FulfillmentPreferenceEnum fulfillmentPreference) {
-    return fulfillmentPreference != null
-      ? EcsTlr.FulfillmentPreferenceEnum.fromValue(fulfillmentPreference.getValue())
-      : null;
   }
 
   @Named("StringToFulfillmentPreference")

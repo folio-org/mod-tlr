@@ -11,8 +11,8 @@ import java.util.UUID;
 
 import org.folio.domain.dto.EcsRequestExternal;
 import org.folio.domain.dto.EcsTlr;
-import org.folio.domain.mapper.EcsTlrMapper;
-import org.folio.domain.mapper.EcsTlrMapperImpl;
+import org.folio.domain.mapper.ExternalEcsRequestMapper;
+import org.folio.domain.mapper.ExternalEcsRequestMapperImpl;
 import org.folio.service.EcsTlrService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,7 +26,8 @@ class EcsRequestExternalControllerTest {
   @Mock
   private EcsTlrService ecsTlrService;
   @Spy
-  private final EcsTlrMapper ecsTlrMapper = new EcsTlrMapperImpl();
+  private final ExternalEcsRequestMapper externalEcsRequestMapper =
+    new ExternalEcsRequestMapperImpl();
   @InjectMocks
   private EcsRequestExternalController ecsRequestExternalController;
 

@@ -47,7 +47,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     log.info("create:: creating ECS TLR {} instance {}, item {}, requester {}", ecsTlrDto.getId(),
       ecsTlrDto.getInstanceId(), ecsTlrDto.getItemId(), ecsTlrDto.getRequesterId());
     try {
-      return processCreationOfEcsTlr(ecsTlrDto);
+      return placeEcsRequest(ecsTlrDto);
     } catch (RequestCreatingException e) {
       log.warn("create:: error request creation, message: {}, cause: {}",
         e.getMessage(), e.getCause());
@@ -77,7 +77,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     return false;
   }
 
-  private EcsTlr processCreationOfEcsTlr(EcsTlr ecsTlrDto) {
+  private EcsTlr placeEcsRequest(EcsTlr ecsTlrDto) {
     EcsTlrEntity ecsTlr = requestsMapper.mapDtoToEntity(ecsTlrDto);
     String borrowingTenantId = getBorrowingTenant(ecsTlr);
     Collection<String> lendingTenantIds = getLendingTenants(ecsTlr);
