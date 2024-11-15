@@ -24,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class EcsRequestExternalControllerTest {
+  private static final String ERROR_MESSAGE = "Error message";
   @Mock
   private EcsTlrService ecsTlrService;
   @Spy
@@ -62,7 +63,7 @@ class EcsRequestExternalControllerTest {
     EcsTlr recallEcsTlr = new EcsTlr().requestType(EcsTlr.RequestTypeEnum.RECALL);
 
     when(ecsTlrService.create(any(EcsTlr.class)))
-      .thenThrow(new RequestCreatingException("Error message"))
+      .thenThrow(new RequestCreatingException(ERROR_MESSAGE))
       .thenReturn(recallEcsTlr);
 
     var response = ecsRequestExternalController.postEcsRequestExternal(ecsRequestExternal);
@@ -82,8 +83,8 @@ class EcsRequestExternalControllerTest {
     EcsTlr holdEcsTlr = new EcsTlr().requestType(EcsTlr.RequestTypeEnum.HOLD);
 
     when(ecsTlrService.create(any(EcsTlr.class)))
-      .thenThrow(new RequestCreatingException("Error message"))
-      .thenThrow(new RequestCreatingException("Error message"))
+      .thenThrow(new RequestCreatingException(ERROR_MESSAGE))
+      .thenThrow(new RequestCreatingException(ERROR_MESSAGE))
       .thenReturn(holdEcsTlr);
 
     var response = ecsRequestExternalController.postEcsRequestExternal(ecsRequestExternal);
@@ -102,9 +103,9 @@ class EcsRequestExternalControllerTest {
       .requestDate(new Date());
 
     when(ecsTlrService.create(any(EcsTlr.class)))
-      .thenThrow(new RequestCreatingException("Error message"))
-      .thenThrow(new RequestCreatingException("Error message"))
-      .thenThrow(new RequestCreatingException("Error message"));
+      .thenThrow(new RequestCreatingException(ERROR_MESSAGE))
+      .thenThrow(new RequestCreatingException(ERROR_MESSAGE))
+      .thenThrow(new RequestCreatingException(ERROR_MESSAGE));
 
     assertEquals(BAD_REQUEST, ecsRequestExternalController.postEcsRequestExternal(
       ecsRequestExternal).getStatusCode());
