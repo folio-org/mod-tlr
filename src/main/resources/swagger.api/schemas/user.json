@@ -177,11 +177,11 @@
     },
     "metadata": {
       "type": "object",
-      "$ref": "uuid.json"
+      "$ref": "metadata.json"
     },
     "tags": {
       "type": "object",
-      "$ref": "uuid.json"
+      "$ref": "tags.json"
     },
     "customFields" : {
       "description": "Object that contains custom field",
