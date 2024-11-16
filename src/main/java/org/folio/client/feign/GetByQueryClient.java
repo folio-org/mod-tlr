@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 @FeignClient(name="get-by-query", configuration = FeignClientConfiguration.class)
 public interface GetByQueryClient<T> {
-  int DEFAULT_LIMIT = 1000;
+  int DEFAULT_LIMIT = 500;
 
   @GetMapping
   T getByQuery(@RequestParam CqlQuery query, @RequestParam int limit);
