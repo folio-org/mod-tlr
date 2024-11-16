@@ -174,7 +174,7 @@ public class RequestServiceImpl implements RequestService {
     String pickupLocation, String circulationItemTenantId, String inventoryTenantId) {
 
     log.info("createCirculationItem:: Creating circulation item, params: itemId={}, " +
-        "instanceId={}, pickupLocation={}, primaryRequestTenantId={}, secondaryRequestTenantId={}",
+        "instanceId={}, pickupLocation={}, circulationItemTenantId={}, inventoryTenantId={}",
       itemId, instanceId, pickupLocation, circulationItemTenantId, inventoryTenantId);
 
     if (itemId == null || instanceId == null) {
@@ -182,10 +182,13 @@ public class RequestServiceImpl implements RequestService {
       return null;
     }
 
-    // check if circulation item already exists
-    CirculationItem existingCirculationItem = circulationItemClient.getCirculationItem(itemId);
+    // Check if circulation item already exists in the tenant we want to create it in
+    CirculationItem existingCirculationItem = executionService.executeSystemUserScoped(
+      circulationItemTenantId, () -> circulationItemClient.getCirculationItem(itemId));
     if (existingCirculationItem != null) {
-      log.info("createCirculationItem:: circulation item already exists");
+      log.info("createCirculationItem:: circulation item already exists in ten" +
+        "ant {}", circulationItemTenantId);
+
       return existingCirculationItem;
     }
 
@@ -214,16 +217,15 @@ public class RequestServiceImpl implements RequestService {
       .effectiveLocationId(item.getEffectiveLocationId())
       .lendingLibraryCode("TEST_CODE");
 
-    log.info("createCirculationItem:: Creating circulation item {}", circulationItem.toString());
-
-    // ? is originating tenant central?
-
     var centralTenantId = userTenantsService.getCentralTenantId();
+
     if (circulationItemTenantId.equals(centralTenantId)) {
-      log.info("createCirculationItem:: Creating circulation item {}", circulationItem.toString());
-      // Only create
+      log.info("createCirculationItem:: Creating circulation item {} locally in Central",
+        circulationItem.toString());
       return circulationItemClient.createCirculationItem(itemId, circulationItem);
     } else {
+      log.info("createCirculationItem:: Creating circulation item {} in tenant {}",
+        circulationItem.toString(), circulationItemTenantId);
       return systemUserScopedExecutionService.executeSystemUserScoped(
         circulationItemTenantId, () -> circulationItemClient.createCirculationItem(itemId, circulationItem));
     }
