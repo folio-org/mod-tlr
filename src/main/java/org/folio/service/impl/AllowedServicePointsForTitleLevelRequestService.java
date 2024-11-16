@@ -53,12 +53,12 @@ public class AllowedServicePointsForTitleLevelRequestService extends AllowedServ
   }
 
   @Override
-  protected AllowedServicePointsResponse getAllowedServicePointsFromLendingTenant(
+  protected AllowedServicePointsResponse getAllowedServicePointsFromTenant(
     AllowedServicePointsRequest request, String patronGroupId, String tenantId) {
 
     return executionService.executeSystemUserScoped(tenantId,
-      () -> circulationClient.allowedRoutingServicePoints(patronGroupId, request.getInstanceId(),
-        request.getOperation().getValue(), true));
+      () -> circulationClient.allowedServicePointsByInstance(patronGroupId,
+        request.getOperation().getValue(), request.getInstanceId()));
   }
 
 }
