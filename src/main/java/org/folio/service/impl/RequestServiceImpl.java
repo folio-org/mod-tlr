@@ -219,16 +219,21 @@ public class RequestServiceImpl implements RequestService {
 
     var centralTenantId = userTenantsService.getCentralTenantId();
 
-    if (circulationItemTenantId.equals(centralTenantId)) {
-      log.info("createCirculationItem:: Creating circulation item {} locally in Central",
-        circulationItem.toString());
-      return circulationItemClient.createCirculationItem(itemId, circulationItem);
-    } else {
-      log.info("createCirculationItem:: Creating circulation item {} in tenant {}",
-        circulationItem.toString(), circulationItemTenantId);
-      return systemUserScopedExecutionService.executeSystemUserScoped(
-        circulationItemTenantId, () -> circulationItemClient.createCirculationItem(itemId, circulationItem));
-    }
+    log.info("createCirculationItem:: Creating circulation item {} in tenant {}",
+      circulationItem.toString(), circulationItemTenantId);
+    return systemUserScopedExecutionService.executeSystemUserScoped(
+      circulationItemTenantId, () -> circulationItemClient.createCirculationItem(itemId, circulationItem));
+
+//    if (circulationItemTenantId.equals(centralTenantId)) {
+//      log.info("createCirculationItem:: Creating circulation item {} locally in Central",
+//        circulationItem.toString());
+//      return circulationItemClient.createCirculationItem(itemId, circulationItem);
+//    } else {
+//      log.info("createCirculationItem:: Creating circulation item {} in tenant {}",
+//        circulationItem.toString(), circulationItemTenantId);
+//      return systemUserScopedExecutionService.executeSystemUserScoped(
+//        circulationItemTenantId, () -> circulationItemClient.createCirculationItem(itemId, circulationItem));
+//    }
   }
 
   @Override
