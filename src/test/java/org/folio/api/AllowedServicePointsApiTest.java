@@ -7,8 +7,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static java.lang.String.format;
 import static org.apache.http.HttpStatus.SC_OK;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
 
 import java.util.List;
 import java.util.Set;
@@ -26,6 +24,8 @@ import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 
 class AllowedServicePointsApiTest extends BaseIT {
@@ -43,7 +43,7 @@ class AllowedServicePointsApiTest extends BaseIT {
     ALLOWED_SERVICE_POINTS_URL + "?operation=replace&requestId=" + PRIMARY_REQUEST_ID;
   private static final String ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL =
     "/circulation/requests/allowed-service-points";
-  private static final String ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL_PATTERN =
+  private static final String ALLOWED_SPS_MOD_CIRCULATION_URL_PATTERN =
     ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL + ".*";
   private static final String SEARCH_INSTANCES_URL = "/search/instances.*";
   private static final String USER_URL = "/users/" + REQUESTER_ID;
@@ -60,13 +60,21 @@ class AllowedServicePointsApiTest extends BaseIT {
   }
 
   @Test
-  void allowedServicePointReturnsEmptyResultWhenNoRoutingSpInResponsesFromDataTenants() {
-    var item1 = new SearchItem();
-    item1.setTenantId(TENANT_ID_UNIVERSITY);
+  void allowedServicePointsShouldReturn422WhenParametersAreInvalid() {
+    doGet(ALLOWED_SERVICE_POINTS_URL + format("?operation=create&requesterId=%s", randomId()))
+      .expectStatus().isEqualTo(422);
+  }
 
-    var item2 = new SearchItem();
-    item2.setTenantId(TENANT_ID_COLLEGE);
+  @Test
+  void titleLevelCreateWhenNoSpInDataTenants() {
+    // given
+    User requester = new User().patronGroup(PATRON_GROUP_ID);
+    wireMockServer.stubFor(get(urlMatching(USER_URL))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(jsonResponse(asJsonString(requester), SC_OK)));
 
+    var item1 = new SearchItem().tenantId(TENANT_ID_UNIVERSITY);
+    var item2 = new SearchItem().tenantId(TENANT_ID_COLLEGE);
     var searchInstancesResponse = new SearchInstancesResponse();
     searchInstancesResponse.setTotalRecords(1);
     searchInstancesResponse.setInstances(List.of(new SearchInstance().items(List.of(item1, item2))));
@@ -75,249 +83,131 @@ class AllowedServicePointsApiTest extends BaseIT {
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
       .willReturn(jsonResponse(asJsonString(searchInstancesResponse), SC_OK)));
 
-    var allowedSpResponseConsortium = new AllowedServicePointsResponse();
-    allowedSpResponseConsortium.setHold(Set.of(
-      buildAllowedServicePoint("SP_consortium_1"),
-      buildAllowedServicePoint("SP_consortium_2")));
-    allowedSpResponseConsortium.setPage(null);
-    allowedSpResponseConsortium.setRecall(Set.of(
-      buildAllowedServicePoint("SP_consortium_3")));
-
     var allowedSpResponseUniversity = new AllowedServicePointsResponse();
     allowedSpResponseUniversity.setHold(null);
     allowedSpResponseUniversity.setPage(null);
     allowedSpResponseUniversity.setRecall(null);
-
-    var allowedSpResponseCollege = new AllowedServicePointsResponse();
-    allowedSpResponseCollege.setHold(null);
-    allowedSpResponseCollege.setPage(null);
-    allowedSpResponseCollege.setRecall(null);
-
-    var allowedSpResponseCollegeWithRouting = new AllowedServicePointsResponse();
-    allowedSpResponseCollegeWithRouting.setHold(null);
-    allowedSpResponseCollegeWithRouting.setPage(Set.of(
-      buildAllowedServicePoint("SP_college_1")));
-    allowedSpResponseCollegeWithRouting.setRecall(null);
-
-    User requester = new User().patronGroup(PATRON_GROUP_ID);
-    wireMockServer.stubFor(get(urlMatching(USER_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
-      .willReturn(jsonResponse(asJsonString(requester), SC_OK)));
-
-    wireMockServer.stubFor(get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL_PATTERN))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
-      .willReturn(jsonResponse(asJsonString(allowedSpResponseConsortium), SC_OK)));
-
-    wireMockServer.stubFor(get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL_PATTERN))
+    wireMockServer.stubFor(get(urlMatching(ALLOWED_SPS_MOD_CIRCULATION_URL_PATTERN))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
       .willReturn(jsonResponse(asJsonString(allowedSpResponseUniversity), SC_OK)));
 
-    var collegeStubMapping = wireMockServer.stubFor(
-      get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL_PATTERN))
-        .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
-        .willReturn(jsonResponse(asJsonString(allowedSpResponseCollege), SC_OK)));
+    var allowedSpResponseCollege = new AllowedServicePointsResponse();
+    allowedSpResponseCollege.setHold(Set.of());
+    allowedSpResponseCollege.setPage(Set.of());
+    allowedSpResponseCollege.setRecall(Set.of());
+    wireMockServer.stubFor(get(urlMatching(ALLOWED_SPS_MOD_CIRCULATION_URL_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
+      .willReturn(jsonResponse(asJsonString(allowedSpResponseCollege), SC_OK)));
 
+    // when - then
     doGet(
       ALLOWED_SERVICE_POINTS_URL + format("?operation=create&requesterId=%s&instanceId=%s",
         REQUESTER_ID, INSTANCE_ID))
       .expectStatus().isEqualTo(200)
       .expectBody().json("{}");
 
-    wireMockServer.removeStub(collegeStubMapping);
-    wireMockServer.stubFor(get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL_PATTERN))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
-      .willReturn(jsonResponse(asJsonString(allowedSpResponseCollegeWithRouting),
-        SC_OK)));
+    wireMockServer.verify(getRequestedFor(urlMatching(
+      ALLOWED_SPS_MOD_CIRCULATION_URL_PATTERN))
+      .withQueryParam("patronGroupId", equalTo(PATRON_GROUP_ID))
+      .withQueryParam("operation", equalTo("create"))
+      .withQueryParam("instanceId", equalTo(INSTANCE_ID)));
+  }
 
+  @Test
+  void titleLevelCreateReturnsResponsesFromDataTenants() {
+    // given
+    User requester = new User().patronGroup(PATRON_GROUP_ID);
+    wireMockServer.stubFor(get(urlMatching(USER_URL))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(jsonResponse(asJsonString(requester), SC_OK)));
+
+    var item1 = new SearchItem().tenantId(TENANT_ID_UNIVERSITY);
+    var item2 = new SearchItem().tenantId(TENANT_ID_COLLEGE);
+    var searchInstancesResponse = new SearchInstancesResponse();
+    searchInstancesResponse.setTotalRecords(1);
+    searchInstancesResponse.setInstances(List.of(new SearchInstance().items(List.of(item1, item2))));
+
+    wireMockServer.stubFor(get(urlMatching(SEARCH_INSTANCES_URL))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(jsonResponse(asJsonString(searchInstancesResponse), SC_OK)));
+
+    AllowedServicePointsInner sp1 = buildAllowedServicePoint("SP_college_1");
+    AllowedServicePointsInner sp2 = buildAllowedServicePoint("SP_college_2");
+    AllowedServicePointsInner sp3 = buildAllowedServicePoint("SP_college_3");
+    var allowedSpResponseUniversity = new AllowedServicePointsResponse()
+      .hold(Set.of(sp1))
+      .page(Set.of(sp1))
+      .recall(Set.of(sp2, sp3));
+    wireMockServer.stubFor(get(urlMatching(ALLOWED_SPS_MOD_CIRCULATION_URL_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
+      .willReturn(jsonResponse(asJsonString(allowedSpResponseUniversity), SC_OK)));
+
+    var allowedSpResponseCollege = new AllowedServicePointsResponse()
+      .hold(Set.of(sp2))
+      .page(Set.of(sp1))
+      .recall(null);
+    wireMockServer.stubFor(get(urlMatching(ALLOWED_SPS_MOD_CIRCULATION_URL_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
+      .willReturn(jsonResponse(asJsonString(allowedSpResponseCollege), SC_OK)));
+
+    // when - then
+    var allowedSpResponseCombined = new AllowedServicePointsResponse()
+      .hold(Set.of(sp1, sp2))
+      .page(Set.of(sp1))
+      .recall(Set.of(sp2, sp3));
     doGet(
       ALLOWED_SERVICE_POINTS_URL + format("?operation=create&requesterId=%s&instanceId=%s",
         REQUESTER_ID, INSTANCE_ID))
       .expectStatus().isEqualTo(200)
-      .expectBody().json(asJsonString(allowedSpResponseConsortium));
+      .expectBody().json(asJsonString(allowedSpResponseCombined));
 
     wireMockServer.verify(getRequestedFor(urlMatching(
-      ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL_PATTERN))
+      ALLOWED_SPS_MOD_CIRCULATION_URL_PATTERN))
       .withQueryParam("patronGroupId", equalTo(PATRON_GROUP_ID))
-      .withQueryParam("instanceId", equalTo(INSTANCE_ID))
       .withQueryParam("operation", equalTo("create"))
-      .withQueryParam("useStubItem", equalTo("true")));
+      .withQueryParam("instanceId", equalTo(INSTANCE_ID)));
   }
 
   @Test
-  void allowedServicePointsShouldReturn422WhenParametersAreInvalid() {
-    doGet(ALLOWED_SERVICE_POINTS_URL + format("?operation=create&requesterId=%s", randomId()))
-      .expectStatus().isEqualTo(422);
-  }
+  void itemLevelCreateReturnsResponsesFromDataTenants() {
+    // given
+    User requester = new User().patronGroup(PATRON_GROUP_ID);
+    wireMockServer.stubFor(get(urlMatching(USER_URL))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(jsonResponse(asJsonString(requester), SC_OK)));
 
-  @Test
-  void replaceForRequestLinkedToItemWhenPrimaryRequestTypeIsAllowedInBorrowingTenant() {
-    createEcsTlr(true);
+    var searchItemResponse = new SearchItemResponse();
+    searchItemResponse.setTenantId(TENANT_ID_COLLEGE);
+    searchItemResponse.setInstanceId(INSTANCE_ID);
+    searchItemResponse.setId(ITEM_ID);
+    wireMockServer.stubFor(get(urlMatching(SEARCH_ITEM_URL))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(jsonResponse(asJsonString(searchItemResponse), SC_OK)));
 
-    var mockAllowedSpResponseFromBorrowingTenant = new AllowedServicePointsResponse()
-      .page(Set.of(buildAllowedServicePoint("borrowing-page")))
-      .hold(Set.of(buildAllowedServicePoint("borrowing-hold")))
-      .recall(Set.of(buildAllowedServicePoint("borrowing-recall")));
+    AllowedServicePointsInner sp1 = buildAllowedServicePoint("SP_college_1");
+    AllowedServicePointsInner sp2 = buildAllowedServicePoint("SP_college_2");
+    var allowedSpResponseCollege = new AllowedServicePointsResponse()
+      .hold(Set.of(sp1))
+      .page(Set.of(sp1))
+      .recall(Set.of(sp2));
+    wireMockServer.stubFor(get(urlMatching(ALLOWED_SPS_MOD_CIRCULATION_URL_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
+      .willReturn(jsonResponse(asJsonString(allowedSpResponseCollege),
+        SC_OK)));
 
-    wireMockServer.stubFor(get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL +
-      String.format("\\?operation=replace&requestId=%s&useStubItem=true", PRIMARY_REQUEST_ID)))
-      .withHeader(HEADER_TENANT, equalTo(BORROWING_TENANT_ID))
-      .willReturn(jsonResponse(asJsonString(mockAllowedSpResponseFromBorrowingTenant), SC_OK)));
-
-    doGet(ALLOWED_SERVICE_POINTS_FOR_REPLACE_URL)
+    // when - then
+    doGet(
+      ALLOWED_SERVICE_POINTS_URL + format("?operation=create&requesterId=%s&itemId=%s",
+        REQUESTER_ID, ITEM_ID))
       .expectStatus().isEqualTo(200)
-      .expectBody()
-      .jsonPath("Page").doesNotExist()
-      .jsonPath("Recall").doesNotExist()
-      .jsonPath("Hold").value(hasSize(1))
-      .jsonPath("Hold[0].name").value(is("borrowing-hold"));
-
-    wireMockServer.verify(0, getRequestedFor(urlMatching(REQUEST_STORAGE_URL + ".*")));
-    wireMockServer.verify(0, getRequestedFor(urlMatching(
-      ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL_PATTERN))
-      .withHeader(HEADER_TENANT, equalTo(LENDING_TENANT_ID)));
-  }
-
-  @Test
-  void replaceForRequestLinkedToItemWhenPrimaryRequestTypeIsNotAllowedInBorrowingTenant() {
-    createEcsTlr(true);
-
-    var mockAllowedSpResponseFromBorrowingTenant = new AllowedServicePointsResponse()
-      .page(Set.of(buildAllowedServicePoint("borrowing-page")))
-      .hold(null)
-      .recall(Set.of(buildAllowedServicePoint("borrowing-recall")));
-
-    wireMockServer.stubFor(get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL +
-      String.format("\\?operation=replace&requestId=%s&useStubItem=true", PRIMARY_REQUEST_ID)))
-      .withHeader(HEADER_TENANT, equalTo(BORROWING_TENANT_ID))
-      .willReturn(jsonResponse(asJsonString(mockAllowedSpResponseFromBorrowingTenant), SC_OK)));
-
-    doGet(ALLOWED_SERVICE_POINTS_FOR_REPLACE_URL)
-      .expectStatus().isEqualTo(200)
-      .expectBody()
-      .jsonPath("Page").doesNotExist()
-      .jsonPath("Hold").doesNotExist()
-      .jsonPath("Recall").doesNotExist();
-
-    wireMockServer.verify(0, getRequestedFor(urlMatching(REQUEST_STORAGE_URL + ".*")));
-    wireMockServer.verify(0, getRequestedFor(urlMatching(
-      ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL_PATTERN))
-      .withHeader(HEADER_TENANT, equalTo(LENDING_TENANT_ID)));
-  }
-
-  @Test
-  void replaceForRequestNotLinkedToItemWhenSecondaryRequestTypeIsNoLongerAllowedInLendingTenant() {
-    createEcsTlr(false);
-
-    Request secondaryRequest = new Request().id(SECONDARY_REQUEST_ID)
-      .requestType(Request.RequestTypeEnum.PAGE);
-
-    wireMockServer.stubFor(get(urlMatching(REQUEST_STORAGE_URL + "/" + SECONDARY_REQUEST_ID))
-      .withHeader(HEADER_TENANT, equalTo(LENDING_TENANT_ID))
-      .willReturn(jsonResponse(asJsonString(secondaryRequest), SC_OK)));
-
-    var mockAllowedSpResponseFromLendingTenant = new AllowedServicePointsResponse()
-      .page(null)
-      .hold(Set.of(buildAllowedServicePoint("lending-hold")))
-      .recall(Set.of(buildAllowedServicePoint("lending-recall")));
-
-    wireMockServer.stubFor(get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL +
-      String.format("\\?operation=replace&requestId=%s&ecsRequestRouting=true", SECONDARY_REQUEST_ID)))
-      .withHeader(HEADER_TENANT, equalTo(LENDING_TENANT_ID))
-      .willReturn(jsonResponse(asJsonString(mockAllowedSpResponseFromLendingTenant), SC_OK)));
-
-    doGet(ALLOWED_SERVICE_POINTS_FOR_REPLACE_URL)
-      .expectStatus().isEqualTo(200)
-      .expectBody()
-      .jsonPath("Page").doesNotExist()
-      .jsonPath("Recall").doesNotExist()
-      .jsonPath("Hold").doesNotExist();
-
-    wireMockServer.verify(0, getRequestedFor(urlMatching(
-      ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL_PATTERN))
-      .withHeader(HEADER_TENANT, equalTo(BORROWING_TENANT_ID)));
-  }
-
-  @Test
-  void replaceForRequestNotLinkedToItemWhenSecondaryRequestTypeIsAllowedInLendingTenant() {
-    createEcsTlr(false);
-
-    Request secondaryRequest = new Request().id(SECONDARY_REQUEST_ID)
-      .requestType(Request.RequestTypeEnum.PAGE);
-
-    wireMockServer.stubFor(get(urlMatching(REQUEST_STORAGE_URL + "/" + SECONDARY_REQUEST_ID))
-      .withHeader(HEADER_TENANT, equalTo(LENDING_TENANT_ID))
-      .willReturn(jsonResponse(asJsonString(secondaryRequest), SC_OK)));
-
-    var mockAllowedSpResponseFromLendingTenant = new AllowedServicePointsResponse()
-      .page(Set.of(buildAllowedServicePoint("lending-page")))
-      .hold(null)
-      .recall(null);
-
-    wireMockServer.stubFor(get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL +
-      String.format("\\?operation=replace&requestId=%s&ecsRequestRouting=true", SECONDARY_REQUEST_ID)))
-      .withHeader(HEADER_TENANT, equalTo(LENDING_TENANT_ID))
-      .willReturn(jsonResponse(asJsonString(mockAllowedSpResponseFromLendingTenant), SC_OK)));
-
-    var mockAllowedSpResponseFromBorrowingTenant = new AllowedServicePointsResponse()
-      .page(Set.of(buildAllowedServicePoint("borrowing-page")))
-      .hold(Set.of(buildAllowedServicePoint("borrowing-hold")))
-      .recall(Set.of(buildAllowedServicePoint("borrowing-recall")));
-
-    wireMockServer.stubFor(
-      get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL +
-        format("\\?operation=replace&requestId=%s&useStubItem=true", PRIMARY_REQUEST_ID)))
-        .withHeader(HEADER_TENANT, equalTo(BORROWING_TENANT_ID))
-        .willReturn(jsonResponse(asJsonString(mockAllowedSpResponseFromBorrowingTenant), SC_OK)));
-
-    doGet(ALLOWED_SERVICE_POINTS_FOR_REPLACE_URL)
-      .expectStatus().isEqualTo(200)
-      .expectBody()
-      .jsonPath("Page").doesNotExist()
-      .jsonPath("Recall").doesNotExist()
-      .jsonPath("Hold[0].name").value(is("borrowing-hold"));
+      .expectBody().json(asJsonString(allowedSpResponseCollege));
 
     wireMockServer.verify(getRequestedFor(urlMatching(
-      ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL_PATTERN))
-      .withHeader(HEADER_TENANT, equalTo(BORROWING_TENANT_ID)));
-  }
-
-  @Test
-  void replaceForRequestNotLinkedToItemWhenPrimaryRequestTypeIsNotAllowedInBorrowingTenant() {
-    createEcsTlr(false);
-
-    Request secondaryRequest = new Request().id(SECONDARY_REQUEST_ID)
-      .requestType(Request.RequestTypeEnum.PAGE);
-
-    wireMockServer.stubFor(get(urlMatching(REQUEST_STORAGE_URL + "/" + SECONDARY_REQUEST_ID))
-      .withHeader(HEADER_TENANT, equalTo(LENDING_TENANT_ID))
-      .willReturn(jsonResponse(asJsonString(secondaryRequest), SC_OK)));
-
-    var mockAllowedSpResponseFromLendingTenant = new AllowedServicePointsResponse()
-      .page(Set.of(buildAllowedServicePoint("lending-page")))
-      .hold(null)
-      .recall(null);
-
-    wireMockServer.stubFor(get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL +
-      String.format("\\?operation=replace&requestId=%s&ecsRequestRouting=true", SECONDARY_REQUEST_ID)))
-      .withHeader(HEADER_TENANT, equalTo(LENDING_TENANT_ID))
-      .willReturn(jsonResponse(asJsonString(mockAllowedSpResponseFromLendingTenant), SC_OK)));
-
-    var mockAllowedSpResponseFromBorrowingTenant = new AllowedServicePointsResponse()
-      .page(Set.of(buildAllowedServicePoint("borrowing-page")))
-      .hold(null)
-      .recall(Set.of(buildAllowedServicePoint("borrowing-recall")));
-
-    wireMockServer.stubFor(get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL +
-      String.format("\\?operation=replace&requestId=%s&useStubItem=true", PRIMARY_REQUEST_ID)))
-      .withHeader(HEADER_TENANT, equalTo(BORROWING_TENANT_ID))
-      .willReturn(jsonResponse(asJsonString(mockAllowedSpResponseFromBorrowingTenant), SC_OK)));
-
-    doGet(ALLOWED_SERVICE_POINTS_FOR_REPLACE_URL)
-      .expectStatus().isEqualTo(200)
-      .expectBody()
-      .jsonPath("Page").doesNotExist()
-      .jsonPath("Recall").doesNotExist()
-      .jsonPath("Hold").doesNotExist();
+      ALLOWED_SPS_MOD_CIRCULATION_URL_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
+      .withQueryParam("patronGroupId", equalTo(PATRON_GROUP_ID))
+      .withQueryParam("operation", equalTo("create"))
+      .withQueryParam("itemId", equalTo(ITEM_ID)));
   }
 
   @Test
@@ -328,7 +218,7 @@ class AllowedServicePointsApiTest extends BaseIT {
       .recall(Set.of(buildAllowedServicePoint("borrowing-recall")));
 
     wireMockServer.stubFor(get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL +
-      String.format("\\?operation=replace&requestId=%s&useStubItem=false", PRIMARY_REQUEST_ID)))
+      String.format("\\?operation=replace&requestId=%s", PRIMARY_REQUEST_ID)))
       .withHeader(HEADER_TENANT, equalTo(BORROWING_TENANT_ID))
       .willReturn(jsonResponse(asJsonString(mockAllowedSpResponseFromBorrowingTenant), SC_OK)));
 
@@ -336,67 +226,43 @@ class AllowedServicePointsApiTest extends BaseIT {
       .expectStatus().isEqualTo(500);
   }
 
-  @Test
-  void allowedSpWithItemLevelReturnsResultSpInResponsesFromDataTenant() {
-    var searchItemResponse = new SearchItemResponse();
-    searchItemResponse.setTenantId(TENANT_ID_COLLEGE);
-    searchItemResponse.setInstanceId(INSTANCE_ID);
-    searchItemResponse.setId(ITEM_ID);
+  @ParameterizedTest
+  @EnumSource(Request.RequestTypeEnum.class)
+  void replaceForRequestNotLinkedToItem(Request.RequestTypeEnum secondaryRequestType) {
+    // given
+    createEcsTlr(false);
 
-    wireMockServer.stubFor(get(urlMatching(SEARCH_ITEM_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
-      .willReturn(jsonResponse(asJsonString(searchItemResponse), SC_OK)));
+    Request secondaryRequest = new Request().id(SECONDARY_REQUEST_ID)
+      .requestType(secondaryRequestType);
 
-    var allowedSpResponseConsortium = new AllowedServicePointsResponse();
-    allowedSpResponseConsortium.setHold(Set.of(
-      buildAllowedServicePoint("SP_consortium_1"),
-      buildAllowedServicePoint("SP_consortium_2")));
-    allowedSpResponseConsortium.setPage(null);
-    allowedSpResponseConsortium.setRecall(Set.of(
-      buildAllowedServicePoint("SP_consortium_3")));
+    wireMockServer.stubFor(get(urlMatching(REQUEST_STORAGE_URL + "/" + SECONDARY_REQUEST_ID))
+      .withHeader(HEADER_TENANT, equalTo(LENDING_TENANT_ID))
+      .willReturn(jsonResponse(asJsonString(secondaryRequest), SC_OK)));
 
-    var allowedSpResponseCollege = new AllowedServicePointsResponse();
-    allowedSpResponseCollege.setHold(Set.of(
-      buildAllowedServicePoint("SP_college_1")));
-    allowedSpResponseCollege.setPage(null);
-    allowedSpResponseCollege.setRecall(Set.of(
-      buildAllowedServicePoint("SP_college_2")));
+    Set<AllowedServicePointsInner> servicePoints = Set.of(
+      buildAllowedServicePoint("SP1"),
+      buildAllowedServicePoint("SP2")
+    );
+    var allowedSpResponseSecondaryRequestTenant = new AllowedServicePointsResponse();
+    switch (secondaryRequestType) {
+      case PAGE -> allowedSpResponseSecondaryRequestTenant.page(servicePoints);
+      case HOLD -> allowedSpResponseSecondaryRequestTenant.hold(servicePoints);
+      case RECALL -> allowedSpResponseSecondaryRequestTenant.recall(servicePoints);
+    }
 
-    User requester = new User().patronGroup(PATRON_GROUP_ID);
-    wireMockServer.stubFor(get(urlMatching(USER_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
-      .willReturn(jsonResponse(asJsonString(requester), SC_OK)));
+    wireMockServer.stubFor(get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL +
+      String.format("\\?operation=replace&requestId=%s", SECONDARY_REQUEST_ID)))
+      .withHeader(HEADER_TENANT, equalTo(LENDING_TENANT_ID))
+      .willReturn(jsonResponse(asJsonString(allowedSpResponseSecondaryRequestTenant), SC_OK)));
 
-    wireMockServer.stubFor(get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL_PATTERN))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
-      .willReturn(jsonResponse(asJsonString(allowedSpResponseConsortium), SC_OK)));
-
-    wireMockServer.stubFor(get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL_PATTERN))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
-      .willReturn(jsonResponse(asJsonString(allowedSpResponseCollege),
-        SC_OK)));
-
-    doGet(
-      ALLOWED_SERVICE_POINTS_URL + format("?operation=create&requesterId=%s&itemId=%s",
-        REQUESTER_ID, ITEM_ID))
+    // then - then
+    doGet(ALLOWED_SERVICE_POINTS_FOR_REPLACE_URL)
       .expectStatus().isEqualTo(200)
-      .expectBody().json(asJsonString(allowedSpResponseConsortium));
+      .expectBody().json(asJsonString(allowedSpResponseSecondaryRequestTenant));
 
-    wireMockServer.verify(getRequestedFor(urlMatching(
-      ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL_PATTERN))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
-      .withQueryParam("patronGroupId", equalTo(PATRON_GROUP_ID))
-      .withQueryParam("operation", equalTo("create"))
-      .withQueryParam("ecsRequestRouting", equalTo("true"))
-      .withQueryParam("itemId", equalTo(ITEM_ID)));
-
-    wireMockServer.verify(getRequestedFor(urlMatching(
-      ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL_PATTERN))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
-      .withQueryParam("patronGroupId", equalTo(PATRON_GROUP_ID))
-      .withQueryParam("instanceId", equalTo(INSTANCE_ID))
-      .withQueryParam("operation", equalTo("create"))
-      .withQueryParam("useStubItem", equalTo("true")));
+    wireMockServer.verify(0, getRequestedFor(urlMatching(
+      ALLOWED_SPS_MOD_CIRCULATION_URL_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(BORROWING_TENANT_ID)));
   }
 
   private AllowedServicePointsInner buildAllowedServicePoint(String name) {
