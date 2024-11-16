@@ -218,7 +218,7 @@ class AllowedServicePointsApiTest extends BaseIT {
       .recall(Set.of(buildAllowedServicePoint("borrowing-recall")));
 
     wireMockServer.stubFor(get(urlMatching(ALLOWED_SERVICE_POINTS_MOD_CIRCULATION_URL +
-      String.format("\\?operation=replace&requestId=%s&useStubItem=false", PRIMARY_REQUEST_ID)))
+      String.format("\\?operation=replace&requestId=%s", PRIMARY_REQUEST_ID)))
       .withHeader(HEADER_TENANT, equalTo(BORROWING_TENANT_ID))
       .willReturn(jsonResponse(asJsonString(mockAllowedSpResponseFromBorrowingTenant), SC_OK)));
 
