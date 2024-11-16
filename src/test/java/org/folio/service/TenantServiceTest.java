@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-import org.folio.client.feign.SearchClient;
+import org.folio.client.feign.SearchInstanceClient;
 import org.folio.domain.dto.SearchInstance;
 import org.folio.domain.dto.SearchInstancesResponse;
 import org.folio.domain.dto.SearchItem;
@@ -30,7 +30,7 @@ class TenantServiceTest {
   private static final UUID INSTANCE_ID = UUID.randomUUID();
 
   @Mock
-  private SearchClient searchClient;
+  private SearchInstanceClient searchClient;
   @InjectMocks
   private TenantServiceImpl tenantService;
 

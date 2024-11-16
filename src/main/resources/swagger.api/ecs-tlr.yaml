@@ -114,7 +114,7 @@ components:
     userTenantCollection:
       $ref: 'schemas/userTenantCollection.json'
     servicePoint:
-      $ref: 'schemas/service-point.json'
+      $ref: 'schemas/inventory/servicePoint.json'
     userGroup:
       $ref: 'schemas/users/userGroup.json'
     requestsBatchUpdate:

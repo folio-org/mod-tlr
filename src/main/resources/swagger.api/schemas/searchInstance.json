@@ -189,7 +189,7 @@
       "type": "array",
       "description": "List of instance holding records",
       "items": {
-        "$ref": "holding.json"
+        "$ref": "searchHolding.json"
       }
     }
   }

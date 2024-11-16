@@ -23,7 +23,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import org.folio.client.feign.SearchClient;
+import org.folio.client.feign.SearchInstanceClient;
 import org.folio.domain.dto.ItemStatusEnum;
 import org.folio.domain.dto.SearchInstance;
 import org.folio.domain.dto.SearchItem;
@@ -41,7 +41,7 @@ import lombok.extern.log4j.Log4j2;
 @RequiredArgsConstructor
 @Log4j2
 public class TenantServiceImpl implements TenantService {
-  private final SearchClient searchClient;
+  private final SearchInstanceClient searchClient;
 
   @Override
   public Optional<String> getBorrowingTenant(EcsTlrEntity ecsTlr) {

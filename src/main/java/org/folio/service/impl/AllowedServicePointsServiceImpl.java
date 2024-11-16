@@ -8,7 +8,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.folio.client.feign.CirculationClient;
-import org.folio.client.feign.SearchClient;
+import org.folio.client.feign.SearchItemClient;
 import org.folio.domain.Constants;
 import org.folio.domain.dto.AllowedServicePointsRequest;
 import org.folio.domain.dto.AllowedServicePointsResponse;
@@ -30,7 +30,7 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public abstract class AllowedServicePointsServiceImpl implements AllowedServicePointsService {
 
-  protected final SearchClient searchClient;
+  protected final SearchItemClient searchItemClient;
   protected final CirculationClient circulationClient;
   private final UserService userService;
   protected final SystemUserScopedExecutionService executionService;

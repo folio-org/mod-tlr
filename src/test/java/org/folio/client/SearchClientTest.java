@@ -9,7 +9,7 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.UUID;
 
-import org.folio.client.feign.SearchClient;
+import org.folio.client.feign.SearchInstanceClient;
 import org.folio.domain.dto.SearchInstance;
 import org.folio.domain.dto.SearchInstancesResponse;
 import org.folio.support.CqlQuery;
@@ -21,7 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class SearchClientTest {
   @Mock
-  private SearchClient searchClient;
+  private SearchInstanceClient searchClient;
 
   @Test
   void canGetInstances() {

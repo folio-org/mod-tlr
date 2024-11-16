@@ -33,7 +33,7 @@ import org.folio.domain.dto.StaffSlipItem;
 import org.folio.domain.dto.StaffSlipRequest;
 import org.folio.domain.dto.Tenant;
 import org.folio.service.ConsortiaService;
-import org.folio.service.ItemService;
+import org.folio.service.InventoryService;
 import org.folio.service.LocationService;
 import org.folio.service.RequestService;
 import org.folio.spring.service.SystemUserScopedExecutionService;
@@ -56,7 +56,7 @@ class PickSlipsServiceTest {
   @Mock
   private LocationService locationService;
   @Mock
-  private ItemService itemService;
+  private InventoryService inventoryService;
   @Mock
   private RequestService requestService;
   @Mock
@@ -122,7 +122,7 @@ class PickSlipsServiceTest {
       .thenReturn(List.of(new Tenant().id("consortium")));
     when(locationService.findLocations(exactMatch("primaryServicePoint", SERVICE_POINT_ID)))
       .thenReturn(List.of(mockLocation));
-    when(itemService.findItems(itemCommonQuery, "effectiveLocationId", List.of(mockLocation.getId())))
+    when(inventoryService.findItems(itemCommonQuery, "effectiveLocationId", List.of(mockLocation.getId())))
       .thenReturn(List.of(mockItem));
     when(requestService.getRequestsFromStorage(requestCommonQuery, "itemId", List.of(mockItem.getId())))
       .thenReturn(List.of(mockRequest));
@@ -167,7 +167,7 @@ class PickSlipsServiceTest {
     Collection<StaffSlip> staffSlips = pickSlipsService.getStaffSlips(SERVICE_POINT_ID);
 
     assertThat(staffSlips, empty());
-    verifyNoInteractions(locationService, itemService, requestService, executionService);
+    verifyNoInteractions(locationService, inventoryService, requestService, executionService);
   }
 
   @Test
@@ -180,7 +180,7 @@ class PickSlipsServiceTest {
     Collection<StaffSlip> staffSlips = pickSlipsService.getStaffSlips(SERVICE_POINT_ID);
 
     assertThat(staffSlips, empty());
-    verifyNoInteractions(itemService, requestService);
+    verifyNoInteractions(inventoryService, requestService);
   }
 
   @Test
@@ -189,7 +189,7 @@ class PickSlipsServiceTest {
       .thenReturn(List.of(new Tenant().id("test_tenant")));
     when(locationService.findLocations(any(CqlQuery.class)))
       .thenReturn(List.of(new Location().id(randomUUID().toString())));
-    when(itemService.findItems(any(), any(), any()))
+    when(inventoryService.findItems(any(), any(), any()))
       .thenReturn(emptyList());
 
     Collection<StaffSlip> staffSlips = pickSlipsService.getStaffSlips(SERVICE_POINT_ID);
@@ -204,7 +204,7 @@ class PickSlipsServiceTest {
       .thenReturn(List.of(new Tenant().id("test_tenant")));
     when(locationService.findLocations(any(CqlQuery.class)))
       .thenReturn(List.of(new Location()));
-    when(itemService.findItems(any(), any(), any()))
+    when(inventoryService.findItems(any(), any(), any()))
       .thenReturn(List.of(new Item()));
     when(requestService.getRequestsFromStorage(any(), any(), any()))
       .thenReturn(emptyList());
