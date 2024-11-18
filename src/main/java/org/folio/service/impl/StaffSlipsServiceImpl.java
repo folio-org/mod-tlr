@@ -257,6 +257,7 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
   private Collection<ItemContext> buildItemContexts(String tenantId, Collection<String> itemIds,
     Map<String, Collection<Location>> locationsByTenant, Map<String, SearchInstance> itemIdToInstance) {
 
+    log.info("buildItemContexts:: building item contexts for {} items in tenant {}", itemIds.size(), tenantId);
     return executionService.executeSystemUserScoped(tenantId,
       () -> buildItemContexts(itemIds, itemIdToInstance, locationsByTenant.get(tenantId)));
   }
@@ -306,6 +307,7 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
       SearchInstance instance = itemIdToInstance.get(item.getId());
       Location location = locationsById.get(item.getEffectiveLocationId());
       ServicePoint primaryServicePoint = Optional.ofNullable(location.getPrimaryServicePoint())
+        .map(UUID::toString)
         .map(servicePointsById::get)
         .orElse(null);
       SearchHolding holding = instance.getHoldings()
