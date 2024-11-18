@@ -37,6 +37,7 @@ public class KafkaEvent<T> {
   @Getter
   @NoArgsConstructor
   @AllArgsConstructor
+  @ToString
   public static class EventData<T> {
     @JsonProperty("old")
     private T oldVersion;
