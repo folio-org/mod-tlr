@@ -114,13 +114,13 @@
       ]
     },
     {
-      "id": "staff-slips",
+      "id": "tlr-staff-slips",
       "version": "1.0",
       "handlers": [
         {
           "methods": ["GET"],
           "pathPattern": "/tlr/staff-slips/pick-slips/{servicePointId}",
-          "permissionsRequired": ["tlr.staff-slips.pick-slips.get"],
+          "permissionsRequired": ["tlr.pick-slips.collection.get"],
           "modulePermissions": [
             "user-tenants.collection.get",
             "search.instances.collection.get",
@@ -241,7 +241,7 @@
       "description": "Get ECS TLR allowed service points"
     },
     {
-      "permissionName": "tlr.staff-slips.pick-slips.get",
+      "permissionName": "tlr.pick-slips.collection.get",
       "displayName": "ecs-tlr - pick slips",
       "description": "Get pick slips"
     },

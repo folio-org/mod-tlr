@@ -297,10 +297,17 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
       .stream()
       .collect(mapById(Institution::getId));
 
+    Map<String, ServicePoint> servicePointsById = findServicePointsForLocations(locationsOfRequestedItems)
+      .stream()
+      .collect(mapById(ServicePoint::getId));
+
     List<ItemContext> itemContexts = new ArrayList<>(items.size());
     for (Item item : items) {
       SearchInstance instance = itemIdToInstance.get(item.getId());
       Location location = locationsById.get(item.getEffectiveLocationId());
+      ServicePoint primaryServicePoint = Optional.ofNullable(location.getPrimaryServicePoint())
+        .map(servicePointsById::get)
+        .orElse(null);
       SearchHolding holding = instance.getHoldings()
         .stream()
         .filter(sh -> item.getHoldingsRecordId().equals(sh.getId()))
@@ -316,7 +323,8 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
         location,
         institutionsById.get(location.getInstitutionId()),
         campusesById.get(location.getCampusId()),
-        librariesById.get(location.getLibraryId())
+        librariesById.get(location.getLibraryId()),
+        primaryServicePoint
       );
       itemContexts.add(itemContext);
     }
@@ -372,7 +380,7 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
 
   private Map<String, RequestContext> buildRequestContexts(Collection<Request> requests) {
     log.info("buildRequesterContexts:: building request contexts for {} requests", requests::size);
-    Collection<ServicePoint> servicePoints = findServicePoints(requests);
+    Collection<ServicePoint> servicePoints = findServicePointsForRequests(requests);
     Map<String, ServicePoint> servicePointsById = servicePoints.stream()
       .collect(mapById(ServicePoint::getId));
 
@@ -446,19 +454,34 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
     return addressTypeService.findAddressTypes(addressTypeIds);
   }
 
-  private Collection<ServicePoint> findServicePoints(Collection<Request> requests) {
-    if (requests.isEmpty()) {
-      log.info("findServicePoints:: no requests to search service points for, doing nothing");
+  private Collection<ServicePoint> findServicePointsForLocations(Collection<Location> locations) {
+    return findServicePoints(
+      locations.stream()
+        .map(Location::getPrimaryServicePoint)
+        .filter(Objects::nonNull)
+        .map(UUID::toString)
+        .collect(toSet())
+    );
+  }
+
+  private Collection<ServicePoint> findServicePointsForRequests(Collection<Request> requests) {
+    return findServicePoints(
+      requests.stream()
+        .map(Request::getPickupServicePointId)
+        .filter(Objects::nonNull)
+        .collect(toSet())
+    );
+  }
+
+  private Collection<ServicePoint> findServicePoints(Collection<String> servicePointIds) {
+    if (servicePointIds.isEmpty()) {
+      log.info("findServicePoints:: no IDs to search service points by, doing nothing");
       return emptyList();
     }
 
-    Set<String> servicePointIds = requests.stream()
-      .map(Request::getPickupServicePointId)
-      .filter(Objects::nonNull)
-      .collect(toSet());
-
     return servicePointService.find(servicePointIds);
   }
+
 
   private Collection<MaterialType> findMaterialTypes(Collection<Item> items) {
     if (items.isEmpty()) {
@@ -619,6 +642,10 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
       Optional.ofNullable(itemContext.institution())
         .map(Institution::getName)
         .ifPresent(staffSlipItem::effectiveLocationInstitution);
+
+      Optional.ofNullable(itemContext.primaryServicePoint())
+        .map(ServicePoint::getName)
+        .ifPresent(staffSlipItem::effectiveLocationPrimaryServicePointName);
     }
 
     ItemEffectiveCallNumberComponents callNumberComponents = item.getEffectiveCallNumberComponents();
@@ -759,7 +786,7 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
 
   private record ItemContext(Item item, SearchInstance instance, SearchHolding holding,
     MaterialType materialType, LoanType loanType, Location location, Institution institution,
-    Campus campus, Library library) {}
+    Campus campus, Library library, ServicePoint primaryServicePoint) {}
 
   private record RequesterContext(User requester, UserGroup userGroup,
     Collection<Department> departments, AddressType primaryAddressType,
