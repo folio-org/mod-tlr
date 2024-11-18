@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -29,9 +30,9 @@ class SearchClientTest {
     SearchInstancesResponse mockResponse = new SearchInstancesResponse()
       .instances(List.of(instance))
       .totalRecords(1);
-    when(searchClient.searchInstances(any(CqlQuery.class), anyBoolean())).thenReturn(mockResponse);
+    when(searchClient.searchInstances(any(CqlQuery.class), anyBoolean(), anyInt())).thenReturn(mockResponse);
     var response = searchClient.searchInstances(
-      CqlQuery.exactMatch("id", UUID.randomUUID().toString()), true);
+      CqlQuery.exactMatch("id", UUID.randomUUID().toString()), true, 500);
     assertNotNull(response);
     assertTrue(response.getTotalRecords() > 0);
   }

@@ -13,8 +13,13 @@ public interface SearchInstanceClient extends GetByQueryClient<SearchInstancesRe
 
   @GetMapping
   SearchInstancesResponse searchInstances(@RequestParam("query") CqlQuery cql,
-    @RequestParam("expandAll") Boolean expandAll);
+    @RequestParam("expandAll") Boolean expandAll, @RequestParam("limit") int limit);
 
   @GetMapping("?query=id=={instanceId}&expandAll=true")
   SearchInstancesResponse searchInstance(@PathVariable("instanceId") String instanceId);
+
+  @Override
+  // max limit for instance search is 500
+  @GetMapping("?expandAll=true&limit=500&query={query}")
+  SearchInstancesResponse getByQuery(@PathVariable CqlQuery query);
 }

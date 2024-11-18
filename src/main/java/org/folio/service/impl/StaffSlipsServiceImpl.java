@@ -212,6 +212,11 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
     Collection<SearchItem> requestedItems, Collection<SearchInstance> instances,
     Map<String, Collection<Location>> locationsByTenant) {
 
+    if (requests.isEmpty()) {
+      log.info("buildStaffSlipContexts:: no requests to build contexts for, doing nothing");
+      return emptyList();
+    }
+
     log.info("buildStaffSlipContexts:: building contexts for {} requests", requests::size);
 
     Map<String, ItemContext> itemContextsByItemId = buildItemContexts(requestedItems, instances, locationsByTenant);
