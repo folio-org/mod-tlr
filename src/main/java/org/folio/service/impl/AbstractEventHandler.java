@@ -22,6 +22,7 @@ public abstract class AbstractEventHandler<T> implements KafkaEventHandler<T> {
 
   protected void processEvent(KafkaEvent<T> event, Consumer<T> eventConsumer) {
     log.debug("processEvent:: params: event={}", () -> event);
+    log.info("processEvent:: params: event={}", () -> event.getData());
     UserTenant firstUserTenant = userTenantsService.findFirstUserTenant();
     if (firstUserTenant == null) {
       log.info("processEvent: Failed to get user-tenants info");
