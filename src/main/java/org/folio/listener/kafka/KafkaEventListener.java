@@ -105,7 +105,6 @@ public class KafkaEventListener {
     KafkaEvent<User> event = deserialize(eventString, messageHeaders, User.class);
 
     log.info("handleUserEvent:: event received: {}", event::getId);
-    log.info("handleUserEvent:: event: {}", () -> event);
     handleEvent(event, userEventHandler);
   }
 
