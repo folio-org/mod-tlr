@@ -1,6 +1,5 @@
 type: object
 description: "Resource identifier"
-additionalProperties: false
 properties:
   value:
     type: string
