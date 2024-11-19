@@ -50,6 +50,8 @@ components:
       $ref: 'schemas/users/departments.json'
     addressTypes:
       $ref: 'schemas/users/addressTypes.json'
+    searchInstancesResponse:
+      $ref: 'schemas/search/searchInstancesResponse.yaml'
   parameters:
     servicePointId:
       name: servicePointId

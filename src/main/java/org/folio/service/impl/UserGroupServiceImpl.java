@@ -33,7 +33,7 @@ public class UserGroupServiceImpl implements UserGroupService {
 
   @Override
   public Collection<UserGroup> find(Collection<String> ids) {
-    log.info("find:: fetching userGroups by {} IDs", ids);
+    log.info("find:: fetching userGroups by {} IDs", ids::size);
     log.debug("find:: ids={}", ids);
     return BulkFetcher.fetch(userGroupClient, ids, UserGroups::getUsergroups);
   }

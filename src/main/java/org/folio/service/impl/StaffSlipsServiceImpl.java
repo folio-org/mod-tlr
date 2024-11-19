@@ -95,19 +95,19 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
   public Collection<StaffSlip> getStaffSlips(String servicePointId) {
     log.info("getStaffSlips:: building staff slips for service point {}", servicePointId);
 
-    Map<String, Collection<Location>> relevantLocationsByTenant = findLocations(servicePointId);
-    Collection<String> relevantLocationIds = relevantLocationsByTenant.values()
+    Map<String, Collection<Location>> locationsByTenant = findLocations(servicePointId);
+    Collection<String> locationIds = locationsByTenant.values()
       .stream()
       .flatMap(Collection::stream)
       .map(Location::getId)
       .collect(toSet());
 
-    Collection<SearchInstance> instances = findInstances(relevantLocationIds);
-    Collection<SearchItem> itemsInRelevantLocations = getItemsForLocations(instances, relevantLocationIds);
+    Collection<SearchInstance> instances = findInstances(locationIds);
+    Collection<SearchItem> itemsInRelevantLocations = getItemsForLocations(instances, locationIds);
     Collection<Request> requests = findRequests(itemsInRelevantLocations);
-    Collection<SearchItem> requestedItems = filterItemsByRequests(itemsInRelevantLocations, requests);
+    Collection<SearchItem> requestedItems = filterRequestedItems(itemsInRelevantLocations, requests);
     Collection<StaffSlipContext> staffSlipContexts = buildStaffSlipContexts(requests, requestedItems,
-      instances, relevantLocationsByTenant);
+      instances, locationsByTenant);
     Collection<StaffSlip> staffSlips = buildStaffSlips(staffSlipContexts);
 
     log.info("getStaffSlips:: successfully built {} staff slips", staffSlips::size);
@@ -190,7 +190,7 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
     return requestService.getRequestsFromStorage(query, "itemId", itemIds);
   }
 
-  private static Collection<SearchItem> filterItemsByRequests(Collection<SearchItem> items,
+  private static Collection<SearchItem> filterRequestedItems(Collection<SearchItem> items,
     Collection<Request> requests) {
 
     log.info("filterItemsByRequests:: filtering out non-requested items");
@@ -263,7 +263,7 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
   }
 
   private Collection<ItemContext> buildItemContexts(Collection<String> itemIds,
-    Map<String, SearchInstance> itemIdToInstance, Collection<Location> matchingLocations) {
+    Map<String, SearchInstance> itemIdToInstance, Collection<Location> locations) {
 
     Collection<Item> items = inventoryService.findItems(itemIds);
 
@@ -279,7 +279,7 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
       .map(Item::getEffectiveLocationId)
       .collect(toSet());
 
-    Map<String, Location> locationsById = matchingLocations.stream()
+    Map<String, Location> locationsById = locations.stream()
       .filter(location -> locationIdsOfRequestedItems.contains(location.getId()))
       .toList().stream()
       .collect(mapById(Location::getId));
@@ -353,6 +353,10 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
     Map<String, RequesterContext> requesterContexts = new HashMap<>(requests.size());
     for (Request request : requests) {
       User requester = requestersById.get(request.getRequesterId());
+      if (requester == null) {
+        continue;
+      }
+
       UserGroup userGroup = userGroupsById.get(requester.getPatronGroup());
 
       Collection<Department> requesterDepartments = requester.getDepartments()
@@ -569,7 +573,7 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
   }
 
   private static StaffSlipItem buildStaffSlipItem(StaffSlipContext context) {
-    log.info("buildStaffSlipItem:: building staff slip item");
+    log.debug("buildStaffSlipItem:: building staff slip item");
     ItemContext itemContext = context.itemContext();
     Item item = itemContext.item();
     if (item == null) {
@@ -609,22 +613,25 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
 
     SearchInstance instance = itemContext.instance();
     if (instance != null) {
-      String primaryContributor = instance.getContributors()
-        .stream()
-        .filter(Contributor::getPrimary)
-        .findFirst()
-        .map(Contributor::getName)
-        .orElse(null);
+      staffSlipItem.title(instance.getTitle());
 
-      String allContributors = instance.getContributors()
-        .stream()
-        .map(Contributor::getName)
-        .collect(joining("; "));
+      List<Contributor> contributors = instance.getContributors();
+      if (contributors != null && !contributors.isEmpty()) {
+        String primaryContributor = contributors.stream()
+          .filter(Contributor::getPrimary)
+          .findFirst()
+          .map(Contributor::getName)
+          .orElse(null);
 
-      staffSlipItem
-        .title(instance.getTitle())
-        .primaryContributor(primaryContributor)
-        .allContributors(allContributors);
+        String allContributors = contributors.stream()
+          .map(Contributor::getName)
+          .collect(joining("; "));
+
+        staffSlipItem
+          .title(instance.getTitle())
+          .primaryContributor(primaryContributor)
+          .allContributors(allContributors);
+      }
     }
 
     Location location = itemContext.location();
@@ -661,7 +668,7 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
   }
 
   private static StaffSlipRequest buildStaffSlipRequest(StaffSlipContext context) {
-    log.info("buildStaffSlipItem:: building staff slip request");
+    log.debug("buildStaffSlipItem:: building staff slip request");
     RequestContext requestContext = context.requestContext();
     Request request = requestContext.request();
     if (request == null) {
@@ -690,7 +697,7 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
   }
 
   private static StaffSlipRequester buildStaffSlipRequester(StaffSlipContext context) {
-    log.info("buildStaffSlipItem:: building staff slip requester");
+    log.debug("buildStaffSlipItem:: building staff slip requester");
     RequesterContext requesterContext = context.requesterContext();
     User requester = requesterContext.requester();
     if (requester == null) {
