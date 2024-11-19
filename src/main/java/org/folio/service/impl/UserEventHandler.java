@@ -12,7 +12,7 @@ import lombok.extern.log4j.Log4j2;
 
 @Log4j2
 @Service
-public class UserEventHandler extends AbstractEventHandler<User> {
+public class UserEventHandler extends AbstractCentralTenantEventHandler<User> {
 
   private final UserService userService;
 

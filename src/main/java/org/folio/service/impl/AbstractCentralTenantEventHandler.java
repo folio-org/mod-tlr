@@ -14,7 +14,7 @@ import lombok.extern.log4j.Log4j2;
 
 @AllArgsConstructor
 @Log4j2
-public abstract class AbstractEventHandler<T> implements KafkaEventHandler<T> {
+public abstract class AbstractCentralTenantEventHandler<T> implements KafkaEventHandler<T> {
 
   protected final UserTenantsService userTenantsService;
   protected final ConsortiaService consortiaService;
