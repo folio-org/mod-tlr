@@ -362,7 +362,7 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
         .flatMap(addresses -> addresses.stream()
           .filter(UserPersonalAddressesInner::getPrimaryAddress)
           .findFirst()
-          .map(UserPersonalAddressesInner::getId)
+          .map(UserPersonalAddressesInner::getAddressTypeId)
           .map(addressTypesById::get))
         .orElse(null);
 
@@ -591,12 +591,12 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
     StaffSlipItem staffSlipItem = new StaffSlipItem()
       .barcode(item.getBarcode())
       .status(item.getStatus().getName().getValue())
+      .materialType(materialType)
+      .loanType(loanType)
       .enumeration(item.getEnumeration())
       .volume(item.getVolume())
       .chronology(item.getChronology())
       .yearCaption(yearCaptions)
-      .materialType(materialType)
-      .loanType(loanType)
       .copy(copyNumber)
       .numberOfPieces(item.getNumberOfPieces())
       .displaySummary(item.getDisplaySummary())
@@ -682,7 +682,6 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
       .requestExpirationDate(request.getRequestExpirationDate())
       .holdShelfExpirationDate(request.getHoldShelfExpirationDate())
       .additionalInfo(request.getCancellationAdditionalInformation())
-      .reasonForCancellation(null) // not needed for pick/search slips?
       .deliveryAddressType(deliveryAddressType)
       .patronComments(request.getPatronComments());
   }
