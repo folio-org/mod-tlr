@@ -7,14 +7,12 @@ import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static java.util.Collections.emptyList;
-import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toSet;
 import static org.folio.domain.dto.ItemStatus.NameEnum.PAGED;
 import static org.folio.domain.dto.Request.RequestTypeEnum.PAGE;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -56,7 +54,6 @@ import org.folio.domain.dto.UserGroups;
 import org.folio.domain.dto.UserPersonal;
 import org.folio.domain.dto.UserPersonalAddressesInner;
 import org.folio.domain.dto.Users;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
@@ -570,12 +567,6 @@ class StaffSlipsApiTest extends BaseIT {
       .withQueryParam("query", containsInAnyOrder(ids))
       .withHeader(HEADER_TENANT, equalTo(tenantId))
       .willReturn(okJson(asJsonString(mockResponse))));
-  }
-
-  private static String formatIdsForQuery(String... ids) {
-    return Arrays.stream(ids)
-      .map(id -> "\"" + id + "\"")
-      .collect(joining(" or "));
   }
 
   private static MultiValuePattern containsInAnyOrder(Collection<String> values) {
