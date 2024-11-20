@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import org.folio.domain.dto.AddressType;
 import org.folio.domain.dto.AddressTypes;
@@ -55,6 +56,7 @@ import org.folio.domain.dto.UserGroups;
 import org.folio.domain.dto.UserPersonal;
 import org.folio.domain.dto.UserPersonalAddressesInner;
 import org.folio.domain.dto.Users;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
@@ -103,86 +105,57 @@ class StaffSlipsApiTest extends BaseIT {
   @Test
   @SneakyThrows
   void pickSlipsAreBuiltSuccessfully() {
-    // MOCK LOCATIONS
     Location locationCollege = buildLocation("Location college");
     createStubForLocations(List.of(locationCollege), TENANT_ID_COLLEGE);
     createStubForLocations(emptyList(), TENANT_ID_UNIVERSITY);
     createStubForLocations(emptyList(), TENANT_ID_CONSORTIUM);
 
-    // MOCK INSTANCE SEARCH
     SearchItem searchItemCollege = buildSearchItem("item_barcode_college", PAGED,
       locationCollege.getId(), TENANT_ID_COLLEGE);
     SearchHolding searchHoldingCollege = buildSearchHolding(searchItemCollege);
     SearchInstance searchInstanceCollege = buildSearchInstance("title_college",
       List.of(searchHoldingCollege), List.of(searchItemCollege));
+    createStubForInstanceSearch(List.of(locationCollege.getId()), List.of(searchInstanceCollege));
 
-    createStubForInstanceSearch(
-      List.of(locationCollege.getId()),
-      List.of(searchInstanceCollege));
-
-    // MOCK REQUESTS
     Request requestForCollegeItem = buildRequest(PAGE, searchItemCollege, randomId());
     createStubForRequests(List.of(searchItemCollege.getId()), List.of(requestForCollegeItem));
 
-    // MOCK ITEMS
     Item itemCollege = buildItem(searchItemCollege);
     createStubForItems(List.of(itemCollege), TENANT_ID_COLLEGE);
 
-    // MOCK MATERIAL TYPES
     MaterialType materialType = buildMaterialType();
     createStubForMaterialTypes(List.of(materialType), TENANT_ID_COLLEGE);
 
-    // MOCK LOAN TYPES
     LoanType loanType = buildLoanType();
     createStubForLoanTypes(List.of(loanType), TENANT_ID_COLLEGE);
 
-    // MOCK LIBRARIES
     Library library = buildLibrary();
     createStubForLibraries(List.of(library), TENANT_ID_COLLEGE);
 
-    // MOCK CAMPUSES
     Campus campus = buildCampus();
     createStubForCampuses(List.of(campus), TENANT_ID_COLLEGE);
 
-    // MOCK INSTITUTIONS
     Institution institution = buildInstitution();
     createStubForInstitutions(List.of(institution), TENANT_ID_COLLEGE);
 
-    // MOCK SERVICE POINTS
-    ServicePoint primaryServicePoint = buildServicePoint(PRIMARY_SERVICE_POINT_ID, "Primary service point");
-    createStubForServicePoints(List.of(primaryServicePoint), TENANT_ID_COLLEGE);
-
+    ServicePoint primaryServicePoint = buildServicePoint(PRIMARY_SERVICE_POINT_ID,
+      "Primary service point");
     ServicePoint pickupServicePoint = buildServicePoint(
       requestForCollegeItem.getPickupServicePointId(), "Pickup service point");
+    createStubForServicePoints(List.of(primaryServicePoint), TENANT_ID_COLLEGE);
     createStubForServicePoints(List.of(pickupServicePoint), TENANT_ID_CONSORTIUM);
 
-    // MOCK USERS
     User requester = buildUser(requestForCollegeItem.getRequesterId(), "user_barcode");
     createStubForUsers(List.of(requester));
 
-    // MOCK USER GROUPS
     UserGroup userGroup = buildUserGroup(requester.getPatronGroup(), "Test user group");
     createStubForUserGroups(List.of(userGroup));
 
-    // MOCK DEPARTMENTS
-    List<Department> departments = requester.getDepartments()
-      .stream()
-      .map(id -> buildDepartment(id, "Department " + id))
-      .toList();
-
+    List<Department> departments = buildDepartments(requester);
     createStubForDepartments(departments);
 
-    // MOCK ADDRESS TYPES
-    List<AddressType> addressTypes = requester.getPersonal()
-      .getAddresses()
-      .stream()
-      .map(UserPersonalAddressesInner::getAddressTypeId)
-      .map(id -> buildAddressType(id, "Address type " + id))
-      .toList();
-
+    List<AddressType> addressTypes = buildAddressTypes(requester);
     createStubForAddressTypes(addressTypes);
-
-    // GET PICK SLIPS
 
     getPickSlips()
       .expectStatus().isOk()
@@ -194,40 +167,52 @@ class StaffSlipsApiTest extends BaseIT {
       .jsonPath("pickSlips[*].request").exists()
       .jsonPath("pickSlips[*].requester").exists();
 
-    wireMockServer.verify(getRequestedFor(urlPathMatching(LOCATIONS_URL))
+    // verify that locations were searched in all tenants
+    Stream.of(TENANT_ID_CONSORTIUM, TENANT_ID_COLLEGE, TENANT_ID_UNIVERSITY)
+      .forEach(tenantId -> wireMockServer.verify(getRequestedFor(urlPathMatching(LOCATIONS_URL))
+        .withHeader(HEADER_TENANT, equalTo(tenantId))));
+
+    // verify that service points were searched only in central tenant (pickup service point)
+    // and lending tenant (item's location primary service point)
+    wireMockServer.verify(getRequestedFor(urlPathMatching(SERVICE_POINTS_URL))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
-    wireMockServer.verify(getRequestedFor(urlPathMatching(LOCATIONS_URL))
+    wireMockServer.verify(getRequestedFor(urlPathMatching(SERVICE_POINTS_URL))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)));
-    wireMockServer.verify(getRequestedFor(urlPathMatching(LOCATIONS_URL))
+    wireMockServer.verify(0, getRequestedFor(urlPathMatching(SERVICE_POINTS_URL))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY)));
-    wireMockServer.verify(getRequestedFor(urlPathMatching(INSTANCE_SEARCH_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
-    wireMockServer.verify(getRequestedFor(urlPathMatching(ITEMS_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)));
-    wireMockServer.verify(getRequestedFor(urlPathMatching(REQUESTS_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
-    wireMockServer.verify(getRequestedFor(urlPathMatching(MATERIAL_TYPES_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)));
-    wireMockServer.verify(getRequestedFor(urlPathMatching(LOAN_TYPES_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)));
-    wireMockServer.verify(getRequestedFor(urlPathMatching(LIBRARIES_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)));
-    wireMockServer.verify(getRequestedFor(urlPathMatching(CAMPUSES_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)));
-    wireMockServer.verify(getRequestedFor(urlPathMatching(INSTITUTIONS_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)));
-    wireMockServer.verify(getRequestedFor(urlPathMatching(SERVICE_POINTS_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)));
-    wireMockServer.verify(getRequestedFor(urlPathMatching(SERVICE_POINTS_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
+
+    // verify that requesters were searched in central tenant only
     wireMockServer.verify(getRequestedFor(urlPathMatching(USERS_URL))
+      .withQueryParam("query", matching(SEARCH_BY_ID_QUERY_PATTERN)) // to ignore system user's internal calls
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
-    wireMockServer.verify(getRequestedFor(urlPathMatching(USER_GROUPS_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
-    wireMockServer.verify(getRequestedFor(urlPathMatching(DEPARTMENTS_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
-    wireMockServer.verify(getRequestedFor(urlPathMatching(ADDRESS_TYPES_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
+    wireMockServer.verify(0, getRequestedFor(urlPathMatching(USERS_URL))
+      .withQueryParam("query", matching(SEARCH_BY_ID_QUERY_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)));
+    wireMockServer.verify(0, getRequestedFor(urlPathMatching(USERS_URL))
+      .withQueryParam("query", matching(SEARCH_BY_ID_QUERY_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY)));
+
+    // verify interactions with central tenant only
+    Stream.of(INSTANCE_SEARCH_URL, REQUESTS_URL, USER_GROUPS_URL, DEPARTMENTS_URL, ADDRESS_TYPES_URL)
+      .forEach(url -> {
+        wireMockServer.verify(getRequestedFor(urlPathMatching(url))
+          .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
+        wireMockServer.verify(0, getRequestedFor(urlPathMatching(url))
+          .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)));
+        wireMockServer.verify(0, getRequestedFor(urlPathMatching(url))
+          .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY)));
+      });
+
+    // verify interactions with lending tenant only
+    Stream.of(ITEMS_URL, MATERIAL_TYPES_URL, LOAN_TYPES_URL, LIBRARIES_URL, CAMPUSES_URL, INSTITUTIONS_URL)
+      .forEach(url -> {
+        wireMockServer.verify(0, getRequestedFor(urlPathMatching(url))
+          .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
+        wireMockServer.verify(getRequestedFor(urlPathMatching(url))
+          .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)));
+        wireMockServer.verify(0, getRequestedFor(urlPathMatching(url))
+          .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY)));
+      });
   }
 
   private WebTestClient.ResponseSpec getPickSlips() {
@@ -373,10 +358,26 @@ class StaffSlipsApiTest extends BaseIT {
       .group(name);
   }
 
+  private static List<Department> buildDepartments(User requester) {
+    return requester.getDepartments()
+      .stream()
+      .map(id -> buildDepartment(id, "Department " + id))
+      .toList();
+  }
+
   private static Department buildDepartment(String id, String name) {
     return new Department()
       .id(id)
       .name(name);
+  }
+
+  private static List<AddressType> buildAddressTypes(User requester) {
+    return requester.getPersonal()
+      .getAddresses()
+      .stream()
+      .map(UserPersonalAddressesInner::getAddressTypeId)
+      .map(id -> buildAddressType(id, "Address type " + id))
+      .toList();
   }
 
   private static AddressType buildAddressType(String id, String name) {

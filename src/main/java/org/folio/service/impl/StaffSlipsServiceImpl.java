@@ -218,8 +218,8 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
     }
 
     log.info("buildStaffSlipContexts:: building contexts for {} requests", requests::size);
-
-    Map<String, ItemContext> itemContextsByItemId = buildItemContexts(requestedItems, instances, locationsByTenant);
+    Map<String, ItemContext> itemContextsByItemId = buildItemContexts(requestedItems, instances,
+      locationsByTenant);
     Map<String, RequesterContext> requesterContextsByRequestId = buildRequesterContexts(requests);
     Map<String, RequestContext> requestContextsByRequestId = buildRequestContexts(requests);
 
@@ -312,22 +312,18 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
         .orElse(null);
       SearchHolding holding = instance.getHoldings()
         .stream()
-        .filter(sh -> item.getHoldingsRecordId().equals(sh.getId()))
+        .filter(h -> item.getHoldingsRecordId().equals(h.getId()))
         .findFirst()
         .orElse(null);
 
-      ItemContext itemContext = new ItemContext(
-        item,
-        instance,
-        holding,
+      ItemContext itemContext = new ItemContext(item, instance, holding, location,
         materialTypesById.get(item.getMaterialTypeId()),
         loanTypesById.get(getEffectiveLoanTypeId(item)),
-        location,
         institutionsById.get(location.getInstitutionId()),
         campusesById.get(location.getCampusId()),
         librariesById.get(location.getLibraryId()),
-        primaryServicePoint
-      );
+        primaryServicePoint);
+
       itemContexts.add(itemContext);
     }
 
@@ -353,10 +349,6 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
     Map<String, RequesterContext> requesterContexts = new HashMap<>(requests.size());
     for (Request request : requests) {
       User requester = requestersById.get(request.getRequesterId());
-      if (requester == null) {
-        continue;
-      }
-
       UserGroup userGroup = userGroupsById.get(requester.getPatronGroup());
 
       Collection<Department> requesterDepartments = requester.getDepartments()
@@ -487,7 +479,6 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
 
     return servicePointService.find(servicePointIds);
   }
-
 
   private Collection<MaterialType> findMaterialTypes(Collection<Item> items) {
     if (items.isEmpty()) {
@@ -794,7 +785,7 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
   }
 
   private record ItemContext(Item item, SearchInstance instance, SearchHolding holding,
-    MaterialType materialType, LoanType loanType, Location location, Institution institution,
+    Location location, MaterialType materialType, LoanType loanType, Institution institution,
     Campus campus, Library library, ServicePoint primaryServicePoint) {}
 
   private record RequesterContext(User requester, UserGroup userGroup,
