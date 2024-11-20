@@ -69,7 +69,7 @@ public class DcbServiceImpl implements DcbService {
 
   @Override
   public void createPickupTransaction(EcsTlrEntity ecsTlr, Request request, String tenantId) {
-    log.info("createPickupTransaction:: creating borrowing transaction for ECS TLR {}", ecsTlr::getId);
+    log.info("createPickupTransaction:: creating pickup transaction for ECS TLR {}", ecsTlr.getId());
     DcbItem dcbItem = new DcbItem()
       .id(request.getItemId())
       .title(request.getInstance().getTitle())

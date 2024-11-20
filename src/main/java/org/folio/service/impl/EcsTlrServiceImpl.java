@@ -106,6 +106,8 @@ public class EcsTlrServiceImpl implements EcsTlrService {
           .orElse(null));
       requestService.updateCirculationItemOnRequestCreation(centralTenantCirculationItem,
         secondaryRequest);
+
+      updateEcsTlrWithIntermediateRequest(ecsTlr, intermediateRequest);
     }
 
     createDcbTransactions(ecsTlr, secondaryRequest,
@@ -218,6 +220,17 @@ public class EcsTlrServiceImpl implements EcsTlrService {
 
     log.info("updateEcsTlr:: ECS TLR updated in memory");
     log.debug("updateEcsTlr:: ECS TLR: {}", () -> ecsTlr);
+  }
+
+  private static void updateEcsTlrWithIntermediateRequest(EcsTlrEntity ecsTlr,
+    RequestWrapper intermediateRequest) {
+
+    log.info("updateEcsTlrWithIntermediateRequest:: updating ECS TLR in memory");
+    ecsTlr.setIntermediateRequestTenantId(intermediateRequest.tenantId());
+    ecsTlr.setIntermediateRequestId(UUID.fromString(intermediateRequest.request().getId()));
+
+    log.info("updateEcsTlrWithIntermediateRequest:: ECS TLR updated in memory");
+    log.debug("updateEcsTlrWithIntermediateRequest:: ECS TLR: {}", () -> ecsTlr);
   }
 
   private void createDcbTransactions(EcsTlrEntity ecsTlr, Request secondaryRequest,

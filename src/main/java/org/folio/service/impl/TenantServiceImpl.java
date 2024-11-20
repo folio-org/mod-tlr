@@ -3,6 +3,7 @@ package org.folio.service.impl;
 import static com.google.common.base.Predicates.alwaysTrue;
 import static com.google.common.base.Predicates.notNull;
 import static java.util.Comparator.comparingLong;
+import static java.util.Optional.ofNullable;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.counting;
@@ -45,8 +46,14 @@ public class TenantServiceImpl implements TenantService {
 
   @Override
   public Optional<String> getPrimaryRequestTenantId(EcsTlrEntity ecsTlr) {
-    log.info("getPrimaryRequestTenantId:: getting borrowing tenant");
-    return HttpUtils.getTenantFromToken();
+    log.info("getPrimaryRequestTenantId:: primary tenant ID in the request body: {}",
+      ecsTlr.getPrimaryRequestTenantId());
+
+    return ofNullable(ecsTlr.getPrimaryRequestTenantId())
+      .or(HttpUtils::getTenantFromToken);
+
+//    log.info("getPrimaryRequestTenantId:: getting borrowing tenant");
+//    return HttpUtils.getTenantFromToken();
   }
 
   @Override
