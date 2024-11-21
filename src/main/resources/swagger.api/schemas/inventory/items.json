@@ -17,7 +17,7 @@
       "type": "integer"
     },
     "resultInfo": {
-      "$ref": "resultInfo.json",
+      "$ref": "../resultInfo.json",
       "readonly": true
     }
   }
