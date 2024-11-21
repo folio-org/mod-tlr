@@ -24,7 +24,7 @@
       "type": "string"
     },
     "metadata": {
-      "$ref": "metadata.json"
+      "$ref": "../metadata.json"
     }
   },
   "additionalProperties": true,
