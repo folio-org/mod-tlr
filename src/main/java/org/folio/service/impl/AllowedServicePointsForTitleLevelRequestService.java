@@ -4,10 +4,9 @@ import java.util.Collection;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import lombok.extern.log4j.Log4j2;
-
 import org.folio.client.feign.CirculationClient;
-import org.folio.client.feign.SearchClient;
+import org.folio.client.feign.SearchInstanceClient;
+import org.folio.client.feign.SearchItemClient;
 import org.folio.domain.dto.AllowedServicePointsRequest;
 import org.folio.domain.dto.AllowedServicePointsResponse;
 import org.folio.domain.dto.SearchInstance;
@@ -19,22 +18,28 @@ import org.folio.service.UserService;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.springframework.stereotype.Service;
 
+import lombok.extern.log4j.Log4j2;
+
 @Log4j2
 @Service
 public class AllowedServicePointsForTitleLevelRequestService extends AllowedServicePointsServiceImpl {
 
-  public AllowedServicePointsForTitleLevelRequestService(SearchClient searchClient,
-    CirculationClient circulationClient, UserService userService,
-    SystemUserScopedExecutionService executionService, RequestService requestService,
-    EcsTlrRepository ecsTlrRepository) {
+  private final SearchInstanceClient searchInstanceClient;
+
+  public AllowedServicePointsForTitleLevelRequestService(SearchItemClient searchClient,
+    SearchInstanceClient searchInstanceClient, CirculationClient circulationClient,
+    UserService userService, SystemUserScopedExecutionService executionService,
+    RequestService requestService, EcsTlrRepository ecsTlrRepository) {
 
     super(searchClient, circulationClient, userService, executionService, requestService,
       ecsTlrRepository);
+    this.searchInstanceClient = searchInstanceClient;
   }
 
   @Override
   protected Collection<String> getLendingTenants(AllowedServicePointsRequest request) {
-    SearchInstancesResponse searchInstancesResponse = searchClient.searchInstance(request.getInstanceId());
+    SearchInstancesResponse searchInstancesResponse =
+      searchInstanceClient.searchInstance(request.getInstanceId());
 
     return searchInstancesResponse
       .getInstances()
@@ -48,12 +53,12 @@ public class AllowedServicePointsForTitleLevelRequestService extends AllowedServ
   }
 
   @Override
-  protected AllowedServicePointsResponse getAllowedServicePointsFromLendingTenant(
+  protected AllowedServicePointsResponse getAllowedServicePointsFromTenant(
     AllowedServicePointsRequest request, String patronGroupId, String tenantId) {
 
     return executionService.executeSystemUserScoped(tenantId,
-      () -> circulationClient.allowedRoutingServicePoints(patronGroupId, request.getInstanceId(),
-        request.getOperation().getValue(), true));
+      () -> circulationClient.allowedServicePointsByInstance(patronGroupId,
+        request.getOperation().getValue(), request.getInstanceId()));
   }
 
 }

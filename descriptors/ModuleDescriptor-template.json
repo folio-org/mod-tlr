@@ -47,6 +47,32 @@
       ]
     },
     {
+      "id": "ecs-request-external",
+      "version": "1.0",
+      "handlers": [
+        {
+          "methods": ["POST"],
+          "pathPattern": "/tlr/create-ecs-request-external",
+          "permissionsRequired": ["tlr.ecs-request-external.post"],
+          "modulePermissions": [
+            "circulation.requests.instances.item.post",
+            "circulation.requests.item.post",
+            "circulation-item.item.get",
+            "circulation-item.collection.get",
+            "circulation-item.item.post",
+            "circulation-item.item.put",
+            "search.instances.collection.get",
+            "users.item.get",
+            "users.collection.get",
+            "users.item.post",
+            "inventory-storage.service-points.item.get",
+            "inventory-storage.service-points.collection.get",
+            "inventory-storage.service-points.item.post"
+          ]
+        }
+      ]
+    },
+    {
       "id": "ecs-tlr-allowed-service-points",
       "version": "1.0",
       "handlers": [
@@ -88,15 +114,28 @@
       ]
     },
     {
-      "id": "staff-slips",
+      "id": "tlr-staff-slips",
       "version": "1.0",
       "handlers": [
         {
           "methods": ["GET"],
           "pathPattern": "/tlr/staff-slips/pick-slips/{servicePointId}",
-          "permissionsRequired": ["tlr.staff-slips.pick-slips.get"],
+          "permissionsRequired": ["tlr.pick-slips.collection.get"],
           "modulePermissions": [
-            "user-tenants.collection.get"
+            "user-tenants.collection.get",
+            "search.instances.collection.get",
+            "circulation-storage.requests.item.get",
+            "circulation-storage.requests.collection.get",
+            "users.item.get",
+            "users.collection.get",
+            "usergroups.item.get",
+            "usergroups.collection.get",
+            "departments.item.get",
+            "departments.collection.get",
+            "addresstypes.item.get",
+            "addresstypes.collection.get",
+            "inventory-storage.service-points.item.get",
+            "inventory-storage.service-points.collection.get"
           ]
         }
       ]
@@ -202,9 +241,14 @@
       "description": "Get ECS TLR allowed service points"
     },
     {
-      "permissionName": "tlr.staff-slips.pick-slips.get",
+      "permissionName": "tlr.pick-slips.collection.get",
       "displayName": "ecs-tlr - pick slips",
       "description": "Get pick slips"
+    },
+    {
+      "permissionName": "tlr.ecs-request-external.post",
+      "displayName": "ecs-request-external - create ECS request external",
+      "description": "Create ECS request external"
     }
   ],
   "requires": [

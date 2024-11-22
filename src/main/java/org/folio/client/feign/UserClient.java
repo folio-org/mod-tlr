@@ -1,6 +1,7 @@
 package org.folio.client.feign;
 
 import org.folio.domain.dto.User;
+import org.folio.domain.dto.Users;
 import org.folio.spring.config.FeignClientConfiguration;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
@@ -11,7 +12,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 @FeignClient(name = "users", url = "users", configuration = FeignClientConfiguration.class)
-public interface UserClient {
+public interface UserClient extends GetByQueryClient<Users> {
 
   @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
   User postUser(@RequestBody User user);

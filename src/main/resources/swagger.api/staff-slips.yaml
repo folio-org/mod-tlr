@@ -30,6 +30,28 @@ components:
       $ref: 'schemas/inventory/locations.json'
     items:
       $ref: 'schemas/inventory/items.json'
+    materialTypes:
+      $ref: 'schemas/inventory/materialTypes.json'
+    loanTypes:
+      $ref: 'schemas/inventory/loanTypes.json'
+    libraries:
+      $ref: 'schemas/inventory/libraries.json'
+    campuses:
+      $ref: 'schemas/inventory/campuses.json'
+    institutions:
+      $ref: 'schemas/inventory/institutions.json'
+    servicePoints:
+      $ref: 'schemas/inventory/servicePoints.json'
+    users:
+      $ref: 'schemas/users/users.json'
+    usersGroups:
+      $ref: 'schemas/users/userGroups.json'
+    departments:
+      $ref: 'schemas/users/departments.json'
+    addressTypes:
+      $ref: 'schemas/users/addressTypes.json'
+    searchInstancesResponse:
+      $ref: 'schemas/search/searchInstancesResponse.yaml'
   parameters:
     servicePointId:
       name: servicePointId

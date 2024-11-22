@@ -1,8 +1,12 @@
 package org.folio.service.impl;
 
+import java.util.Collection;
+
 import org.folio.client.feign.UserClient;
 import org.folio.domain.dto.User;
+import org.folio.domain.dto.Users;
 import org.folio.service.UserService;
+import org.folio.support.BulkFetcher;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -31,5 +35,12 @@ public class UserServiceImpl implements UserService {
   public User update(User user) {
     log.info("update:: updating user {}", user.getId());
     return userClient.putUser(user.getId(), user);
+  }
+
+  @Override
+  public Collection<User> find(Collection<String> userIds) {
+    log.info("find:: looking up users by {} IDs", userIds.size());
+    log.debug("find:: ids={}", userIds);
+    return BulkFetcher.fetch(userClient, userIds, Users::getUsers);
   }
 }

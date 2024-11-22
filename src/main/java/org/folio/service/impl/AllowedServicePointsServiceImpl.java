@@ -3,13 +3,15 @@ package org.folio.service.impl;
 import static org.folio.domain.dto.RequestOperation.REPLACE;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 import org.folio.client.feign.CirculationClient;
-import org.folio.client.feign.SearchClient;
-import org.folio.domain.Constants;
+import org.folio.client.feign.SearchItemClient;
+import org.folio.domain.dto.AllowedServicePointsInner;
 import org.folio.domain.dto.AllowedServicePointsRequest;
 import org.folio.domain.dto.AllowedServicePointsResponse;
 import org.folio.domain.dto.Request;
@@ -20,6 +22,7 @@ import org.folio.service.RequestService;
 import org.folio.service.UserService;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +33,7 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public abstract class AllowedServicePointsServiceImpl implements AllowedServicePointsService {
 
-  protected final SearchClient searchClient;
+  protected final SearchItemClient searchItemClient;
   protected final CirculationClient circulationClient;
   private final UserService userService;
   protected final SystemUserScopedExecutionService executionService;
@@ -49,58 +52,62 @@ public abstract class AllowedServicePointsServiceImpl implements AllowedServiceP
     String patronGroupId = userService.find(request.getRequesterId()).getPatronGroup();
     log.info("getForCreate:: patronGroupId={}", patronGroupId);
 
-    boolean isAvailableInLendingTenants = getLendingTenants(request)
-      .stream()
-      .anyMatch(tenant -> isAvailableInLendingTenant(request, patronGroupId, tenant));
+    Map<String, AllowedServicePointsInner> page = new HashMap<>();
+    Map<String, AllowedServicePointsInner> hold = new HashMap<>();
+    Map<String, AllowedServicePointsInner> recall = new HashMap<>();
+    for (String tenantId : getLendingTenants(request)) {
+      var servicePoints = getAllowedServicePointsFromTenant(request, patronGroupId, tenantId);
+      log.info("getForCreate:: service points from {}: {}", tenantId, servicePoints);
 
-    if (!isAvailableInLendingTenants) {
-      log.info("getForCreate:: Not available for requesting, returning empty result");
-      return new AllowedServicePointsResponse();
+      combineAndFilterDuplicates(page, servicePoints.getPage());
+      combineAndFilterDuplicates(hold, servicePoints.getHold());
+      combineAndFilterDuplicates(recall, servicePoints.getRecall());
     }
 
-    log.info("getForCreate:: Available for requesting, proxying call");
-    return circulationClient.allowedServicePointsWithStubItem(patronGroupId, request.getInstanceId(),
-      request.getOperation().getValue(), true);
+    return new AllowedServicePointsResponse()
+      .page(Set.copyOf(page.values()))
+      .hold(Set.copyOf(hold.values()))
+      .recall(Set.copyOf(recall.values()));
+  }
+
+  private void combineAndFilterDuplicates(
+    Map<String, AllowedServicePointsInner> servicePoints, Set<AllowedServicePointsInner> toAdd) {
+
+    if (CollectionUtils.isEmpty(toAdd)) {
+      return;
+    }
+    toAdd.stream()
+      .filter(Objects::nonNull)
+      .forEach(allowedSp -> servicePoints.put(allowedSp.getId(), allowedSp));
   }
 
   protected abstract Collection<String> getLendingTenants(AllowedServicePointsRequest request);
 
-  private boolean isAvailableInLendingTenant(AllowedServicePointsRequest request, String patronGroupId,
-    String tenantId) {
-
-    var allowedServicePointsResponse = getAllowedServicePointsFromLendingTenant(request,
-      patronGroupId, tenantId);
-    log.info("isAvailableInLendingTenant:: allowedServicePointsResponse: {}",
-      allowedServicePointsResponse);
-
-    var availabilityCheckResult = Stream.of(allowedServicePointsResponse.getHold(),
-      allowedServicePointsResponse.getPage(), allowedServicePointsResponse.getRecall())
-      .filter(Objects::nonNull)
-      .flatMap(Collection::stream)
-      .anyMatch(Objects::nonNull);
-
-    log.info("isAvailableInLendingTenant:: result: {}", availabilityCheckResult);
-    return availabilityCheckResult;
-  }
-
-  protected abstract AllowedServicePointsResponse getAllowedServicePointsFromLendingTenant(
+  protected abstract AllowedServicePointsResponse getAllowedServicePointsFromTenant(
     AllowedServicePointsRequest request, String patronGroupId, String tenantId);
 
   private AllowedServicePointsResponse getForReplace(AllowedServicePointsRequest request) {
     EcsTlrEntity ecsTlr = findEcsTlr(request);
-    final boolean requestIsLinkedToItem = ecsTlr.getItemId() != null;
-    log.info("getForReplace:: request is linked to an item: {}", requestIsLinkedToItem);
 
-    if (!requestIsLinkedToItem && isRequestingNotAllowedInLendingTenant(ecsTlr)) {
-      log.info("getForReplace:: no service points are allowed in lending tenant");
-      return new AllowedServicePointsResponse();
-    }
+    log.info("getForReplace:: fetching allowed service points from secondary request tenant");
+    var allowedServicePoints = executionService.executeSystemUserScoped(
+      ecsTlr.getSecondaryRequestTenantId(), () -> circulationClient.allowedServicePoints(
+        REPLACE.getValue(), ecsTlr.getSecondaryRequestId().toString()));
 
-    return getAllowedServicePointsFromBorrowingTenant(request);
+    Request secondaryRequest = requestService.getRequestFromStorage(
+      ecsTlr.getSecondaryRequestId().toString(), ecsTlr.getSecondaryRequestTenantId());
+    Request.RequestTypeEnum secondaryRequestType = secondaryRequest.getRequestType();
+    log.info("getForReplace:: secondary request type: {}", secondaryRequestType.getValue());
+
+    return switch (secondaryRequestType) {
+      case PAGE -> new AllowedServicePointsResponse().page(allowedServicePoints.getPage());
+      case HOLD -> new AllowedServicePointsResponse().hold(allowedServicePoints.getHold());
+      case RECALL -> new AllowedServicePointsResponse().recall(allowedServicePoints.getRecall());
+    };
   }
 
   private EcsTlrEntity findEcsTlr(AllowedServicePointsRequest request) {
-    final String primaryRequestId = request.getRequestId();
+    String primaryRequestId = request.getRequestId();
     log.info("findEcsTlr:: looking for ECS TLR with primary request {}", primaryRequestId);
     EcsTlrEntity ecsTlr = ecsTlrRepository.findByPrimaryRequestId(UUID.fromString(primaryRequestId))
       .orElseThrow(() -> new EntityNotFoundException(String.format(
@@ -108,48 +115,6 @@ public abstract class AllowedServicePointsServiceImpl implements AllowedServiceP
 
     log.info("findEcsTlr:: ECS TLR found: {}", ecsTlr.getId());
     return ecsTlr;
-  }
-
-  private AllowedServicePointsResponse getAllowedServicePointsFromBorrowingTenant(
-    AllowedServicePointsRequest request) {
-
-    log.info("getForReplace:: fetching allowed service points from borrowing tenant");
-    var allowedServicePoints = circulationClient.allowedServicePointsWithStubItem(
-      REPLACE.getValue(), request.getRequestId(), true);
-
-    Request.RequestTypeEnum primaryRequestType = Constants.PRIMARY_REQUEST_TYPE;
-    log.info("getAllowedServicePointsFromBorrowingTenant:: primary request type: {}",
-      primaryRequestType.getValue());
-
-    return switch (primaryRequestType) {
-      case PAGE -> new AllowedServicePointsResponse().page(allowedServicePoints.getPage());
-      case HOLD -> new AllowedServicePointsResponse().hold(allowedServicePoints.getHold());
-      case RECALL -> new AllowedServicePointsResponse().recall(allowedServicePoints.getRecall());
-    };
-  }
-
-  private boolean isRequestingNotAllowedInLendingTenant(EcsTlrEntity ecsTlr) {
-    log.info("isRequestingNotAllowedInLendingTenant:: checking if requesting is allowed in lending tenant");
-    var allowedServicePointsInLendingTenant = executionService.executeSystemUserScoped(
-      ecsTlr.getSecondaryRequestTenantId(), () -> circulationClient.allowedRoutingServicePoints(
-        REPLACE.getValue(), ecsTlr.getSecondaryRequestId().toString(), true));
-
-    Request secondaryRequest = requestService.getRequestFromStorage(
-      ecsTlr.getSecondaryRequestId().toString(), ecsTlr.getSecondaryRequestTenantId());
-    Request.RequestTypeEnum secondaryRequestType = secondaryRequest.getRequestType();
-    log.info("isRequestingNotAllowedInLendingTenant:: secondary request type: {}",
-      secondaryRequestType.getValue());
-
-    var allowedServicePointsForRequestType = switch (secondaryRequestType) {
-      case PAGE -> allowedServicePointsInLendingTenant.getPage();
-      case HOLD -> allowedServicePointsInLendingTenant.getHold();
-      case RECALL -> allowedServicePointsInLendingTenant.getRecall();
-    };
-
-    log.debug("isRequestingNotAllowedInLendingTenant:: allowed service points for {}: {}",
-      secondaryRequestType.getValue(), allowedServicePointsForRequestType);
-
-    return allowedServicePointsForRequestType == null || allowedServicePointsForRequestType.isEmpty();
   }
 
 }

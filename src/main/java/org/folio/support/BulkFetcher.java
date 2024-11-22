@@ -79,9 +79,8 @@ public class BulkFetcher {
       .distinct()
       .toList();
 
-    log.info("buildQueries:: building queries: commonQuery={}, index={}, ids={}" ,
-      commonQuery, index, uniqueIds.size());
-    log.debug("buildQueries:: ids={}", uniqueIds);
+    log.debug("buildQueries:: building queries: commonQuery={}, index={}, ids={}" ,
+      commonQuery, index, uniqueIds);
 
     List<CqlQuery> queries = Lists.partition(uniqueIds, MAX_IDS_PER_QUERY)
       .stream()
@@ -89,8 +88,7 @@ public class BulkFetcher {
       .map(commonQuery::and)
       .toList();
 
-    log.info("buildQueries:: built {} queries", queries::size);
-    log.debug("buildQueries:: queries={}", queries);
+    log.debug("buildQueries:: result: {}", queries);
 
     return queries;
   }
