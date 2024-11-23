@@ -7,11 +7,13 @@ import java.util.Optional;
 
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.RequestsBatchUpdate;
+import org.folio.domain.dto.User;
 import org.folio.domain.dto.UserGroup;
 import org.folio.exception.KafkaEventDeserializationException;
 import org.folio.service.KafkaEventHandler;
 import org.folio.service.impl.RequestBatchUpdateEventHandler;
 import org.folio.service.impl.RequestEventHandler;
+import org.folio.service.impl.UserEventHandler;
 import org.folio.service.impl.UserGroupEventHandler;
 import org.folio.spring.integration.XOkapiHeaders;
 import org.folio.spring.service.SystemUserScopedExecutionService;
@@ -33,18 +35,21 @@ public class KafkaEventListener {
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private final RequestEventHandler requestEventHandler;
   private final UserGroupEventHandler userGroupEventHandler;
+  private final UserEventHandler userEventHandler;
   private final SystemUserScopedExecutionService systemUserScopedExecutionService;
   private final RequestBatchUpdateEventHandler requestBatchEventHandler;
 
   public KafkaEventListener(@Autowired RequestEventHandler requestEventHandler,
     @Autowired RequestBatchUpdateEventHandler requestBatchEventHandler,
     @Autowired SystemUserScopedExecutionService systemUserScopedExecutionService,
-    @Autowired UserGroupEventHandler userGroupEventHandler) {
+    @Autowired UserGroupEventHandler userGroupEventHandler,
+    @Autowired UserEventHandler userEventHandler) {
 
     this.requestEventHandler = requestEventHandler;
     this.systemUserScopedExecutionService = systemUserScopedExecutionService;
     this.userGroupEventHandler = userGroupEventHandler;
     this.requestBatchEventHandler = requestBatchEventHandler;
+    this.userEventHandler = userEventHandler;
   }
 
   @KafkaListener(
@@ -90,6 +95,17 @@ public class KafkaEventListener {
     log.info("handleUserGroupEvent:: event received: {}", event::getId);
     log.debug("handleUserGroupEvent:: event: {}", () -> event);
     handleEvent(event, userGroupEventHandler);
+  }
+
+  @KafkaListener(
+    topicPattern = "${folio.environment}\\.\\w+\\.users\\.users",
+    groupId = "${spring.kafka.consumer.group-id}"
+  )
+  public void handleUserEvent(String eventString, MessageHeaders messageHeaders) {
+    KafkaEvent<User> event = deserialize(eventString, messageHeaders, User.class);
+
+    log.info("handleUserEvent:: event received: {}", event::getId);
+    handleEvent(event, userEventHandler);
   }
 
   private static <T> KafkaEvent<T> deserialize(String eventString, MessageHeaders messageHeaders,
