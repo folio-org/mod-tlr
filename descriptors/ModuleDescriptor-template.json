@@ -216,7 +216,7 @@
       "subPermissions": [
         "tlr.settings.get",
         "settings.circulation.enabled",
-        "settings.global.read.circulation.execute",
+        "mod-settings.global.read.circulation",
         "mod-settings.entries.collection.get",
         "mod-settings.entries.item.get"
       ],
@@ -229,7 +229,7 @@
       "subPermissions": [
         "tlr.settings.put",
         "tlr.consortium-tlr.view",
-        "settings.global.write.circulation.execute",
+        "mod-settings.global.write.circulation",
         "mod-settings.entries.item.put",
         "mod-settings.entries.item.post"
       ],
