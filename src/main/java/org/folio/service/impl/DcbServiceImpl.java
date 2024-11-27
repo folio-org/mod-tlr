@@ -1,6 +1,7 @@
 package org.folio.service.impl;
 
 import static org.folio.domain.dto.DcbTransaction.RoleEnum.BORROWER;
+import static org.folio.domain.dto.DcbTransaction.RoleEnum.BORROWING_PICKUP;
 import static org.folio.domain.dto.DcbTransaction.RoleEnum.LENDER;
 import static org.folio.domain.dto.DcbTransaction.RoleEnum.PICKUP;
 
@@ -51,7 +52,7 @@ public class DcbServiceImpl implements DcbService {
   }
 
   @Override
-  public void createBorrowingTransaction(EcsTlrEntity ecsTlr, Request request, String tenantId) {
+  public void createBorrowingPickupTransaction(EcsTlrEntity ecsTlr, Request request, String tenantId) {
     log.info("createBorrowingTransaction:: creating borrowing transaction for ECS TLR {}", ecsTlr::getId);
     DcbItem dcbItem = new DcbItem()
       .id(request.getItemId())
@@ -60,7 +61,7 @@ public class DcbServiceImpl implements DcbService {
     DcbTransaction transaction = new DcbTransaction()
       .requestId(ecsTlr.getPrimaryRequestId().toString())
       .item(dcbItem)
-      .role(BORROWER);
+      .role(BORROWING_PICKUP);
     final UUID borrowingTransactionId = createTransaction(transaction, tenantId);
     ecsTlr.setPrimaryRequestDcbTransactionId(borrowingTransactionId);
     log.info("createBorrowingTransaction:: borrowing transaction {} for ECS TLR {} created",

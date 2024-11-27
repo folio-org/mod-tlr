@@ -245,14 +245,14 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       log.info("createDcbTransactions:: intermediateRequest is null");
 
       // TODO: BORROWING PICKUP
-      dcbService.createBorrowingTransaction(ecsTlr, secondaryRequest, ecsTlr.getPrimaryRequestTenantId());
+      dcbService.createBorrowingPickupTransaction(ecsTlr, secondaryRequest, ecsTlr.getPrimaryRequestTenantId());
 
       log.info("createDcbTransactions:: Creating lending transaction");
       dcbService.createLendingTransaction(ecsTlr);
     } else {
       log.info("createDcbTransactions:: intermediateRequest is not null. " +
         "Creating borrowing transaction in the central tenant");
-      dcbService.createBorrowingTransaction(ecsTlr, secondaryRequest, centralTenantId);
+      dcbService.createBorrowingPickupTransaction(ecsTlr, secondaryRequest, centralTenantId);
       log.info("createDcbTransactions:: Creating lending transaction");
       dcbService.createLendingTransaction(ecsTlr);
       log.info("createDcbTransactions:: Creating pickup transaction in tenant {}",
