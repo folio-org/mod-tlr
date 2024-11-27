@@ -61,6 +61,15 @@ EcsTlr:
     secondaryRequestTenantId:
       description: "ID of the tenant secondary request was created in"
       type: string
+    intermediateRequestId:
+      description: "Intermediate request ID"
+      $ref: "uuid.yaml"
+    intermediateRequestDcbTransactionId:
+      description: "ID of DCB transaction created for intermediate request"
+      $ref: "uuid.yaml"
+    intermediateRequestTenantId:
+      description: "ID of the tenant intermediate request was created in"
+      type: string
 
   required:
     - instanceId

@@ -41,7 +41,7 @@ class TenantServiceTest {
       .thenReturn(new SearchInstancesResponse().instances(singletonList(instance)));
     EcsTlrEntity ecsTlr = new EcsTlrEntity();
     ecsTlr.setInstanceId(INSTANCE_ID);
-    assertEquals(expectedTenantIds, tenantService.getLendingTenants(ecsTlr));
+    assertEquals(expectedTenantIds, tenantService.getSecondaryRequestTenants(ecsTlr));
   }
 
   private static Stream<Arguments> parametersForGetLendingTenants() {

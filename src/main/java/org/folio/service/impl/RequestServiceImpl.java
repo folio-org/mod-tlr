@@ -23,9 +23,9 @@ import org.folio.domain.dto.Request;
 import org.folio.domain.dto.Requests;
 import org.folio.domain.dto.ServicePoint;
 import org.folio.domain.dto.User;
-import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.exception.RequestCreatingException;
 import org.folio.service.CloningService;
+import org.folio.service.ConsortiaService;
 import org.folio.service.RequestService;
 import org.folio.service.ServicePointService;
 import org.folio.service.UserService;
@@ -53,100 +53,147 @@ public class RequestServiceImpl implements RequestService {
   private final ServicePointService servicePointService;
   private final CloningService<User> userCloningService;
   private final CloningService<ServicePoint> servicePointCloningService;
+  private final ConsortiaService consortiaService;
+  private final UserTenantsServiceImpl userTenantsService;
   private final SystemUserScopedExecutionService systemUserScopedExecutionService;
 
   public static final String HOLDINGS_RECORD_ID = "10cd3a5a-d36f-4c7a-bc4f-e1ae3cf820c9";
 
   @Override
-  public RequestWrapper createPrimaryRequest(Request request, String borrowingTenantId) {
+  public RequestWrapper createPrimaryRequest(Request request, String primaryRequestTenantId) {
     final String requestId = request.getId();
-    log.info("createPrimaryRequest:: creating primary request {} in borrowing tenant ({})",
-      requestId, borrowingTenantId);
-    Request primaryRequest = executionService.executeSystemUserScoped(borrowingTenantId,
+    log.info("createPrimaryRequest:: creating primary request {} in tenant ({})",
+      requestId, primaryRequestTenantId);
+    Request primaryRequest = executionService.executeSystemUserScoped(primaryRequestTenantId,
       () -> circulationClient.createRequest(request));
-    log.info("createPrimaryRequest:: primary request {} created in borrowing tenant ({})",
-      requestId, borrowingTenantId);
+    log.info("createPrimaryRequest:: primary request {} created in tenant ({})",
+      requestId, primaryRequestTenantId);
     log.debug("createPrimaryRequest:: primary request: {}", () -> primaryRequest);
 
-    return new RequestWrapper(primaryRequest, borrowingTenantId);
+    return new RequestWrapper(primaryRequest, primaryRequestTenantId);
   }
 
   @Override
-  public RequestWrapper createSecondaryRequest(Request request, String borrowingTenantId,
-    Collection<String> lendingTenantIds) {
+  public RequestWrapper createSecondaryRequest(Request request, String primaryRequestTenantId,
+    Collection<String> secondaryRequestTenantIds) {
 
     final String requestId = request.getId();
     final String requesterId = request.getRequesterId();
     final String pickupServicePointId = request.getPickupServicePointId();
 
     log.info("createSecondaryRequest:: creating secondary request {} in one of potential " +
-      "lending tenants: {}", requestId, lendingTenantIds);
+      "tenants: {}", requestId, secondaryRequestTenantIds);
 
-    User primaryRequestRequester = executionService.executeSystemUserScoped(borrowingTenantId,
+    User primaryRequestRequester = executionService.executeSystemUserScoped(primaryRequestTenantId,
       () -> userService.find(requesterId));
     ServicePoint primaryRequestPickupServicePoint = executionService.executeSystemUserScoped(
-      borrowingTenantId, () -> servicePointService.find(pickupServicePointId));
+      primaryRequestTenantId, () -> servicePointService.find(pickupServicePointId));
 
-    for (String lendingTenantId : lendingTenantIds) {
+    for (String secondaryRequestTenantId : secondaryRequestTenantIds) {
       try {
-        return executionService.executeSystemUserScoped(lendingTenantId, () -> {
-          log.info("createSecondaryRequest:: creating requester {} in lending tenant ({})",
-            requesterId, lendingTenantId);
+        return executionService.executeSystemUserScoped(secondaryRequestTenantId, () -> {
+          log.info("createSecondaryRequest:: creating requester {} in tenant ({})",
+            requesterId, secondaryRequestTenantId);
           cloneRequester(primaryRequestRequester);
 
-          log.info("createSecondaryRequest:: creating pickup service point {} in lending tenant ({})",
-            pickupServicePointId, lendingTenantId);
+          log.info("createSecondaryRequest:: creating pickup service point {} in tenant ({})",
+            pickupServicePointId, secondaryRequestTenantId);
           servicePointCloningService.clone(primaryRequestPickupServicePoint);
 
-          log.info("createSecondaryRequest:: creating secondary request {} in lending tenant ({})",
-            requestId, lendingTenantId);
+          log.info("createSecondaryRequest:: creating secondary request {} in tenant ({})",
+            requestId, secondaryRequestTenantId);
           Request secondaryRequest = circulationClient.createRequest(request);
-          log.info("createSecondaryRequest:: secondary request {} created in lending tenant ({})",
-            requestId, lendingTenantId);
+          log.info("createSecondaryRequest:: secondary request {} created in tenant ({})",
+            secondaryRequest.getId(), secondaryRequestTenantId);
           log.debug("createSecondaryRequest:: secondary request: {}", () -> secondaryRequest);
 
-          return new RequestWrapper(secondaryRequest, lendingTenantId);
+          return new RequestWrapper(secondaryRequest, secondaryRequestTenantId);
         });
       } catch (Exception e) {
-        log.error("createSecondaryRequest:: failed to create secondary request in lending tenant ({}): {}",
-          lendingTenantId, e.getMessage());
+        log.error("createSecondaryRequest:: failed to create secondary request in tenant ({}): {}",
+          secondaryRequestTenantId, e.getMessage());
         log.debug("createSecondaryRequest:: ", e);
       }
     }
 
     String errorMessage = format(
-      "Failed to create secondary request for instance %s in all potential lending tenants: %s",
-      request.getInstanceId(), lendingTenantIds);
+      "Failed to create secondary request for instance %s in all potential tenants: %s",
+      request.getInstanceId(), secondaryRequestTenantIds);
     log.error("createSecondaryRequest:: {}", errorMessage);
     throw new RequestCreatingException(errorMessage);
   }
 
   @Override
-  public CirculationItem createCirculationItem(EcsTlrEntity ecsTlr, Request secondaryRequest,
-    String borrowingTenantId, String lendingTenantId) {
+  public RequestWrapper createIntermediateRequest(Request request, String primaryRequestTenantId, String intermediateRequestTenantId) {
+    log.info("createIntermediateRequest:: creating intermediate request in tenant {}, instance {}, item {}, requester {}",
+      intermediateRequestTenantId, request.getInstanceId(), request.getItemId(), request.getRequesterId());
 
-    if (ecsTlr == null || secondaryRequest == null) {
-      log.info("createCirculationItem:: ECS TLR or secondary request is null, skipping");
-      return null;
+//    Request intermediateRequest = executionService.executeSystemUserScoped(intermediateRequestTenantId,
+//      () -> circulationClient.createRequest(request));
+    try {
+      return executionService.executeSystemUserScoped(intermediateRequestTenantId, () -> {
+        final String requesterId = request.getRequesterId();
+        final String pickupServicePointId = request.getPickupServicePointId();
+
+        User primaryRequestRequester = executionService.executeSystemUserScoped(primaryRequestTenantId,
+          () -> userService.find(requesterId));
+        ServicePoint primaryRequestPickupServicePoint = executionService.executeSystemUserScoped(
+          primaryRequestTenantId, () -> servicePointService.find(pickupServicePointId));
+
+        log.info("createIntermediateRequest:: creating requester {} in tenant ({})",
+          requesterId, intermediateRequestTenantId);
+        cloneRequester(primaryRequestRequester);
+
+        log.info("createIntermediateRequest:: creating pickup service point {} in tenant ({})",
+          pickupServicePointId, intermediateRequestTenantId);
+        servicePointCloningService.clone(primaryRequestPickupServicePoint);
+
+        log.info("createIntermediateRequest:: creating intermediate request in tenant {}",
+          intermediateRequestTenantId);
+        Request intermediateRequest = circulationClient.createRequest(request);
+        log.info("createIntermediateRequest:: intermediate request created in tenant ({})", intermediateRequestTenantId);
+        log.info("createIntermediateRequest:: intermediate request: {}", () -> intermediateRequest);
+
+        return new RequestWrapper(intermediateRequest, intermediateRequestTenantId);
+      });
+    } catch (Exception e) {
+      log.error("createIntermediateRequest:: failed to create intermediate request in tenant {}: {}",
+        intermediateRequestTenantId, e.getMessage());
+      log.debug("createIntermediateRequest:: ", e);
     }
 
-    var itemId = secondaryRequest.getItemId();
-    var instanceId = secondaryRequest.getInstanceId();
+    String errorMessage = format(
+      "Failed to create intermediate request for instance %s, item %s, requester %s in tenant %s",
+      request.getInstanceId(), request.getItemId(), request.getRequesterId(), intermediateRequestTenantId);
+    log.error("createIntermediateRequest:: {}", errorMessage);
+    throw new RequestCreatingException(errorMessage);
+  }
+
+  @Override
+  public CirculationItem createCirculationItem(String itemId, String instanceId,
+    String pickupLocation, String circulationItemTenantId, String inventoryTenantId) {
+
+    log.info("createCirculationItem:: Creating circulation item, params: itemId={}, " +
+        "instanceId={}, pickupLocation={}, circulationItemTenantId={}, inventoryTenantId={}",
+      itemId, instanceId, pickupLocation, circulationItemTenantId, inventoryTenantId);
 
     if (itemId == null || instanceId == null) {
       log.info("createCirculationItem:: item ID is {}, instance ID is {}, skipping", itemId, instanceId);
       return null;
     }
 
-    // check if circulation item already exists
-    CirculationItem existingCirculationItem = circulationItemClient.getCirculationItem(itemId);
+    // Check if circulation item already exists in the tenant we want to create it in
+    CirculationItem existingCirculationItem = executionService.executeSystemUserScoped(
+      circulationItemTenantId, () -> circulationItemClient.getCirculationItem(itemId));
     if (existingCirculationItem != null) {
-      log.info("createCirculationItem:: circulation item already exists");
+      log.info("createCirculationItem:: circulation item already exists in ten" +
+        "ant {}", circulationItemTenantId);
+
       return existingCirculationItem;
     }
 
-    InventoryItem item = getItemFromStorage(itemId, lendingTenantId);
-    InventoryInstance instance = getInstanceFromStorage(instanceId, lendingTenantId);
+    InventoryItem item = getItemFromStorage(itemId, inventoryTenantId);
+    InventoryInstance instance = getInstanceFromStorage(instanceId, inventoryTenantId);
 
     var itemStatus = item.getStatus().getName();
     var circulationItemStatus = CirculationItemStatus.NameEnum.fromValue(itemStatus.getValue());
@@ -166,13 +213,27 @@ public class RequestServiceImpl implements RequestService {
       .permanentLoanTypeId(item.getPermanentLoanTypeId())
       .instanceTitle(instance.getTitle())
       .barcode(item.getBarcode())
-      .pickupLocation(secondaryRequest.getPickupServicePointId())
+      .pickupLocation(pickupLocation)
       .effectiveLocationId(item.getEffectiveLocationId())
       .lendingLibraryCode("TEST_CODE");
 
-    log.info("createCirculationItem:: Creating circulation item {}", circulationItem.toString());
+    var centralTenantId = userTenantsService.getCentralTenantId();
 
-    return circulationItemClient.createCirculationItem(itemId, circulationItem);
+    log.info("createCirculationItem:: Creating circulation item {} in tenant {}",
+      circulationItem.toString(), circulationItemTenantId);
+    return systemUserScopedExecutionService.executeSystemUserScoped(
+      circulationItemTenantId, () -> circulationItemClient.createCirculationItem(itemId, circulationItem));
+
+//    if (circulationItemTenantId.equals(centralTenantId)) {
+//      log.info("createCirculationItem:: Creating circulation item {} locally in Central",
+//        circulationItem.toString());
+//      return circulationItemClient.createCirculationItem(itemId, circulationItem);
+//    } else {
+//      log.info("createCirculationItem:: Creating circulation item {} in tenant {}",
+//        circulationItem.toString(), circulationItemTenantId);
+//      return systemUserScopedExecutionService.executeSystemUserScoped(
+//        circulationItemTenantId, () -> circulationItemClient.createCirculationItem(itemId, circulationItem));
+//    }
   }
 
   @Override

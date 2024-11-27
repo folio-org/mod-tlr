@@ -35,5 +35,10 @@ public class UserTenantsServiceImpl implements UserTenantsService {
     log.debug("findFirstUserTenant:: result: {}", firstUserTenant);
     return firstUserTenant;
   }
+
+  @Override
+  public String getCentralTenantId() {
+    return findFirstUserTenant().getCentralTenantId();
+  }
 }
 

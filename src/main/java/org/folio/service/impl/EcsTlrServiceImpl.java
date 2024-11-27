@@ -1,9 +1,12 @@
 package org.folio.service.impl;
 
+import static java.util.Optional.of;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.CirculationItem;
@@ -32,6 +35,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   private final TenantService tenantService;
   private final RequestService requestService;
   private final DcbService dcbService;
+  private final UserTenantsServiceImpl userTenantsService;
 
   @Override
   public Optional<EcsTlr> get(UUID id) {
@@ -47,23 +51,67 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       ecsTlrDto.getInstanceId(), ecsTlrDto.getItemId(), ecsTlrDto.getRequesterId());
 
     final EcsTlrEntity ecsTlr = requestsMapper.mapDtoToEntity(ecsTlrDto);
-    String borrowingTenantId = getBorrowingTenant(ecsTlr);
-    Collection<String> lendingTenantIds = getLendingTenants(ecsTlr);
-    RequestWrapper secondaryRequest = requestService.createSecondaryRequest(
-      buildSecondaryRequest(ecsTlr), borrowingTenantId, lendingTenantIds);
+    String primaryRequestTenantId = getPrimaryRequestTenant(ecsTlr);
+    Collection<String> secondaryRequestsTenantIds = getSecondaryRequestTenants(ecsTlr).stream()
+      .filter(tenantId -> !tenantId.equals(primaryRequestTenantId))
+      .collect(Collectors.toList());
 
-    log.info("create:: Creating circulation item for ECS TLR (ILR) {}", ecsTlrDto.getId());
-    CirculationItem circulationItem = requestService.createCirculationItem(ecsTlr,
-      secondaryRequest.request(), borrowingTenantId, secondaryRequest.tenantId());
+    log.info("create:: Creating secondary request for ECS TLR (ILR), instance {}, item {}, requester {}",
+      ecsTlrDto.getInstanceId(), ecsTlrDto.getItemId(), ecsTlrDto.getRequesterId());
+    RequestWrapper secondaryRequestWrapper = requestService.createSecondaryRequest(
+      buildSecondaryRequest(ecsTlr), primaryRequestTenantId, secondaryRequestsTenantIds);
+    Request secondaryRequest = secondaryRequestWrapper.request();
+    String secondaryRequestTenantId = secondaryRequestWrapper.tenantId();
 
+    log.info("create:: Creating circulation item for ECS TLR (ILR) in the primary request tenant {}, instance {}, item {}, requester {}",
+      primaryRequestTenantId, ecsTlrDto.getInstanceId(), ecsTlrDto.getItemId(), ecsTlrDto.getRequesterId());
+    CirculationItem circulationItem = requestService.createCirculationItem(
+      secondaryRequest.getItemId(), secondaryRequest.getInstanceId(),
+      secondaryRequest.getPickupServicePointId(), primaryRequestTenantId,
+      secondaryRequestTenantId);
+
+    log.info("create:: Creating primary request for ECS TLR (ILR), instance {}, item {}, requester {}",
+      ecsTlrDto.getInstanceId(), ecsTlrDto.getItemId(), ecsTlrDto.getRequesterId());
     RequestWrapper primaryRequest = requestService.createPrimaryRequest(
-      buildPrimaryRequest(secondaryRequest.request()), borrowingTenantId);
+      buildPrimaryRequest(secondaryRequest), primaryRequestTenantId);
 
+    log.info("create:: Updating circulation item for ECS TLR (ILR), instance {}, item {}, requester {}",
+      ecsTlrDto.getInstanceId(), ecsTlrDto.getItemId(), ecsTlrDto.getRequesterId());
     requestService.updateCirculationItemOnRequestCreation(circulationItem,
-      secondaryRequest.request());
+      secondaryRequest);
 
-    updateEcsTlr(ecsTlr, primaryRequest, secondaryRequest);
-    createDcbTransactions(ecsTlr, secondaryRequest.request());
+    updateEcsTlr(ecsTlr, primaryRequest, secondaryRequestWrapper);
+
+    var centralTenantId = userTenantsService.getCentralTenantId();
+    RequestWrapper intermediateRequest = null;
+    if (!primaryRequestTenantId.equals(centralTenantId)) {
+      log.info("create:: Primary request tenant is not central, creating intermediate request");
+
+      log.info("create:: Creating circulation item for ECS TLR (ILR) in the central tenant {}, instance {}, item {}, requester {}",
+        centralTenantId, ecsTlrDto.getInstanceId(), ecsTlrDto.getItemId(), ecsTlrDto.getRequesterId());
+      CirculationItem centralTenantCirculationItem = requestService.createCirculationItem(
+        secondaryRequest.getItemId(), secondaryRequest.getInstanceId(),
+        secondaryRequest.getPickupServicePointId(), centralTenantId,
+        secondaryRequestTenantId);
+
+      log.info("create:: Creating intermediate request for ECS TLR (ILR), instance {}, item {}, requester {}",
+        ecsTlrDto.getInstanceId(), ecsTlrDto.getItemId(), ecsTlrDto.getRequesterId());
+      intermediateRequest = requestService.createIntermediateRequest(
+        buildIntermediateRequest(secondaryRequest), primaryRequestTenantId, centralTenantId);
+
+      log.info("create::  Intermediate request {} created, updating circulation item",
+        of(intermediateRequest)
+          .map(RequestWrapper::request)
+          .map(Request::getId)
+          .orElse(null));
+      requestService.updateCirculationItemOnRequestCreation(centralTenantCirculationItem,
+        secondaryRequest);
+
+      updateEcsTlrWithIntermediateRequest(ecsTlr, intermediateRequest);
+    }
+
+    createDcbTransactions(ecsTlr, secondaryRequest,
+      intermediateRequest == null ? null : intermediateRequest.request(), centralTenantId);
 
     return requestsMapper.mapEntityToDto(save(ecsTlr));
   }
@@ -90,25 +138,25 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     return false;
   }
 
-  private String getBorrowingTenant(EcsTlrEntity ecsTlr) {
-    log.info("getBorrowingTenant:: getting borrowing tenant");
-    final String borrowingTenantId = tenantService.getBorrowingTenant(ecsTlr)
+  private String getPrimaryRequestTenant(EcsTlrEntity ecsTlr) {
+    log.info("getPrimaryRequestTenant:: getting primary request tenant");
+    final String primaryRequestTenantId = tenantService.getPrimaryRequestTenantId(ecsTlr)
       .orElseThrow(() -> new TenantPickingException("Failed to get borrowing tenant"));
-    log.info("getBorrowingTenant:: borrowing tenant: {}", borrowingTenantId);
+    log.info("getPrimaryRequestTenant:: primary request tenant: {}", primaryRequestTenantId);
 
-    return borrowingTenantId;
+    return primaryRequestTenantId;
   }
 
-  private Collection<String> getLendingTenants(EcsTlrEntity ecsTlr) {
+  private Collection<String> getSecondaryRequestTenants(EcsTlrEntity ecsTlr) {
     final String instanceId = ecsTlr.getInstanceId().toString();
-    log.info("getLendingTenants:: looking for lending tenants for instance {}", instanceId);
-    List<String> tenantIds = tenantService.getLendingTenants(ecsTlr);
+    log.info("getSecondaryRequestTenants:: looking for secondary request tenants for instance {}", instanceId);
+    List<String> tenantIds = tenantService.getSecondaryRequestTenants(ecsTlr);
     if (tenantIds.isEmpty()) {
-      log.error("getLendingTenants:: failed to find lending tenants for instance: {}", instanceId);
-      throw new TenantPickingException("Failed to find lending tenants for instance " + instanceId);
+      log.error("getSecondaryRequestTenants:: failed to find lending tenants for instance: {}", instanceId);
+      throw new TenantPickingException("Failed to find secondary request tenants for instance " + instanceId);
     }
 
-    log.info("getLendingTenants:: lending tenants found: {}", tenantIds);
+    log.info("getSecondaryRequestTenants:: secondary request tenants found: {}", tenantIds);
     return tenantIds;
   }
 
@@ -136,6 +184,21 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       .pickupServicePointId(secondaryRequest.getPickupServicePointId());
   }
 
+  private static Request buildIntermediateRequest(Request secondaryRequest) {
+    return new Request()
+      .id(secondaryRequest.getId())
+      .instanceId(secondaryRequest.getInstanceId())
+      .itemId(secondaryRequest.getItemId())
+      .holdingsRecordId(secondaryRequest.getHoldingsRecordId())
+      .requesterId(secondaryRequest.getRequesterId())
+      .requestDate(secondaryRequest.getRequestDate())
+      .requestLevel(secondaryRequest.getRequestLevel())
+      .requestType(secondaryRequest.getRequestType())
+      .ecsRequestPhase(Request.EcsRequestPhaseEnum.INTERMEDIATE)
+      .fulfillmentPreference(secondaryRequest.getFulfillmentPreference())
+      .pickupServicePointId(secondaryRequest.getPickupServicePointId());
+  }
+
   private Request buildSecondaryRequest(EcsTlrEntity ecsTlr) {
     return requestsMapper.mapEntityToRequest(ecsTlr)
       .ecsRequestPhase(Request.EcsRequestPhaseEnum.SECONDARY);
@@ -150,7 +213,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     ecsTlr.setPrimaryRequestId(UUID.fromString(primaryRequest.request().getId()));
     ecsTlr.setSecondaryRequestId(UUID.fromString(secondaryRequest.request().getId()));
 
-    Optional.of(secondaryRequest.request())
+    of(secondaryRequest.request())
       .map(Request::getItemId)
       .map(UUID::fromString)
       .ifPresent(ecsTlr::setItemId);
@@ -159,13 +222,43 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     log.debug("updateEcsTlr:: ECS TLR: {}", () -> ecsTlr);
   }
 
-  private void createDcbTransactions(EcsTlrEntity ecsTlr, Request secondaryRequest) {
+  private static void updateEcsTlrWithIntermediateRequest(EcsTlrEntity ecsTlr,
+    RequestWrapper intermediateRequest) {
+
+    log.info("updateEcsTlrWithIntermediateRequest:: updating ECS TLR in memory");
+    ecsTlr.setIntermediateRequestTenantId(intermediateRequest.tenantId());
+    ecsTlr.setIntermediateRequestId(UUID.fromString(intermediateRequest.request().getId()));
+
+    log.info("updateEcsTlrWithIntermediateRequest:: ECS TLR updated in memory");
+    log.debug("updateEcsTlrWithIntermediateRequest:: ECS TLR: {}", () -> ecsTlr);
+  }
+
+  private void createDcbTransactions(EcsTlrEntity ecsTlr, Request secondaryRequest,
+    Request intermediateRequest, String centralTenantId) {
+
     if (secondaryRequest.getItemId() == null) {
       log.info("createDcbTransactions:: secondary request has no item ID");
       return;
     }
-    dcbService.createBorrowingTransaction(ecsTlr, secondaryRequest);
-    dcbService.createLendingTransaction(ecsTlr);
+
+    if (intermediateRequest == null) {
+      log.info("createDcbTransactions:: intermediateRequest is null");
+
+      // TODO: BORROWING PICKUP
+      dcbService.createBorrowingTransaction(ecsTlr, secondaryRequest, ecsTlr.getPrimaryRequestTenantId());
+
+      log.info("createDcbTransactions:: Creating lending transaction");
+      dcbService.createLendingTransaction(ecsTlr);
+    } else {
+      log.info("createDcbTransactions:: intermediateRequest is not null. " +
+        "Creating borrowing transaction in the central tenant");
+      dcbService.createBorrowingTransaction(ecsTlr, secondaryRequest, centralTenantId);
+      log.info("createDcbTransactions:: Creating lending transaction");
+      dcbService.createLendingTransaction(ecsTlr);
+      log.info("createDcbTransactions:: Creating pickup transaction in tenant {}",
+        ecsTlr.getPrimaryRequestTenantId());
+      dcbService.createPickupTransaction(ecsTlr, secondaryRequest, ecsTlr.getPrimaryRequestTenantId());
+    }
   }
 
 }

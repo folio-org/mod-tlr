@@ -24,6 +24,7 @@ public class HttpUtils {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   public static Optional<String> getTenantFromToken() {
+    log.info("getTenantFromToken:: looking for a token");
     return getCurrentRequest()
       .flatMap(HttpUtils::getToken)
       .flatMap(HttpUtils::extractTenantFromToken);
@@ -37,6 +38,7 @@ public class HttpUtils {
   }
 
   private static Optional<String> getToken(HttpServletRequest request) {
+    log.info("getToken:: trying to get token from the cookie first, then header");
     return getCookie(request, ACCESS_TOKEN_COOKIE_NAME)
       .or(() -> getHeader(request, XOkapiHeaders.TOKEN));
   }
