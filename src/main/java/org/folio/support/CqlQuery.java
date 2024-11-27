@@ -11,6 +11,7 @@ public record CqlQuery(String query) {
 
   public static final String MULTIPLE_VALUES_DELIMITER = " or ";
   public static final String EXACT_MATCH_QUERY_TEMPLATE = "%s==\"%s\"";
+  public static final String MATCH_QUERY_TEMPLATE = "%s=\"%s\"";
   public static final String EXACT_MATCH_ANY_QUERY_TEMPLATE = "%s==(%s)";
 
   public static CqlQuery empty() {
@@ -19,6 +20,10 @@ public record CqlQuery(String query) {
 
   public static CqlQuery exactMatch(String index, String value) {
     return new CqlQuery(format(EXACT_MATCH_QUERY_TEMPLATE, index, value));
+  }
+
+  public static CqlQuery match(String index, String value) {
+    return new CqlQuery(format(MATCH_QUERY_TEMPLATE, index, value));
   }
 
   public static CqlQuery exactMatchAnyId(Collection<String> values) {
@@ -49,6 +54,17 @@ public record CqlQuery(String query) {
     }
 
     return new CqlQuery(format("%s and (%s)", query, other.query()));
+  }
+
+  public CqlQuery not(CqlQuery other) {
+    if (other == null || isBlank(other.query())) {
+      return this;
+    }
+    if (isBlank(query)) {
+      return other;
+    }
+
+    return new CqlQuery(format("%s not (%s)", query, other.query()));
   }
 
   @Override

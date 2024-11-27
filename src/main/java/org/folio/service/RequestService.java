@@ -31,6 +31,7 @@ public interface RequestService {
   Request getRequestFromStorage(String requestId, String tenantId);
   Request getRequestFromStorage(String requestId);
   Collection<Request> getRequestsFromStorage(CqlQuery query, String idIndex, Collection<String> ids);
+  Collection<Request> getRequestsFromStorage(CqlQuery query);
   Request updateRequestInStorage(Request request, String tenantId);
   List<Request> getRequestsQueueByInstanceId(String instanceId, String tenantId);
   List<Request> getRequestsQueueByInstanceId(String instanceId);

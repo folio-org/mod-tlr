@@ -1,23 +1,27 @@
 package org.folio.service.impl;
 
+import static java.lang.Boolean.TRUE;
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 import static java.util.Locale.getISOCountries;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.commons.lang3.StringUtils.firstNonBlank;
 import static org.apache.commons.lang3.StringUtils.isBlank;
+import static org.folio.domain.dto.Request.RequestLevelEnum.TITLE;
+import static org.folio.domain.dto.Request.RequestTypeEnum.HOLD;
 
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -30,8 +34,10 @@ import java.util.stream.Collector;
 
 import org.folio.domain.dto.AddressType;
 import org.folio.domain.dto.Campus;
-import org.folio.domain.dto.Contributor;
 import org.folio.domain.dto.Department;
+import org.folio.domain.dto.HoldingsRecord;
+import org.folio.domain.dto.Instance;
+import org.folio.domain.dto.InstanceContributorsInner;
 import org.folio.domain.dto.Institution;
 import org.folio.domain.dto.Item;
 import org.folio.domain.dto.ItemEffectiveCallNumberComponents;
@@ -41,9 +47,6 @@ import org.folio.domain.dto.LoanType;
 import org.folio.domain.dto.Location;
 import org.folio.domain.dto.MaterialType;
 import org.folio.domain.dto.Request;
-import org.folio.domain.dto.SearchHolding;
-import org.folio.domain.dto.SearchInstance;
-import org.folio.domain.dto.SearchItem;
 import org.folio.domain.dto.ServicePoint;
 import org.folio.domain.dto.StaffSlip;
 import org.folio.domain.dto.StaffSlipItem;
@@ -60,7 +63,6 @@ import org.folio.service.DepartmentService;
 import org.folio.service.InventoryService;
 import org.folio.service.LocationService;
 import org.folio.service.RequestService;
-import org.folio.service.SearchService;
 import org.folio.service.ServicePointService;
 import org.folio.service.StaffSlipsService;
 import org.folio.service.UserGroupService;
@@ -68,7 +70,9 @@ import org.folio.service.UserService;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.folio.support.CqlQuery;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.extern.log4j.Log4j2;
 
 @RequiredArgsConstructor
@@ -88,39 +92,82 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
   private final UserGroupService userGroupService;
   private final DepartmentService departmentService;
   private final AddressTypeService addressTypeService;
-  private final SearchService searchService;
   private final ServicePointService servicePointService;
 
   @Override
   public Collection<StaffSlip> getStaffSlips(String servicePointId) {
     log.info("getStaffSlips:: building staff slips for service point {}", servicePointId);
+    StaffSlipsContext context = new StaffSlipsContext();
+    findLocationsAndItems(servicePointId, context);
+    if (context.getLocationsByTenant().isEmpty()) {
+      log.info("getStaffSlips:: found no location for service point {}, doing nothing", servicePointId);
+      return emptyList();
+    }
+    findRequests(context);
+    findHoldRequestsWithoutItems(context);
+    if (context.getRequests().isEmpty()) {
+      log.info("getStaffSlips:: found no requests to build staff slips for, doing nothing");
+      return emptyList();
+    }
+    discardNonRequestedItems(context);
+    findInstances(context);
+    findRequesters(context);
+    findUserGroups(context);
+    findDepartments(context);
+    findAddressTypes(context);
+    findPickupServicePoints(context);
+    fetchDataFromLendingTenants(context);
 
-    Map<String, Collection<Location>> locationsByTenant = findLocations(servicePointId);
-    Collection<String> locationIds = locationsByTenant.values()
-      .stream()
-      .flatMap(Collection::stream)
-      .map(Location::getId)
-      .collect(toSet());
-
-    Collection<SearchInstance> instances = findInstances(locationIds);
-    Collection<SearchItem> itemsInRelevantLocations = getItemsForLocations(instances, locationIds);
-    Collection<Request> requests = findRequests(itemsInRelevantLocations);
-    Collection<SearchItem> requestedItems = filterRequestedItems(itemsInRelevantLocations, requests);
-    Collection<StaffSlipContext> staffSlipContexts = buildStaffSlipContexts(requests, requestedItems,
-      instances, locationsByTenant);
-    Collection<StaffSlip> staffSlips = buildStaffSlips(staffSlipContexts);
-
+    Collection<StaffSlip> staffSlips = buildStaffSlips(context);
     log.info("getStaffSlips:: successfully built {} staff slips", staffSlips::size);
     return staffSlips;
   }
 
-  private Map<String, Collection<Location>> findLocations(String servicePointId) {
-    log.info("findLocations:: searching for locations in all consortium tenants");
-    CqlQuery query = CqlQuery.exactMatch("primaryServicePoint", servicePointId);
+  private void findHoldRequestsWithoutItems(StaffSlipsContext context) {
+    if (!relevantRequestTypes.contains(HOLD)) {
+      log.info("findHoldRequestsWithoutItems:: 'Hold' is not a relevant request type, doing nothing");
+      return;
+    }
 
-    return getAllConsortiumTenants()
+    Collection<Request> holdRequestsWithoutItems = findTitleLevelHoldsWithoutItems();
+    Collection<Instance> instances = findInstancesForRequests(holdRequestsWithoutItems);
+    Map<String, Collection<HoldingsRecord>> holdings = findHoldingsForHolds(instances, context);
+
+    Set<String> relevantInstanceIds = holdings.values()
       .stream()
-      .collect(toMap(identity(), tenantId -> findLocations(query, tenantId)));
+      .flatMap(Collection::stream)
+      .map(HoldingsRecord::getInstanceId)
+      .collect(toSet());
+
+    List<Request> requestsForRelevantInstances = holdRequestsWithoutItems.stream()
+      .filter(request -> relevantInstanceIds.contains(request.getInstanceId()))
+      .toList();
+
+    log.info("getStaffSlips:: {} of {} hold requests are placed on relevant instances",
+      requestsForRelevantInstances::size, holdRequestsWithoutItems::size);
+
+    context.getRequests().addAll(requestsForRelevantInstances);
+    context.getInstanceCache().addAll(instances);
+  }
+
+  private void findLocationsAndItems(String servicePointId, StaffSlipsContext staffSlipsContext) {
+    CqlQuery locationsQuery = CqlQuery.exactMatch("primaryServicePoint", servicePointId);
+
+    getAllConsortiumTenants()
+      .forEach(tenantId -> executionService.executeSystemUserScoped(tenantId, () -> {
+        log.info("getStaffSlips:: searching for relevant locations and items in tenant {}", tenantId);
+        Collection<Location> locations = locationService.findLocations(locationsQuery);
+        Map<String, Location> locationsById = toMapById(locations, Location::getId);
+
+        Collection<Item> items = findItems(locations);
+        Collection<ItemContext> itemContexts = items.stream()
+          .map(item -> new ItemContext(item.getId(), item, locationsById.get(item.getEffectiveLocationId())))
+          .collect(toList());
+
+        staffSlipsContext.getLocationsByTenant().put(tenantId, locations);
+        staffSlipsContext.getItemContextsByTenant().put(tenantId, itemContexts);
+        return null;
+      }));
   }
 
   private Collection<String> getAllConsortiumTenants() {
@@ -130,317 +177,278 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
       .collect(toSet());
   }
 
-  private Collection<Location> findLocations(CqlQuery query, String tenantId) {
-    log.info("findLocations:: searching for locations in tenant {} by query: {}", tenantId, query);
-    return executionService.executeSystemUserScoped(tenantId, () -> locationService.findLocations(query));
-  }
-
-  private Collection<SearchInstance> findInstances(Collection<String> locationIds) {
-    log.info("findInstances:: searching for instances");
-    if (locationIds.isEmpty()) {
-      log.info("findItems:: no locations to search instances for, doing nothing");
+  private Collection<Item> findItems(Collection<Location> locations) {
+    if (locations.isEmpty()) {
+      log.info("findItems:: no locations to search items for, doing nothing");
       return emptyList();
     }
 
-    List<String> itemStatusStrings = relevantItemStatuses.stream()
-      .map(ItemStatus.NameEnum::getValue)
-      .toList();
-
-    CqlQuery query = CqlQuery.exactMatchAny("item.status.name", itemStatusStrings);
-
-    return searchService.searchInstances(query, "item.effectiveLocationId", locationIds);
-  }
-
-  private static Collection<SearchItem> getItemsForLocations(Collection<SearchInstance> instances,
-    Collection<String> locationIds) {
-
-    log.info("getItemsForLocations:: searching for items in relevant locations");
-    List<SearchItem> items = instances.stream()
-      .map(SearchInstance::getItems)
-      .flatMap(Collection::stream)
-      .filter(item -> locationIds.contains(item.getEffectiveLocationId()))
-      .toList();
-
-    log.info("getItemsForLocations:: found {} items in relevant locations", items::size);
-    return items;
-  }
-
-  private Collection<Request> findRequests(Collection<SearchItem> items) {
-    log.info("findRequests:: searching for requests for relevant items");
-    if (items.isEmpty()) {
-      log.info("findRequests:: no items to search requests for, doing nothing");
-      return emptyList();
-    }
-
-    Set<String> itemIds = items.stream()
-      .map(SearchItem::getId)
+    Set<String> locationIds = locations.stream()
+      .map(Location::getId)
       .collect(toSet());
+
+    Set<String> itemStatuses = relevantItemStatuses.stream()
+      .map(ItemStatus.NameEnum::getValue)
+      .collect(toSet());
+
+    CqlQuery query = CqlQuery.exactMatchAny("status.name", itemStatuses);
+
+    return inventoryService.findItems(query, "effectiveLocationId", locationIds);
+  }
+
+  private void findRequests(StaffSlipsContext context) {
+    log.info("findRequestsForItems:: searching for requests for relevant items");
+
+    List<String> itemIds = context.getItemContextsByTenant()
+      .values()
+      .stream()
+      .flatMap(Collection::stream)
+      .map(ItemContext::getItem)
+      .map(Item::getId)
+      .toList();
+
+    if (itemIds.isEmpty()) {
+      log.info("findRequestsForItems:: no items to search requests for, doing nothing");
+      return;
+    }
 
     List<String> requestTypes = relevantRequestTypes.stream()
       .map(Request.RequestTypeEnum::getValue)
-      .toList();
+      .collect(toList());
 
     List<String> requestStatuses = relevantRequestStatuses.stream()
       .map(Request.StatusEnum::getValue)
-      .toList();
+      .collect(toList());
 
     CqlQuery query = CqlQuery.exactMatchAny("requestType", requestTypes)
       .and(CqlQuery.exactMatchAny("status", requestStatuses));
 
-    return requestService.getRequestsFromStorage(query, "itemId", itemIds);
+    Collection<Request> requests = requestService.getRequestsFromStorage(query, "itemId", itemIds);
+    context.getRequests().addAll(requests);
   }
 
-  private static Collection<SearchItem> filterRequestedItems(Collection<SearchItem> items,
-    Collection<Request> requests) {
+  private Collection<Request> findTitleLevelHoldsWithoutItems() {
+    log.info("findHoldRequestsWithoutItem:: searching for open hold requests without itemId");
+    List<String> requestStatuses = relevantRequestStatuses.stream()
+      .map(Request.StatusEnum::getValue)
+      .collect(toList());
 
-    log.info("filterItemsByRequests:: filtering out non-requested items");
-    Set<String> requestedItemIds = requests.stream()
-      .map(Request::getItemId)
-      .filter(Objects::nonNull)
+    CqlQuery query = CqlQuery.exactMatch("requestType", HOLD.getValue())
+      .and(CqlQuery.exactMatch("requestLevel", TITLE.getValue()))
+      .and(CqlQuery.exactMatchAny("status", requestStatuses))
+      .not(CqlQuery.match("itemId", ""));
+
+    return requestService.getRequestsFromStorage(query);
+  }
+
+  private Map<String, Collection<HoldingsRecord>> findHoldingsForHolds(Collection<Instance> instances,
+    StaffSlipsContext context) {
+
+    log.info("findHoldingsForHolds:: searching holdings for instances");
+
+    if (instances.isEmpty()) {
+      log.info("findHoldingsForHolds:: no instances to search holdings for, doing nothing");
+      return emptyMap();
+    }
+
+    Set<String> instanceIds = instances.stream()
+      .map(Instance::getId)
       .collect(toSet());
 
-    List<SearchItem> requestedItems = items.stream()
-      .filter(item -> requestedItemIds.contains(item.getId()))
-      .toList();
-
-    log.info("filterItemsByRequests:: {} of {} relevant items are requested", requestedItems::size,
-      items::size);
-    return requestedItems;
+    return context.getLocationsByTenant()
+      .keySet()
+      .stream()
+      .collect(toMap(identity(), tenantId -> executionService.executeSystemUserScoped(tenantId,
+        () -> findHoldingsForHolds(instanceIds, context, tenantId))));
   }
 
-  private Collection<StaffSlipContext> buildStaffSlipContexts(Collection<Request> requests,
-    Collection<SearchItem> requestedItems, Collection<SearchInstance> instances,
-    Map<String, Collection<Location>> locationsByTenant) {
+  private Collection<HoldingsRecord> findHoldingsForHolds(Collection<String> instanceIds,
+    StaffSlipsContext context, String tenantId) {
 
-    if (requests.isEmpty()) {
-      log.info("buildStaffSlipContexts:: no requests to build contexts for, doing nothing");
+    log.info("findHoldings:: searching holdings for relevant locations and instances");
+
+    Set<String> relevantLocationIds = context.getLocationsByTenant()
+      .get(tenantId)
+      .stream()
+      .map(Location::getId)
+      .collect(toSet());
+
+    if (relevantLocationIds.isEmpty()) {
+      log.info("findHoldings:: no location to search holdings for, doing nothing");
       return emptyList();
     }
 
-    log.info("buildStaffSlipContexts:: building contexts for {} requests", requests::size);
-    Map<String, ItemContext> itemContextsByItemId = buildItemContexts(requestedItems, instances,
-      locationsByTenant);
-    Map<String, RequesterContext> requesterContextsByRequestId = buildRequesterContexts(requests);
-    Map<String, RequestContext> requestContextsByRequestId = buildRequestContexts(requests);
+    if (instanceIds.isEmpty()) {
+      log.info("findHoldings:: no instances to search holdings for, doing nothing");
+      return emptyList();
+    }
 
-    Collection<StaffSlipContext> staffSlipContexts = requests.stream()
-      .map(request -> new StaffSlipContext(
-        itemContextsByItemId.get(request.getItemId()),
-        requesterContextsByRequestId.get(request.getId()),
-        requestContextsByRequestId.get(request.getId())))
-      .toList();
+    Collection<HoldingsRecord> holdingsForInstances = inventoryService.findHoldings(CqlQuery.empty(),
+      "instanceId", instanceIds);
 
-    log.info("getStaffSlips:: successfully built contexts for {} requests", requests::size);
-    return staffSlipContexts;
+    log.info("findHoldingsForHolds:: caching {} holdings", holdingsForInstances::size);
+    context.getHoldingsByIdCache().put(tenantId, holdingsForInstances);
+
+    List<HoldingsRecord> holdingsInRelevantLocations = holdingsForInstances.stream()
+      .filter(holding -> relevantLocationIds.contains(holding.getEffectiveLocationId()))
+      .collect(toList());
+
+    log.info("findHoldings:: {} of {} holdings are in relevant locations",
+      holdingsInRelevantLocations::size, holdingsForInstances::size);
+
+    return holdingsInRelevantLocations;
   }
 
-  private Map<String, ItemContext> buildItemContexts(Collection<SearchItem> requestedItems,
-    Collection<SearchInstance> instances, Map<String, Collection<Location>> locationsByTenant) {
+  private void findHoldings(StaffSlipsContext context, String tenantId) {
+    log.info("findHoldings:: searching holdings");
 
-    log.info("buildItemContexts:: building contexts for {} items", requestedItems::size);
-
-    Map<String, Set<String>> requestedItemIdsByTenant = requestedItems.stream()
-      .collect(groupingBy(SearchItem::getTenantId, mapping(SearchItem::getId, toSet())));
-
-    Map<String, SearchInstance> itemIdToInstance = instances.stream()
-      .flatMap(searchInstance -> searchInstance.getItems().stream()
-        .map(item -> new AbstractMap.SimpleEntry<>(item.getId(), searchInstance)))
-      .collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a));
-
-    return requestedItemIdsByTenant.entrySet()
-      .stream()
-      .map(entry -> buildItemContexts(entry.getKey(), entry.getValue(), locationsByTenant, itemIdToInstance))
-      .flatMap(Collection::stream)
-      .collect(toMap(context -> context.item().getId(), identity()));
-  }
-
-  private Collection<ItemContext> buildItemContexts(String tenantId, Collection<String> itemIds,
-    Map<String, Collection<Location>> locationsByTenant, Map<String, SearchInstance> itemIdToInstance) {
-
-    log.info("buildItemContexts:: building item contexts for {} items in tenant {}", itemIds.size(), tenantId);
-    return executionService.executeSystemUserScoped(tenantId,
-      () -> buildItemContexts(itemIds, itemIdToInstance, locationsByTenant.get(tenantId)));
-  }
-
-  private Collection<ItemContext> buildItemContexts(Collection<String> itemIds,
-    Map<String, SearchInstance> itemIdToInstance, Collection<Location> locations) {
-
-    Collection<Item> items = inventoryService.findItems(itemIds);
-
-    Map<String, MaterialType> materialTypesById = findMaterialTypes(items)
-      .stream()
-      .collect(mapById(MaterialType::getId));
-
-    Map<String, LoanType> loanTypesById = findLoanTypes(items)
-      .stream()
-      .collect(mapById(LoanType::getId));
-
-    Set<String> locationIdsOfRequestedItems = items.stream()
-      .map(Item::getEffectiveLocationId)
+    Collection<ItemContext> itemContexts = context.getItemContextsByTenant().get(tenantId);
+    Set<String> requestedHoldingIds = itemContexts.stream()
+      .map(ItemContext::getItem)
+      .map(Item::getHoldingsRecordId)
       .collect(toSet());
 
-    Map<String, Location> locationsById = locations.stream()
-      .filter(location -> locationIdsOfRequestedItems.contains(location.getId()))
-      .toList().stream()
-      .collect(mapById(Location::getId));
-
-    Collection<Location> locationsOfRequestedItems = locationsById.values();
-
-    Map<String, Library> librariesById = findLibraries(locationsOfRequestedItems)
+    Map<String, HoldingsRecord> cachedHoldingsById = context.getHoldingsByIdCache()
+      .getOrDefault(tenantId, new ArrayList<>())
       .stream()
-      .collect(mapById(Library::getId));
+      .collect(mapById(HoldingsRecord::getId));
 
-    Map<String, Campus> campusesById = findCampuses(locationsOfRequestedItems)
+    Set<String> missingHoldingIds = new HashSet<>(requestedHoldingIds);
+    missingHoldingIds.removeAll(cachedHoldingsById.keySet());
+
+    log.info("findHoldings:: cache hit for {} of {} requested holdings",
+      requestedHoldingIds.size() - missingHoldingIds.size(), requestedHoldingIds.size());
+
+    Map<String, HoldingsRecord> fetchedHoldingsById = inventoryService.findHoldings(missingHoldingIds)
       .stream()
-      .collect(mapById(Campus::getId));
+      .collect(mapById(HoldingsRecord::getId));
 
-    Map<String, Institution> institutionsById = findInstitutions(locationsOfRequestedItems)
-      .stream()
-      .collect(mapById(Institution::getId));
+    itemContexts.forEach(itemContext -> {
+      String holdingsRecordId = itemContext.getItem().getHoldingsRecordId();
+      Optional.ofNullable(cachedHoldingsById.get(holdingsRecordId))
+        .or(() -> Optional.ofNullable(fetchedHoldingsById.get(holdingsRecordId)))
+        .ifPresent(itemContext::setHolding);
+    });
 
-    Map<String, ServicePoint> servicePointsById = findServicePointsForLocations(locationsOfRequestedItems)
-      .stream()
-      .collect(mapById(ServicePoint::getId));
-
-    List<ItemContext> itemContexts = new ArrayList<>(items.size());
-    for (Item item : items) {
-      SearchInstance instance = itemIdToInstance.get(item.getId());
-      Location location = locationsById.get(item.getEffectiveLocationId());
-      ServicePoint primaryServicePoint = Optional.ofNullable(location.getPrimaryServicePoint())
-        .map(UUID::toString)
-        .map(servicePointsById::get)
-        .orElse(null);
-      SearchHolding holding = instance.getHoldings()
-        .stream()
-        .filter(h -> item.getHoldingsRecordId().equals(h.getId()))
-        .findFirst()
-        .orElse(null);
-
-      ItemContext itemContext = new ItemContext(item, instance, holding, location,
-        materialTypesById.get(item.getMaterialTypeId()),
-        loanTypesById.get(getEffectiveLoanTypeId(item)),
-        institutionsById.get(location.getInstitutionId()),
-        campusesById.get(location.getCampusId()),
-        librariesById.get(location.getLibraryId()),
-        primaryServicePoint);
-
-      itemContexts.add(itemContext);
-    }
-
-    return itemContexts;
+    context.getInstanceCache().clear();
   }
 
-  private Map<String, RequesterContext> buildRequesterContexts(Collection<Request> requests) {
-    log.info("buildRequesterContexts:: building requester contexts for {} requests", requests::size);
-    Collection<User> requesters = findRequesters(requests);
-    Collection<UserGroup> userGroups = findUserGroups(requesters);
-    Collection<Department> departments = findDepartments(requesters);
-    Collection<AddressType> addressTypes = findAddressTypes(requesters);
-
-    Map<String, User> requestersById = requesters.stream()
-      .collect(mapById(User::getId));
-    Map<String, UserGroup> userGroupsById = userGroups.stream()
-      .collect(mapById(UserGroup::getId));
-    Map<String, Department> departmentsById = departments.stream()
-      .collect(mapById(Department::getId));
-    Map<String, AddressType> addressTypesById = addressTypes.stream()
-      .collect(mapById(AddressType::getId));
-
-    Map<String, RequesterContext> requesterContexts = new HashMap<>(requests.size());
-    for (Request request : requests) {
-      User requester = requestersById.get(request.getRequesterId());
-      UserGroup userGroup = userGroupsById.get(requester.getPatronGroup());
-
-      Collection<Department> requesterDepartments = requester.getDepartments()
-        .stream()
-        .filter(Objects::nonNull)
-        .map(departmentsById::get)
-        .toList();
-
-      AddressType primaryRequesterAddressType = Optional.ofNullable(requester.getPersonal())
-        .map(UserPersonal::getAddresses)
-        .flatMap(addresses -> addresses.stream()
-          .filter(UserPersonalAddressesInner::getPrimaryAddress)
-          .findFirst()
-          .map(UserPersonalAddressesInner::getAddressTypeId)
-          .map(addressTypesById::get))
-        .orElse(null);
-
-      AddressType deliveryAddressType = addressTypesById.get(request.getDeliveryAddressTypeId());
-
-      RequesterContext requesterContext = new RequesterContext(requester, userGroup,
-        requesterDepartments, primaryRequesterAddressType, deliveryAddressType);
-      requesterContexts.put(request.getId(), requesterContext);
-    }
-
-    return requesterContexts;
-  }
-
-  private Map<String, RequestContext> buildRequestContexts(Collection<Request> requests) {
-    log.info("buildRequesterContexts:: building request contexts for {} requests", requests::size);
-    Collection<ServicePoint> servicePoints = findServicePointsForRequests(requests);
-    Map<String, ServicePoint> servicePointsById = servicePoints.stream()
-      .collect(mapById(ServicePoint::getId));
-
-    Map<String, RequestContext> requestContexts = new HashMap<>(requests.size());
-    for (Request request : requests) {
-      ServicePoint pickupServicePoint = servicePointsById.get(request.getPickupServicePointId());
-      RequestContext requestContext = new RequestContext(request, pickupServicePoint);
-      requestContexts.put(request.getId(), requestContext);
-    }
-
-    return requestContexts;
-  }
-
-  private Collection<User> findRequesters(Collection<Request> requests) {
+  private Collection<Instance> findInstancesForRequests(Collection<Request> requests) {
+    log.info("findInstances:: searching instances for requests");
     if (requests.isEmpty()) {
+      log.info("findInstances:: no requests to search instances for, doing nothing");
+      return emptyList();
+    }
+
+    Set<String> instanceIds = requests.stream()
+      .map(Request::getInstanceId)
+      .collect(toSet());
+
+    return inventoryService.findInstances(instanceIds);
+  }
+
+  private void findInstances(StaffSlipsContext context) {
+    log.info("findInstances:: searching instances");
+    Set<String> requestedInstanceIds = context.getRequests()
+      .stream()
+      .map(Request::getInstanceId)
+      .collect(toSet());
+
+    Map<String, Instance> cachedRequestedInstancesById = context.getInstanceCache()
+      .stream()
+      .filter(instance -> requestedInstanceIds.contains(instance.getId()))
+      .collect(mapById(Instance::getId));
+
+    Set<String> missingInstanceIds = new HashSet<>(requestedInstanceIds);
+    missingInstanceIds.removeAll(cachedRequestedInstancesById.keySet());
+
+    log.info("findInstances:: cache hit for {} of {} requested instances",
+      requestedInstanceIds.size() - missingInstanceIds.size(), requestedInstanceIds.size());
+
+    Map<String, Instance> fetchedInstancesById = inventoryService.findInstances(missingInstanceIds)
+      .stream()
+      .collect(mapById(Instance::getId));
+
+    context.getInstancesById().putAll(fetchedInstancesById);
+    context.getInstancesById().putAll(cachedRequestedInstancesById);
+    context.getInstanceCache().clear();
+  }
+
+  private void fetchDataFromLendingTenants(StaffSlipsContext context) {
+    context.getItemContextsByTenant()
+      .keySet()
+      .forEach(tenantId -> executionService.executeSystemUserScoped(tenantId,
+        () -> fetchDataFromLendingTenant(context, tenantId)));
+  }
+
+  private StaffSlipsContext fetchDataFromLendingTenant(StaffSlipsContext context, String tenantId) {
+    log.info("fetchDataFromLendingTenant:: fetching item-related data from tenant {}", tenantId);
+    Collection<ItemContext> itemContexts = context.getItemContextsByTenant().get(tenantId);
+    findHoldings(context, tenantId);
+    findMaterialTypes(itemContexts);
+    findLoanTypes(itemContexts);
+    findLibraries(itemContexts);
+    findCampuses(itemContexts);
+    findInstitutions(itemContexts);
+    findPrimaryServicePoints(itemContexts);
+    return context;
+  }
+
+  private void findRequesters(StaffSlipsContext context) {
+    if (context.getRequests().isEmpty()) {
       log.info("findRequesters:: no requests to search requesters for, doing nothing");
-      return emptyList();
+      return;
     }
 
-    Set<String> requesterIds = requests.stream()
+    Set<String> requesterIds = context.getRequests().stream()
       .map(Request::getRequesterId)
       .collect(toSet());
 
-    return userService.find(requesterIds);
+    Collection<User> users = userService.find(requesterIds);
+    context.getRequestersById().putAll(toMapById(users, User::getId));
   }
 
-  private Collection<UserGroup> findUserGroups(Collection<User> requesters) {
-    if (requesters.isEmpty()) {
+  private void findUserGroups(StaffSlipsContext context) {
+    if (context.getRequestersById().isEmpty()) {
       log.info("findUserGroups:: no requesters to search user groups for, doing nothing");
-      return emptyList();
+      return;
     }
 
-    Set<String> userGroupIds = requesters.stream()
+    Set<String> userGroupIds = context.getRequestersById().values()
+      .stream()
       .map(User::getPatronGroup)
       .filter(Objects::nonNull)
       .collect(toSet());
 
-    return userGroupService.find(userGroupIds);
+    Collection<UserGroup> userGroups = userGroupService.find(userGroupIds);
+    context.getUserGroupsById().putAll(toMapById(userGroups, UserGroup::getId));
   }
 
-  private Collection<Department> findDepartments(Collection<User> requesters) {
-    if (requesters.isEmpty()) {
+  private void findDepartments(StaffSlipsContext context) {
+    if (context.getRequestersById().isEmpty()) {
       log.info("findDepartments:: no requesters to search departments for, doing nothing");
-      return emptyList();
+      return;
     }
 
-    Set<String> departmentIds = requesters.stream()
+    Set<String> departmentIds = context.getRequestersById().values()
+      .stream()
       .map(User::getDepartments)
       .filter(Objects::nonNull)
       .flatMap(Collection::stream)
       .collect(toSet());
 
-    return departmentService.findDepartments(departmentIds);
+    Collection<Department> departments = departmentService.findDepartments(departmentIds);
+    context.getDepartmentsById().putAll(toMapById(departments, Department::getId));
   }
 
-  private Collection<AddressType> findAddressTypes(Collection<User> requesters) {
-    if (requesters.isEmpty()) {
+  private void findAddressTypes(StaffSlipsContext context) {
+    if (context.getRequestersById().isEmpty()) {
       log.info("findAddressTypes:: no requesters to search address types for, doing nothing");
-      return emptyList();
+      return;
     }
 
-    Set<String> addressTypeIds = requesters.stream()
+    Set<String> addressTypeIds = context.getRequestersById().values()
+      .stream()
       .map(User::getPersonal)
       .filter(Objects::nonNull)
       .map(UserPersonal::getAddresses)
@@ -449,26 +457,24 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
       .map(UserPersonalAddressesInner::getAddressTypeId)
       .collect(toSet());
 
-    return addressTypeService.findAddressTypes(addressTypeIds);
+    Collection<AddressType> addressTypes = addressTypeService.findAddressTypes(addressTypeIds);
+    context.getAddressTypesById().putAll(toMapById(addressTypes, AddressType::getId));
   }
 
-  private Collection<ServicePoint> findServicePointsForLocations(Collection<Location> locations) {
-    return findServicePoints(
-      locations.stream()
-        .map(Location::getPrimaryServicePoint)
-        .filter(Objects::nonNull)
-        .map(UUID::toString)
-        .collect(toSet())
-    );
-  }
+  private void findPickupServicePoints(StaffSlipsContext context) {
+    if ( context.getRequests().isEmpty()) {
+      log.info("findPickupServicePoints:: no requests to search service points for, doing nothing");
+      return;
+    }
 
-  private Collection<ServicePoint> findServicePointsForRequests(Collection<Request> requests) {
-    return findServicePoints(
-      requests.stream()
-        .map(Request::getPickupServicePointId)
-        .filter(Objects::nonNull)
-        .collect(toSet())
-    );
+    Set<String> pickupServicePointIds = context.getRequests()
+      .stream()
+      .map(Request::getPickupServicePointId)
+      .filter(Objects::nonNull)
+      .collect(toSet());
+
+    Collection<ServicePoint> pickupServicePoints = findServicePoints(pickupServicePointIds);
+    context.getPickupServicePointsById().putAll(toMapById(pickupServicePoints, ServicePoint::getId));
   }
 
   private Collection<ServicePoint> findServicePoints(Collection<String> servicePointIds) {
@@ -480,111 +486,146 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
     return servicePointService.find(servicePointIds);
   }
 
-  private Collection<MaterialType> findMaterialTypes(Collection<Item> items) {
-    if (items.isEmpty()) {
+  private void findMaterialTypes(Collection<ItemContext> itemContexts) {
+    if (itemContexts.isEmpty()) {
       log.info("findMaterialTypes:: no items to search material types for, doing nothing");
-      return emptyList();
+      return;
     }
 
-    Set<String> materialTypeIds = items.stream()
-      .map(Item::getMaterialTypeId)
-      .collect(toSet());
+    Map<String, List<ItemContext>> contextsByMaterialTypeId = itemContexts.stream()
+      .collect(groupingBy(context -> context.getItem().getMaterialTypeId()));
 
-    return inventoryService.findMaterialTypes(materialTypeIds);
+    inventoryService.findMaterialTypes(contextsByMaterialTypeId.keySet())
+      .forEach(materialType -> contextsByMaterialTypeId.get(materialType.getId())
+        .forEach(context -> context.setMaterialType(materialType)));
   }
 
-  private Collection<LoanType> findLoanTypes(Collection<Item> items) {
-    if (items.isEmpty()) {
+  private void findLoanTypes(Collection<ItemContext> itemContexts) {
+    if (itemContexts.isEmpty()) {
       log.info("findLoanTypes:: no items to search loan types for, doing nothing");
-      return emptyList();
+      return;
     }
 
-    Set<String> loanTypeIds = items.stream()
-      .map(StaffSlipsServiceImpl::getEffectiveLoanTypeId)
-      .collect(toSet());
+    Map<String, List<ItemContext>> contextsByLoanTypeId = itemContexts.stream()
+      .collect(groupingBy(context -> getEffectiveLoanTypeId(context.getItem())));
 
-    return inventoryService.findLoanTypes(loanTypeIds);
+    inventoryService.findLoanTypes(contextsByLoanTypeId.keySet())
+      .forEach(loanType -> contextsByLoanTypeId.get(loanType.getId())
+        .forEach(context -> context.setLoanType(loanType)));
   }
 
-  private Collection<Library> findLibraries(Collection<Location> locations) {
-    if (locations.isEmpty()) {
-      log.info("findLibraries:: no locations to search libraries for, doing nothing");
-      return emptyList();
+  private void findLibraries(Collection<ItemContext> itemContexts) {
+    if (itemContexts.isEmpty()) {
+      log.info("findLibraries:: no items to search libraries for, doing nothing");
+      return;
     }
 
-    Set<String> libraryIds = locations.stream()
-      .map(Location::getLibraryId)
-      .collect(toSet());
+    Map<String, List<ItemContext>> contextsByLibraryId = itemContexts.stream()
+      .collect(groupingBy(context -> context.getLocation().getLibraryId()));
 
-    return inventoryService.findLibraries(libraryIds);
+    inventoryService.findLibraries(contextsByLibraryId.keySet())
+      .forEach(library -> contextsByLibraryId.get(library.getId())
+        .forEach(context -> context.setLibrary(library)));
   }
 
-  private Collection<Campus> findCampuses(Collection<Location> locations) {
-    if (locations.isEmpty()) {
-      log.info("findCampuses:: no locations to search campuses for, doing nothing");
-      return emptyList();
+  private void findCampuses(Collection<ItemContext> itemContexts) {
+    if (itemContexts.isEmpty()) {
+      log.info("findCampuses:: no items to search campuses for, doing nothing");
+      return;
     }
 
-    Set<String> campusIds = locations.stream()
-      .map(Location::getCampusId)
-      .collect(toSet());
+    Map<String, List<ItemContext>> contextsByCampusId = itemContexts.stream()
+      .collect(groupingBy(context -> context.getLocation().getCampusId()));
 
-    return inventoryService.findCampuses(campusIds);
+    inventoryService.findCampuses(contextsByCampusId.keySet())
+      .forEach(campus -> contextsByCampusId.get(campus.getId())
+        .forEach(context -> context.setCampus(campus)));
   }
 
-  private Collection<Institution> findInstitutions(Collection<Location> locations) {
-    if (locations.isEmpty()) {
-      log.info("findCampuses:: no locations to search institutions for, doing nothing");
-      return emptyList();
+  private void findInstitutions(Collection<ItemContext> itemContexts) {
+    if (itemContexts.isEmpty()) {
+      log.info("findInstitutions:: no items to search institutions for, doing nothing");
+      return;
     }
 
-    Set<String> institutionIds = locations.stream()
-      .map(Location::getInstitutionId)
-      .collect(toSet());
+    Map<String, List<ItemContext>> contextsByInstitutionId = itemContexts.stream()
+      .collect(groupingBy(context -> context.getLocation().getInstitutionId()));
 
-    return inventoryService.findInstitutions(institutionIds);
+    inventoryService.findInstitutions(contextsByInstitutionId.keySet())
+      .forEach(institution -> contextsByInstitutionId.get(institution.getId())
+        .forEach(context -> context.setInstitution(institution)));
   }
 
-  private static Collection<StaffSlip> buildStaffSlips(Collection<StaffSlipContext> contexts) {
-    log.info("buildStaffSlips:: building staff slips for {} contexts", contexts::size);
-    return contexts.stream()
-      .map(StaffSlipsServiceImpl::buildStaffSlip)
+  private void findPrimaryServicePoints(Collection<ItemContext> itemContexts) {
+    if (itemContexts.isEmpty()) {
+      log.info("findPrimaryServicePoints:: no items to search institutions for, doing nothing");
+      return;
+    }
+
+    Map<String, List<ItemContext>> contextsByPrimaryServicePointId = itemContexts.stream()
+      .collect(groupingBy(context -> context.getLocation().getPrimaryServicePoint().toString()));
+
+    findServicePoints(contextsByPrimaryServicePointId.keySet())
+      .forEach(servicePoint -> contextsByPrimaryServicePointId.get(servicePoint.getId())
+        .forEach(context -> context.setPrimaryServicePoint(servicePoint)));
+  }
+
+
+  private static Collection<StaffSlip> buildStaffSlips(StaffSlipsContext context) {
+    return context.getRequests()
+      .stream()
+      .map(request -> buildStaffSlip(request, context))
       .toList();
   }
 
-  private static StaffSlip buildStaffSlip(StaffSlipContext context) {
-    log.info("buildStaffSlip:: building staff slip for request {}",
-      context.requestContext.request().getId());
+  private static StaffSlip buildStaffSlip(Request request, StaffSlipsContext context) {
+    log.info("buildStaffSlip:: building staff slip for request {}", request.getId());
 
     return new StaffSlip()
       .currentDateTime(new Date())
-      .item(buildStaffSlipItem(context))
-      .request(buildStaffSlipRequest(context))
-      .requester(buildStaffSlipRequester(context));
+      .item(buildStaffSlipItem(request, context))
+      .request(buildStaffSlipRequest(request, context))
+      .requester(buildStaffSlipRequester(request, context));
   }
 
-  private static StaffSlipItem buildStaffSlipItem(StaffSlipContext context) {
+  private static StaffSlipItem buildStaffSlipItem(Request request, StaffSlipsContext context) {
     log.debug("buildStaffSlipItem:: building staff slip item");
-    ItemContext itemContext = context.itemContext();
-    Item item = itemContext.item();
-    if (item == null) {
-      log.warn("buildStaffSlipItem:: item is null, doing nothing");
+    String itemId = request.getItemId();
+    if (itemId == null) {
+      log.info("buildStaffSlipItem:: request is not linked to an item, doing nothing");
       return null;
     }
+
+    ItemContext itemContext = context.getItemContextsByTenant()
+      .values()
+      .stream()
+      .flatMap(Collection::stream)
+      .filter(ctx -> itemId.equals(ctx.getItemId()))
+      .findFirst()
+      .orElse(null);
+
+    if (itemContext == null) {
+      log.warn("buildStaffSlipItem:: item context for request {} was not found, doing nothing",
+        request.getId());
+      return null;
+    }
+
+    Item item = itemContext.getItem();
 
     String yearCaptions = Optional.ofNullable(item.getYearCaption())
       .map(captions -> String.join("; ", captions))
       .orElse(null);
 
     String copyNumber = Optional.ofNullable(item.getCopyNumber())
-      .or(() -> Optional.ofNullable(itemContext.holding().getCopyNumber()))
+      .or(() -> Optional.ofNullable(itemContext.getHolding())
+        .map(HoldingsRecord::getCopyNumber))
       .orElse("");
 
-    String materialType = Optional.ofNullable(itemContext.materialType)
+    String materialType = Optional.ofNullable(itemContext.getMaterialType())
       .map(MaterialType::getName)
       .orElse(null);
 
-    String loanType = Optional.ofNullable(itemContext.loanType())
+    String loanType = Optional.ofNullable(itemContext.getLoanType())
       .map(LoanType::getName)
       .orElse(null);
 
@@ -602,20 +643,19 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
       .displaySummary(item.getDisplaySummary())
       .descriptionOfPieces(item.getDescriptionOfPieces());
 
-    SearchInstance instance = itemContext.instance();
+    Instance instance = context.getInstancesById().get(request.getInstanceId());
     if (instance != null) {
       staffSlipItem.title(instance.getTitle());
-
-      List<Contributor> contributors = instance.getContributors();
+      List<InstanceContributorsInner> contributors = instance.getContributors();
       if (contributors != null && !contributors.isEmpty()) {
         String primaryContributor = contributors.stream()
-          .filter(Contributor::getPrimary)
+          .filter(InstanceContributorsInner::getPrimary)
           .findFirst()
-          .map(Contributor::getName)
+          .map(InstanceContributorsInner::getName)
           .orElse(null);
 
         String allContributors = contributors.stream()
-          .map(Contributor::getName)
+          .map(InstanceContributorsInner::getName)
           .collect(joining("; "));
 
         staffSlipItem
@@ -625,25 +665,25 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
       }
     }
 
-    Location location = itemContext.location();
+    Location location = itemContext.getLocation();
     if (location != null) {
       staffSlipItem
         .effectiveLocationSpecific(location.getName())
         .effectiveLocationDiscoveryDisplayName(location.getDiscoveryDisplayName());
 
-      Optional.ofNullable(itemContext.library())
+      Optional.ofNullable(itemContext.getLibrary())
         .map(Library::getName)
         .ifPresent(staffSlipItem::effectiveLocationLibrary);
 
-      Optional.ofNullable(itemContext.campus())
+      Optional.ofNullable(itemContext.getCampus())
         .map(Campus::getName)
         .ifPresent(staffSlipItem::effectiveLocationCampus);
 
-      Optional.ofNullable(itemContext.institution())
+      Optional.ofNullable(itemContext.getInstitution())
         .map(Institution::getName)
         .ifPresent(staffSlipItem::effectiveLocationInstitution);
 
-      Optional.ofNullable(itemContext.primaryServicePoint())
+      Optional.ofNullable(itemContext.getPrimaryServicePoint())
         .map(ServicePoint::getName)
         .ifPresent(staffSlipItem::effectiveLocationPrimaryServicePointName);
     }
@@ -658,25 +698,25 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
     return staffSlipItem;
   }
 
-  private static StaffSlipRequest buildStaffSlipRequest(StaffSlipContext context) {
+  private static StaffSlipRequest buildStaffSlipRequest(Request request, StaffSlipsContext context) {
     log.debug("buildStaffSlipItem:: building staff slip request");
-    RequestContext requestContext = context.requestContext();
-    Request request = requestContext.request();
     if (request == null) {
       log.warn("buildStaffSlipRequest:: request is null, doing nothing");
       return null;
     }
 
-    String deliveryAddressType = Optional.ofNullable(context.requesterContext.deliveryAddressType())
+    String deliveryAddressType = Optional.ofNullable(request.getDeliveryAddressTypeId())
+      .map(context.getAddressTypesById()::get)
       .map(AddressType::getAddressType)
       .orElse(null);
 
-    String pickupServicePoint = Optional.ofNullable(requestContext.pickupServicePoint())
+    String pickupServicePoint = Optional.ofNullable(request.getPickupServicePointId())
+      .map(context.getPickupServicePointsById()::get)
       .map(ServicePoint::getName)
       .orElse(null);
 
     return new StaffSlipRequest()
-      .requestId(UUID.fromString(request.getId()))
+      .requestID(UUID.fromString(request.getId()))
       .servicePointPickup(pickupServicePoint)
       .requestDate(request.getRequestDate())
       .requestExpirationDate(request.getRequestExpirationDate())
@@ -686,21 +726,23 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
       .patronComments(request.getPatronComments());
   }
 
-  private static StaffSlipRequester buildStaffSlipRequester(StaffSlipContext context) {
+  private static StaffSlipRequester buildStaffSlipRequester(Request request, StaffSlipsContext context) {
     log.debug("buildStaffSlipItem:: building staff slip requester");
-    RequesterContext requesterContext = context.requesterContext();
-    User requester = requesterContext.requester();
+    User requester = context.getRequestersById().get(request.getRequesterId());
     if (requester == null) {
       log.warn("buildStaffSlipRequester:: requester is null, doing nothing");
       return null;
     }
 
-    String departments = requesterContext.departments()
+    String departments = requester.getDepartments()
       .stream()
+      .filter(Objects::nonNull)
+      .map(context.getDepartmentsById()::get)
+      .filter(Objects::nonNull)
       .map(Department::getName)
       .collect(joining("; "));
 
-    String patronGroup = Optional.ofNullable(requesterContext.userGroup())
+    String patronGroup = Optional.ofNullable(context.getUserGroupsById().get(requester.getPatronGroup()))
       .map(UserGroup::getGroup)
       .orElse("");
 
@@ -714,14 +756,6 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
       String preferredFirstName = Optional.ofNullable(personal.getPreferredFirstName())
         .orElseGet(personal::getFirstName);
 
-      String primaryAddressType = Optional.ofNullable(requesterContext.primaryAddressType())
-        .map(AddressType::getAddressType)
-        .orElse(null);
-
-      String deliveryAddressType = Optional.ofNullable(requesterContext.deliveryAddressType())
-        .map(AddressType::getAddressType)
-        .orElse(null);
-
       staffSlipRequester
         .firstName(personal.getFirstName())
         .preferredFirstName(preferredFirstName)
@@ -730,10 +764,25 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
 
       List<UserPersonalAddressesInner> addresses = personal.getAddresses();
       if (addresses != null) {
-        String deliveryAddressTypeId =  context.requestContext().request().getDeliveryAddressTypeId();
+        addresses.stream()
+          .filter(address -> TRUE.equals(address.getPrimaryAddress()))
+          .findFirst()
+          .ifPresent(primaryAddress -> staffSlipRequester
+            .primaryAddressLine1(primaryAddress.getAddressLine1())
+            .primaryAddressLine2(primaryAddress.getAddressLine2())
+            .primaryCity(primaryAddress.getCity())
+            .primaryStateProvRegion(primaryAddress.getRegion())
+            .primaryZipPostalCode(primaryAddress.getPostalCode())
+            .primaryCountry(getCountryName(primaryAddress.getCountryId()))
+            .primaryDeliveryAddressType(
+              Optional.ofNullable(context.getAddressTypesById().get(primaryAddress.getAddressTypeId()))
+                .map(AddressType::getAddressType)
+                .orElse(null)
+            ));
+
+        String deliveryAddressTypeId = request.getDeliveryAddressTypeId();
         if (deliveryAddressTypeId != null) {
-          personal.getAddresses()
-            .stream()
+          addresses.stream()
             .filter(address -> deliveryAddressTypeId.equals(address.getAddressTypeId()))
             .findFirst()
             .ifPresent(deliveryAddress -> staffSlipRequester
@@ -743,31 +792,25 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
               .region(deliveryAddress.getRegion())
               .postalCode(deliveryAddress.getPostalCode())
               .countryId(deliveryAddress.getCountryId())
-              .addressType(deliveryAddressType)
-            );
+              .addressType(
+                Optional.ofNullable(context.getAddressTypesById().get(deliveryAddressTypeId))
+                .map(AddressType::getAddressType)
+                .orElse(null)
+              ));
         }
-
-        personal.getAddresses()
-          .stream()
-          .filter(UserPersonalAddressesInner::getPrimaryAddress)
-          .findFirst()
-          .ifPresent(primaryAddress -> staffSlipRequester
-            .primaryAddressLine1(primaryAddress.getAddressLine1())
-            .primaryAddressLine2(primaryAddress.getAddressLine2())
-            .primaryCity(primaryAddress.getCity())
-            .primaryStateProvRegion(primaryAddress.getRegion())
-            .primaryZipPostalCode(primaryAddress.getPostalCode())
-            .primaryCountry(getCountryName(primaryAddress.getCountryId()))
-            .primaryDeliveryAddressType(primaryAddressType)
-          );
       }
     }
 
     return  staffSlipRequester;
   }
 
-  private static <T> Collector<T, ?, Map<String, T>> mapById(Function<T, String> keyMapper) {
-    return toMap(keyMapper, identity());
+  private static <T> Map<String, T> toMapById(Collection<T> collection, Function<T, String> idExtractor) {
+    return collection.stream()
+      .collect(mapById(idExtractor));
+  }
+
+  private static <T> Collector<T, ?, Map<String, T>> mapById(Function<T, String> idExtractor) {
+    return toMap(idExtractor, identity());
   }
 
   private static String getCountryName(String countryCode) {
@@ -783,17 +826,54 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
     return firstNonBlank(item.getTemporaryLoanTypeId(), item.getPermanentLoanTypeId());
   }
 
-  private record ItemContext(Item item, SearchInstance instance, SearchHolding holding,
-    Location location, MaterialType materialType, LoanType loanType, Institution institution,
-    Campus campus, Library library, ServicePoint primaryServicePoint) {}
+  private static void discardNonRequestedItems(StaffSlipsContext context) {
+    log.info("discardNonRequestedItems:: discarding non-requested items");
 
-  private record RequesterContext(User requester, UserGroup userGroup,
-    Collection<Department> departments, AddressType primaryAddressType,
-    AddressType deliveryAddressType) {}
+    Set<String> requestedItemIds = context.getRequests()
+      .stream()
+      .map(Request::getItemId)
+      .filter(Objects::nonNull)
+      .collect(toSet());
 
-  private record RequestContext(Request request, ServicePoint pickupServicePoint) { }
+    context.getItemContextsByTenant()
+      .values()
+      .forEach(itemContexts -> itemContexts.removeIf(
+        itemContext -> !requestedItemIds.contains(itemContext.getItemId())));
 
-  private record StaffSlipContext(ItemContext itemContext, RequesterContext requesterContext,
-    RequestContext requestContext) {}
+    context.getItemContextsByTenant()
+      .entrySet()
+      .removeIf(entry -> entry.getValue().isEmpty());
+  }
+
+  @Getter
+  private static class StaffSlipsContext {
+    private final Collection<Request> requests = new ArrayList<>();
+    private final Map<String, Instance> instancesById = new HashMap<>();
+    private final Map<String, User> requestersById = new HashMap<>();
+    private final Map<String, UserGroup> userGroupsById = new HashMap<>();
+    private final Map<String, Department> departmentsById = new HashMap<>();
+    private final Map<String, AddressType> addressTypesById = new HashMap<>();
+    private final Map<String, ServicePoint> pickupServicePointsById = new HashMap<>();
+    private final Map<String, Collection<ItemContext>> itemContextsByTenant = new HashMap<>();
+    private final Map<String, Collection<Location>> locationsByTenant = new HashMap<>();
+    private final Map<String, Collection<HoldingsRecord>> holdingsByIdCache = new HashMap<>();
+    private final Collection<Instance> instanceCache = new ArrayList<>();
+  }
+
+  @RequiredArgsConstructor
+  @Getter
+  @Setter
+  private static class ItemContext {
+    private final String itemId;
+    private final Item item;
+    private final Location location;
+    private HoldingsRecord holding;
+    private MaterialType materialType;
+    private LoanType loanType;
+    private Library library;
+    private Campus campus;
+    private Institution institution;
+    private ServicePoint primaryServicePoint;
+  }
 
 }

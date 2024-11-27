@@ -1,4 +1,4 @@
-package org.folio.service.impl;
+package org.folio.service;
 
 import static java.util.Collections.emptyList;
 import static java.util.UUID.randomUUID;
@@ -27,8 +27,10 @@ import java.util.stream.Stream;
 
 import org.folio.domain.dto.AddressType;
 import org.folio.domain.dto.Campus;
-import org.folio.domain.dto.Contributor;
 import org.folio.domain.dto.Department;
+import org.folio.domain.dto.HoldingsRecord;
+import org.folio.domain.dto.Instance;
+import org.folio.domain.dto.InstanceContributorsInner;
 import org.folio.domain.dto.Institution;
 import org.folio.domain.dto.Item;
 import org.folio.domain.dto.ItemEffectiveCallNumberComponents;
@@ -38,9 +40,6 @@ import org.folio.domain.dto.LoanType;
 import org.folio.domain.dto.Location;
 import org.folio.domain.dto.MaterialType;
 import org.folio.domain.dto.Request;
-import org.folio.domain.dto.SearchHolding;
-import org.folio.domain.dto.SearchInstance;
-import org.folio.domain.dto.SearchItem;
 import org.folio.domain.dto.ServicePoint;
 import org.folio.domain.dto.StaffSlip;
 import org.folio.domain.dto.StaffSlipItem;
@@ -51,16 +50,7 @@ import org.folio.domain.dto.User;
 import org.folio.domain.dto.UserGroup;
 import org.folio.domain.dto.UserPersonal;
 import org.folio.domain.dto.UserPersonalAddressesInner;
-import org.folio.service.AddressTypeService;
-import org.folio.service.ConsortiaService;
-import org.folio.service.DepartmentService;
-import org.folio.service.InventoryService;
-import org.folio.service.LocationService;
-import org.folio.service.RequestService;
-import org.folio.service.SearchService;
-import org.folio.service.ServicePointService;
-import org.folio.service.UserGroupService;
-import org.folio.service.UserService;
+import org.folio.service.impl.PickSlipsService;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.folio.support.CqlQuery;
 import org.junit.jupiter.api.BeforeEach;
@@ -97,8 +87,6 @@ class PickSlipsServiceTest {
   @Mock
   private AddressTypeService addressTypeService;
   @Mock
-  private SearchService searchService;
-  @Mock
   private ServicePointService servicePointService;
 
   @InjectMocks
@@ -107,7 +95,7 @@ class PickSlipsServiceTest {
   @BeforeEach
   public void setup() {
     // Bypass the use of system user and return the result of Callable immediately
-    when(executionService.executeSystemUserScoped(any(), any()))
+    when(executionService.executeSystemUserScoped(any(String.class), any(Callable.class)))
       .thenAnswer(invocation -> invocation.getArgument(1, Callable.class).call());
   }
 
@@ -122,28 +110,23 @@ class PickSlipsServiceTest {
       .institutionId(randomId())
       .primaryServicePoint(randomUUID());
 
-    SearchItem mockSearchItem = new SearchItem()
-      .id(randomId())
-      .effectiveLocationId(mockLocation.getId())
-      .tenantId("consortium");
-
-    SearchHolding mockSearchHolding = new SearchHolding()
-      .id(randomId())
-      .tenantId("consortium");
-
-    SearchInstance mockSearchInstance = new SearchInstance()
+    Instance mockInstance = new Instance()
       .id(randomId())
       .title("Test title")
-      .items(List.of(mockSearchItem))
-      .holdings(List.of(mockSearchHolding))
       .contributors(List.of(
-        new Contributor().name("First, Author").primary(true),
-        new Contributor().name("Second, Author").primary(false)
+        new InstanceContributorsInner().name("First, Author").primary(true),
+        new InstanceContributorsInner().name("Second, Author").primary(null)
       ));
 
+    HoldingsRecord mockHolding = new HoldingsRecord()
+      .id(randomId())
+      .instanceId(mockInstance.getId())
+      .permanentLocationId(mockLocation.getId())
+      .effectiveLocationId(mockLocation.getId());
+
     Item mockItem = new Item()
-      .id(mockSearchItem.getId())
-      .holdingsRecordId(mockSearchHolding.getId())
+      .id(randomId())
+      .holdingsRecordId(mockHolding.getId())
       .barcode("item_barcode")
       .status(new ItemStatus().name(PAGED))
       .materialTypeId(randomId())
@@ -199,8 +182,11 @@ class PickSlipsServiceTest {
     Request mockRequest = new Request()
       .id(randomId())
       .itemId(mockItem.getId())
+      .holdingsRecordId(mockHolding.getId())
+      .instanceId(mockInstance.getId())
       .requestLevel(Request.RequestLevelEnum.ITEM)
       .requestType(PAGE)
+      .status(Request.StatusEnum.OPEN_NOT_YET_FILLED)
       .pickupServicePointId(mockPickupServicePoint.getId())
       .requesterId(randomId())
       .requestDate(new Date())
@@ -261,21 +247,20 @@ class PickSlipsServiceTest {
       .map(AddressType::getId)
       .collect(toSet());
 
-    CqlQuery searchInstancesCommonQuery = CqlQuery.exactMatchAny("item.status.name", List.of("Paged"));
-    CqlQuery requestCommonQuery = exactMatchAny("requestType", List.of("Page"))
+    CqlQuery itemsCommonQuery = CqlQuery.exactMatchAny("status.name", List.of("Paged"));
+    CqlQuery requestsCommonQuery = exactMatchAny("requestType", List.of("Page"))
       .and(exactMatchAny("status", List.of("Open - Not yet filled")));
 
     when(consortiaService.getAllConsortiumTenants())
       .thenReturn(List.of(new Tenant().id("consortium")));
     when(locationService.findLocations(exactMatch("primaryServicePoint", SERVICE_POINT_ID)))
       .thenReturn(List.of(mockLocation));
-    when(searchService.searchInstances(searchInstancesCommonQuery, "item.effectiveLocationId",
-      Set.of(mockLocation.getId())))
-      .thenReturn(List.of(mockSearchInstance));
-    when(requestService.getRequestsFromStorage(requestCommonQuery, "itemId", Set.of(mockItem.getId())))
-      .thenReturn(List.of(mockRequest));
-    when(inventoryService.findItems(Set.of(mockItem.getId())))
+    when(inventoryService.findItems(itemsCommonQuery, "effectiveLocationId", Set.of(mockLocation.getId())))
       .thenReturn(List.of(mockItem));
+    when(requestService.getRequestsFromStorage(requestsCommonQuery, "itemId", List.of(mockItem.getId())))
+      .thenReturn(List.of(mockRequest));
+    when(inventoryService.findInstances(Set.of(mockInstance.getId())))
+      .thenReturn(List.of(mockInstance));
     when(inventoryService.findMaterialTypes(Set.of(mockMaterialType.getId())))
       .thenReturn(List.of(mockMaterialType));
     when(inventoryService.findLoanTypes(Set.of(mockLoanType.getId())))
@@ -332,7 +317,7 @@ class PickSlipsServiceTest {
     assertThat(pickSlipItem.getCallNumberSuffix(), is("SFX"));
 
     StaffSlipRequest pickSlipRequest = actualPickSlip.getRequest();
-    assertThat(pickSlipRequest.getRequestId(), is(UUID.fromString(mockRequest.getId())));
+    assertThat(pickSlipRequest.getRequestID(), is(UUID.fromString(mockRequest.getId())));
     assertThat(pickSlipRequest.getServicePointPickup(), is("Pickup service point"));
     assertThat(pickSlipRequest.getRequestDate(), is(mockRequest.getRequestDate()));
     assertThat(pickSlipRequest.getRequestExpirationDate(), is(mockRequest.getRequestExpirationDate()));
@@ -364,6 +349,7 @@ class PickSlipsServiceTest {
     assertThat(pickSlipRequester.getPrimaryCountry(), is("United States"));
     assertThat(pickSlipRequester.getPrimaryDeliveryAddressType(), is("Primary address type"));
   }
+
   @Test
   void noConsortiumTenantsAreFound() {
     when(consortiaService.getAllConsortiumTenants())

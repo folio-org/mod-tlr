@@ -4,28 +4,42 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.requestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static java.util.Collections.emptyList;
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toSet;
+import static org.folio.domain.dto.ItemStatus.NameEnum.AWAITING_DELIVERY;
+import static org.folio.domain.dto.ItemStatus.NameEnum.CHECKED_OUT;
+import static org.folio.domain.dto.ItemStatus.NameEnum.IN_PROCESS;
+import static org.folio.domain.dto.ItemStatus.NameEnum.IN_TRANSIT;
+import static org.folio.domain.dto.ItemStatus.NameEnum.MISSING;
+import static org.folio.domain.dto.ItemStatus.NameEnum.ON_ORDER;
 import static org.folio.domain.dto.ItemStatus.NameEnum.PAGED;
+import static org.folio.domain.dto.ItemStatus.NameEnum.RESTRICTED;
+import static org.folio.domain.dto.Request.RequestTypeEnum.HOLD;
 import static org.folio.domain.dto.Request.RequestTypeEnum.PAGE;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 import org.folio.domain.dto.AddressType;
 import org.folio.domain.dto.AddressTypes;
 import org.folio.domain.dto.Campus;
 import org.folio.domain.dto.Campuses;
-import org.folio.domain.dto.Contributor;
 import org.folio.domain.dto.Department;
 import org.folio.domain.dto.Departments;
+import org.folio.domain.dto.HoldingsRecord;
+import org.folio.domain.dto.HoldingsRecords;
+import org.folio.domain.dto.Instance;
+import org.folio.domain.dto.InstanceContributorsInner;
+import org.folio.domain.dto.Instances;
 import org.folio.domain.dto.Institution;
 import org.folio.domain.dto.Institutions;
 import org.folio.domain.dto.Item;
@@ -41,11 +55,6 @@ import org.folio.domain.dto.MaterialType;
 import org.folio.domain.dto.MaterialTypes;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.Requests;
-import org.folio.domain.dto.SearchHolding;
-import org.folio.domain.dto.SearchInstance;
-import org.folio.domain.dto.SearchInstancesResponse;
-import org.folio.domain.dto.SearchItem;
-import org.folio.domain.dto.SearchItemStatus;
 import org.folio.domain.dto.ServicePoint;
 import org.folio.domain.dto.ServicePoints;
 import org.folio.domain.dto.User;
@@ -55,10 +64,12 @@ import org.folio.domain.dto.UserPersonal;
 import org.folio.domain.dto.UserPersonalAddressesInner;
 import org.folio.domain.dto.Users;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpMethod;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.matching.MultiValuePattern;
+import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder;
 import com.github.tomakehurst.wiremock.matching.StringValuePattern;
 
 import lombok.SneakyThrows;
@@ -67,11 +78,16 @@ class StaffSlipsApiTest extends BaseIT {
 
   private static final String SERVICE_POINT_ID = "e0c50666-6144-47b1-9e87-8c1bf30cda34";
   private static final String DEFAULT_LIMIT = "1000";
+  private static final EnumSet<ItemStatus.NameEnum> PICK_SLIPS_ITEM_STATUSES = EnumSet.of(PAGED);
+  private static final EnumSet<ItemStatus.NameEnum> SEARCH_SLIPS_ITEM_STATUSES = EnumSet.of(
+    CHECKED_OUT, AWAITING_DELIVERY, IN_TRANSIT, MISSING, PAGED, ON_ORDER, IN_PROCESS, RESTRICTED);
 
   private static final String PICK_SLIPS_URL = "/tlr/staff-slips/pick-slips";
-  private static final String INSTANCE_SEARCH_URL ="/search/instances";
+  private static final String SEARCH_SLIPS_URL = "/tlr/staff-slips/search-slips";
   private static final String LOCATIONS_URL = "/locations";
   private static final String ITEMS_URL = "/item-storage/items";
+  private static final String HOLDINGS_URL = "/holdings-storage/holdings";
+  private static final String INSTANCES_URL = "/instance-storage/instances";
   private static final String REQUESTS_URL = "/request-storage/requests";
   private static final String MATERIAL_TYPES_URL = "/material-types";
   private static final String LOAN_TYPES_URL = "/loan-types";
@@ -87,10 +103,21 @@ class StaffSlipsApiTest extends BaseIT {
   private static final String PICK_SLIPS_LOCATION_QUERY =
     "primaryServicePoint==\"" + SERVICE_POINT_ID + "\"";
   private static final String SEARCH_BY_ID_QUERY_PATTERN = "id==\\(.*\\)";
-  private static final String PICK_SLIPS_REQUESTS_QUERY_PATTERN = "requestType==\\(\"Page\"\\) " +
+  private static final String REQUESTS_QUERY_PATTERN_TEMPLATE = "requestType==\\(\"%s\"\\) " +
     "and \\(status==\\(\"Open - Not yet filled\"\\)\\) and \\(itemId==\\(.*\\)\\)";
-  private static final String PICK_SLIPS_INSTANCE_SEARCH_QUERY_PATTERN =
-    "item.status.name==\\(\"Paged\"\\) and \\(item.effectiveLocationId==\\(.*\\)\\)";
+  private static final String PICK_SLIPS_REQUESTS_QUERY_PATTERN =
+    String.format(REQUESTS_QUERY_PATTERN_TEMPLATE, "Page");
+  private static final String SEARCH_SLIPS_REQUESTS_QUERY_PATTERN =
+    String.format(REQUESTS_QUERY_PATTERN_TEMPLATE, "Page");
+  private static final String REQUESTS_WITHOUT_ITEM_QUERY_PATTERN =
+    "requestType==\"Hold\"\\ and \\(requestLevel==\"Title\"\\) and " +
+      "\\(status==\\(\"Open - Not yet filled\"\\)\\) not \\(itemId=\"\"\\)";
+  private static final String ITEMS_QUERY_PATTERN_TEMPLATE =
+    "status.name==\\(%s\\) and \\(effectiveLocationId==\\(.*\\)\\)";
+  private static final String PICK_SLIPS_ITEMS_QUERY_PATTERN =
+    String.format(ITEMS_QUERY_PATTERN_TEMPLATE, joinForMatchAnyQuery(PICK_SLIPS_ITEM_STATUSES));
+  private static final String SEARCH_SLIPS_ITEMS_QUERY_PATTERN =
+    String.format(ITEMS_QUERY_PATTERN_TEMPLATE, joinForMatchAnyQuery(SEARCH_SLIPS_ITEM_STATUSES));
 
   private static final String INSTITUTION_ID = randomId();
   private static final String CAMPUS_ID = randomId();
@@ -107,18 +134,24 @@ class StaffSlipsApiTest extends BaseIT {
     createStubForLocations(emptyList(), TENANT_ID_UNIVERSITY);
     createStubForLocations(emptyList(), TENANT_ID_CONSORTIUM);
 
-    SearchItem searchItemCollege = buildSearchItem("item_barcode_college", PAGED,
-      locationCollege.getId(), TENANT_ID_COLLEGE);
-    SearchHolding searchHoldingCollege = buildSearchHolding(searchItemCollege);
-    SearchInstance searchInstanceCollege = buildSearchInstance("title_college",
-      List.of(searchHoldingCollege), List.of(searchItemCollege));
-    createStubForInstanceSearch(List.of(locationCollege.getId()), List.of(searchInstanceCollege));
+    Instance instance = buildInstance("Test title");
+    createStubForInstances(List.of(instance));
 
-    Request requestForCollegeItem = buildRequest(PAGE, searchItemCollege, randomId());
-    createStubForRequests(List.of(searchItemCollege.getId()), List.of(requestForCollegeItem));
+    HoldingsRecord holdingCollege = buildHolding(instance.getId(), randomId());
+    createStubForHoldings(List.of(holdingCollege), TENANT_ID_COLLEGE);
 
-    Item itemCollege = buildItem(searchItemCollege);
-    createStubForItems(List.of(itemCollege), TENANT_ID_COLLEGE);
+    Item itemCollege = buildItem("item_barcode_college", PAGED, locationCollege.getId(),
+      holdingCollege.getId());
+    createStubForItems(List.of(itemCollege), List.of(locationCollege), TENANT_ID_COLLEGE,
+      PICK_SLIPS_ITEMS_QUERY_PATTERN);
+
+    User requester = buildUser("user_barcode");
+    createStubForUsers(List.of(requester));
+
+    Request requestForCollegeItem = buildRequest(PAGE, itemCollege.getId(), holdingCollege.getId(),
+      instance.getId(), requester.getId());
+    createStubForRequests(List.of(itemCollege.getId()), List.of(requestForCollegeItem),
+      PICK_SLIPS_REQUESTS_QUERY_PATTERN);
 
     MaterialType materialType = buildMaterialType();
     createStubForMaterialTypes(List.of(materialType), TENANT_ID_COLLEGE);
@@ -142,9 +175,6 @@ class StaffSlipsApiTest extends BaseIT {
     createStubForServicePoints(List.of(primaryServicePoint), TENANT_ID_COLLEGE);
     createStubForServicePoints(List.of(pickupServicePoint), TENANT_ID_CONSORTIUM);
 
-    User requester = buildUser(requestForCollegeItem.getRequesterId(), "user_barcode");
-    createStubForUsers(List.of(requester));
-
     UserGroup userGroup = buildUserGroup(requester.getPatronGroup(), "Test user group");
     createStubForUserGroups(List.of(userGroup));
 
@@ -164,61 +194,143 @@ class StaffSlipsApiTest extends BaseIT {
       .jsonPath("pickSlips[*].request").exists()
       .jsonPath("pickSlips[*].requester").exists();
 
-    // verify that locations were searched in all tenants
-    Stream.of(TENANT_ID_CONSORTIUM, TENANT_ID_COLLEGE, TENANT_ID_UNIVERSITY)
-      .forEach(tenantId -> wireMockServer.verify(getRequestedFor(urlPathMatching(LOCATIONS_URL))
-        .withHeader(HEADER_TENANT, equalTo(tenantId))));
+    verifyOutgoingGetRequests(LOCATIONS_URL, 1, 1, 1);
+    verifyOutgoingGetRequests(SERVICE_POINTS_URL, 1, 1, 0);
+    verifyOutgoingGetRequests(ITEMS_URL, 0, 1, 0);
+    verifyOutgoingGetRequests(HOLDINGS_URL, 0, 1, 0);
+    verifyOutgoingGetRequests(INSTANCES_URL, 1, 0, 0);
+    verifyOutgoingGetRequests(REQUESTS_URL, 1, 0, 0);
+    verifyOutgoingGetRequests(USER_GROUPS_URL, 1, 0, 0);
+    verifyOutgoingGetRequests(DEPARTMENTS_URL, 1, 0, 0);
+    verifyOutgoingGetRequests(ADDRESS_TYPES_URL, 1, 0, 0);
+    verifyOutgoingGetRequests(MATERIAL_TYPES_URL, 0, 1, 0);
+    verifyOutgoingGetRequests(LOAN_TYPES_URL, 0, 1, 0);
+    verifyOutgoingGetRequests(LIBRARIES_URL, 0, 1, 0);
+    verifyOutgoingGetRequests(CAMPUSES_URL, 0, 1, 0);
+    verifyOutgoingGetRequests(INSTITUTIONS_URL, 0, 1, 0);
 
-    // verify that service points were searched only in central tenant (pickup service point)
-    // and lending tenant (item's location primary service point)
-    wireMockServer.verify(getRequestedFor(urlPathMatching(SERVICE_POINTS_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
-    wireMockServer.verify(getRequestedFor(urlPathMatching(SERVICE_POINTS_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)));
-    wireMockServer.verify(0, getRequestedFor(urlPathMatching(SERVICE_POINTS_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY)));
+    RequestPatternBuilder usersRequestPattern = getRequestedFor(urlPathMatching(USERS_URL))
+      .withQueryParam("query", matching(SEARCH_BY_ID_QUERY_PATTERN)); // ignore system user's internal calls
+    verifyOutgoingRequests(usersRequestPattern, 1, 0, 0);
+  }
 
-    // verify that requesters were searched in central tenant only
-    wireMockServer.verify(getRequestedFor(urlPathMatching(USERS_URL))
-      .withQueryParam("query", matching(SEARCH_BY_ID_QUERY_PATTERN)) // to ignore system user's internal calls
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
-    wireMockServer.verify(0, getRequestedFor(urlPathMatching(USERS_URL))
-      .withQueryParam("query", matching(SEARCH_BY_ID_QUERY_PATTERN))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)));
-    wireMockServer.verify(0, getRequestedFor(urlPathMatching(USERS_URL))
-      .withQueryParam("query", matching(SEARCH_BY_ID_QUERY_PATTERN))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY)));
+  @Test
+  @SneakyThrows
+  void searchSlipsAreBuiltSuccessfully() {
+    Location locationCollege = buildLocation("Location college");
+    Location locationUniversity = buildLocation("Location university");
+    createStubForLocations(List.of(locationCollege), TENANT_ID_COLLEGE);
+    createStubForLocations(List.of(locationUniversity), TENANT_ID_UNIVERSITY);
+    createStubForLocations(emptyList(), TENANT_ID_CONSORTIUM);
 
-    // verify interactions with central tenant only
-    Stream.of(INSTANCE_SEARCH_URL, REQUESTS_URL, USER_GROUPS_URL, DEPARTMENTS_URL, ADDRESS_TYPES_URL)
-      .forEach(url -> {
-        wireMockServer.verify(getRequestedFor(urlPathMatching(url))
-          .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
-        wireMockServer.verify(0, getRequestedFor(urlPathMatching(url))
-          .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)));
-        wireMockServer.verify(0, getRequestedFor(urlPathMatching(url))
-          .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY)));
-      });
+    Instance instanceWithItem = buildInstance("Instance with item");
+    Instance instanceWithoutItem = buildInstance("Instance without item");
+    createStubForInstances(List.of(instanceWithItem));
+    createStubForInstances(List.of(instanceWithoutItem));
 
-    // verify interactions with lending tenant only
-    Stream.of(ITEMS_URL, MATERIAL_TYPES_URL, LOAN_TYPES_URL, LIBRARIES_URL, CAMPUSES_URL, INSTITUTIONS_URL)
-      .forEach(url -> {
-        wireMockServer.verify(0, getRequestedFor(urlPathMatching(url))
-          .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
-        wireMockServer.verify(getRequestedFor(urlPathMatching(url))
-          .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)));
-        wireMockServer.verify(0, getRequestedFor(urlPathMatching(url))
-          .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY)));
-      });
+    HoldingsRecord holdingWithItem = buildHolding(instanceWithItem.getId(), randomId());
+    HoldingsRecord holdingWithoutItem = buildHolding(instanceWithoutItem.getId(),
+      locationUniversity.getId());
+    createStubForHoldings(emptyList(), TENANT_ID_COLLEGE, List.of(instanceWithoutItem.getId()));
+    createStubForHoldings(List.of(holdingWithoutItem), TENANT_ID_UNIVERSITY,
+      List.of(instanceWithoutItem.getId()));
+    createStubForHoldings(List.of(holdingWithItem), TENANT_ID_COLLEGE, List.of(holdingWithItem.getId()));
+
+    Item itemCollege = buildItem("item_barcode_college", CHECKED_OUT, locationCollege.getId(),
+      holdingWithItem.getId());
+    createStubForItems(List.of(itemCollege), List.of(locationCollege), TENANT_ID_COLLEGE,
+      SEARCH_SLIPS_ITEMS_QUERY_PATTERN);
+    createStubForItems(emptyList(), List.of(locationUniversity), TENANT_ID_UNIVERSITY,
+      SEARCH_SLIPS_ITEMS_QUERY_PATTERN);
+
+    User requester = buildUser("user_barcode");
+    createStubForUsers(List.of(requester));
+
+    Request requestWithItem = buildRequest(HOLD, itemCollege.getId(), holdingWithItem.getId(),
+      instanceWithItem.getId(), requester.getId());
+    Request requestWithoutItemId = buildRequest(HOLD, null, null, instanceWithoutItem.getId(),
+      requester.getId());
+    createStubForRequests(List.of(itemCollege.getId()), List.of(requestWithItem),
+      SEARCH_SLIPS_REQUESTS_QUERY_PATTERN);
+    createStubForRequests(List.of(requestWithoutItemId), REQUESTS_WITHOUT_ITEM_QUERY_PATTERN);
+
+    MaterialType materialType = buildMaterialType();
+    createStubForMaterialTypes(List.of(materialType), TENANT_ID_COLLEGE);
+
+    LoanType loanType = buildLoanType();
+    createStubForLoanTypes(List.of(loanType), TENANT_ID_COLLEGE);
+
+    Library library = buildLibrary();
+    createStubForLibraries(List.of(library), TENANT_ID_COLLEGE);
+
+    Campus campus = buildCampus();
+    createStubForCampuses(List.of(campus), TENANT_ID_COLLEGE);
+
+    Institution institution = buildInstitution();
+    createStubForInstitutions(List.of(institution), TENANT_ID_COLLEGE);
+
+    ServicePoint primaryServicePoint = buildServicePoint(PRIMARY_SERVICE_POINT_ID,
+      "Primary service point");
+    ServicePoint pickupServicePoint = buildServicePoint(
+      requestWithItem.getPickupServicePointId(), "Pickup service point");
+    createStubForServicePoints(List.of(primaryServicePoint), TENANT_ID_COLLEGE);
+    createStubForServicePoints(List.of(pickupServicePoint), TENANT_ID_CONSORTIUM);
+
+    UserGroup userGroup = buildUserGroup(requester.getPatronGroup(), "Test user group");
+    createStubForUserGroups(List.of(userGroup));
+
+    List<Department> departments = buildDepartments(requester);
+    createStubForDepartments(departments);
+
+    List<AddressType> addressTypes = buildAddressTypes(requester);
+    createStubForAddressTypes(addressTypes);
+
+    getSearchSlips()
+      .expectStatus().isOk()
+      .expectBody()
+      .jsonPath("searchSlips").value(hasSize(2))
+      .jsonPath("totalRecords").value(is(2))
+      .jsonPath("searchSlips[*].currentDateTime").exists()
+      .jsonPath("searchSlips[*].item").exists() // TODO: why? hold should not have item
+      .jsonPath("searchSlips[*].request").exists()
+      .jsonPath("searchSlips[*].requester").exists();
+
+    verifyOutgoingGetRequests(LOCATIONS_URL, 1, 1, 1);
+    verifyOutgoingGetRequests(SERVICE_POINTS_URL, 1, 1, 0);
+    verifyOutgoingGetRequests(ITEMS_URL, 0, 1, 1);
+    verifyOutgoingGetRequests(HOLDINGS_URL, 0, 2, 1);
+    verifyOutgoingGetRequests(INSTANCES_URL, 2, 0, 0);
+    verifyOutgoingGetRequests(REQUESTS_URL, 2, 0, 0);
+    verifyOutgoingGetRequests(USER_GROUPS_URL, 1, 0, 0);
+    verifyOutgoingGetRequests(DEPARTMENTS_URL, 1, 0, 0);
+    verifyOutgoingGetRequests(ADDRESS_TYPES_URL, 1, 0, 0);
+    verifyOutgoingGetRequests(MATERIAL_TYPES_URL, 0, 1, 0);
+    verifyOutgoingGetRequests(LOAN_TYPES_URL, 0, 1, 0);
+    verifyOutgoingGetRequests(LIBRARIES_URL, 0, 1, 0);
+    verifyOutgoingGetRequests(CAMPUSES_URL, 0, 1, 0);
+    verifyOutgoingGetRequests(INSTITUTIONS_URL, 0, 1, 0);
+
+    RequestPatternBuilder usersRequestPattern = getRequestedFor(urlPathMatching(USERS_URL))
+      .withQueryParam("query", matching(SEARCH_BY_ID_QUERY_PATTERN)); // ignore system user's internal calls
+    verifyOutgoingRequests(usersRequestPattern, 1, 0, 0);
   }
 
   private WebTestClient.ResponseSpec getPickSlips() {
     return getPickSlips(SERVICE_POINT_ID);
   }
 
+  private WebTestClient.ResponseSpec getSearchSlips() {
+    return getSearchSlips(SERVICE_POINT_ID);
+  }
+
   @SneakyThrows
   private WebTestClient.ResponseSpec getPickSlips(String servicePointId) {
     return doGet(PICK_SLIPS_URL + "/" + servicePointId);
+  }
+
+  @SneakyThrows
+  private WebTestClient.ResponseSpec getSearchSlips(String servicePointId) {
+    return doGet(SEARCH_SLIPS_URL + "/" + servicePointId);
   }
 
   private static Location buildLocation(String name) {
@@ -232,58 +344,54 @@ class StaffSlipsApiTest extends BaseIT {
       .primaryServicePoint(UUID.fromString(PRIMARY_SERVICE_POINT_ID));
   }
 
-  private static SearchItem buildSearchItem(String barcode, ItemStatus.NameEnum itemStatus,
-    String locationId, String tenant) {
-
-    return new SearchItem()
+  private static Instance buildInstance(String title) {
+    return new Instance()
       .id(randomId())
-      .tenantId(tenant)
-      .barcode(barcode)
-      .holdingsRecordId(randomId())
-      .status(new SearchItemStatus().name(itemStatus.getValue()))
-      .effectiveLocationId(locationId)
-      .materialTypeId(MATERIAL_TYPE_ID);
-  }
-
-  private static SearchInstance buildSearchInstance(String title, List<SearchHolding> holdings,
-    List<SearchItem> items) {
-
-    return new SearchInstance()
-      .id(randomId())
-      .tenantId(TENANT_ID_CONSORTIUM)
       .title(title)
-      .holdings(holdings)
-      .items(items)
       .contributors(List.of(
-        new Contributor().name("First, Author").primary(true),
-        new Contributor().name("Second, Author")));
+        new InstanceContributorsInner().name("First, Author").primary(true),
+        new InstanceContributorsInner().name("Second, Author").primary(null)));
   }
 
-  private static SearchHolding buildSearchHolding(SearchItem searchItem) {
-    return new SearchHolding()
-      .id(searchItem.getHoldingsRecordId())
-      .tenantId(searchItem.getTenantId());
-  }
+  private static Item buildItem(String barcode, ItemStatus.NameEnum status, String locationId,
+    String holdingId) {
 
-  private static Item buildItem(SearchItem searchItem) {
     return new Item()
-      .id(searchItem.getId())
-      .barcode(searchItem.getBarcode())
-      .holdingsRecordId(searchItem.getHoldingsRecordId())
-      .status(new ItemStatus(ItemStatus.NameEnum.fromValue(searchItem.getStatus().getName())))
-      .effectiveLocationId(searchItem.getEffectiveLocationId())
-      .materialTypeId(searchItem.getMaterialTypeId())
+      .id(randomId())
+      .barcode(barcode)
+      .holdingsRecordId(holdingId)
+      .status(new ItemStatus(status))
+      .effectiveLocationId(locationId)
+      .materialTypeId(MATERIAL_TYPE_ID)
       .permanentLoanTypeId(LOAN_TYPE_ID);
   }
 
-  private static Request buildRequest(Request.RequestTypeEnum requestTypeEnum,  SearchItem item,
-    String requesterId) {
+  private static HoldingsRecord buildHolding(String instanceId, String locationId) {
+    return new HoldingsRecord()
+      .id(randomId())
+      .instanceId(instanceId)
+      .copyNumber("Holding copy number")
+      .permanentLocationId(locationId)
+      .effectiveLocationId(locationId);
+  }
+
+  private static HoldingsRecord buildHolding(String locationId) {
+    return new HoldingsRecord()
+      .id(randomId())
+      .copyNumber("Holding copy number")
+      .effectiveLocationId(locationId);
+  }
+
+  private static Request buildRequest(Request.RequestTypeEnum requestTypeEnum,  String itemId,
+    String holdingId, String instanceId, String requesterId) {
 
     return new Request()
       .id(randomId())
       .requestType(requestTypeEnum)
       .requestLevel(Request.RequestLevelEnum.TITLE)
-      .itemId(item.getId())
+      .itemId(itemId)
+      .holdingsRecordId(holdingId)
+      .instanceId(instanceId)
       .pickupServicePointId(randomId())
       .requesterId(requesterId);
   }
@@ -326,9 +434,9 @@ class StaffSlipsApiTest extends BaseIT {
       .name(name);
   }
 
-  private static User buildUser(String id, String barcode) {
+  private static User buildUser(String barcode) {
     return new User()
-      .id(id)
+      .id(randomId())
       .barcode(barcode)
       .departments(Set.of(randomId(), randomId()))
       .patronGroup(randomId())
@@ -395,24 +503,10 @@ class StaffSlipsApiTest extends BaseIT {
       .willReturn(okJson(asJsonString(mockResponse))));
   }
 
-  private static void createStubForInstanceSearch(Collection<String> locationIds,
-    List<SearchInstance> instances) {
 
-    SearchInstancesResponse mockResponse = new SearchInstancesResponse()
-      .instances(instances)
-      .totalRecords(instances.size());
-
-    wireMockServer.stubFor(WireMock.get(urlPathEqualTo(INSTANCE_SEARCH_URL))
-      .withQueryParam("expandAll", equalTo("true"))
-      .withQueryParam("limit", equalTo("500"))
-      .withQueryParam("query", matching(PICK_SLIPS_INSTANCE_SEARCH_QUERY_PATTERN))
-      .withQueryParam("query", containsInAnyOrder(locationIds))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
-      .willReturn(okJson(asJsonString(mockResponse))));
-  }
 
   private static void createStubForRequests(Collection<String> itemIds,
-    List<Request> requests) {
+    List<Request> requests, String queryPattern) {
 
     Requests mockResponse = new Requests()
       .requests(requests)
@@ -420,22 +514,75 @@ class StaffSlipsApiTest extends BaseIT {
 
     wireMockServer.stubFor(WireMock.get(urlPathEqualTo(REQUESTS_URL))
       .withQueryParam("limit", equalTo(DEFAULT_LIMIT))
-      .withQueryParam("query", matching(PICK_SLIPS_REQUESTS_QUERY_PATTERN))
+      .withQueryParam("query", matching(queryPattern))
       .withQueryParam("query", containsInAnyOrder(itemIds))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
       .willReturn(okJson(asJsonString(mockResponse))));
   }
 
-  private static void createStubForItems(List<Item> items, String tenantId) {
+  private static void createStubForRequests(List<Request> requests, String queryPattern) {
+    Requests mockResponse = new Requests()
+      .requests(requests)
+      .totalRecords(requests.size());
+
+    wireMockServer.stubFor(WireMock.get(urlPathEqualTo(REQUESTS_URL))
+      .withQueryParam("limit", equalTo(DEFAULT_LIMIT))
+      .withQueryParam("query", matching(queryPattern))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(okJson(asJsonString(mockResponse))));
+  }
+
+  private static void createStubForItems(List<Item> items, Collection<Location> locations,
+    String tenantId, String queryPattern) {
+
     Items mockResponse = new Items()
       .items(items)
       .totalRecords(items.size());
 
-    Set<String> ids = items.stream()
-      .map(Item::getId)
+    Set<String> locationIds = locations.stream()
+      .map(Location::getId)
       .collect(toSet());
 
-    createStubForGetByIds(ITEMS_URL, ids, mockResponse, tenantId);
+    wireMockServer.stubFor(WireMock.get(urlPathEqualTo(ITEMS_URL))
+      .withQueryParam("limit", equalTo(DEFAULT_LIMIT))
+      .withQueryParam("query", matching(queryPattern))
+      .withQueryParam("query", containsInAnyOrder(locationIds))
+      .withHeader(HEADER_TENANT, equalTo(tenantId))
+      .willReturn(okJson(asJsonString(mockResponse))));
+  }
+
+  private static void createStubForHoldings(List<HoldingsRecord> holdings, String tenantId) {
+    HoldingsRecords mockResponse = new HoldingsRecords()
+      .holdingsRecords(holdings)
+      .totalRecords(holdings.size());
+
+    Set<String> ids = holdings.stream()
+      .map(HoldingsRecord::getId)
+      .collect(toSet());
+
+    createStubForGetByIds(HOLDINGS_URL, ids, mockResponse, tenantId);
+  }
+
+  private static void createStubForHoldings(List<HoldingsRecord> holdings, String tenantId,
+    Collection<String> ids) {
+
+    HoldingsRecords mockResponse = new HoldingsRecords()
+      .holdingsRecords(holdings)
+      .totalRecords(holdings.size());
+
+    createStubForGetByIds(HOLDINGS_URL, ids, mockResponse, tenantId);
+  }
+
+  private static void createStubForInstances(List<Instance> instances) {
+    Instances mockResponse = new Instances()
+      .instances(instances)
+      .totalRecords(instances.size());
+
+    Set<String> ids = instances.stream()
+      .map(Instance::getId)
+      .collect(toSet());
+
+    createStubForGetByIds(INSTANCES_URL, ids, mockResponse, TENANT_ID_CONSORTIUM);
   }
 
   private static void createStubForMaterialTypes(List<MaterialType> materialTypes, String tenantId) {
@@ -574,4 +721,44 @@ class StaffSlipsApiTest extends BaseIT {
       .map(WireMock::containing)
       .toArray(StringValuePattern[]::new));
   }
+
+  private static String joinForMatchAnyQuery(EnumSet<ItemStatus.NameEnum> itemStatuses) {
+    return joinForMatchAnyQuery(
+      itemStatuses.stream()
+        .map(ItemStatus.NameEnum::getValue)
+        .collect(toSet())
+    );
+  }
+
+  private static String joinForMatchAnyQuery(Collection<String> values) {
+    return values.stream()
+      .map(value -> "\"" + value + "\"")
+      .collect(joining(" or "));
+  }
+
+  private static void verifyOutgoingGetRequests(String urlPattern, int requestsToConsortium,
+    int requestsToCollege, int requestsToUniversity) {
+
+    verifyOutgoingRequests(HttpMethod.GET, urlPattern, requestsToConsortium,
+      requestsToCollege, requestsToUniversity);
+  }
+
+  private static void verifyOutgoingRequests(HttpMethod method, String urlPattern,
+    int requestsToConsortium, int requestsToCollege, int requestsToUniversity) {
+
+    RequestPatternBuilder requestPattern = requestedFor(method.name(), urlPathMatching(urlPattern));
+    verifyOutgoingRequests(requestPattern, requestsToConsortium, requestsToCollege, requestsToUniversity);
+  }
+
+  private static void verifyOutgoingRequests(RequestPatternBuilder requestPatternBuilder,
+    int requestsToConsortium, int requestsToCollege, int requestsToUniversity) {
+
+    wireMockServer.verify(requestsToConsortium, requestPatternBuilder.withHeader(HEADER_TENANT,
+      equalTo(TENANT_ID_CONSORTIUM)));
+    wireMockServer.verify(requestsToCollege, requestPatternBuilder.withHeader(HEADER_TENANT,
+      equalTo(TENANT_ID_COLLEGE)));
+    wireMockServer.verify(requestsToUniversity, requestPatternBuilder.withHeader(HEADER_TENANT,
+      equalTo(TENANT_ID_UNIVERSITY)));
+  }
+
 }
