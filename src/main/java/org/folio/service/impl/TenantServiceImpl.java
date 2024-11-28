@@ -30,7 +30,7 @@ import org.folio.domain.dto.SearchItem;
 import org.folio.domain.dto.SearchItemStatus;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.service.TenantService;
-import org.folio.util.HttpUtils;
+import org.folio.service.UserTenantsService;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
@@ -42,11 +42,18 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public class TenantServiceImpl implements TenantService {
   private final SearchInstanceClient searchClient;
+  private final UserTenantsService userTenantsService;
 
   @Override
-  public Optional<String> getBorrowingTenant(EcsTlrEntity ecsTlr) {
+  public String getBorrowingTenant(EcsTlrEntity ecsTlr) {
     log.info("getBorrowingTenant:: getting borrowing tenant");
-    return HttpUtils.getTenantFromToken();
+    if (ecsTlr == null || ecsTlr.getPrimaryRequestTenantId() == null) {
+      log.info("getBorrowingTenant:: central tenant by default");
+      return userTenantsService.getCentralTenantId();
+    }
+
+    log.info("getBorrowingTenant:: returning primaryRequestTenantId");
+    return ecsTlr.getPrimaryRequestTenantId();
   }
 
   @Override

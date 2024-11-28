@@ -102,7 +102,7 @@ class EcsTlrServiceTest {
 
     when(ecsTlrRepository.save(any(EcsTlrEntity.class))).thenReturn(mockEcsTlrEntity);
     when(tenantService.getBorrowingTenant(any(EcsTlrEntity.class)))
-      .thenReturn(Optional.of(borrowingTenant));
+      .thenReturn(borrowingTenant);
     when(tenantService.getLendingTenants(any(EcsTlrEntity.class)))
       .thenReturn(List.of(lendingTenant));
     when(requestService.createPrimaryRequest(any(Request.class), any(String.class)))
@@ -136,7 +136,7 @@ class EcsTlrServiceTest {
     String instanceId = UUID.randomUUID().toString();
     EcsTlr ecsTlr = new EcsTlr().instanceId(instanceId);
     when(tenantService.getBorrowingTenant(any(EcsTlrEntity.class)))
-      .thenReturn(Optional.empty());
+      .thenReturn(null);
 
     TenantPickingException exception = assertThrows(TenantPickingException.class,
       () -> ecsTlrService.create(ecsTlr));
@@ -149,7 +149,7 @@ class EcsTlrServiceTest {
     String instanceId = UUID.randomUUID().toString();
     EcsTlr ecsTlr = new EcsTlr().instanceId(instanceId);
     when(tenantService.getBorrowingTenant(any(EcsTlrEntity.class)))
-      .thenReturn(Optional.of("borrowing_tenant"));
+      .thenReturn("borrowing_tenant");
     when(tenantService.getLendingTenants(any(EcsTlrEntity.class)))
       .thenReturn(emptyList());
 
