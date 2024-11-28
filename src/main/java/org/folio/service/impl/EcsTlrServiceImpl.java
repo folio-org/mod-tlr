@@ -95,6 +95,10 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     final String borrowingTenantId = tenantService.getBorrowingTenant(ecsTlr);
     log.info("getBorrowingTenant:: borrowing tenant: {}", borrowingTenantId);
 
+    if (borrowingTenantId == null) {
+      throw new TenantPickingException("Failed to get borrowing tenant");
+    }
+
     return borrowingTenantId;
   }
 
