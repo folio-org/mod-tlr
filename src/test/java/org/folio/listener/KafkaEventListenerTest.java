@@ -10,6 +10,7 @@ import java.util.Map;
 import org.folio.listener.kafka.KafkaEventListener;
 import org.folio.service.impl.RequestBatchUpdateEventHandler;
 import org.folio.service.impl.RequestEventHandler;
+import org.folio.service.impl.UserEventHandler;
 import org.folio.service.impl.UserGroupEventHandler;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.junit.jupiter.api.Test;
@@ -28,13 +29,16 @@ class KafkaEventListenerTest {
   SystemUserScopedExecutionService systemUserScopedExecutionService;
   @Mock
   UserGroupEventHandler userGroupEventHandler;
+  @Mock
+  UserEventHandler userEventHandler;
 
   @Test
   void shouldHandleExceptionInEventHandler() {
     doThrow(new NullPointerException("NPE")).when(systemUserScopedExecutionService)
       .executeAsyncSystemUserScoped(any(), any());
     KafkaEventListener kafkaEventListener = new KafkaEventListener(requestEventHandler,
-      requestBatchEventHandler, systemUserScopedExecutionService, userGroupEventHandler);
+      requestBatchEventHandler, systemUserScopedExecutionService, userGroupEventHandler,
+      userEventHandler);
     kafkaEventListener.handleRequestEvent("{}",
       new MessageHeaders(Map.of(TENANT, "default".getBytes())));
 

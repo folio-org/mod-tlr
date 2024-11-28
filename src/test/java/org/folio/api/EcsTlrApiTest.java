@@ -528,7 +528,8 @@ class EcsTlrApiTest extends BaseIT {
       .personal(new UserPersonal()
         .firstName("First")
         .middleName("Middle")
-        .lastName("Last"));
+        .lastName("Last"))
+      .customFields(null);
   }
 
   private static User buildSecondaryRequestRequester(User primaryRequestRequester,
@@ -539,7 +540,8 @@ class EcsTlrApiTest extends BaseIT {
       .patronGroup(secondaryRequestRequesterExists ? PATRON_GROUP_ID_SECONDARY : PATRON_GROUP_ID_PRIMARY)
       .type(UserType.SHADOW.getValue())
       .barcode(primaryRequestRequester.getBarcode())
-      .active(true);
+      .active(true)
+      .customFields(null);
   }
 
   private static ServicePoint buildPrimaryRequestPickupServicePoint(String id) {
