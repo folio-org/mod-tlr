@@ -30,8 +30,9 @@ public class AllowedServicePointsController implements AllowedServicePointsApi {
   public ResponseEntity<AllowedServicePointsResponse> getAllowedServicePoints(String operation,
     UUID patronGroupId, UUID requesterId, UUID instanceId, UUID requestId, UUID itemId) {
 
-    log.info("getAllowedServicePoints:: params: operation={}, requesterId={}, instanceId={}, " +
-      "requestId={}, itemId={}", operation, requesterId, instanceId, requestId, itemId);
+    log.info("getAllowedServicePoints:: params: operation={}, patronGroupId={}, requesterId={}, " +
+      "instanceId={}, requestId={}, itemId={}",
+      operation, patronGroupId, requesterId, instanceId, requestId, itemId);
 
     AllowedServicePointsRequest request = new AllowedServicePointsRequest(
       operation, patronGroupId, requesterId, instanceId, requestId, itemId);

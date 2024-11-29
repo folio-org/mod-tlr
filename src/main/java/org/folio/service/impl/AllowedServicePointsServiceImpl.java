@@ -52,7 +52,6 @@ public abstract class AllowedServicePointsServiceImpl implements AllowedServiceP
   private AllowedServicePointsResponse getForCreate(AllowedServicePointsRequest request) {
     String patronGroupId = request.getPatronGroupId();
     String requesterId = request.getRequesterId();
-    log.info("getForCreate:: requester patron group and id: {}, {}", patronGroupId, requesterId);
     if (StringUtils.isBlank(patronGroupId)) {
       patronGroupId = userService.find(requesterId).getPatronGroup();
     }
@@ -95,7 +94,6 @@ public abstract class AllowedServicePointsServiceImpl implements AllowedServiceP
   private AllowedServicePointsResponse getForReplace(AllowedServicePointsRequest request) {
     EcsTlrEntity ecsTlr = findEcsTlr(request);
 
-    log.info("getForReplace:: fetching allowed service points from secondary request tenant");
     var allowedServicePoints = executionService.executeSystemUserScoped(
       ecsTlr.getSecondaryRequestTenantId(), () -> circulationClient.allowedServicePoints(
         REPLACE.getValue(), ecsTlr.getSecondaryRequestId().toString()));
