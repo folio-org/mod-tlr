@@ -210,7 +210,7 @@ class StaffSlipsApiTest extends BaseIT {
     verifyOutgoingGetRequests(INSTITUTIONS_URL, 0, 1, 0);
 
     RequestPatternBuilder usersRequestPattern = getRequestedFor(urlPathMatching(USERS_URL))
-      .withQueryParam("query", matching(SEARCH_BY_ID_QUERY_PATTERN)); // ignore system user's internal calls
+      .withQueryParam("query", matching(SEARCH_BY_ID_QUERY_PATTERN)); // to ignore system user's internal calls
     verifyOutgoingRequests(usersRequestPattern, 1, 0, 0);
   }
 
@@ -291,7 +291,7 @@ class StaffSlipsApiTest extends BaseIT {
       .jsonPath("searchSlips").value(hasSize(2))
       .jsonPath("totalRecords").value(is(2))
       .jsonPath("searchSlips[*].currentDateTime").exists()
-      .jsonPath("searchSlips[*].item").exists() // TODO: why? hold should not have item
+      .jsonPath("searchSlips[*].item").exists()
       .jsonPath("searchSlips[*].request").exists()
       .jsonPath("searchSlips[*].requester").exists();
 
@@ -311,7 +311,7 @@ class StaffSlipsApiTest extends BaseIT {
     verifyOutgoingGetRequests(INSTITUTIONS_URL, 0, 1, 0);
 
     RequestPatternBuilder usersRequestPattern = getRequestedFor(urlPathMatching(USERS_URL))
-      .withQueryParam("query", matching(SEARCH_BY_ID_QUERY_PATTERN)); // ignore system user's internal calls
+      .withQueryParam("query", matching(SEARCH_BY_ID_QUERY_PATTERN)); // to ignore system user's internal calls
     verifyOutgoingRequests(usersRequestPattern, 1, 0, 0);
   }
 

@@ -104,7 +104,6 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
       return emptyList();
     }
     findRequests(context);
-    findHoldRequestsWithoutItems(context);
     if (context.getRequests().isEmpty()) {
       log.info("getStaffSlips:: found no requests to build staff slips for, doing nothing");
       return emptyList();
@@ -161,7 +160,8 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
 
         Collection<Item> items = findItems(locations);
         Collection<ItemContext> itemContexts = items.stream()
-          .map(item -> new ItemContext(item.getId(), item, locationsById.get(item.getEffectiveLocationId())))
+          .map(item -> new ItemContext(item.getId(), item,
+            locationsById.get(item.getEffectiveLocationId())))
           .collect(toList());
 
         staffSlipsContext.getLocationsByTenant().put(tenantId, locations);
@@ -199,7 +199,7 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
   private void findRequests(StaffSlipsContext context) {
     log.info("findRequestsForItems:: searching for requests for relevant items");
 
-    List<String> itemIds = context.getItemContextsByTenant()
+    List<String > itemIds = context.getItemContextsByTenant()
       .values()
       .stream()
       .flatMap(Collection::stream)
@@ -225,6 +225,7 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
 
     Collection<Request> requests = requestService.getRequestsFromStorage(query, "itemId", itemIds);
     context.getRequests().addAll(requests);
+    findHoldRequestsWithoutItems(context);
   }
 
   private Collection<Request> findTitleLevelHoldsWithoutItems() {
