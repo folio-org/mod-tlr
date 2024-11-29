@@ -14,10 +14,8 @@ import org.folio.support.CqlQuery;
 
 public interface InventoryService {
   Collection<Item> findItems(CqlQuery query, String idIndex, Collection<String> ids);
-  Collection<Item> findItems(Collection<String> ids);
   Collection<HoldingsRecord> findHoldings(CqlQuery query, String idIndex, Collection<String> ids);
   Collection<HoldingsRecord> findHoldings(Collection<String> ids);
-  Collection<Instance> findInstances(CqlQuery query, String idIndex, Collection<String> ids);
   Collection<Instance> findInstances(Collection<String> ids);
   Collection<MaterialType> findMaterialTypes(Collection<String> ids);
   Collection<LoanType> findLoanTypes(Collection<String> ids);

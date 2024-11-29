@@ -375,13 +375,6 @@ class StaffSlipsApiTest extends BaseIT {
       .effectiveLocationId(locationId);
   }
 
-  private static HoldingsRecord buildHolding(String locationId) {
-    return new HoldingsRecord()
-      .id(randomId())
-      .copyNumber("Holding copy number")
-      .effectiveLocationId(locationId);
-  }
-
   private static Request buildRequest(Request.RequestTypeEnum requestTypeEnum,  String itemId,
     String holdingId, String instanceId, String requesterId) {
 

@@ -57,13 +57,6 @@ public class InventoryServiceImpl implements InventoryService {
   }
 
   @Override
-  public Collection<Item> findItems(Collection<String> ids) {
-    log.info("findItems:: searching items by {} IDs", ids::size);
-    log.debug("findItems:: ids={}", ids);
-    return BulkFetcher.fetch(itemClient, ids, Items::getItems);
-  }
-
-  @Override
   public Collection<HoldingsRecord> findHoldings(CqlQuery query, String idIndex, Collection<String> ids) {
     log.info("findHoldings:: searching holdings by query and index: query={}, index={}, ids={}",
       query, idIndex, ids.size());
@@ -77,13 +70,6 @@ public class InventoryServiceImpl implements InventoryService {
     return BulkFetcher.fetch(holdingClient, ids, HoldingsRecords::getHoldingsRecords);
   }
 
-  @Override
-  public Collection<Instance> findInstances(CqlQuery query, String idIndex, Collection<String> ids) {
-    log.info("findInstances:: searching instances by query and index: query={}, index={}, ids={}",
-      query, idIndex, ids.size());
-    log.debug("findInstances:: ids={}", ids);
-    return BulkFetcher.fetch(instanceClient, query, idIndex, ids, Instances::getInstances);
-  }
 
   @Override
   public Collection<Instance> findInstances(Collection<String> ids) {
