@@ -16,6 +16,7 @@ import org.folio.domain.dto.SearchItem;
 import org.folio.domain.dto.SearchItemStatus;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.service.impl.TenantServiceImpl;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -28,11 +29,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class TenantServiceTest {
   private static final UUID INSTANCE_ID = UUID.randomUUID();
+  private static final String TENANT_ID = "test-tenant";
 
   @Mock
   private SearchInstanceClient searchClient;
   @InjectMocks
   private TenantServiceImpl tenantService;
+
+  @Test
+  void getBorrowingTenant() {
+    EcsTlrEntity ecsTlr = new EcsTlrEntity();
+    ecsTlr.setPrimaryRequestTenantId(TENANT_ID);
+    assertEquals(TENANT_ID, tenantService.getBorrowingTenant(ecsTlr));
+  }
 
   @ParameterizedTest
   @MethodSource("parametersForGetLendingTenants")
