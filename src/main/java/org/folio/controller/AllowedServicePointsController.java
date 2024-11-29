@@ -28,13 +28,14 @@ public class AllowedServicePointsController implements AllowedServicePointsApi {
 
   @Override
   public ResponseEntity<AllowedServicePointsResponse> getAllowedServicePoints(String operation,
-    UUID requesterId, UUID instanceId, UUID requestId, UUID itemId) {
+    UUID patronGroupId, UUID requesterId, UUID instanceId, UUID requestId, UUID itemId) {
 
-    log.info("getAllowedServicePoints:: params: operation={}, requesterId={}, instanceId={}, " +
-      "requestId={}, itemId={}", operation, requesterId, instanceId, requestId, itemId);
+    log.info("getAllowedServicePoints:: params: operation={}, patronGroupId={}, requesterId={}, " +
+      "instanceId={}, requestId={}, itemId={}",
+      operation, patronGroupId, requesterId, instanceId, requestId, itemId);
 
     AllowedServicePointsRequest request = new AllowedServicePointsRequest(
-      operation, requesterId, instanceId, requestId, itemId);
+      operation, patronGroupId, requesterId, instanceId, requestId, itemId);
 
     if (!validateAllowedServicePointsRequest(request)) {
       return ResponseEntity.status(UNPROCESSABLE_ENTITY).build();
@@ -49,6 +50,7 @@ public class AllowedServicePointsController implements AllowedServicePointsApi {
 
   private static boolean validateAllowedServicePointsRequest(AllowedServicePointsRequest request) {
     final RequestOperation operation = request.getOperation();
+    final String patronGroupId = request.getPatronGroupId();
     final String requesterId = request.getRequesterId();
     final String instanceId = request.getInstanceId();
     final String requestId = request.getRequestId();
@@ -56,14 +58,15 @@ public class AllowedServicePointsController implements AllowedServicePointsApi {
 
     boolean allowedCombinationOfParametersDetected = false;
 
-    if (operation == CREATE && requesterId != null && instanceId != null &&
+    boolean requesterOrPatronGroupSet = requesterId != null || patronGroupId != null;
+    if (operation == CREATE && requesterOrPatronGroupSet && instanceId != null &&
       itemId == null && requestId == null) {
 
       log.info("validateAllowedServicePointsRequest:: TLR request creation case");
       allowedCombinationOfParametersDetected = true;
     }
 
-    if (operation == CREATE && requesterId != null && instanceId == null &&
+    if (operation == CREATE && requesterOrPatronGroupSet && instanceId == null &&
       itemId != null && requestId == null) {
 
       log.info("validateAllowedServicePointsRequest:: ILR request creation case");
