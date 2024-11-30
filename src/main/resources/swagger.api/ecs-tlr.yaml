@@ -89,14 +89,44 @@ components:
       $ref: 'schemas/transactionStatus.yaml#/TransactionStatus'
     transactionStatusResponse:
       $ref: 'schemas/transactionStatusResponse.yaml#/TransactionStatusResponse'
+    tenant:
+      $ref: 'schemas/tenant.yaml#/Tenant'
+    tenants:
+      $ref: 'schemas/tenant.yaml#/TenantCollection'
+    publicationRequest:
+      $ref: 'schemas/publication.yaml#/PublicationRequest'
+    publicationResponse:
+      $ref: 'schemas/publication.yaml#/PublicationResponse'
     errorResponse:
       $ref: 'schemas/errors.json'
     request:
       $ref: 'schemas/request.json'
+    requests:
+      $ref: 'schemas/requests.json'
     searchInstancesResponse:
-      $ref: schemas/response/searchInstancesResponse.json
+      $ref: 'schemas/search/searchInstancesResponse.yaml'
+    searchItemResponse:
+      $ref: 'schemas/search/searchItemResponse.yaml'
     user:
-      $ref: schemas/user.json
+      $ref: 'schemas/users/user.json'
+    userTenant:
+      $ref: 'schemas/userTenant.json'
+    userTenantCollection:
+      $ref: 'schemas/userTenantCollection.json'
+    servicePoint:
+      $ref: 'schemas/inventory/servicePoint.json'
+    userGroup:
+      $ref: 'schemas/users/userGroup.json'
+    requestsBatchUpdate:
+      $ref: 'schemas/requests-batch-update.json'
+    reorderQueue:
+      $ref: 'schemas/reorder-queue.json'
+    circulationItem:
+      $ref: 'schemas/circulationItem.yaml#/CirculationItem'
+    inventoryItem:
+      $ref: 'schemas/inventory/item.json'
+    inventoryInstance:
+      $ref: 'schemas/inventory/instance.json'
   parameters:
     requestId:
       name: requestId

@@ -24,6 +24,36 @@
           "Content-Type": "application/json"
         }
       }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "urlPath": "/user-tenants",
+        "queryParameters": {
+          "limit": {
+            "equalTo": "1"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "userTenants": [
+            {
+              "id": "11e879a3-ed15-47c5-8ee9-626ea7733aab",
+              "userId": "02c58258-89b3-4e4a-ae21-921ab8ed2983",
+              "username": "user",
+              "tenantId": "consortium",
+              "centralTenantId": "consortium",
+              "consortiumId": "23085034-7e68-4927-9d17-1de20a06a512"
+            }
+          ],
+          "totalRecords": 1
+        }
+      }
     }
   ]
 }

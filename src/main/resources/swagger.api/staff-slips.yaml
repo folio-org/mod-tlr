@@ -1,0 +1,99 @@
+openapi: 3.0.0
+info:
+  title: Staff Slips API
+  version: v1
+tags:
+  - name: staffSlips
+paths:
+  /tlr/staff-slips/pick-slips/{servicePointId}:
+    get:
+      description: Get pick slips
+      operationId: getPickSlips
+      tags:
+        - pickSlips
+      parameters:
+        - $ref: '#/components/parameters/servicePointId'
+      responses:
+        '200':
+          $ref: '#/components/responses/pick-slips'
+        '400':
+          $ref: '#/components/responses/badRequestResponse'
+        '404':
+          $ref: '#/components/responses/notFoundResponse'
+        '500':
+          $ref: '#/components/responses/internalServerErrorResponse'
+components:
+  schemas:
+    errorResponse:
+      $ref: 'schemas/errors.json'
+    locations:
+      $ref: 'schemas/inventory/locations.json'
+    items:
+      $ref: 'schemas/inventory/items.json'
+    materialTypes:
+      $ref: 'schemas/inventory/materialTypes.json'
+    loanTypes:
+      $ref: 'schemas/inventory/loanTypes.json'
+    libraries:
+      $ref: 'schemas/inventory/libraries.json'
+    campuses:
+      $ref: 'schemas/inventory/campuses.json'
+    institutions:
+      $ref: 'schemas/inventory/institutions.json'
+    servicePoints:
+      $ref: 'schemas/inventory/servicePoints.json'
+    users:
+      $ref: 'schemas/users/users.json'
+    usersGroups:
+      $ref: 'schemas/users/userGroups.json'
+    departments:
+      $ref: 'schemas/users/departments.json'
+    addressTypes:
+      $ref: 'schemas/users/addressTypes.json'
+    searchInstancesResponse:
+      $ref: 'schemas/search/searchInstancesResponse.yaml'
+  parameters:
+    servicePointId:
+      name: servicePointId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    pick-slips:
+      description: Pick slips response
+      content:
+        application/json:
+          schema:
+            $ref: 'schemas/staffSlips/pickSlipsResponse.yaml'
+    badRequestResponse:
+      description: Validation errors
+      content:
+        application/json:
+          example:
+            errors:
+              - message: Request is invalid
+            total_records: 1
+          schema:
+            $ref: "#/components/schemas/errorResponse"
+    notFoundResponse:
+      description: Not found
+      content:
+        application/json:
+          example:
+            errors:
+              - message: Request not found
+            total_records: 1
+          schema:
+            $ref: "#/components/schemas/errorResponse"
+    internalServerErrorResponse:
+      description: When unhandled exception occurred during code execution, e.g. NullPointerException
+      content:
+        application/json:
+          example:
+            errors:
+              - message: Unexpected error
+            total_records: 1
+          schema:
+            $ref: "#/components/schemas/errorResponse"

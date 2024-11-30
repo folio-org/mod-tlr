@@ -1,0 +1,14 @@
+type: object
+properties:
+  createdDate:
+    description: "Date and time when the record was created"
+    type: string
+  createdByUserId:
+    description: "ID of the user who created the record (when available)"
+    type: string
+  updatedDate:
+    description: "Date and time when the record was last updated"
+    type: string
+  updatedByUserId:
+    description: "ID of the user who last updated the record (when available)"
+    type: string
