@@ -1,0 +1,133 @@
+description: Staff slip
+type: object
+properties:
+  currentDateTime:
+    type: string
+    format: date-time
+
+  item:
+    type: object
+    properties:
+      title:
+        type: string
+      primaryContributor:
+        type: string
+      allContributors:
+        type: string
+      barcode:
+        type: string
+      status:
+        type: string
+      enumeration:
+        type: string
+      volume:
+        type: string
+      chronology:
+        type: string
+      yearCaption:
+        type: string
+      materialType:
+        type: string
+      loanType:
+        type: string
+      copy:
+        type: string
+      numberOfPieces:
+        type: string
+      displaySummary:
+        type: string
+      descriptionOfPieces:
+        type: string
+      effectiveLocationSpecific:
+        type: string
+      effectiveLocationLibrary:
+        type: string
+      effectiveLocationCampus:
+        type: string
+      effectiveLocationInstitution:
+        type: string
+      effectiveLocationDiscoveryDisplayName:
+        type: string
+      effectiveLocationPrimaryServicePointName:
+        type: string
+      callNumber:
+        type: string
+      callNumberPrefix:
+        type: string
+      callNumberSuffix:
+        type: string
+      lastCheckedInDateTime:
+        type: string
+        format: date-time
+
+  request:
+    type: object
+    properties:
+      requestId:
+        type: string
+        format: uuid
+      servicePointPickup:
+        type: string
+      requestDate:
+        type: string
+        format: date-time
+      requestExpirationDate:
+        type: string
+        format: date-time
+      holdShelfExpirationDate:
+        type: string
+        format: date-time
+      additionalInfo:
+        type: string
+      reasonForCancellation:
+        type: string
+      deliveryAddressType:
+        type: string
+      patronComments:
+        type: string
+
+  requester:
+    type: object
+    properties:
+      firstName:
+        type: string
+      preferredFirstName:
+        type: string
+      lastName:
+        type: string
+      middleName:
+        type: string
+      barcode:
+        type: string
+      patronGroup:
+        type: string
+      departments:
+        type: string
+      primaryDeliveryAddressType:
+        type: string
+      primaryAddressLine1:
+        type: string
+      primaryAddressLine2:
+        type: string
+      primaryCity:
+        type: string
+      primaryStateProvRegion:
+        type: string
+      primaryZipPostalCode:
+        type: string
+      primaryCountry:
+        type: string
+      addressType:
+        type: string
+      addressLine1:
+        type: string
+      addressLine2:
+        type: string
+      city:
+        type: string
+      region:
+        type: string
+      postalCode:
+        type: string
+      countryId:
+        type: string

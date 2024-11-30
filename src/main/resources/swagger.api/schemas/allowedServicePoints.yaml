@@ -1,0 +1,17 @@
+AllowedServicePoints:
+  description: List of allowed pickup service points
+  type: array
+  default: null
+  minItems: 1
+  uniqueItems: true
+  items:
+    type: object
+    properties:
+      id:
+        $ref: "uuid.yaml"
+      name:
+        description: "Service point name"
+        type: string
+    required:
+      - id
+      - name

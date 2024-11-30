@@ -35,6 +35,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.messaging.MessageHeaders;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -72,12 +73,19 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public class BaseIT {
   private static final String FOLIO_ENVIRONMENT = "folio";
+  protected static final String HEADER_TENANT = "x-okapi-tenant";
   protected static final String TOKEN = "test_token";
   protected static final String TENANT_ID_CONSORTIUM = "consortium"; // central tenant
   protected static final String TENANT_ID_UNIVERSITY = "university";
   protected static final String TENANT_ID_COLLEGE = "college";
-
-  private static final String[] KAFKA_TOPICS = { buildTopicName("circulation", "request") };
+  protected static final String REQUEST_KAFKA_TOPIC_NAME =
+    buildTopicName("circulation", "request");
+  protected static final String USER_GROUP_KAFKA_TOPIC_NAME =
+    buildTopicName("users", "userGroup");
+  private static final String[] KAFKA_TOPICS = {
+    REQUEST_KAFKA_TOPIC_NAME,
+    USER_GROUP_KAFKA_TOPIC_NAME
+  };
   private static final int WIRE_MOCK_PORT = TestSocketUtils.findAvailableTcpPort();
   protected static WireMockServer wireMockServer = new WireMockServer(WIRE_MOCK_PORT);
 
@@ -116,6 +124,7 @@ public class BaseIT {
       .expectStatus().isNoContent();
 
     contextSetter = initFolioContext();
+    wireMockServer.resetAll();
   }
 
   @AfterEach
@@ -155,7 +164,7 @@ public class BaseIT {
     final HttpHeaders httpHeaders = new HttpHeaders();
 
     httpHeaders.setContentType(APPLICATION_JSON);
-    httpHeaders.put(XOkapiHeaders.TENANT, List.of(TENANT_ID_CONSORTIUM));
+    httpHeaders.add(XOkapiHeaders.TENANT, TENANT_ID_CONSORTIUM);
     httpHeaders.add(XOkapiHeaders.URL, wireMockServer.baseUrl());
     httpHeaders.add(XOkapiHeaders.TOKEN, TOKEN);
     httpHeaders.add(XOkapiHeaders.USER_ID, "08d51c7a-0f36-4f3d-9e35-d285612a23df");
@@ -251,4 +260,11 @@ public class BaseIT {
     return String.format("%s.%s.%s.%s", env, tenant, module, objectType);
   }
 
+  protected MessageHeaders getMessageHeaders(String tenantName, String tenantId) {
+    Map<String, Object> header = new HashMap<>();
+    header.put(XOkapiHeaders.TENANT, tenantName.getBytes());
+    header.put("folio.tenantId", tenantId);
+
+    return new MessageHeaders(header);
+  }
 }

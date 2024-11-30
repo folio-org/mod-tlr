@@ -1,0 +1,88 @@
+{
+  "id":"baea431b-c84d-4f34-a498-230163d39779",
+  "type":"UPDATED",
+  "tenant":"consortium",
+  "timestamp":1731938726035,
+  "data":{
+    "old": {
+      "username": null,
+      "id": "c656864e-72b9-4252-86f0-a3f141b9e492",
+      "externalSystemId": null,
+      "barcode": "111",
+      "active": true,
+      "type": "patron",
+      "patronGroup": "ad0bc554-d5bc-463c-85d1-5562127ae91b",
+      "departments": [],
+      "proxyFor": [],
+      "meta": null,
+      "personal": {
+        "lastName": "TestName",
+        "firstName": "TestFirstName",
+        "middleName": null,
+        "preferredFirstName": null,
+        "email": "test@gmail.com",
+        "phone": null,
+        "mobilePhone": null,
+        "dateOfBirth": null,
+        "addresses": [],
+        "preferredContactTypeId": "002",
+        "profilePictureLink": null
+      },
+      "enrollmentDate": null,
+      "expirationDate": "2025-11-18T23:59:59.000Z",
+      "createdDate": "2024-11-18T23:59:59.000Z",
+      "updatedDate": "2024-11-18T23:59:59.000Z",
+      "metadata": {
+        "createdDate": "2024-11-18T23:59:59.000Z",
+        "createdByUserId": "18e17842-c800-43f9-b6e7-c9c8ea8d795e",
+        "createdByUsername": null,
+        "updatedDate": "2024-11-18T23:59:59.000Z",
+        "updatedByUserId": "18e17842-c800-43f9-b6e7-c9c8ea8d795e",
+        "updatedByUsername": null
+      },
+      "tags": null,
+      "customFields": {},
+      "preferredEmailCommunication": []
+    },
+    "new": {
+      "username": null,
+      "id": "c656864e-72b9-4252-86f0-a3f141b9e492",
+      "externalSystemId": null,
+      "barcode": "111",
+      "active": true,
+      "type": "patron",
+      "patronGroup": "3684a786-6671-4268-8ed0-9db82ebca60b",
+      "departments": [],
+      "proxyFor": [],
+      "meta": null,
+      "personal": {
+        "lastName": "TestName",
+        "firstName": "TestFirstName",
+        "middleName": null,
+        "preferredFirstName": null,
+        "email": "test@gmail.com",
+        "phone": null,
+        "mobilePhone": null,
+        "dateOfBirth": null,
+        "addresses": [],
+        "preferredContactTypeId": "002",
+        "profilePictureLink": null
+      },
+      "enrollmentDate": null,
+      "expirationDate": "2025-11-18T23:59:59.000Z",
+      "createdDate": "2024-11-18T23:59:59.000Z",
+      "updatedDate": "2024-11-18T23:59:59.000Z",
+      "metadata": {
+        "createdDate": "2024-11-18T23:59:59.000Z",
+        "createdByUserId": "18e17842-c800-43f9-b6e7-c9c8ea8d795e",
+        "createdByUsername": null,
+        "updatedDate": "2024-11-18T23:59:59.000Z",
+        "updatedByUserId": "18e17842-c800-43f9-b6e7-c9c8ea8d795e",
+        "updatedByUsername": null
+      },
+      "tags": null,
+      "customFields": {},
+      "preferredEmailCommunication": []
+    }
+  }
+}
