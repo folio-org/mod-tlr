@@ -10,7 +10,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.folio.domain.RequestWrapper;
@@ -102,7 +101,7 @@ class EcsTlrServiceTest {
 
     when(ecsTlrRepository.save(any(EcsTlrEntity.class))).thenReturn(mockEcsTlrEntity);
     when(tenantService.getPrimaryRequestTenantId(any(EcsTlrEntity.class)))
-      .thenReturn(Optional.of(borrowingTenant));
+      .thenReturn(borrowingTenant);
     when(tenantService.getSecondaryRequestTenants(any(EcsTlrEntity.class)))
       .thenReturn(List.of(lendingTenant));
     when(requestService.createPrimaryRequest(any(Request.class), any(String.class)))
@@ -136,7 +135,7 @@ class EcsTlrServiceTest {
     String instanceId = UUID.randomUUID().toString();
     EcsTlr ecsTlr = new EcsTlr().instanceId(instanceId);
     when(tenantService.getPrimaryRequestTenantId(any(EcsTlrEntity.class)))
-      .thenReturn(Optional.empty());
+      .thenReturn(null);
 
     TenantPickingException exception = assertThrows(TenantPickingException.class,
       () -> ecsTlrService.create(ecsTlr));
@@ -149,7 +148,7 @@ class EcsTlrServiceTest {
     String instanceId = UUID.randomUUID().toString();
     EcsTlr ecsTlr = new EcsTlr().instanceId(instanceId);
     when(tenantService.getPrimaryRequestTenantId(any(EcsTlrEntity.class)))
-      .thenReturn(Optional.of("borrowing_tenant"));
+      .thenReturn("borrowing_tenant");
     when(tenantService.getSecondaryRequestTenants(any(EcsTlrEntity.class)))
       .thenReturn(emptyList());
 

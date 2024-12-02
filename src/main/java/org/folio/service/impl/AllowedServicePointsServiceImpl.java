@@ -9,6 +9,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.commons.lang3.StringUtils;
 import org.folio.client.feign.CirculationClient;
 import org.folio.client.feign.SearchItemClient;
 import org.folio.domain.dto.AllowedServicePointsInner;
@@ -49,7 +50,11 @@ public abstract class AllowedServicePointsServiceImpl implements AllowedServiceP
   }
 
   private AllowedServicePointsResponse getForCreate(AllowedServicePointsRequest request) {
-    String patronGroupId = userService.find(request.getRequesterId()).getPatronGroup();
+    String patronGroupId = request.getPatronGroupId();
+    String requesterId = request.getRequesterId();
+    if (StringUtils.isBlank(patronGroupId)) {
+      patronGroupId = userService.find(requesterId).getPatronGroup();
+    }
     log.info("getForCreate:: patronGroupId={}", patronGroupId);
 
     Map<String, AllowedServicePointsInner> page = new HashMap<>();
@@ -89,7 +94,6 @@ public abstract class AllowedServicePointsServiceImpl implements AllowedServiceP
   private AllowedServicePointsResponse getForReplace(AllowedServicePointsRequest request) {
     EcsTlrEntity ecsTlr = findEcsTlr(request);
 
-    log.info("getForReplace:: fetching allowed service points from secondary request tenant");
     var allowedServicePoints = executionService.executeSystemUserScoped(
       ecsTlr.getSecondaryRequestTenantId(), () -> circulationClient.allowedServicePoints(
         REPLACE.getValue(), ecsTlr.getSecondaryRequestId().toString()));

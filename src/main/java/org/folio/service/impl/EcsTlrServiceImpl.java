@@ -140,9 +140,12 @@ public class EcsTlrServiceImpl implements EcsTlrService {
 
   private String getPrimaryRequestTenant(EcsTlrEntity ecsTlr) {
     log.info("getPrimaryRequestTenant:: getting primary request tenant");
-    final String primaryRequestTenantId = tenantService.getPrimaryRequestTenantId(ecsTlr)
-      .orElseThrow(() -> new TenantPickingException("Failed to get borrowing tenant"));
+    final String primaryRequestTenantId = tenantService.getPrimaryRequestTenantId(ecsTlr);
     log.info("getPrimaryRequestTenant:: primary request tenant: {}", primaryRequestTenantId);
+
+    if (primaryRequestTenantId == null) {
+      throw new TenantPickingException("Failed to get primary request tenant");
+    }
 
     return primaryRequestTenantId;
   }

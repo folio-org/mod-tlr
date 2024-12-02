@@ -356,18 +356,6 @@ class EcsTlrApiTest extends BaseIT {
 
   @ParameterizedTest
   @EnumSource(EcsTlr.RequestLevelEnum.class)
-  void canNotCreateEcsTlrWhenFailedToExtractBorrowingTenantIdFromToken(
-    EcsTlr.RequestLevelEnum requestLevel) {
-
-    EcsTlr ecsTlr = buildEcsTlr(PAGE, randomId(), randomId(), requestLevel);
-    doPostWithToken(TLR_URL, ecsTlr, "not_a_token")
-      .expectStatus().isEqualTo(500);
-
-    wireMockServer.verify(exactly(0), getRequestedFor(urlMatching(SEARCH_INSTANCES_URL)));
-  }
-
-  @ParameterizedTest
-  @EnumSource(EcsTlr.RequestLevelEnum.class)
   void canNotCreateEcsTlrWhenFailedToPickLendingTenant(EcsTlr.RequestLevelEnum requestLevel) {
     EcsTlr ecsTlr = buildEcsTlr(PAGE, randomId(), randomId(), requestLevel);
     SearchInstancesResponse mockSearchInstancesResponse = new SearchInstancesResponse()
