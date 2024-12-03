@@ -110,8 +110,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       updateEcsTlrWithIntermediateRequest(ecsTlr, intermediateRequest);
     }
 
-    createDcbTransactions(ecsTlr, secondaryRequest,
-      intermediateRequest == null ? null : intermediateRequest.request(), centralTenantId);
+    dcbService.createTransactions(ecsTlr, secondaryRequest);
 
     return requestsMapper.mapEntityToDto(save(ecsTlr));
   }
@@ -234,34 +233,6 @@ public class EcsTlrServiceImpl implements EcsTlrService {
 
     log.info("updateEcsTlrWithIntermediateRequest:: ECS TLR updated in memory");
     log.debug("updateEcsTlrWithIntermediateRequest:: ECS TLR: {}", () -> ecsTlr);
-  }
-
-  private void createDcbTransactions(EcsTlrEntity ecsTlr, Request secondaryRequest,
-    Request intermediateRequest, String centralTenantId) {
-
-    if (secondaryRequest.getItemId() == null) {
-      log.info("createDcbTransactions:: secondary request has no item ID");
-      return;
-    }
-
-    if (intermediateRequest == null) {
-      log.info("createDcbTransactions:: intermediateRequest is null");
-
-      // TODO: BORROWING PICKUP
-      dcbService.createBorrowingPickupTransaction(ecsTlr, secondaryRequest, ecsTlr.getPrimaryRequestTenantId());
-
-      log.info("createDcbTransactions:: Creating lending transaction");
-      dcbService.createLendingTransaction(ecsTlr);
-    } else {
-      log.info("createDcbTransactions:: intermediateRequest is not null. " +
-        "Creating borrowing transaction in the central tenant");
-      dcbService.createBorrowingPickupTransaction(ecsTlr, secondaryRequest, centralTenantId);
-      log.info("createDcbTransactions:: Creating lending transaction");
-      dcbService.createLendingTransaction(ecsTlr);
-      log.info("createDcbTransactions:: Creating pickup transaction in tenant {}",
-        ecsTlr.getPrimaryRequestTenantId());
-      dcbService.createPickupTransaction(ecsTlr, secondaryRequest, ecsTlr.getPrimaryRequestTenantId());
-    }
   }
 
 }
