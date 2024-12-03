@@ -11,6 +11,7 @@ import org.folio.client.feign.DcbEcsTransactionClient;
 import org.folio.client.feign.DcbTransactionClient;
 import org.folio.domain.dto.DcbItem;
 import org.folio.domain.dto.DcbTransaction;
+import org.folio.domain.dto.DcbTransaction.RoleEnum;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.TransactionStatus;
 import org.folio.domain.dto.TransactionStatusResponse;
@@ -52,23 +53,6 @@ public class DcbServiceImpl implements DcbService {
   }
 
   @Override
-  public void createBorrowingPickupTransaction(EcsTlrEntity ecsTlr, Request request) {
-    log.info("createBorrowingPickupTransaction:: creating borrowing-pickup transaction for ECS TLR {}", ecsTlr::getId);
-    DcbItem dcbItem = new DcbItem()
-      .id(request.getItemId())
-      .title(request.getInstance().getTitle())
-      .barcode(request.getItem().getBarcode());
-    DcbTransaction transaction = new DcbTransaction()
-      .requestId(ecsTlr.getPrimaryRequestId().toString())
-      .item(dcbItem)
-      .role(BORROWING_PICKUP);
-    final UUID transactionId = createTransaction(transaction, ecsTlr.getPrimaryRequestTenantId());
-    ecsTlr.setPrimaryRequestDcbTransactionId(transactionId);
-    log.info("createBorrowingPickupTransaction:: borrowing-pickup transaction {} for ECS TLR {} created",
-      () -> transactionId, ecsTlr::getId);
-  }
-
-  @Override
   public void createBorrowerTransaction(EcsTlrEntity ecsTlr, Request request) {
     log.info("createBorrowerTransaction:: creating borrower transaction for ECS TLR {}", ecsTlr::getId);
     DcbItem dcbItem = new DcbItem()
@@ -86,8 +70,23 @@ public class DcbServiceImpl implements DcbService {
   }
 
   @Override
+  public void createBorrowingPickupTransaction(EcsTlrEntity ecsTlr, Request request) {
+    log.info("createBorrowingPickupTransaction:: creating borrowing-pickup transaction for ECS TLR {}",
+      ecsTlr::getId);
+    final UUID transactionId = createPickupTransaction(ecsTlr, request, BORROWING_PICKUP);
+    log.info("createBorrowingPickupTransaction:: borrowing-pickup transaction {} for ECS TLR {} created",
+      () -> transactionId, ecsTlr::getId);
+  }
+
+  @Override
   public void createPickupTransaction(EcsTlrEntity ecsTlr, Request request) {
     log.info("createPickupTransaction:: creating pickup transaction for ECS TLR {}", ecsTlr.getId());
+    final UUID transactionId = createPickupTransaction(ecsTlr, request, PICKUP);
+    log.info("createPickupTransaction:: pickup transaction {} for ECS TLR {} created",
+      () -> transactionId, ecsTlr::getId);
+  }
+
+  public UUID createPickupTransaction(EcsTlrEntity ecsTlr, Request request, RoleEnum role) {
     DcbItem dcbItem = new DcbItem()
       .id(request.getItemId())
       .title(request.getInstance().getTitle())
@@ -95,11 +94,11 @@ public class DcbServiceImpl implements DcbService {
     DcbTransaction transaction = new DcbTransaction()
       .requestId(ecsTlr.getPrimaryRequestId().toString())
       .item(dcbItem)
-      .role(PICKUP);
+      .role(role);
     final UUID transactionId = createTransaction(transaction, ecsTlr.getPrimaryRequestTenantId());
     ecsTlr.setPrimaryRequestDcbTransactionId(transactionId);
-    log.info("createPickupTransaction:: pickup transaction {} for ECS TLR {} created",
-      () -> transactionId, ecsTlr::getId);
+
+    return transactionId;
   }
 
   private UUID createTransaction(DcbTransaction transaction, String tenantId) {
