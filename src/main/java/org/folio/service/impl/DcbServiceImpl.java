@@ -86,7 +86,7 @@ public class DcbServiceImpl implements DcbService {
       () -> transactionId, ecsTlr::getId);
   }
 
-  public UUID createPickupTransaction(EcsTlrEntity ecsTlr, Request request, RoleEnum role) {
+  private UUID createPickupTransaction(EcsTlrEntity ecsTlr, Request request, RoleEnum role) {
     DcbItem dcbItem = new DcbItem()
       .id(request.getItemId())
       .title(request.getInstance().getTitle())
