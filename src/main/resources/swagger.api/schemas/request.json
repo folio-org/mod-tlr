@@ -120,12 +120,7 @@
                 "description": "UUID of resource identifier type (e.g. ISBN, ISSN, LCCN, CODEN, Locally defined identifiers)",
                 "$ref": "uuid.json"
               }
-            },
-            "additionalProperties": false,
-            "required": [
-              "value",
-              "identifierTypeId"
-            ]
+            }
           }
         }
       }
@@ -138,8 +133,7 @@
           "description": "barcode of the item",
           "type": "string"
         }
-      },
-      "additionalProperties": false
+      }
     },
     "requester": {
       "description": "Copy of some requesting patron metadata (used for searching and sorting), will be taken from the user referred to by the requesterId",
@@ -175,7 +169,6 @@
         "patronGroup": {
           "description": "record for the user's patron group",
           "type": "object",
-          "additionalProperties": false,
           "readonly": true,
           "properties": {
             "id": {
@@ -196,8 +189,7 @@
             }
           }
         }
-      },
-      "additionalProperties": false
+      }
     },
     "proxy": {
       "description": "Copy of some proxy patron metadata (used for searching and sorting), will be taken from the user referred to by the proxyUserId",
@@ -234,7 +226,6 @@
           "description": "record for the user's patrongroup",
           "type": "object",
           "readonly": true,
-          "additionalProperties": false,
           "properties": {
             "id": {
               "description": "ID of the patrongroup",
@@ -254,8 +245,7 @@
             }
           }
         }
-      },
-      "additionalProperties": false
+      }
     },
     "fulfillmentPreference": {
       "description": "How should the request be fulfilled (whether the item should be kept on the hold shelf for collection or delivered to the requester)",
@@ -308,8 +298,7 @@
           "readonly": true,
           "$ref": "uuid.json"
         }
-      },
-      "additionalProperties": false
+      }
     },
     "requestExpirationDate": {
       "description": "Date when the request expires",
@@ -328,7 +317,6 @@
     },
     "pickupServicePoint": {
       "description": "The full object of the Service Point record from pickupServicePointId",
-      "additionalProperties": false,
       "readonly": true,
       "properties": {
         "name": {
@@ -389,12 +377,5 @@
       "type": "object",
       "$ref": "request-search-index.json"
     }
-  },
-  "additionalProperties": false,
-  "required": [
-    "requesterId",
-    "requestType",
-    "requestDate",
-    "fulfillmentPreference"
-  ]
+  }
 }
