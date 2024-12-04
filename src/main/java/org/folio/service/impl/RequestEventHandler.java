@@ -183,7 +183,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
       ts -> log.info("determineNewTransactionStatus:: new transaction status: {}", ts),
       () -> log.info("determineNewTransactionStatus:: irrelevant request status change"));
 
-    return newTransactionStatus;
+    return Optional.empty();
   }
 
   private void updateTransactionStatus(UUID transactionId,
