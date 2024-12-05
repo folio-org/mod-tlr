@@ -12,18 +12,15 @@ import org.folio.domain.dto.Request;
 import org.folio.support.CqlQuery;
 
 public interface RequestService {
-  RequestWrapper createPrimaryRequest(Request request, String primaryRequestTenantId);
+  RequestWrapper createPrimaryRequest(Request request, String primaryRequestTenantId,
+    String secondaryRequestTenantId);
 
   RequestWrapper createSecondaryRequest(Request request, String primaryRequestTenantId,
     Collection<String> secondaryRequestTenantIds);
 
-  RequestWrapper createIntermediateRequest(Request request, String primaryRequestTenantId, String intermediateRequestTenantId);
-
-//  CirculationItem createCirculationItem(String itemId, String instanceId,
-//    String circulationItemTenantId, String inventoryTenantId);
-
-  CirculationItem createCirculationItem(String itemId, String instanceId,
-    String pickupLocation, String circulationItemTenantId, String inventoryTenantId);
+  RequestWrapper createIntermediateRequest(Request intermediateRequest,
+    String primaryRequestTenantId, String intermediateRequestTenantId,
+    String secondaryRequestTenantId);
 
   CirculationItem updateCirculationItemOnRequestCreation(CirculationItem circulationItem,
     Request secondaryRequest);

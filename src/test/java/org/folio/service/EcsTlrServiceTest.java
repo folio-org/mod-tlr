@@ -104,7 +104,7 @@ class EcsTlrServiceTest {
       .thenReturn(borrowingTenant);
     when(tenantService.getSecondaryRequestTenants(any(EcsTlrEntity.class)))
       .thenReturn(List.of(lendingTenant));
-    when(requestService.createPrimaryRequest(any(Request.class), any(String.class)))
+    when(requestService.createPrimaryRequest(any(Request.class), any(String.class), any(String.class)))
       .thenReturn(new RequestWrapper(primaryRequest, borrowingTenant));
     when(requestService.createSecondaryRequest(any(Request.class), any(String.class), any()))
       .thenReturn(new RequestWrapper(secondaryRequest, borrowingTenant));

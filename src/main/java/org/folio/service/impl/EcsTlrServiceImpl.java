@@ -63,49 +63,19 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     Request secondaryRequest = secondaryRequestWrapper.request();
     String secondaryRequestTenantId = secondaryRequestWrapper.tenantId();
 
-    log.info("create:: Creating circulation item for ECS TLR (ILR) in the primary request tenant {}, instance {}, item {}, requester {}",
-      primaryRequestTenantId, ecsTlrDto.getInstanceId(), ecsTlrDto.getItemId(), ecsTlrDto.getRequesterId());
-    CirculationItem circulationItem = requestService.createCirculationItem(
-      secondaryRequest.getItemId(), secondaryRequest.getInstanceId(),
-      secondaryRequest.getPickupServicePointId(), primaryRequestTenantId,
-      secondaryRequestTenantId);
-
     log.info("create:: Creating primary request for ECS TLR (ILR), instance {}, item {}, requester {}",
       ecsTlrDto.getInstanceId(), ecsTlrDto.getItemId(), ecsTlrDto.getRequesterId());
-    RequestWrapper primaryRequest = requestService.createPrimaryRequest(
-      buildPrimaryRequest(secondaryRequest), primaryRequestTenantId);
+    RequestWrapper primaryRequestWrapper = requestService.createPrimaryRequest(
+      buildPrimaryRequest(secondaryRequest), primaryRequestTenantId, secondaryRequestTenantId);
 
-    log.info("create:: Updating circulation item for ECS TLR (ILR), instance {}, item {}, requester {}",
-      ecsTlrDto.getInstanceId(), ecsTlrDto.getItemId(), ecsTlrDto.getRequesterId());
-    requestService.updateCirculationItemOnRequestCreation(circulationItem,
-      secondaryRequest);
-
-    updateEcsTlr(ecsTlr, primaryRequest, secondaryRequestWrapper);
+    updateEcsTlr(ecsTlr, primaryRequestWrapper, secondaryRequestWrapper);
 
     var centralTenantId = userTenantsService.getCentralTenantId();
     if (!primaryRequestTenantId.equals(centralTenantId)) {
       log.info("create:: Primary request tenant is not central, creating intermediate request");
-
-      log.info("create:: Creating circulation item for ECS TLR (ILR) in the central tenant {}, instance {}, item {}, requester {}",
-        centralTenantId, ecsTlrDto.getInstanceId(), ecsTlrDto.getItemId(), ecsTlrDto.getRequesterId());
-      CirculationItem centralTenantCirculationItem = requestService.createCirculationItem(
-        secondaryRequest.getItemId(), secondaryRequest.getInstanceId(),
-        secondaryRequest.getPickupServicePointId(), centralTenantId,
-        secondaryRequestTenantId);
-
-      log.info("create:: Creating intermediate request for ECS TLR (ILR), instance {}, item {}, requester {}",
-        ecsTlrDto.getInstanceId(), ecsTlrDto.getItemId(), ecsTlrDto.getRequesterId());
       RequestWrapper intermediateRequest = requestService.createIntermediateRequest(
-        buildIntermediateRequest(secondaryRequest), primaryRequestTenantId, centralTenantId);
-
-      log.info("create::  Intermediate request {} created, updating circulation item",
-        of(intermediateRequest)
-          .map(RequestWrapper::request)
-          .map(Request::getId)
-          .orElse(null));
-      requestService.updateCirculationItemOnRequestCreation(centralTenantCirculationItem,
-        secondaryRequest);
-
+        buildIntermediateRequest(secondaryRequest), primaryRequestTenantId, centralTenantId,
+        secondaryRequestTenantId);
       updateEcsTlrWithIntermediateRequest(ecsTlr, intermediateRequest);
     }
 
