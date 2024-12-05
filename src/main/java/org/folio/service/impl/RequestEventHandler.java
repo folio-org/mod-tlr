@@ -189,27 +189,32 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
   }
 
   private void updateTransactionStatus(UUID transactionId,
-    TransactionStatus.StatusEnum newTransactionStatus, String tenant) {
+    TransactionStatus.StatusEnum newStatus, String tenantId) {
 
     if (transactionId == null) {
       log.info("updateTransactionStatus:: transaction ID is null, doing nothing");
       return;
     }
-    if (tenant == null) {
+    if (tenantId == null) {
       log.info("updateTransactionStatus:: tenant ID is null, doing nothing");
       return;
     }
 
     try {
-      var currentStatus = dcbService.getTransactionStatus(transactionId, tenant).getStatus();
+      var currentStatus = dcbService.getTransactionStatus(transactionId, tenantId).getStatus();
       log.info("updateTransactionStatus:: current transaction status: {}", currentStatus);
-      if (newTransactionStatus.getValue().equals(currentStatus.getValue())) {
+      if (newStatus.getValue().equals(currentStatus.getValue())) {
         log.info("updateTransactionStatus:: transaction status did not change, doing nothing");
         return;
       }
-      dcbService.updateTransactionStatus(transactionId, newTransactionStatus, tenant);
+      log.info("updateTransactionStatus: changing status of transaction {} in tenant {} from {} to {}",
+        transactionId, tenantId, currentStatus.getValue(), newStatus.getValue());
+      dcbService.updateTransactionStatus(transactionId, newStatus, tenantId);
     } catch (FeignException.NotFound e) {
       log.error("updateTransactionStatus:: transaction {} not found: {}", transactionId, e.getMessage());
+    } catch (Exception e) {
+      log.error("updateTransactionStatus:: failed to update transaction status: {}", e::getMessage);
+      log.debug("updateTransactionStatus:: ", e);
     }
   }
 
