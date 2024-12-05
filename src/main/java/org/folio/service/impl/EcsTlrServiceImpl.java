@@ -83,7 +83,6 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     updateEcsTlr(ecsTlr, primaryRequest, secondaryRequestWrapper);
 
     var centralTenantId = userTenantsService.getCentralTenantId();
-    RequestWrapper intermediateRequest = null;
     if (!primaryRequestTenantId.equals(centralTenantId)) {
       log.info("create:: Primary request tenant is not central, creating intermediate request");
 
@@ -96,7 +95,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
 
       log.info("create:: Creating intermediate request for ECS TLR (ILR), instance {}, item {}, requester {}",
         ecsTlrDto.getInstanceId(), ecsTlrDto.getItemId(), ecsTlrDto.getRequesterId());
-      intermediateRequest = requestService.createIntermediateRequest(
+      RequestWrapper intermediateRequest = requestService.createIntermediateRequest(
         buildIntermediateRequest(secondaryRequest), primaryRequestTenantId, centralTenantId);
 
       log.info("create::  Intermediate request {} created, updating circulation item",

@@ -186,8 +186,8 @@ public class RequestServiceImpl implements RequestService {
     CirculationItem existingCirculationItem = executionService.executeSystemUserScoped(
       circulationItemTenantId, () -> circulationItemClient.getCirculationItem(itemId));
     if (existingCirculationItem != null) {
-      log.info("createCirculationItem:: circulation item already exists in ten" +
-        "ant {}", circulationItemTenantId);
+      log.info("createCirculationItem:: circulation item already exists in tenant {}",
+        circulationItemTenantId);
 
       return existingCirculationItem;
     }
