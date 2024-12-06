@@ -136,7 +136,9 @@
             "addresstypes.item.get",
             "addresstypes.collection.get",
             "inventory-storage.service-points.item.get",
-            "inventory-storage.service-points.collection.get"
+            "inventory-storage.service-points.collection.get",
+            "inventory-storage.instances.item.get",
+            "inventory-storage.instances.collection.get"
           ]
         }
       ]
@@ -245,6 +247,10 @@
       "permissionName": "tlr.pick-slips.collection.get",
       "displayName": "ecs-tlr - pick slips",
       "description": "Get pick slips"
+    },    {
+      "permissionName": "tlr.search-slips.collection.get",
+      "displayName": "ecs-tlr - search slips",
+      "description": "Get search slips"
     },
     {
       "permissionName": "tlr.ecs-request-external.post",
