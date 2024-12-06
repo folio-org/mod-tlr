@@ -6,4 +6,5 @@
 
   <include file="changes/initial_schema.xml" relativeToChangelogFile="true"/>
   <include file="changes/2024-09-05-add-holdings-record-id-column.xml" relativeToChangelogFile="true"/>
+  <include file="changes/2024-10-03-add-intermediate-phase-columns.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

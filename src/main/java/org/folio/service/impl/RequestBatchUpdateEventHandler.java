@@ -61,14 +61,14 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
   }
 
   private void updateQueuePositions(List<Request> unifiedQueue, boolean isTlrRequestQueue) {
-    log.info("updateQueuePositions:: parameters unifiedQueue: {}", unifiedQueue);
+    log.debug("updateQueuePositions:: parameters unifiedQueue: {}", unifiedQueue);
     List<UUID> sortedPrimaryRequestIds = unifiedQueue.stream()
       .filter(request -> PRIMARY == request.getEcsRequestPhase())
       .filter(request -> request.getPosition() != null)
       .sorted(Comparator.comparing(Request::getPosition))
       .map(request -> UUID.fromString(request.getId()))
       .toList();
-    log.info("updateQueuePositions:: sortedPrimaryRequestIds: {}", sortedPrimaryRequestIds);
+    log.debug("updateQueuePositions:: sortedPrimaryRequestIds: {}", sortedPrimaryRequestIds);
 
     List<EcsTlrEntity> ecsTlrByPrimaryRequests = ecsTlrRepository.findByPrimaryRequestIdIn(
       sortedPrimaryRequestIds);
@@ -101,7 +101,7 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
   private List<EcsTlrEntity> sortEcsTlrEntities(List<UUID> sortedPrimaryRequestIds,
     List<EcsTlrEntity> ecsTlrQueue) {
 
-    log.info("sortEcsTlrEntities:: parameters sortedPrimaryRequestIds: {}, ecsTlrQueue: {}",
+    log.debug("sortEcsTlrEntities:: parameters sortedPrimaryRequestIds: {}, ecsTlrQueue: {}",
       sortedPrimaryRequestIds, ecsTlrQueue);
     Map<UUID, EcsTlrEntity> ecsTlrByPrimaryRequestId = ecsTlrQueue.stream()
       .collect(toMap(EcsTlrEntity::getPrimaryRequestId, Function.identity()));
@@ -109,7 +109,7 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
       .stream()
       .map(ecsTlrByPrimaryRequestId::get)
       .toList();
-    log.info("sortEcsTlrEntities:: result: {}", sortedEcsTlrQueue);
+    log.debug("sortEcsTlrEntities:: result: {}", sortedEcsTlrQueue);
 
     return sortedEcsTlrQueue;
   }
@@ -118,7 +118,7 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
     Map<String, List<Request>> groupedSecondaryRequestsByTenantId,
     List<EcsTlrEntity> sortedEcsTlrQueue, boolean isTlrRequestQueue) {
 
-    log.info("reorderSecondaryRequestsQueue:: parameters groupedSecondaryRequestsByTenantId: {}, " +
+    log.debug("reorderSecondaryRequestsQueue:: parameters groupedSecondaryRequestsByTenantId: {}, " +
       "sortedEcsTlrQueue: {}", groupedSecondaryRequestsByTenantId, sortedEcsTlrQueue);
 
     Map<UUID, Integer> correctOrder = IntStream.range(0, sortedEcsTlrQueue.size())
@@ -198,12 +198,12 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
       new ReorderQueueReorderedQueueInner()
         .id(request.getId())
         .newPosition(request.getPosition())));
-    log.info("updateReorderedRequests:: reorderQueue: {}", reorderQueue);
+    log.debug("updateReorderedRequests:: reorderQueue: {}", reorderQueue);
 
     List<Request> requests = isTlrRequestQueue
       ? requestService.reorderRequestsQueueForInstance(id, tenantId, reorderQueue)
       : requestService.reorderRequestsQueueForItem(id, tenantId, reorderQueue);
 
-    log.info("updateReorderedRequests:: result: {}", requests);
+    log.debug("updateReorderedRequests:: result: {}", requests);
   }
 }

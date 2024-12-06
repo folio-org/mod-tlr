@@ -564,7 +564,7 @@ class KafkaEventListenerTest extends BaseIT {
     assertNotNull(secondaryRequestDcbTransactionId);
 
     DcbTransaction expectedBorrowerTransaction = new DcbTransaction()
-      .role(DcbTransaction.RoleEnum.BORROWER)
+      .role(DcbTransaction.RoleEnum.BORROWING_PICKUP)
       .item(new DcbItem()
         .id(ecsTlr.getItemId().toString())
         .barcode("test")

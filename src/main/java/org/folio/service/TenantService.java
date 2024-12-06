@@ -5,7 +5,7 @@ import java.util.List;
 import org.folio.domain.entity.EcsTlrEntity;
 
 public interface TenantService {
-  String getBorrowingTenant(EcsTlrEntity ecsTlr);
+  String getPrimaryRequestTenantId(EcsTlrEntity ecsTlr);
 
-  List<String> getLendingTenants(EcsTlrEntity ecsTlr);
+  List<String> getSecondaryRequestTenants(EcsTlrEntity ecsTlr);
 }

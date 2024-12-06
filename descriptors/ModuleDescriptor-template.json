@@ -28,7 +28,9 @@
             "users.collection.get",
             "users.item.post",
             "inventory-storage.service-points.item.get",
-            "inventory-storage.service-points.collection.get"
+            "inventory-storage.service-points.collection.get",
+            "inventory-storage.service-points.item.post",
+            "user-tenants.collection.get"
           ]
         },
         {

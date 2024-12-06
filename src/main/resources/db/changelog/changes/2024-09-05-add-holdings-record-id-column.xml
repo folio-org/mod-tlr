@@ -5,6 +5,7 @@
     http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-2.0.xsd">
 
     <changeSet id="addHoldingsRecordIdColumnToEcsTlrTable" author="Alexander Kurash">
+        <validCheckSum>ANY</validCheckSum>
         <addColumn tableName="ecs_tlr">
             <column name="holdings_record_id" type="uuid"/>
         </addColumn>

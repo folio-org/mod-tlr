@@ -62,8 +62,6 @@ public abstract class AllowedServicePointsServiceImpl implements AllowedServiceP
     Map<String, AllowedServicePointsInner> recall = new HashMap<>();
     for (String tenantId : getLendingTenants(request)) {
       var servicePoints = getAllowedServicePointsFromTenant(request, patronGroupId, tenantId);
-      log.info("getForCreate:: service points from {}: {}", tenantId, servicePoints);
-
       combineAndFilterDuplicates(page, servicePoints.getPage());
       combineAndFilterDuplicates(hold, servicePoints.getHold());
       combineAndFilterDuplicates(recall, servicePoints.getRecall());
