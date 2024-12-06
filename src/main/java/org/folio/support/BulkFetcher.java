@@ -2,6 +2,7 @@ package org.folio.support;
 
 import static java.util.Collections.emptyList;
 import static java.util.function.UnaryOperator.identity;
+import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
 import java.util.Collection;
@@ -63,9 +64,9 @@ public class BulkFetcher {
       .map(client::getByQuery)
       .map(collectionExtractor)
       .flatMap(Collection::stream)
-      .toList();
+      .collect(toList());
 
-    log.info("fetch:: fetched {} objects", result::size);
+    log.info("fetch:: fetched {} object(s)", result::size);
     return result;
   }
 

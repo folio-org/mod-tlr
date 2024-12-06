@@ -63,7 +63,7 @@ properties:
   request:
     type: object
     properties:
-      requestId:
+      requestID:
         type: string
         format: uuid
       servicePointPickup:

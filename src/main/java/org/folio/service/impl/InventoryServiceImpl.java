@@ -2,6 +2,8 @@ package org.folio.service.impl;
 
 import java.util.Collection;
 
+import org.folio.client.feign.HoldingClient;
+import org.folio.client.feign.InstanceClient;
 import org.folio.client.feign.ItemClient;
 import org.folio.client.feign.LoanTypeClient;
 import org.folio.client.feign.LocationCampusClient;
@@ -10,6 +12,10 @@ import org.folio.client.feign.LocationLibraryClient;
 import org.folio.client.feign.MaterialTypeClient;
 import org.folio.domain.dto.Campus;
 import org.folio.domain.dto.Campuses;
+import org.folio.domain.dto.HoldingsRecord;
+import org.folio.domain.dto.HoldingsRecords;
+import org.folio.domain.dto.Instance;
+import org.folio.domain.dto.Instances;
 import org.folio.domain.dto.Institution;
 import org.folio.domain.dto.Institutions;
 import org.folio.domain.dto.Item;
@@ -34,6 +40,8 @@ import lombok.extern.log4j.Log4j2;
 public class InventoryServiceImpl implements InventoryService {
 
   private final ItemClient itemClient;
+  private final InstanceClient instanceClient;
+  private final HoldingClient holdingClient;
   private final MaterialTypeClient materialTypeClient;
   private final LoanTypeClient loanTypeClient;
   private final LocationLibraryClient libraryClient;
@@ -45,65 +53,64 @@ public class InventoryServiceImpl implements InventoryService {
     log.info("findItems:: searching items by query and index: query={}, index={}, ids={}",
       query, idIndex, ids.size());
     log.debug("findItems:: ids={}", ids);
-    Collection<Item> items = BulkFetcher.fetch(itemClient, query, idIndex, ids, Items::getItems);
-    log.info("findItems:: found {} items", items::size);
-    return items;
+    return BulkFetcher.fetch(itemClient, query, idIndex, ids, Items::getItems);
   }
 
   @Override
-  public Collection<Item> findItems(Collection<String> ids) {
-    log.info("findItems:: searching items by {} IDs", ids::size);
-    log.debug("findItems:: ids={}", ids);
-    Collection<Item> items = BulkFetcher.fetch(itemClient, ids, Items::getItems);
-    log.info("findItems:: found {} items", items::size);
-    return items;
+  public Collection<HoldingsRecord> findHoldings(CqlQuery query, String idIndex, Collection<String> ids) {
+    log.info("findHoldings:: searching holdings by query and index: query={}, index={}, ids={}",
+      query, idIndex, ids.size());
+    log.debug("findHoldings:: ids={}", ids);
+    return BulkFetcher.fetch(holdingClient, query, idIndex, ids, HoldingsRecords::getHoldingsRecords);
+  }
+
+  @Override
+  public Collection<HoldingsRecord> findHoldings(Collection<String> ids) {
+    log.info("findHoldings:: searching holdings by {} IDs", ids::size);
+    return BulkFetcher.fetch(holdingClient, ids, HoldingsRecords::getHoldingsRecords);
+  }
+
+
+  @Override
+  public Collection<Instance> findInstances(Collection<String> ids) {
+    log.info("findInstances:: searching instances by {} IDs", ids::size);
+    log.debug("findInstances:: ids={}", ids);
+    return BulkFetcher.fetch(instanceClient, ids, Instances::getInstances);
   }
 
   @Override
   public Collection<MaterialType> findMaterialTypes(Collection<String> ids) {
     log.info("findMaterialTypes:: searching material types by {} IDs", ids::size);
     log.debug("findMaterialTypes:: ids={}", ids);
-    Collection<MaterialType> materialTypes = BulkFetcher.fetch(materialTypeClient, ids,
-      MaterialTypes::getMtypes);
-    log.info("findMaterialTypes:: found {} material types", materialTypes::size);
-    return materialTypes;
+    return BulkFetcher.fetch(materialTypeClient, ids, MaterialTypes::getMtypes);
   }
 
   @Override
   public Collection<LoanType> findLoanTypes(Collection<String> ids) {
     log.info("findLoanTypes:: searching loan types by {} IDs", ids::size);
     log.debug("findLoanTypes:: ids={}", ids);
-    Collection<LoanType> loanTypes = BulkFetcher.fetch(loanTypeClient, ids, LoanTypes::getLoantypes);
-    log.info("findLoanTypes:: found {} loan types", loanTypes::size);
-    return loanTypes;
+    return BulkFetcher.fetch(loanTypeClient, ids, LoanTypes::getLoantypes);
   }
 
   @Override
   public Collection<Library> findLibraries(Collection<String> ids) {
     log.info("findLibraries:: searching libraries by {} IDs", ids::size);
     log.debug("findLibraries:: ids={}", ids);
-    Collection<Library> libraries = BulkFetcher.fetch(libraryClient, ids, Libraries::getLoclibs);
-    log.info("findLibraries:: found {} libraries", libraries::size);
-    return libraries;
+    return BulkFetcher.fetch(libraryClient, ids, Libraries::getLoclibs);
   }
 
   @Override
   public Collection<Campus> findCampuses(Collection<String> ids) {
     log.info("findCampuses:: searching campuses by {} IDs", ids::size);
     log.debug("findCampuses:: ids={}", ids);
-    Collection<Campus> campuses = BulkFetcher.fetch(campusClient, ids, Campuses::getLoccamps);
-    log.info("findCampuses:: found {} campuses", campuses::size);
-    return campuses;
+    return BulkFetcher.fetch(campusClient, ids, Campuses::getLoccamps);
   }
 
   @Override
   public Collection<Institution> findInstitutions(Collection<String> ids) {
     log.info("findInstitutions:: searching institutions by {} IDs", ids::size);
     log.debug("findInstitutions:: ids={}", ids);
-    Collection<Institution> institutions = BulkFetcher.fetch(institutionClient, ids,
-      Institutions::getLocinsts);
-    log.info("findInstitutions:: found {} institutions", institutions::size);
-    return institutions;
+    return BulkFetcher.fetch(institutionClient, ids, Institutions::getLocinsts);
   }
 
 }

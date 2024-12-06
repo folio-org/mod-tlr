@@ -1,0 +1,11 @@
+description: "Search slips response"
+type: "object"
+properties:
+  totalRecords:
+    type: "integer"
+    description: "Total number of search slips"
+  searchSlips:
+    type: "array"
+    description: "Collection of search clips"
+    items:
+      $ref: "staffSlip.yaml"
