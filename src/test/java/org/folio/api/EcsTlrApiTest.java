@@ -220,7 +220,7 @@ class EcsTlrApiTest extends BaseIT {
     // 1.5 Mock DCB endpoints
 
     DcbTransaction borrowerTransactionPostRequest = new DcbTransaction()
-      .role(DcbTransaction.RoleEnum.BORROWER)
+      .role(DcbTransaction.RoleEnum.BORROWING_PICKUP)
       .item(new DcbItem()
         .id(ITEM_ID)
         .barcode(ITEM_BARCODE)

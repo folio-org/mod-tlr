@@ -46,6 +46,8 @@ class EcsTlrServiceTest {
   private TenantService tenantService;
   @Mock
   private DcbService dcbService;
+  @Mock
+  private UserTenantsService userTenantsService;
   @Spy
   private final EcsTlrMapper ecsTlrMapper = new EcsTlrMapperImpl();
 
@@ -99,6 +101,7 @@ class EcsTlrServiceTest {
       .id(UUID.randomUUID().toString())
       .itemId(UUID.randomUUID().toString());
 
+    when(userTenantsService.getCentralTenantId()).thenReturn(borrowingTenant);
     when(ecsTlrRepository.save(any(EcsTlrEntity.class))).thenReturn(mockEcsTlrEntity);
     when(tenantService.getPrimaryRequestTenantId(any(EcsTlrEntity.class)))
       .thenReturn(borrowingTenant);
@@ -140,7 +143,7 @@ class EcsTlrServiceTest {
     TenantPickingException exception = assertThrows(TenantPickingException.class,
       () -> ecsTlrService.create(ecsTlr));
 
-    assertEquals("Failed to get borrowing tenant", exception.getMessage());
+    assertEquals("Failed to get primary request tenant", exception.getMessage());
   }
 
   @Test
@@ -155,6 +158,6 @@ class EcsTlrServiceTest {
     TenantPickingException exception = assertThrows(TenantPickingException.class,
       () -> ecsTlrService.create(ecsTlr));
 
-    assertEquals("Failed to find lending tenants for instance " + instanceId, exception.getMessage());
+    assertEquals("Failed to find secondary request tenants for instance " + instanceId, exception.getMessage());
   }
 }

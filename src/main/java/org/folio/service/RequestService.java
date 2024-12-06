@@ -26,9 +26,7 @@ public interface RequestService {
     Request secondaryRequest);
 
   InventoryItem getItemFromStorage(String itemId, String tenantId);
-
   InventoryInstance getInstanceFromStorage(String instanceId, String tenantId);
-
   Request getRequestFromStorage(String requestId, String tenantId);
   Request getRequestFromStorage(String requestId);
   Collection<Request> getRequestsFromStorage(CqlQuery query, String idIndex, Collection<String> ids);

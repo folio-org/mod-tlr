@@ -26,7 +26,6 @@ import org.folio.domain.dto.ServicePoint;
 import org.folio.domain.dto.User;
 import org.folio.exception.RequestCreatingException;
 import org.folio.service.CloningService;
-import org.folio.service.ConsortiaService;
 import org.folio.service.RequestService;
 import org.folio.service.ServicePointService;
 import org.folio.service.UserService;
@@ -54,8 +53,6 @@ public class RequestServiceImpl implements RequestService {
   private final ServicePointService servicePointService;
   private final CloningService<User> userCloningService;
   private final CloningService<ServicePoint> servicePointCloningService;
-  private final ConsortiaService consortiaService;
-  private final UserTenantsServiceImpl userTenantsService;
   private final SystemUserScopedExecutionService systemUserScopedExecutionService;
 
   public static final String HOLDINGS_RECORD_ID = "10cd3a5a-d36f-4c7a-bc4f-e1ae3cf820c9";

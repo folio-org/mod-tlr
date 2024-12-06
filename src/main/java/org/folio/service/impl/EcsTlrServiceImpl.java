@@ -9,7 +9,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.folio.domain.RequestWrapper;
-import org.folio.domain.dto.CirculationItem;
 import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.Request;
 import org.folio.domain.entity.EcsTlrEntity;
@@ -20,6 +19,7 @@ import org.folio.service.DcbService;
 import org.folio.service.EcsTlrService;
 import org.folio.service.RequestService;
 import org.folio.service.TenantService;
+import org.folio.service.UserTenantsService;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -35,7 +35,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   private final TenantService tenantService;
   private final RequestService requestService;
   private final DcbService dcbService;
-  private final UserTenantsServiceImpl userTenantsService;
+  private final UserTenantsService userTenantsService;
 
   @Override
   public Optional<EcsTlr> get(UUID id) {
