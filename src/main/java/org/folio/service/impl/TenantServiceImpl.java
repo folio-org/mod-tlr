@@ -55,9 +55,6 @@ public class TenantServiceImpl implements TenantService {
 
     log.info("getPrimaryRequestTenantId:: returning primaryRequestTenantId");
     return ecsTlr.getPrimaryRequestTenantId();
-
-//    log.info("getPrimaryRequestTenantId:: getting borrowing tenant");
-//    return HttpUtils.getTenantFromToken();
   }
 
   @Override

@@ -163,7 +163,6 @@ public class RequestServiceImpl implements RequestService {
       Request request = circulationClient.createRequest(intermediateRequest);
       log.info("createIntermediateRequest:: intermediate request {} created in tenant {}",
         request.getId(), intermediateRequestTenantId);
-      log.info("createIntermediateRequest:: intermediate request: {}", () -> request);
 
       updateCirculationItemOnRequestCreation(circItem, request);
 
