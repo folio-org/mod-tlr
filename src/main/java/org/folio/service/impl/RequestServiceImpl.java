@@ -139,7 +139,6 @@ public class RequestServiceImpl implements RequestService {
       final String requesterId = intermediateRequest.getRequesterId();
       final String pickupServicePointId = intermediateRequest.getPickupServicePointId();
 
-      // TODO: fetch both in one call to system user
       User primaryRequestRequester = executionService.executeSystemUserScoped(primaryRequestTenantId,
         () -> userService.find(requesterId));
       ServicePoint primaryRequestPickupServicePoint = executionService.executeSystemUserScoped(
@@ -210,7 +209,6 @@ public class RequestServiceImpl implements RequestService {
       return existingCirculationItem;
     }
 
-    // TODO: fetch both in one system user call
     InventoryItem item = getItemFromStorage(itemId, inventoryTenantId);
     InventoryInstance instance = getInstanceFromStorage(instanceId, inventoryTenantId);
 

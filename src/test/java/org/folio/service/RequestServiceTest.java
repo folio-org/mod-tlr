@@ -39,7 +39,6 @@ class RequestServiceTest {
   private Request secondaryRequest;
   private static final String ITEM_ID = UUID.randomUUID().toString();
   private static final String INSTANCE_ID = UUID.randomUUID().toString();
-  private static final String BORROWER_ID = UUID.randomUUID().toString();
   private static final String LENDER_ID = UUID.randomUUID().toString();
   private static final String HOLDINGS_RECORD_ID = "10cd3a5a-d36f-4c7a-bc4f-e1ae3cf820c9";
   private static final String LENDING_LIBRARY_CODE = "TEST_CODE";
