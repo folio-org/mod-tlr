@@ -177,7 +177,16 @@ public class RequestServiceImpl implements RequestService {
     throw new RequestCreatingException(errorMessage);
   }
 
-  private CirculationItem createCirculationItem(Request request, String inventoryTenantId) {
+  public CirculationItem createCirculationItem(Request request, String inventoryTenantId) {
+    if (request == null) {
+      log.warn("createCirculationItem:: request is null, skipping");
+      return null;
+    }
+    if (inventoryTenantId == null) {
+      log.warn("createCirculationItem:: inventory tenant ID is null, skipping");
+      return null;
+    }
+
     String itemId = request.getItemId();
     String instanceId = request.getInstanceId();
     String pickupLocation = request.getPickupServicePointId();
