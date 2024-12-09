@@ -7,6 +7,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.exactly;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.not;
 import static com.github.tomakehurst.wiremock.client.WireMock.notFound;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
@@ -15,6 +16,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static org.folio.domain.dto.EcsTlr.RequestTypeEnum.HOLD;
 import static org.folio.domain.dto.EcsTlr.RequestTypeEnum.PAGE;
+import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.INTERMEDIATE;
+import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.PRIMARY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -50,6 +53,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+import com.github.tomakehurst.wiremock.client.WireMock;
 
 class EcsTlrApiTest extends BaseIT {
   private static final String ITEM_ID = randomId();
@@ -62,6 +66,7 @@ class EcsTlrApiTest extends BaseIT {
   private static final String REQUESTER_BARCODE = randomId();
   private static final String SECONDARY_REQUEST_ID = randomId();
   private static final String PRIMARY_REQUEST_ID = SECONDARY_REQUEST_ID;
+  private static final String INTERMEDIATE_REQUEST_ID = SECONDARY_REQUEST_ID;
 
   private static final String UUID_PATTERN =
     "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}";
@@ -113,10 +118,11 @@ class EcsTlrApiTest extends BaseIT {
     "RECALL, false, true, ITEM",
     "RECALL, false, false, ITEM"
   })
-  void ecsTlrIsCreated(RequestTypeEnum requestType, boolean secondaryRequestRequesterExists,
-    boolean secondaryRequestPickupServicePointExists, EcsTlr.RequestLevelEnum requestLevel) {
+  void ecsTlrIsCreated(RequestTypeEnum requestType, boolean requesterClonesExist,
+    boolean pickupServicePointClonesExist, EcsTlr.RequestLevelEnum requestLevel) {
 
-    EcsTlr ecsTlr = buildEcsTlr(requestType, requestLevel);
+    EcsTlr ecsTlr = buildEcsTlr(requestType, requestLevel)
+      .primaryRequestTenantId(TENANT_ID_UNIVERSITY);
 
     // 1. Create stubs for other modules
     // 1.1 Mock search endpoint
@@ -148,51 +154,54 @@ class EcsTlrApiTest extends BaseIT {
     // 1.2 Mock user endpoints
 
     User primaryRequestRequester = buildPrimaryRequestRequester(REQUESTER_ID);
-    User secondaryRequestRequester = buildSecondaryRequestRequester(primaryRequestRequester,
-      secondaryRequestRequesterExists);
+    User requesterClone = buildRequesterClone(primaryRequestRequester,
+      requesterClonesExist);
 
     wireMockServer.stubFor(get(urlMatching(USERS_URL + "/" + REQUESTER_ID))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
       .willReturn(jsonResponse(primaryRequestRequester, HttpStatus.SC_OK)));
 
-    ResponseDefinitionBuilder mockGetSecondaryRequesterResponse = secondaryRequestRequesterExists
-      ? jsonResponse(secondaryRequestRequester, HttpStatus.SC_OK)
+    ResponseDefinitionBuilder mockGetClonedRequesterResponse = requesterClonesExist
+      ? jsonResponse(requesterClone, HttpStatus.SC_OK)
       : notFound();
 
     wireMockServer.stubFor(get(urlMatching(USERS_URL + "/" + REQUESTER_ID))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
-      .willReturn(mockGetSecondaryRequesterResponse));
+      .withHeader(HEADER_TENANT, WireMock.including(TENANT_ID_COLLEGE))
+      .willReturn(mockGetClonedRequesterResponse));
+
+    wireMockServer.stubFor(get(urlMatching(USERS_URL + "/" + REQUESTER_ID))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(mockGetClonedRequesterResponse));
 
     wireMockServer.stubFor(post(urlMatching(USERS_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
-      .willReturn(jsonResponse(secondaryRequestRequester, HttpStatus.SC_CREATED)));
+      .withHeader(HEADER_TENANT, not(equalTo(TENANT_ID_UNIVERSITY)))
+      .willReturn(jsonResponse(requesterClone, HttpStatus.SC_CREATED)));
 
     wireMockServer.stubFor(put(urlMatching(USERS_URL + "/" + REQUESTER_ID))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
+      .withHeader(HEADER_TENANT, not(equalTo(TENANT_ID_UNIVERSITY)))
       .willReturn(jsonResponse(primaryRequestRequester, HttpStatus.SC_NO_CONTENT)));
 
     // 1.3 Mock service point endpoints
 
     ServicePoint primaryRequestPickupServicePoint =
       buildPrimaryRequestPickupServicePoint(PICKUP_SERVICE_POINT_ID);
-    ServicePoint secondaryRequestPickupServicePoint =
-      buildSecondaryRequestPickupServicePoint(primaryRequestPickupServicePoint);
+    ServicePoint servicePointClone = buildPickupServicePointClone(primaryRequestPickupServicePoint);
 
     wireMockServer.stubFor(get(urlMatching(SERVICE_POINTS_URL + "/" + PICKUP_SERVICE_POINT_ID))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
       .willReturn(jsonResponse(asJsonString(primaryRequestPickupServicePoint), HttpStatus.SC_OK)));
 
-    var mockGetSecondaryRequestPickupServicePointResponse = secondaryRequestPickupServicePointExists
-      ? jsonResponse(asJsonString(secondaryRequestPickupServicePoint), HttpStatus.SC_OK)
+    var mockGetClonedPickupServicePointResponse = pickupServicePointClonesExist
+      ? jsonResponse(asJsonString(servicePointClone), HttpStatus.SC_OK)
       : notFound();
 
     wireMockServer.stubFor(get(urlMatching(SERVICE_POINTS_URL + "/" + PICKUP_SERVICE_POINT_ID))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
-      .willReturn(mockGetSecondaryRequestPickupServicePointResponse));
+      .withHeader(HEADER_TENANT, not(equalTo(TENANT_ID_UNIVERSITY)))
+      .willReturn(mockGetClonedPickupServicePointResponse));
 
     wireMockServer.stubFor(post(urlMatching(SERVICE_POINTS_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
-      .willReturn(jsonResponse(asJsonString(secondaryRequestPickupServicePoint), HttpStatus.SC_CREATED)));
+      .withHeader(HEADER_TENANT, not(equalTo(TENANT_ID_UNIVERSITY)))
+      .willReturn(jsonResponse(asJsonString(servicePointClone), HttpStatus.SC_CREATED)));
 
     // 1.4 Mock request endpoints
 
@@ -204,8 +213,11 @@ class EcsTlrApiTest extends BaseIT {
       .item(new RequestItem().barcode(ITEM_BARCODE))
       .instance(new RequestInstance().title(INSTANCE_TITLE));
 
-    Request primaryRequestPostRequest = buildPrimaryRequest(secondaryRequestPostRequest);
-    Request mockPostPrimaryRequestResponse = buildPrimaryRequest(mockPostSecondaryRequestResponse);
+    Request primaryRequestPostRequest = buildRequest(secondaryRequestPostRequest, PRIMARY);
+    Request mockPostPrimaryRequestResponse = buildRequest(mockPostSecondaryRequestResponse, PRIMARY);
+
+    Request intermediateRequestPostRequest = buildRequest(secondaryRequestPostRequest, INTERMEDIATE);
+    Request mockPostIntermediateRequestResponse = buildRequest(mockPostSecondaryRequestResponse, INTERMEDIATE);
 
     wireMockServer.stubFor(post(urlMatching(REQUESTS_URL))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
@@ -213,19 +225,32 @@ class EcsTlrApiTest extends BaseIT {
       .willReturn(jsonResponse(asJsonString(mockPostSecondaryRequestResponse), HttpStatus.SC_CREATED)));
 
     wireMockServer.stubFor(post(urlMatching(REQUESTS_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
       .withRequestBody(equalToJson(asJsonString(primaryRequestPostRequest)))
       .willReturn(jsonResponse(asJsonString(mockPostPrimaryRequestResponse), HttpStatus.SC_CREATED)));
 
+    wireMockServer.stubFor(post(urlMatching(REQUESTS_URL))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .withRequestBody(equalToJson(asJsonString(intermediateRequestPostRequest)))
+      .willReturn(jsonResponse(asJsonString(mockPostIntermediateRequestResponse), HttpStatus.SC_CREATED)));
+
     // 1.5 Mock DCB endpoints
 
-    DcbTransaction borrowerTransactionPostRequest = new DcbTransaction()
-      .role(DcbTransaction.RoleEnum.BORROWING_PICKUP)
+    DcbTransaction pickupTransactionPostRequest = new DcbTransaction()
+      .role(DcbTransaction.RoleEnum.PICKUP)
       .item(new DcbItem()
         .id(ITEM_ID)
         .barcode(ITEM_BARCODE)
         .title(INSTANCE_TITLE))
       .requestId(PRIMARY_REQUEST_ID);
+
+    DcbTransaction borrowerTransactionPostRequest = new DcbTransaction()
+      .role(DcbTransaction.RoleEnum.BORROWER)
+      .item(new DcbItem()
+        .id(ITEM_ID)
+        .barcode(ITEM_BARCODE)
+        .title(INSTANCE_TITLE))
+      .requestId(INTERMEDIATE_REQUEST_ID);
 
     DcbTransaction lenderTransactionPostRequest = new DcbTransaction()
       .role(DcbTransaction.RoleEnum.LENDER)
@@ -233,6 +258,11 @@ class EcsTlrApiTest extends BaseIT {
 
     TransactionStatusResponse mockPostEcsDcbTransactionResponse = new TransactionStatusResponse()
       .status(TransactionStatusResponse.StatusEnum.CREATED);
+
+    wireMockServer.stubFor(post(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
+      .withRequestBody(equalToJson(asJsonString(pickupTransactionPostRequest)))
+      .willReturn(jsonResponse(mockPostEcsDcbTransactionResponse, HttpStatus.SC_CREATED)));
 
     wireMockServer.stubFor(post(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
@@ -243,6 +273,8 @@ class EcsTlrApiTest extends BaseIT {
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
       .withRequestBody(equalToJson(asJsonString(lenderTransactionPostRequest)))
       .willReturn(jsonResponse(mockPostEcsDcbTransactionResponse, HttpStatus.SC_CREATED)));
+
+    // 1.6 Mock circulation item endpoints
 
     wireMockServer.stubFor(get(urlMatching("/circulation-item/" + ITEM_ID))
       .willReturn(notFound()));
@@ -279,9 +311,11 @@ class EcsTlrApiTest extends BaseIT {
 
     EcsTlr expectedPostEcsTlrResponse = buildEcsTlr(requestType, requestLevel)
       .primaryRequestId(PRIMARY_REQUEST_ID)
-      .primaryRequestTenantId(TENANT_ID_CONSORTIUM)
+      .primaryRequestTenantId(TENANT_ID_UNIVERSITY)
       .secondaryRequestId(SECONDARY_REQUEST_ID)
       .secondaryRequestTenantId(TENANT_ID_COLLEGE)
+      .intermediateRequestId(INTERMEDIATE_REQUEST_ID)
+      .intermediateRequestTenantId(TENANT_ID_CONSORTIUM)
       .itemId(requestType == HOLD ? null : ITEM_ID);
 
     assertEquals(TENANT_ID_CONSORTIUM, getCurrentTenantId());
@@ -320,23 +354,26 @@ class EcsTlrApiTest extends BaseIT {
 
     wireMockServer.verify(postRequestedFor(urlMatching(REQUESTS_URL))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
-      .withRequestBody(equalToJson(asJsonString(primaryRequestPostRequest))));
+      .withRequestBody(equalToJson(asJsonString(intermediateRequestPostRequest))));
 
-    if (secondaryRequestRequesterExists) {
+    if (requesterClonesExist) {
       wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(USERS_URL)));
-      wireMockServer.verify(exactly(1), putRequestedFor(urlMatching(USERS_URL + "/" + REQUESTER_ID)));
+      wireMockServer.verify(exactly(2), putRequestedFor(urlMatching(USERS_URL + "/" + REQUESTER_ID)));
     } else {
       wireMockServer.verify(postRequestedFor(urlMatching(USERS_URL))
         .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
-        .withRequestBody(equalToJson(asJsonString(secondaryRequestRequester))));
+        .withRequestBody(equalToJson(asJsonString(requesterClone))));
     }
 
-    if (secondaryRequestPickupServicePointExists) {
+    if (pickupServicePointClonesExist) {
       wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(SERVICE_POINTS_URL)));
     } else {
       wireMockServer.verify(postRequestedFor(urlMatching(SERVICE_POINTS_URL))
         .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
-        .withRequestBody(equalToJson(asJsonString(secondaryRequestPickupServicePoint))));
+        .withRequestBody(equalToJson(asJsonString(servicePointClone))));
+      wireMockServer.verify(postRequestedFor(urlMatching(SERVICE_POINTS_URL))
+        .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+        .withRequestBody(equalToJson(asJsonString(servicePointClone))));
     }
 
       wireMockServer.verify(postRequestedFor(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
@@ -481,7 +518,9 @@ class EcsTlrApiTest extends BaseIT {
       .patronComments(ecsTlr.getPatronComments());
   }
 
-  private static Request buildPrimaryRequest(Request secondaryRequest) {
+  private static Request buildRequest(Request secondaryRequest,
+    Request.EcsRequestPhaseEnum ecsRequestPhase) {
+
     return new Request()
       .id(PRIMARY_REQUEST_ID)
       .itemId(ITEM_ID)
@@ -493,7 +532,7 @@ class EcsTlrApiTest extends BaseIT {
       .requestDate(secondaryRequest.getRequestDate())
       .requestLevel(secondaryRequest.getRequestLevel())
       .requestType(secondaryRequest.getRequestType())
-      .ecsRequestPhase(Request.EcsRequestPhaseEnum.PRIMARY)
+      .ecsRequestPhase(ecsRequestPhase)
       .fulfillmentPreference(secondaryRequest.getFulfillmentPreference())
       .pickupServicePointId(secondaryRequest.getPickupServicePointId());
   }
@@ -520,7 +559,7 @@ class EcsTlrApiTest extends BaseIT {
       .customFields(null);
   }
 
-  private static User buildSecondaryRequestRequester(User primaryRequestRequester,
+  private static User buildRequesterClone(User primaryRequestRequester,
     boolean secondaryRequestRequesterExists) {
 
     return new User()
@@ -542,7 +581,7 @@ class EcsTlrApiTest extends BaseIT {
       .pickupLocation(true);
   }
 
-  private static ServicePoint buildSecondaryRequestPickupServicePoint(
+  private static ServicePoint buildPickupServicePointClone(
     ServicePoint primaryRequestPickupServicePoint) {
 
     return new ServicePoint()

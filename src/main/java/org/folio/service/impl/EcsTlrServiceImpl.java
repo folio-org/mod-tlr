@@ -1,6 +1,8 @@
 package org.folio.service.impl;
 
 import static java.util.Optional.of;
+import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.INTERMEDIATE;
+import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.PRIMARY;
 
 import java.util.Collection;
 import java.util.List;
@@ -11,6 +13,7 @@ import java.util.stream.Collectors;
 import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.Request;
+import org.folio.domain.dto.Request.EcsRequestPhaseEnum;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.domain.mapper.EcsTlrMapper;
 import org.folio.exception.TenantPickingException;
@@ -141,21 +144,14 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   }
 
   private static Request buildPrimaryRequest(Request secondaryRequest) {
-    return new Request()
-      .id(secondaryRequest.getId())
-      .instanceId(secondaryRequest.getInstanceId())
-      .itemId(secondaryRequest.getItemId())
-      .holdingsRecordId(secondaryRequest.getHoldingsRecordId())
-      .requesterId(secondaryRequest.getRequesterId())
-      .requestDate(secondaryRequest.getRequestDate())
-      .requestLevel(secondaryRequest.getRequestLevel())
-      .requestType(secondaryRequest.getRequestType())
-      .ecsRequestPhase(Request.EcsRequestPhaseEnum.PRIMARY)
-      .fulfillmentPreference(secondaryRequest.getFulfillmentPreference())
-      .pickupServicePointId(secondaryRequest.getPickupServicePointId());
+    return buildRequest(secondaryRequest, PRIMARY);
   }
 
   private static Request buildIntermediateRequest(Request secondaryRequest) {
+    return buildRequest(secondaryRequest, INTERMEDIATE);
+  }
+
+  private static Request buildRequest(Request secondaryRequest, EcsRequestPhaseEnum ecsRequestPhase) {
     return new Request()
       .id(secondaryRequest.getId())
       .instanceId(secondaryRequest.getInstanceId())
@@ -165,14 +161,14 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       .requestDate(secondaryRequest.getRequestDate())
       .requestLevel(secondaryRequest.getRequestLevel())
       .requestType(secondaryRequest.getRequestType())
-      .ecsRequestPhase(Request.EcsRequestPhaseEnum.INTERMEDIATE)
+      .ecsRequestPhase(ecsRequestPhase)
       .fulfillmentPreference(secondaryRequest.getFulfillmentPreference())
       .pickupServicePointId(secondaryRequest.getPickupServicePointId());
   }
 
   private Request buildSecondaryRequest(EcsTlrEntity ecsTlr) {
     return requestsMapper.mapEntityToRequest(ecsTlr)
-      .ecsRequestPhase(Request.EcsRequestPhaseEnum.SECONDARY);
+      .ecsRequestPhase(EcsRequestPhaseEnum.SECONDARY);
   }
 
   private static void updateEcsTlr(EcsTlrEntity ecsTlr, RequestWrapper primaryRequest,
