@@ -5,14 +5,12 @@ import static org.folio.domain.Constants.CENTRAL_TENANT_ID;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
-import org.folio.domain.dto.Loan;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.RequestsBatchUpdate;
 import org.folio.domain.dto.User;
 import org.folio.domain.dto.UserGroup;
 import org.folio.exception.KafkaEventDeserializationException;
 import org.folio.service.KafkaEventHandler;
-import org.folio.service.impl.LoanEventHandler;
 import org.folio.service.impl.RequestBatchUpdateEventHandler;
 import org.folio.service.impl.RequestEventHandler;
 import org.folio.service.impl.UserEventHandler;
@@ -36,22 +34,18 @@ import lombok.extern.log4j.Log4j2;
 public class KafkaEventListener {
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private final RequestEventHandler requestEventHandler;
-  private final LoanEventHandler loanEventHandler;
   private final UserGroupEventHandler userGroupEventHandler;
   private final UserEventHandler userEventHandler;
   private final SystemUserScopedExecutionService systemUserScopedExecutionService;
   private final RequestBatchUpdateEventHandler requestBatchEventHandler;
 
-  @Autowired
-  public KafkaEventListener(RequestEventHandler requestEventHandler,
-    LoanEventHandler loanEventHandler,
-    RequestBatchUpdateEventHandler requestBatchEventHandler,
-    SystemUserScopedExecutionService systemUserScopedExecutionService,
-    UserGroupEventHandler userGroupEventHandler,
-    UserEventHandler userEventHandler) {
+  public KafkaEventListener(@Autowired RequestEventHandler requestEventHandler,
+    @Autowired RequestBatchUpdateEventHandler requestBatchEventHandler,
+    @Autowired SystemUserScopedExecutionService systemUserScopedExecutionService,
+    @Autowired UserGroupEventHandler userGroupEventHandler,
+    @Autowired UserEventHandler userEventHandler) {
 
     this.requestEventHandler = requestEventHandler;
-    this.loanEventHandler = loanEventHandler;
     this.systemUserScopedExecutionService = systemUserScopedExecutionService;
     this.userGroupEventHandler = userGroupEventHandler;
     this.requestBatchEventHandler = requestBatchEventHandler;
@@ -80,19 +74,6 @@ public class KafkaEventListener {
     log.info("handleRequestBatchUpdateEvent:: event received: {}", event::getId);
     handleEvent(event, requestBatchEventHandler);
     log.info("handleRequestBatchUpdateEvent:: event consumed: {}", event::getId);
-  }
-
-  @KafkaListener(
-    topicPattern = "${folio.environment}\\.\\w+\\.circulation\\.loan",
-    groupId = "${spring.kafka.consumer.group-id}"
-  )
-  public void handleLoanEvent(String eventString, MessageHeaders messageHeaders) {
-    log.debug("handleLoanEvent:: event: {}", () -> eventString);
-    KafkaEvent<Loan> event = deserialize(eventString, messageHeaders, Loan.class);
-    log.info("handleLoanEvent:: event received: {}", event::getId);
-    log.info("handleLoanEvent:: event: {}", eventString);
-    handleEvent(event, loanEventHandler);
-    log.info("handleLoanEvent:: event consumed: {}", event::getId);
   }
 
   private <T> void handleEvent(KafkaEvent<T> event, KafkaEventHandler<T> handler) {

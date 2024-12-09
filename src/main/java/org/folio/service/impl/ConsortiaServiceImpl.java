@@ -11,7 +11,6 @@ import org.folio.domain.dto.TenantCollection;
 import org.folio.domain.dto.UserTenant;
 import org.folio.service.ConsortiaService;
 import org.folio.service.UserTenantsService;
-import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -23,11 +22,6 @@ import lombok.extern.log4j.Log4j2;
 public class ConsortiaServiceImpl implements ConsortiaService {
   private final ConsortiaClient consortiaClient;
   private final UserTenantsService userTenantsService;
-
-  @Override
-  public TenantCollection getAllDataTenants(String consortiumId) {
-    return consortiaClient.getConsortiaTenants(consortiumId);
-  }
 
   @Override
   public TenantCollection getAllConsortiumTenants(String consortiumId) {
@@ -46,33 +40,4 @@ public class ConsortiaServiceImpl implements ConsortiaService {
     log.info("getAllConsortiumTenants:: found {} consortium tenants", tenants::size);
     return tenants;
   }
-
-//  @Override
-//  public boolean isCurrentTenantCentral() {
-//    var userTenant = userTenantsService.findFirstUserTenant();
-//    var centralTenantId = userTenant.getCentralTenantId();
-//    var currentTenantId = userTenant.getTenantId();
-//
-//    if (centralTenantId == null || currentTenantId == null) {
-//      log.warn("isCurrentTenantCentral:: Cannot determine central tenant or current tenant");
-//      return false;
-//    }
-//
-//    return centralTenantId.equals(currentTenantId);
-//  }
-//
-//  @Override
-//  public <T> T executeInTenant(String tenantId, Callable<T> action) {
-//    if (isCurrentTenantCentral()) {
-//      try {
-//        return action.call();
-//      } catch (Exception e) {
-//        log.info("executeInTenant:: Failed to execute in Central tenant");
-//        return null;
-//      }
-//    } else {
-//      return systemUserScopedExecutionService.executeSystemUserScoped(
-//        tenantId, action);
-//    }
-//  }
 }
