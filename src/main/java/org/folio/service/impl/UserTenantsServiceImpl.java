@@ -40,6 +40,5 @@ public class UserTenantsServiceImpl implements UserTenantsService {
   public String getCentralTenantId() {
     return findFirstUserTenant().getCentralTenantId();
   }
-
 }
 
