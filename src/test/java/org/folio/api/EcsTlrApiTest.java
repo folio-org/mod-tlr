@@ -349,12 +349,16 @@ class EcsTlrApiTest extends BaseIT {
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)));
 
     wireMockServer.verify(postRequestedFor(urlMatching(REQUESTS_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)) // because this tenant has available item
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
       .withRequestBody(equalToJson(asJsonString(secondaryRequestPostRequest))));
 
     wireMockServer.verify(postRequestedFor(urlMatching(REQUESTS_URL))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
       .withRequestBody(equalToJson(asJsonString(intermediateRequestPostRequest))));
+
+    wireMockServer.verify(postRequestedFor(urlMatching(REQUESTS_URL))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
+      .withRequestBody(equalToJson(asJsonString(primaryRequestPostRequest))));
 
     if (requesterClonesExist) {
       wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(USERS_URL)));
@@ -383,6 +387,10 @@ class EcsTlrApiTest extends BaseIT {
       wireMockServer.verify(postRequestedFor(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
         .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
         .withRequestBody(equalToJson(asJsonString(lenderTransactionPostRequest))));
+
+    wireMockServer.verify(postRequestedFor(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
+      .withRequestBody(equalToJson(asJsonString(pickupTransactionPostRequest))));
   }
 
   @Test
