@@ -23,7 +23,7 @@ import feign.FeignException;
 import feign.Request;
 
 @ExtendWith(MockitoExtension.class)
-public class UserCloningServiceTest {
+class UserCloningServiceTest {
 
   @Spy
   private UserService userService;
