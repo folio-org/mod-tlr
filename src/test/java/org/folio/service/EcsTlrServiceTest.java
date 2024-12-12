@@ -46,6 +46,8 @@ class EcsTlrServiceTest {
   private TenantService tenantService;
   @Mock
   private DcbService dcbService;
+  @Mock
+  private UserTenantsService userTenantsService;
   @Spy
   private final EcsTlrMapper ecsTlrMapper = new EcsTlrMapperImpl();
 
@@ -99,12 +101,13 @@ class EcsTlrServiceTest {
       .id(UUID.randomUUID().toString())
       .itemId(UUID.randomUUID().toString());
 
+    when(userTenantsService.getCentralTenantId()).thenReturn(borrowingTenant);
     when(ecsTlrRepository.save(any(EcsTlrEntity.class))).thenReturn(mockEcsTlrEntity);
-    when(tenantService.getBorrowingTenant(any(EcsTlrEntity.class)))
+    when(tenantService.getPrimaryRequestTenantId(any(EcsTlrEntity.class)))
       .thenReturn(borrowingTenant);
-    when(tenantService.getLendingTenants(any(EcsTlrEntity.class)))
+    when(tenantService.getSecondaryRequestTenants(any(EcsTlrEntity.class)))
       .thenReturn(List.of(lendingTenant));
-    when(requestService.createPrimaryRequest(any(Request.class), any(String.class)))
+    when(requestService.createPrimaryRequest(any(Request.class), any(String.class), any(String.class)))
       .thenReturn(new RequestWrapper(primaryRequest, borrowingTenant));
     when(requestService.createSecondaryRequest(any(Request.class), any(String.class), any()))
       .thenReturn(new RequestWrapper(secondaryRequest, borrowingTenant));
@@ -134,27 +137,27 @@ class EcsTlrServiceTest {
   void canNotCreateEcsTlrWhenFailedToGetBorrowingTenantId() {
     String instanceId = UUID.randomUUID().toString();
     EcsTlr ecsTlr = new EcsTlr().instanceId(instanceId);
-    when(tenantService.getBorrowingTenant(any(EcsTlrEntity.class)))
+    when(tenantService.getPrimaryRequestTenantId(any(EcsTlrEntity.class)))
       .thenReturn(null);
 
     TenantPickingException exception = assertThrows(TenantPickingException.class,
       () -> ecsTlrService.create(ecsTlr));
 
-    assertEquals("Failed to get borrowing tenant", exception.getMessage());
+    assertEquals("Failed to get primary request tenant", exception.getMessage());
   }
 
   @Test
   void canNotCreateEcsTlrWhenFailedToGetLendingTenants() {
     String instanceId = UUID.randomUUID().toString();
     EcsTlr ecsTlr = new EcsTlr().instanceId(instanceId);
-    when(tenantService.getBorrowingTenant(any(EcsTlrEntity.class)))
+    when(tenantService.getPrimaryRequestTenantId(any(EcsTlrEntity.class)))
       .thenReturn("borrowing_tenant");
-    when(tenantService.getLendingTenants(any(EcsTlrEntity.class)))
+    when(tenantService.getSecondaryRequestTenants(any(EcsTlrEntity.class)))
       .thenReturn(emptyList());
 
     TenantPickingException exception = assertThrows(TenantPickingException.class,
       () -> ecsTlrService.create(ecsTlr));
 
-    assertEquals("Failed to find lending tenants for instance " + instanceId, exception.getMessage());
+    assertEquals("Failed to find secondary request tenants for instance " + instanceId, exception.getMessage());
   }
 }

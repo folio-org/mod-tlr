@@ -29,7 +29,8 @@
             "users.item.post",
             "inventory-storage.service-points.item.get",
             "inventory-storage.service-points.collection.get",
-            "inventory-storage.service-points.item.post"
+            "inventory-storage.service-points.item.post",
+            "user-tenants.collection.get"
           ]
         },
         {
@@ -123,7 +124,6 @@
           "permissionsRequired": ["tlr.pick-slips.collection.get"],
           "modulePermissions": [
             "user-tenants.collection.get",
-            "search.instances.collection.get",
             "circulation-storage.requests.item.get",
             "circulation-storage.requests.collection.get",
             "users.item.get",
@@ -135,7 +135,31 @@
             "addresstypes.item.get",
             "addresstypes.collection.get",
             "inventory-storage.service-points.item.get",
-            "inventory-storage.service-points.collection.get"
+            "inventory-storage.service-points.collection.get",
+            "inventory-storage.instances.item.get",
+            "inventory-storage.instances.collection.get"
+          ]
+        },
+        {
+          "methods": ["GET"],
+          "pathPattern": "/tlr/staff-slips/search-slips/{servicePointId}",
+          "permissionsRequired": ["tlr.search-slips.collection.get"],
+          "modulePermissions": [
+            "user-tenants.collection.get",
+            "circulation-storage.requests.item.get",
+            "circulation-storage.requests.collection.get",
+            "users.item.get",
+            "users.collection.get",
+            "usergroups.item.get",
+            "usergroups.collection.get",
+            "departments.item.get",
+            "departments.collection.get",
+            "addresstypes.item.get",
+            "addresstypes.collection.get",
+            "inventory-storage.service-points.item.get",
+            "inventory-storage.service-points.collection.get",
+            "inventory-storage.instances.item.get",
+            "inventory-storage.instances.collection.get"
           ]
         }
       ]
@@ -244,6 +268,10 @@
       "permissionName": "tlr.pick-slips.collection.get",
       "displayName": "ecs-tlr - pick slips",
       "description": "Get pick slips"
+    },    {
+      "permissionName": "tlr.search-slips.collection.get",
+      "displayName": "ecs-tlr - search slips",
+      "description": "Get search slips"
     },
     {
       "permissionName": "tlr.ecs-request-external.post",

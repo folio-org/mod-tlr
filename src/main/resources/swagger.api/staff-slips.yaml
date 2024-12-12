@@ -4,18 +4,37 @@ info:
   version: v1
 tags:
   - name: staffSlips
+servers:
+  - url: /tlr/staff-slips
 paths:
-  /tlr/staff-slips/pick-slips/{servicePointId}:
+  /pick-slips/{servicePointId}:
     get:
       description: Get pick slips
       operationId: getPickSlips
       tags:
-        - pickSlips
+        - staffSlips
       parameters:
         - $ref: '#/components/parameters/servicePointId'
       responses:
         '200':
           $ref: '#/components/responses/pick-slips'
+        '400':
+          $ref: '#/components/responses/badRequestResponse'
+        '404':
+          $ref: '#/components/responses/notFoundResponse'
+        '500':
+          $ref: '#/components/responses/internalServerErrorResponse'
+  /search-slips/{servicePointId}:
+    get:
+      description: Get search slips
+      operationId: getSearchSlips
+      tags:
+        - staffSlips
+      parameters:
+        - $ref: '#/components/parameters/servicePointId'
+      responses:
+        '200':
+          $ref: '#/components/responses/search-slips'
         '400':
           $ref: '#/components/responses/badRequestResponse'
         '404':
@@ -42,6 +61,10 @@ components:
       $ref: 'schemas/inventory/institutions.json'
     servicePoints:
       $ref: 'schemas/inventory/servicePoints.json'
+    holdingsRecords:
+      $ref: 'schemas/inventory/holdingsRecords.json'
+    instances:
+      $ref: 'schemas/inventory/instances.json'
     users:
       $ref: 'schemas/users/users.json'
     usersGroups:
@@ -67,6 +90,12 @@ components:
         application/json:
           schema:
             $ref: 'schemas/staffSlips/pickSlipsResponse.yaml'
+    search-slips:
+      description: Search slips response
+      content:
+        application/json:
+          schema:
+            $ref: 'schemas/staffSlips/searchSlipsResponse.yaml'
     badRequestResponse:
       description: Validation errors
       content:

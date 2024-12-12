@@ -118,29 +118,12 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
 
   private void handlePrimaryRequestUpdate(EcsTlrEntity ecsTlr, KafkaEvent<Request> event) {
     propagateChangesFromPrimaryToSecondaryRequest(ecsTlr, event);
-    determineNewTransactionStatus(event).ifPresent(newTransactionStatus -> {
-      if (newTransactionStatus == CANCELLED) {
-        log.info("handlePrimaryRequestUpdate:: cancelling secondary DCB transaction");
-        updateTransactionStatus(ecsTlr.getSecondaryRequestDcbTransactionId(), newTransactionStatus,
-          ecsTlr.getSecondaryRequestTenantId());
-      } else {
-        updateTransactionStatus(ecsTlr.getPrimaryRequestDcbTransactionId(), newTransactionStatus,
-          ecsTlr.getPrimaryRequestTenantId());
-      }
-    });
+    updateTransactionStatuses(event, ecsTlr);
   }
 
   private void handleSecondaryRequestUpdate(EcsTlrEntity ecsTlr, KafkaEvent<Request> event) {
     processItemIdUpdate(ecsTlr, event.getData().getNewVersion());
-    determineNewTransactionStatus(event).ifPresent(newTransactionStatus -> {
-      updateTransactionStatus(ecsTlr.getSecondaryRequestDcbTransactionId(), newTransactionStatus,
-      ecsTlr.getSecondaryRequestTenantId());
-      if (newTransactionStatus == OPEN) {
-        log.info("handleSecondaryRequestUpdate:: open primary DCB transaction");
-        updateTransactionStatus(ecsTlr.getPrimaryRequestDcbTransactionId(), newTransactionStatus,
-          ecsTlr.getPrimaryRequestTenantId());
-      }
-    });
+    updateTransactionStatuses(event, ecsTlr);
   }
 
   private void processItemIdUpdate(EcsTlrEntity ecsTlr, Request updatedRequest) {
@@ -151,8 +134,8 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
     log.info("processItemIdUpdate:: updating ECS TLR {} with itemId {}", ecsTlr::getId,
       updatedRequest::getItemId);
     ecsTlr.setItemId(UUID.fromString(updatedRequest.getItemId()));
-    dcbService.createLendingTransaction(ecsTlr);
-    dcbService.createBorrowingTransaction(ecsTlr, updatedRequest);
+    // TODO: change this if Page request works
+    dcbService.createTransactions(ecsTlr, updatedRequest);
     ecsTlrRepository.save(ecsTlr);
     log.info("processItemIdUpdate: ECS TLR {} is updated", ecsTlr::getId);
   }
@@ -186,19 +169,52 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
     return newTransactionStatus;
   }
 
+  private void updateTransactionStatuses(KafkaEvent<Request> event, EcsTlrEntity ecsTlr) {
+    determineNewTransactionStatus(event)
+      .ifPresent(newStatus -> updateTransactionStatuses(newStatus, ecsTlr));
+  }
+
+  private void updateTransactionStatuses(TransactionStatus.StatusEnum newStatus, EcsTlrEntity ecsTlr) {
+    log.info("updateTransactionStatuses:: updating primary transaction status to {}", newStatus::getValue);
+    updateTransactionStatus(ecsTlr.getPrimaryRequestDcbTransactionId(), newStatus,
+      ecsTlr.getPrimaryRequestTenantId());
+
+    log.info("updateTransactionStatuses:: updating intermediate transaction status to {}", newStatus::getValue);
+    updateTransactionStatus(ecsTlr.getIntermediateRequestDcbTransactionId(), newStatus,
+      ecsTlr.getIntermediateRequestTenantId());
+
+    log.info("updateTransactionStatuses:: updating secondary transaction status to {}", newStatus::getValue);
+    updateTransactionStatus(ecsTlr.getSecondaryRequestDcbTransactionId(), newStatus,
+      ecsTlr.getSecondaryRequestTenantId());
+  }
+
   private void updateTransactionStatus(UUID transactionId,
-    TransactionStatus.StatusEnum newTransactionStatus, String tenant) {
+    TransactionStatus.StatusEnum newStatus, String tenantId) {
+
+    if (transactionId == null) {
+      log.info("updateTransactionStatus:: transaction ID is null, doing nothing");
+      return;
+    }
+    if (tenantId == null) {
+      log.info("updateTransactionStatus:: tenant ID is null, doing nothing");
+      return;
+    }
 
     try {
-      var currentStatus = dcbService.getTransactionStatus(transactionId, tenant).getStatus();
+      var currentStatus = dcbService.getTransactionStatus(transactionId, tenantId).getStatus();
       log.info("updateTransactionStatus:: current transaction status: {}", currentStatus);
-      if (newTransactionStatus.getValue().equals(currentStatus.getValue())) {
+      if (newStatus.getValue().equals(currentStatus.getValue())) {
         log.info("updateTransactionStatus:: transaction status did not change, doing nothing");
         return;
       }
-      dcbService.updateTransactionStatus(transactionId, newTransactionStatus, tenant);
+      log.info("updateTransactionStatus: changing status of transaction {} in tenant {} from {} to {}",
+        transactionId, tenantId, currentStatus.getValue(), newStatus.getValue());
+      dcbService.updateTransactionStatus(transactionId, newStatus, tenantId);
     } catch (FeignException.NotFound e) {
       log.error("updateTransactionStatus:: transaction {} not found: {}", transactionId, e.getMessage());
+    } catch (Exception e) {
+      log.error("updateTransactionStatus:: failed to update transaction status: {}", e::getMessage);
+      log.debug("updateTransactionStatus:: ", e);
     }
   }
 
