@@ -1,18 +1,25 @@
 package org.folio.service.impl;
 
+import static org.folio.domain.dto.TransactionStatusResponse.RoleEnum.BORROWING_PICKUP;
+import static org.folio.domain.dto.TransactionStatusResponse.RoleEnum.LENDER;
+import static org.folio.domain.dto.TransactionStatusResponse.RoleEnum.PICKUP;
+import static org.folio.domain.dto.TransactionStatusResponse.StatusEnum.CLOSED;
+import static org.folio.domain.dto.TransactionStatusResponse.StatusEnum.ITEM_CHECKED_IN;
+import static org.folio.domain.dto.TransactionStatusResponse.StatusEnum.ITEM_CHECKED_OUT;
 import static org.folio.support.KafkaEvent.EventType.UPDATED;
 
-import java.util.Optional;
+import java.util.Collection;
+import java.util.EnumSet;
 import java.util.UUID;
 
 import org.folio.domain.dto.Loan;
+import org.folio.domain.dto.TransactionStatus.StatusEnum;
+import org.folio.domain.dto.TransactionStatusResponse;
+import org.folio.domain.dto.TransactionStatusResponse.RoleEnum;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.DcbService;
 import org.folio.service.KafkaEventHandler;
-import org.folio.service.RequestService;
-import org.folio.service.ServicePointService;
-import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.folio.support.KafkaEvent;
 import org.springframework.stereotype.Service;
 
@@ -24,12 +31,11 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public class LoanEventHandler implements KafkaEventHandler<Loan> {
   private static final String LOAN_ACTION_CHECKED_IN = "checkedin";
+  private static final EnumSet<TransactionStatusResponse.StatusEnum> RELEVANT_TRANSACTION_STATUSES_FOR_CHECK_IN =
+    EnumSet.of(ITEM_CHECKED_OUT, ITEM_CHECKED_IN, CLOSED);
 
   private final DcbService dcbService;
   private final EcsTlrRepository ecsTlrRepository;
-  private final SystemUserScopedExecutionService executionService;
-  private final ServicePointService servicePointService;
-  private final RequestService requestService;
 
   @Override
   public void handle(KafkaEvent<Loan> event) {
@@ -47,30 +53,100 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
     String loanAction = loan.getAction();
     log.info("handle:: loan action: {}", loanAction);
     if (LOAN_ACTION_CHECKED_IN.equals(loanAction)) {
-      log.info("handleUpdateEvent:: processing check-in event: {}", event::getId);
-      handleCheckInEvent(loan);
+      log.info("handleUpdateEvent:: processing loan check-in event: {}", event::getId);
+      handleCheckInEvent(event);
     } else {
-      log.info("handleUpdateEvent:: unsupported loan action: {}", loanAction);
+      log.info("handleUpdateEvent:: ignoring loan update event with unsupported loan action: {}", loanAction);
     }
   }
 
-  private void handleCheckInEvent(Loan loan) {
-    findEcsTlr(loan)
-      .ifPresent(this::updateEcsTlrOnCheckIn);
+  private void handleCheckInEvent(KafkaEvent<Loan> event) {
+    updateEcsTlrForLoan(event.getData().getNewVersion(), event.getTenant());
   }
 
-  private Optional<EcsTlrEntity> findEcsTlr(Loan loan) {
-    log.info("findEcsTlr:: searching ECS TLR for loan {}", loan::getId);
+  private void updateEcsTlrForLoan(Loan loan, String tenantId) {
+    Collection<EcsTlrEntity> ecsTlrs = findEcsTlrs(loan);
+    for (EcsTlrEntity ecsTlr : ecsTlrs) {
+      log.info("updateEcsTlrForLoan:: checking ECS TLR {}", ecsTlr::getId);
+
+      String primaryTenantId = ecsTlr.getPrimaryRequestTenantId();
+      String secondaryTenantId = ecsTlr.getSecondaryRequestTenantId();
+      String intermediateTenantId = ecsTlr.getIntermediateRequestTenantId();
+
+      UUID primaryTransactionId = ecsTlr.getPrimaryRequestDcbTransactionId();
+      UUID secondaryTransactionId = ecsTlr.getSecondaryRequestDcbTransactionId();
+      UUID intermediateTransactionId = ecsTlr.getIntermediateRequestDcbTransactionId();
+
+      if (primaryTransactionId == null || secondaryTransactionId == null) {
+        log.info("updateEcsTlrForLoan:: ECS TLR does not have primary and/or secondary transaction, skipping");
+        continue;
+      }
+
+      boolean eventTenantIdIsPrimaryTenantId = tenantId.equals(primaryTenantId);
+      boolean eventTenantIdIsSecondaryTenantId = tenantId.equals(secondaryTenantId);
+      if (!(eventTenantIdIsPrimaryTenantId || eventTenantIdIsSecondaryTenantId)) {
+        log.info("updateEcsTlrForLoan:: event tenant ID does not match ECS TLR's primary/secondary request tenant ID, skipping");
+        continue;
+      }
+
+      TransactionStatusResponse primaryTransaction = dcbService.getTransactionStatus(
+        primaryTransactionId, primaryTenantId);
+      TransactionStatusResponse.StatusEnum primaryTransactionStatus = primaryTransaction.getStatus();
+      RoleEnum primaryTransactionRole = primaryTransaction.getRole();
+      log.info("updateEcsTlrForLoan:: primary request transaction: status={}, role={}",
+        primaryTransactionStatus, primaryTransactionRole);
+      if (!RELEVANT_TRANSACTION_STATUSES_FOR_CHECK_IN.contains(primaryTransactionStatus)) {
+        log.info("updateEcsTlrForLoan:: irrelevant primary request transaction status: {}",
+          primaryTransaction);
+        continue;
+      }
+
+      TransactionStatusResponse secondaryTransaction = dcbService.getTransactionStatus(
+        secondaryTransactionId, secondaryTenantId);
+      TransactionStatusResponse.StatusEnum secondaryTransactionStatus = secondaryTransaction.getStatus();
+      RoleEnum secondaryTransactionRole = secondaryTransaction.getRole();
+      log.info("updateEcsTlrForLoan:: secondary request transaction: status={}, role={}",
+        secondaryTransactionStatus, secondaryTransactionRole);
+      if (!RELEVANT_TRANSACTION_STATUSES_FOR_CHECK_IN.contains(secondaryTransactionStatus)) {
+        log.info("updateEcsTlrForLoan:: irrelevant secondary request transaction status: {}",
+          secondaryTransactionStatus);
+        continue;
+      }
+
+      if (eventTenantIdIsPrimaryTenantId &&
+        (primaryTransactionRole == BORROWING_PICKUP || primaryTransactionRole == PICKUP) &&
+        (primaryTransactionStatus == ITEM_CHECKED_OUT || primaryTransactionStatus == ITEM_CHECKED_IN) &&
+        secondaryTransactionRole == LENDER && secondaryTransactionStatus == ITEM_CHECKED_OUT) {
+
+        log.info("updateEcsTlrForLoan:: check-in happened in primary request tenant ({}), updating transactions", primaryTenantId);
+        dcbService.updateTransactionStatus(primaryTransactionId, StatusEnum.ITEM_CHECKED_IN, primaryTenantId);
+        dcbService.updateTransactionStatus(secondaryTransactionId, StatusEnum.ITEM_CHECKED_IN, secondaryTenantId);
+        dcbService.updateTransactionStatus(intermediateTransactionId, StatusEnum.ITEM_CHECKED_IN, intermediateTenantId);
+        return;
+      }
+      else if (eventTenantIdIsSecondaryTenantId && secondaryTransactionRole == LENDER &&
+        (secondaryTransactionStatus == ITEM_CHECKED_IN || secondaryTransactionStatus == CLOSED) &&
+        (primaryTransactionRole == BORROWING_PICKUP || primaryTransactionRole == PICKUP) &&
+        primaryTransactionStatus == ITEM_CHECKED_IN) {
+
+        log.info("updateEcsTlrForLoan:: check-in happened in secondary request tenant ({}), updating transactions", secondaryTenantId);
+        dcbService.updateTransactionStatus(primaryTransactionId, StatusEnum.CLOSED, primaryTenantId);
+        dcbService.updateTransactionStatus(secondaryTransactionId, StatusEnum.CLOSED, secondaryTenantId);
+        dcbService.updateTransactionStatus(intermediateTransactionId, StatusEnum.CLOSED, intermediateTenantId);
+        return;
+      }
+    }
+    log.info("updateEcsTlrForLoan:: ECS TLR for loan {} in tenant {} was not found", loan.getId(), tenantId);
+  }
+
+
+
+  private Collection<EcsTlrEntity> findEcsTlrs(Loan loan) {
+    log.info("findEcsTlr:: searching ECS TLRs for loan {}", loan::getId);
     return ecsTlrRepository.findByItemIdAndRequesterId(UUID.fromString(loan.getItemId()),
-        UUID.fromString(loan.getUserId()))
-      .stream()
-      .filter(this::isForLoan)
-      .findFirst();
+        UUID.fromString(loan.getUserId()));
   }
 
-  private boolean isForLoan(EcsTlrEntity ecsTlr) {
-    return true;
-  }
 
   private void updateEcsTlrOnCheckIn(EcsTlrEntity ecsTlr) {
 
