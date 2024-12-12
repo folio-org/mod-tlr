@@ -1,3 +1,8 @@
+## 1.0.2 2024-12-12
+* Copy Secure Patron name when cloning users (MODTLR-116)
+* Support for intermediate requests (MODTLR-98)
+* Search Slips API (MODTLR-75)
+
 ## 1.0.1 2024-11-30
 * Merge `ecs-tlr-feature` branch into `master` (MODTLR-69)
 * Create pickup service point in lending tenant (MODTLR-17)
