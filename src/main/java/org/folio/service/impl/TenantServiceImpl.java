@@ -3,6 +3,7 @@ package org.folio.service.impl;
 import static com.google.common.base.Predicates.alwaysTrue;
 import static com.google.common.base.Predicates.notNull;
 import static java.util.Comparator.comparingLong;
+import static java.util.Optional.ofNullable;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.counting;
@@ -45,25 +46,25 @@ public class TenantServiceImpl implements TenantService {
   private final UserTenantsService userTenantsService;
 
   @Override
-  public String getBorrowingTenant(EcsTlrEntity ecsTlr) {
-    log.info("getBorrowingTenant:: getting borrowing tenant");
+  public String getPrimaryRequestTenantId(EcsTlrEntity ecsTlr) {
+    log.info("getPrimaryRequestTenantId:: getting borrowing tenant");
     if (ecsTlr == null || ecsTlr.getPrimaryRequestTenantId() == null) {
-      log.info("getBorrowingTenant:: central tenant by default");
+      log.info("getPrimaryRequestTenantId:: central tenant by default");
       return userTenantsService.getCentralTenantId();
     }
 
-    log.info("getBorrowingTenant:: returning primaryRequestTenantId");
+    log.info("getPrimaryRequestTenantId:: returning primaryRequestTenantId");
     return ecsTlr.getPrimaryRequestTenantId();
   }
 
   @Override
-  public List<String> getLendingTenants(EcsTlrEntity ecsTlr) {
+  public List<String> getSecondaryRequestTenants(EcsTlrEntity ecsTlr) {
     final String instanceId = ecsTlr.getInstanceId().toString();
-    log.info("getLendingTenants:: looking for potential lending tenants for instance {}", instanceId);
+    log.info("getSecondaryRequestTenants:: looking for potential secondary request tenants for instance {}", instanceId);
     var itemStatusOccurrencesByTenant = getItemStatusOccurrencesByTenant(instanceId);
-    log.info("getLendingTenants:: item status occurrences by tenant: {}", itemStatusOccurrencesByTenant);
+    log.info("getSecondaryRequestTenants:: item status occurrences by tenant: {}", itemStatusOccurrencesByTenant);
 
-    List<String> lendingTenantIds = itemStatusOccurrencesByTenant.entrySet()
+    List<String> tenantIds = itemStatusOccurrencesByTenant.entrySet()
       .stream()
       .sorted(compareByItemCount(AVAILABLE)
         .thenComparing(compareByItemCount(CHECKED_OUT, IN_TRANSIT))
@@ -71,13 +72,13 @@ public class TenantServiceImpl implements TenantService {
       .map(Entry::getKey)
       .toList();
 
-    if (lendingTenantIds.isEmpty()) {
-      log.warn("getLendingTenants:: failed to find lending tenants for instance {}", instanceId);
+    if (tenantIds.isEmpty()) {
+      log.warn("getSecondaryRequestTenants:: failed to find secondary request tenants for instance {}", instanceId);
     } else {
-      log.info("getLendingTenants:: found tenants for instance {}: {}", instanceId, lendingTenantIds);
+      log.info("getSecondaryRequestTenants:: found tenants for instance {}: {}", instanceId, tenantIds);
     }
 
-    return lendingTenantIds;
+    return tenantIds;
   }
 
   private Map<String, Map<String, Long>> getItemStatusOccurrencesByTenant(String instanceId) {

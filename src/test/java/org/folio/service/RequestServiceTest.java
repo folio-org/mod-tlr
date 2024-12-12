@@ -39,7 +39,6 @@ class RequestServiceTest {
   private Request secondaryRequest;
   private static final String ITEM_ID = UUID.randomUUID().toString();
   private static final String INSTANCE_ID = UUID.randomUUID().toString();
-  private static final String BORROWER_ID = UUID.randomUUID().toString();
   private static final String LENDER_ID = UUID.randomUUID().toString();
   private static final String HOLDINGS_RECORD_ID = "10cd3a5a-d36f-4c7a-bc4f-e1ae3cf820c9";
   private static final String LENDING_LIBRARY_CODE = "TEST_CODE";
@@ -56,19 +55,18 @@ class RequestServiceTest {
   }
 
   @Test
-  void shouldReturnNullIfEcsTlrOrSecondaryRequestIsNull() {
-    assertNull(requestService.createCirculationItem(null, secondaryRequest, BORROWER_ID, LENDER_ID));
-    assertNull(requestService.createCirculationItem(ecsTlrEntity, null, BORROWER_ID, LENDER_ID));
+  void shouldReturnNullIfRequestIsNull() {
+    assertNull(requestService.createCirculationItem(null, LENDER_ID));
   }
 
   @Test
   void shouldReturnNullIfItemIdOrInstanceIdIsNull() {
     secondaryRequest.setItemId(null);
-    assertNull(requestService.createCirculationItem(ecsTlrEntity, secondaryRequest, BORROWER_ID, LENDER_ID));
+    assertNull(requestService.createCirculationItem(secondaryRequest, LENDER_ID));
 
     secondaryRequest.setItemId(ITEM_ID);
     secondaryRequest.setInstanceId(null);
-    assertNull(requestService.createCirculationItem(ecsTlrEntity, secondaryRequest, BORROWER_ID, LENDER_ID));
+    assertNull(requestService.createCirculationItem(secondaryRequest, LENDER_ID));
   }
 
   @Test
@@ -76,7 +74,7 @@ class RequestServiceTest {
     CirculationItem existingItem = new CirculationItem();
     when(circulationItemClient.getCirculationItem(any())).thenReturn(existingItem);
 
-    assertEquals(existingItem, requestService.createCirculationItem(ecsTlrEntity, secondaryRequest, BORROWER_ID, LENDER_ID));
+    assertEquals(existingItem, requestService.createCirculationItem(secondaryRequest, LENDER_ID));
   }
 
   @Test
@@ -101,7 +99,7 @@ class RequestServiceTest {
       .dcbItem(true)
       .instanceTitle(instanceTitle)
       .lendingLibraryCode(LENDING_LIBRARY_CODE);
-    requestService.createCirculationItem(ecsTlrEntity, secondaryRequest, BORROWER_ID, LENDER_ID);
+    requestService.createCirculationItem(secondaryRequest, LENDER_ID);
     verify(circulationItemClient).createCirculationItem(ITEM_ID, expectedCirculationItem);
   }
 

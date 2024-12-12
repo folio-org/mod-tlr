@@ -9,28 +9,28 @@ import org.folio.domain.dto.InventoryInstance;
 import org.folio.domain.dto.InventoryItem;
 import org.folio.domain.dto.ReorderQueue;
 import org.folio.domain.dto.Request;
-import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.support.CqlQuery;
 
 public interface RequestService {
-  RequestWrapper createPrimaryRequest(Request request, String borrowingTenantId);
+  RequestWrapper createPrimaryRequest(Request request, String primaryRequestTenantId,
+    String secondaryRequestTenantId);
 
-  RequestWrapper createSecondaryRequest(Request request, String borrowingTenantId,
-    Collection<String> lendingTenantIds);
+  RequestWrapper createSecondaryRequest(Request request, String primaryRequestTenantId,
+    Collection<String> secondaryRequestTenantIds);
 
-  CirculationItem createCirculationItem(EcsTlrEntity ecsTlr, Request secondaryRequest,
-    String borrowingTenantId, String lendingTenantId);
+  RequestWrapper createIntermediateRequest(Request intermediateRequest,
+    String primaryRequestTenantId, String intermediateRequestTenantId,
+    String secondaryRequestTenantId);
 
   CirculationItem updateCirculationItemOnRequestCreation(CirculationItem circulationItem,
     Request secondaryRequest);
 
   InventoryItem getItemFromStorage(String itemId, String tenantId);
-
   InventoryInstance getInstanceFromStorage(String instanceId, String tenantId);
-
   Request getRequestFromStorage(String requestId, String tenantId);
   Request getRequestFromStorage(String requestId);
   Collection<Request> getRequestsFromStorage(CqlQuery query, String idIndex, Collection<String> ids);
+  Collection<Request> getRequestsFromStorage(CqlQuery query);
   Request updateRequestInStorage(Request request, String tenantId);
   List<Request> getRequestsQueueByInstanceId(String instanceId, String tenantId);
   List<Request> getRequestsQueueByInstanceId(String instanceId);
