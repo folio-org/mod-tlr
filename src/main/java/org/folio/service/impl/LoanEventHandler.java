@@ -119,9 +119,7 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
         secondaryTransactionRole == LENDER && secondaryTransactionStatus == ITEM_CHECKED_OUT) {
 
         log.info("updateEcsTlrForLoan:: check-in happened in primary request tenant ({}), updating transactions", primaryTenantId);
-        dcbService.updateTransactionStatus(primaryTransactionId, StatusEnum.ITEM_CHECKED_IN, primaryTenantId);
-        dcbService.updateTransactionStatus(secondaryTransactionId, StatusEnum.ITEM_CHECKED_IN, secondaryTenantId);
-        dcbService.updateTransactionStatus(intermediateTransactionId, StatusEnum.ITEM_CHECKED_IN, intermediateTenantId);
+        dcbService.updateTransactionStatuses(StatusEnum.ITEM_CHECKED_IN, ecsTlr);
         return;
       }
       else if (eventTenantIdIsSecondaryTenantId && secondaryTransactionRole == LENDER &&
@@ -130,9 +128,7 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
         primaryTransactionStatus == ITEM_CHECKED_IN) {
 
         log.info("updateEcsTlrForLoan:: check-in happened in secondary request tenant ({}), updating transactions", secondaryTenantId);
-        dcbService.updateTransactionStatus(primaryTransactionId, StatusEnum.CLOSED, primaryTenantId);
-        dcbService.updateTransactionStatus(secondaryTransactionId, StatusEnum.CLOSED, secondaryTenantId);
-        dcbService.updateTransactionStatus(intermediateTransactionId, StatusEnum.CLOSED, intermediateTenantId);
+        dcbService.updateTransactionStatuses(StatusEnum.CLOSED, ecsTlr);
         return;
       }
     }
