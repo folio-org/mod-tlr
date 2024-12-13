@@ -131,21 +131,15 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
         dcbService.updateTransactionStatuses(StatusEnum.CLOSED, ecsTlr);
         return;
       }
+      log.info("updateEcsTlrForLoan:: ECS TLR {} was not updated", ecsTlr::getId);
     }
-    log.info("updateEcsTlrForLoan:: ECS TLR for loan {} in tenant {} was not found", loan.getId(), tenantId);
+    log.info("updateEcsTlrForLoan:: suitable ECS TLR for loan {} in tenant {} was not found", loan.getId(), tenantId);
   }
-
-
 
   private Collection<EcsTlrEntity> findEcsTlrs(Loan loan) {
     log.info("findEcsTlr:: searching ECS TLRs for loan {}", loan::getId);
     return ecsTlrRepository.findByItemIdAndRequesterId(UUID.fromString(loan.getItemId()),
         UUID.fromString(loan.getUserId()));
-  }
-
-
-  private void updateEcsTlrOnCheckIn(EcsTlrEntity ecsTlr) {
-
   }
 
 }

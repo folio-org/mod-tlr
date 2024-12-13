@@ -106,7 +106,7 @@ public class KafkaEventListener {
       systemUserScopedExecutionService.executeAsyncSystemUserScoped(CENTRAL_TENANT_ID,
         () -> handler.handle(event));
     } catch (Exception e) {
-      log.error("handleEvent:: failed to handle event in tenant {}", CENTRAL_TENANT_ID);
+      log.error("handleEvent:: failed to handle event {}", event.getId(), e);
     }
     log.info("handleEvent:: event consumed: {}", event::getId);
   }

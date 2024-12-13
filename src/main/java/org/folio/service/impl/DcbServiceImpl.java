@@ -201,27 +201,26 @@ public class DcbServiceImpl implements DcbService {
     boolean isStatusChangeAllowed = false;
 
     if (role == LENDER) {
-      isStatusChangeAllowed = newStatus == CANCELLED ||
-        (oldStatus == CREATED && newStatus == OPEN) ||
-        (oldStatus == OPEN && newStatus == AWAITING_PICKUP) ||
-        (oldStatus == AWAITING_PICKUP && newStatus == ITEM_CHECKED_OUT) ||
-        (oldStatus == ITEM_CHECKED_OUT && newStatus == ITEM_CHECKED_IN);
-    }
-    else if (role == BORROWER) {
-      isStatusChangeAllowed = newStatus == CANCELLED ||
-        (oldStatus == CREATED && newStatus == OPEN) ||
+      isStatusChangeAllowed = (oldStatus == CREATED && newStatus == OPEN) ||
         (oldStatus == OPEN && newStatus == AWAITING_PICKUP) ||
         (oldStatus == AWAITING_PICKUP && newStatus == ITEM_CHECKED_OUT) ||
         (oldStatus == ITEM_CHECKED_OUT && newStatus == ITEM_CHECKED_IN) ||
-        (oldStatus == ITEM_CHECKED_IN && newStatus == CLOSED);
+        (oldStatus != CANCELLED && newStatus == CANCELLED);
+    }
+    else if (role == BORROWER) {
+      isStatusChangeAllowed = (oldStatus == CREATED && newStatus == OPEN) ||
+        (oldStatus == OPEN && newStatus == AWAITING_PICKUP) ||
+        (oldStatus == AWAITING_PICKUP && newStatus == ITEM_CHECKED_OUT) ||
+        (oldStatus == ITEM_CHECKED_OUT && newStatus == ITEM_CHECKED_IN) ||
+        (oldStatus == ITEM_CHECKED_IN && newStatus == CLOSED) ||
+        (oldStatus != CANCELLED && newStatus == CANCELLED);
     }
     else if (role == BORROWING_PICKUP || role == PICKUP) {
-      isStatusChangeAllowed = newStatus == CANCELLED ||
-        (oldStatus == CREATED && newStatus == OPEN) ||
-        (oldStatus == ITEM_CHECKED_IN && newStatus == CLOSED);
+      isStatusChangeAllowed = (oldStatus == CREATED && newStatus == OPEN) ||
+        (oldStatus == ITEM_CHECKED_IN && newStatus == CLOSED) ||
+        (oldStatus != CANCELLED && newStatus == CANCELLED);
     }
-    log.info("isTransactionStatusChangeAllowed:: transaction status change from {} to {} is allowed: {}",
-      oldStatus, newStatus, isStatusChangeAllowed);
+    log.info("isTransactionStatusChangeAllowed:: status change is allowed: {}", isStatusChangeAllowed);
     return isStatusChangeAllowed;
   }
 
