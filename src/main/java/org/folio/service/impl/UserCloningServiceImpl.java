@@ -1,6 +1,7 @@
 package org.folio.service.impl;
 
 import org.folio.domain.dto.User;
+import org.folio.domain.dto.UserPersonal;
 import org.folio.domain.dto.UserType;
 import org.folio.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +39,14 @@ public class UserCloningServiceImpl extends CloningServiceImpl<User> {
       .type(UserType.SHADOW.getValue())
       .barcode(original.getBarcode())
       .active(true);
+
+    UserPersonal personal = original.getPersonal();
+    if (personal != null) {
+      clone.personal(new UserPersonal()
+        .firstName(personal.getFirstName())
+        .lastName(personal.getLastName())
+        .middleName(personal.getMiddleName()));
+    }
     log.debug("buildClone:: result: {}", () -> clone);
     return clone;
   }
