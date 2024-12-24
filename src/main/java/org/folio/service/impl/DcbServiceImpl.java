@@ -155,7 +155,8 @@ public class DcbServiceImpl implements DcbService {
       ecsTlr.getSecondaryRequestTenantId());
   }
 
-  private void updateTransactionStatus(UUID transactionId, StatusEnum newStatus, String tenantId) {
+  @Override
+  public void updateTransactionStatus(UUID transactionId, StatusEnum newStatus, String tenantId) {
     if (transactionId == null) {
       log.info("updateTransactionStatus:: transaction ID is null, doing nothing");
       return;

@@ -31,8 +31,8 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public class LoanEventHandler implements KafkaEventHandler<Loan> {
   private static final String LOAN_ACTION_CHECKED_IN = "checkedin";
-  private static final EnumSet<TransactionStatusResponse.StatusEnum> RELEVANT_TRANSACTION_STATUSES_FOR_CHECK_IN =
-    EnumSet.of(ITEM_CHECKED_OUT, ITEM_CHECKED_IN, CLOSED);
+  private static final EnumSet<TransactionStatusResponse.StatusEnum>
+    RELEVANT_TRANSACTION_STATUSES_FOR_CHECK_IN = EnumSet.of(ITEM_CHECKED_OUT, ITEM_CHECKED_IN, CLOSED);
 
   private final DcbService dcbService;
   private final EcsTlrRepository ecsTlrRepository;
@@ -61,31 +61,28 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
   }
 
   private void handleCheckInEvent(KafkaEvent<Loan> event) {
-    updateEcsTlrForLoan(event.getData().getNewVersion(), event.getTenant());
+    updateEcsTlr(event.getData().getNewVersion(), event.getTenant());
   }
 
-  private void updateEcsTlrForLoan(Loan loan, String tenantId) {
+  private void updateEcsTlr(Loan loan, String tenantId) {
     Collection<EcsTlrEntity> ecsTlrs = findEcsTlrs(loan);
     for (EcsTlrEntity ecsTlr : ecsTlrs) {
-      log.info("updateEcsTlrForLoan:: checking ECS TLR {}", ecsTlr::getId);
-
+      log.info("updateEcsTlr:: checking ECS TLR {}", ecsTlr::getId);
       String primaryTenantId = ecsTlr.getPrimaryRequestTenantId();
       String secondaryTenantId = ecsTlr.getSecondaryRequestTenantId();
-      String intermediateTenantId = ecsTlr.getIntermediateRequestTenantId();
-
       UUID primaryTransactionId = ecsTlr.getPrimaryRequestDcbTransactionId();
       UUID secondaryTransactionId = ecsTlr.getSecondaryRequestDcbTransactionId();
-      UUID intermediateTransactionId = ecsTlr.getIntermediateRequestDcbTransactionId();
 
       if (primaryTransactionId == null || secondaryTransactionId == null) {
-        log.info("updateEcsTlrForLoan:: ECS TLR does not have primary and/or secondary transaction, skipping");
+        log.info("updateEcsTlr:: ECS TLR does not have primary/secondary transaction, skipping");
         continue;
       }
 
       boolean eventTenantIdIsPrimaryTenantId = tenantId.equals(primaryTenantId);
       boolean eventTenantIdIsSecondaryTenantId = tenantId.equals(secondaryTenantId);
       if (!(eventTenantIdIsPrimaryTenantId || eventTenantIdIsSecondaryTenantId)) {
-        log.info("updateEcsTlrForLoan:: event tenant ID does not match ECS TLR's primary/secondary request tenant ID, skipping");
+        log.info("updateEcsTlr:: event tenant ID does not match ECS TLR's primary/secondary request " +
+          "tenant ID, skipping");
         continue;
       }
 
@@ -93,7 +90,7 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
         primaryTransactionId, primaryTenantId);
       TransactionStatusResponse.StatusEnum primaryTransactionStatus = primaryTransaction.getStatus();
       RoleEnum primaryTransactionRole = primaryTransaction.getRole();
-      log.info("updateEcsTlrForLoan:: primary request transaction: status={}, role={}",
+      log.info("updateEcsTlr:: primary request transaction: status={}, role={}",
         primaryTransactionStatus, primaryTransactionRole);
       if (!RELEVANT_TRANSACTION_STATUSES_FOR_CHECK_IN.contains(primaryTransactionStatus)) {
         log.info("updateEcsTlrForLoan:: irrelevant primary request transaction status: {}",
@@ -105,10 +102,10 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
         secondaryTransactionId, secondaryTenantId);
       TransactionStatusResponse.StatusEnum secondaryTransactionStatus = secondaryTransaction.getStatus();
       RoleEnum secondaryTransactionRole = secondaryTransaction.getRole();
-      log.info("updateEcsTlrForLoan:: secondary request transaction: status={}, role={}",
+      log.info("updateEcsTlr:: secondary request transaction: status={}, role={}",
         secondaryTransactionStatus, secondaryTransactionRole);
       if (!RELEVANT_TRANSACTION_STATUSES_FOR_CHECK_IN.contains(secondaryTransactionStatus)) {
-        log.info("updateEcsTlrForLoan:: irrelevant secondary request transaction status: {}",
+        log.info("updateEcsTlr:: irrelevant secondary request transaction status: {}",
           secondaryTransactionStatus);
         continue;
       }
@@ -118,7 +115,8 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
         (primaryTransactionStatus == ITEM_CHECKED_OUT || primaryTransactionStatus == ITEM_CHECKED_IN) &&
         secondaryTransactionRole == LENDER && secondaryTransactionStatus == ITEM_CHECKED_OUT) {
 
-        log.info("updateEcsTlrForLoan:: check-in happened in primary request tenant ({}), updating transactions", primaryTenantId);
+        log.info("updateEcsTlr:: check-in happened in primary request tenant ({}), updating transactions",
+          primaryTenantId);
         dcbService.updateTransactionStatuses(StatusEnum.ITEM_CHECKED_IN, ecsTlr);
         return;
       }
@@ -127,13 +125,13 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
         (primaryTransactionRole == BORROWING_PICKUP || primaryTransactionRole == PICKUP) &&
         primaryTransactionStatus == ITEM_CHECKED_IN) {
 
-        log.info("updateEcsTlrForLoan:: check-in happened in secondary request tenant ({}), updating transactions", secondaryTenantId);
+        log.info("updateEcsTlr:: check-in happened in secondary request tenant ({}), updating transactions", secondaryTenantId);
         dcbService.updateTransactionStatuses(StatusEnum.CLOSED, ecsTlr);
         return;
       }
-      log.info("updateEcsTlrForLoan:: ECS TLR {} was not updated", ecsTlr::getId);
+      log.info("updateEcsTlr:: ECS TLR {} was not updated", ecsTlr::getId);
     }
-    log.info("updateEcsTlrForLoan:: suitable ECS TLR for loan {} in tenant {} was not found", loan.getId(), tenantId);
+    log.info("updateEcsTlr:: suitable ECS TLR for loan {} in tenant {} was not found", loan.getId(), tenantId);
   }
 
   private Collection<EcsTlrEntity> findEcsTlrs(Loan loan) {

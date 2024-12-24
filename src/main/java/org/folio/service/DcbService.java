@@ -15,4 +15,6 @@ public interface DcbService {
   void createPickupTransaction(EcsTlrEntity ecsTlr, Request request);
   void updateTransactionStatuses(TransactionStatus.StatusEnum newStatus, EcsTlrEntity ecsTlr);
   TransactionStatusResponse getTransactionStatus(UUID transactionId, String tenantId);
+  void updateTransactionStatus(UUID transactionId, TransactionStatus.StatusEnum newStatus,
+    String tenantId);
 }
