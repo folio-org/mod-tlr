@@ -111,6 +111,8 @@ public class KafkaEventListener {
   private static <T> KafkaEvent<T> deserialize(String eventString, MessageHeaders messageHeaders,
     Class<T> dataType) {
 
+    log.info("messageHeaders={}", messageHeaders);
+
     try {
       JavaType eventType = objectMapper.getTypeFactory()
         .constructParametricType(KafkaEvent.class, dataType);
