@@ -10,6 +10,7 @@ import static org.folio.support.KafkaEvent.EventType.UPDATED;
 
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.UUID;
 
 import org.folio.domain.dto.Loan;
@@ -135,9 +136,13 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
   }
 
   private Collection<EcsTlrEntity> findEcsTlrs(Loan loan) {
-    log.info("findEcsTlr:: searching ECS TLRs for loan {}", loan::getId);
-    return ecsTlrRepository.findByItemIdAndRequesterId(UUID.fromString(loan.getItemId()),
-        UUID.fromString(loan.getUserId()));
+    log.info("findEcsTlrs:: searching ECS TLRs: loanId={}, itemId={}, userId={}", loan::getId,
+      loan::getItemId, loan::getId);
+    List<EcsTlrEntity> ecsTlrs = ecsTlrRepository.findByItemIdAndRequesterId(
+      UUID.fromString(loan.getItemId()), UUID.fromString(loan.getUserId()));
+    log.info("findEcsTlrs:: found {} ECS TLRs", ecsTlrs::size);
+
+    return ecsTlrs;
   }
 
 }

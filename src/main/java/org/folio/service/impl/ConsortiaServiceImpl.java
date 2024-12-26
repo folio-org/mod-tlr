@@ -50,7 +50,7 @@ public class ConsortiaServiceImpl implements ConsortiaService {
     String centralTenantId = Optional.ofNullable(consortiaConfigurationClient.getConfiguration())
       .map(ConsortiaConfiguration::getCentralTenantId)
       .orElseThrow();
-    log.info("getCentralTenantId: central tenant ID: {}", centralTenantId);
+    log.info("getCentralTenantId:: central tenant ID: {}", centralTenantId);
     return centralTenantId;
   }
 }
