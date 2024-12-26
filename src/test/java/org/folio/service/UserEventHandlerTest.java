@@ -23,6 +23,7 @@ class UserEventHandlerTest extends BaseEventHandlerTest {
     when(userTenantsService.findFirstUserTenant()).thenReturn(mockUserTenant());
     when(consortiaService.getAllConsortiumTenants(anyString())).thenReturn(mockTenantCollection());
     when(userService.update(any(User.class))).thenReturn(new User());
+    when(userTenantsService.getCentralTenantId()).thenReturn(CENTRAL_TENANT_ID);
 
     doAnswer(invocation -> {
       ((Runnable) invocation.getArguments()[1]).run();
@@ -30,8 +31,7 @@ class UserEventHandlerTest extends BaseEventHandlerTest {
     }).when(systemUserScopedExecutionService).executeAsyncSystemUserScoped(anyString(),
       any(Runnable.class));
 
-    eventListener.handleUserEvent(USER_UPDATING_EVENT_SAMPLE,
-      getMessageHeaders(TENANT, TENANT_ID));
+    eventListener.handleUserEvent(USER_UPDATING_EVENT_SAMPLE, buildKafkaHeaders(CENTRAL_TENANT_ID));
 
     verify(systemUserScopedExecutionService, times(3))
       .executeAsyncSystemUserScoped(anyString(), any(Runnable.class));
