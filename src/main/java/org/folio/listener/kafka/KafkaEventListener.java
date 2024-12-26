@@ -10,6 +10,7 @@ import org.folio.domain.dto.RequestsBatchUpdate;
 import org.folio.domain.dto.User;
 import org.folio.domain.dto.UserGroup;
 import org.folio.exception.KafkaEventDeserializationException;
+import org.folio.service.ConsortiaService;
 import org.folio.service.KafkaEventHandler;
 import org.folio.service.UserTenantsService;
 import org.folio.service.impl.LoanEventHandler;
@@ -46,7 +47,7 @@ public class KafkaEventListener {
   private final UserEventHandler userEventHandler;
   private final SystemUserScopedExecutionService systemUserScopedExecutionService;
   private final RequestBatchUpdateEventHandler requestBatchEventHandler;
-  private final UserTenantsService userTenantsService;
+  private final ConsortiaService consortiaService;
   private final FolioModuleMetadata folioModuleMetadata;
 
   @KafkaListener(
@@ -100,7 +101,7 @@ public class KafkaEventListener {
       folioModuleMetadata, messageHeaders);
 
     try (FolioExecutionContextSetter contextSetter = new FolioExecutionContextSetter(context)) {
-      String centralTenantId = userTenantsService.getCentralTenantId();
+      String centralTenantId = consortiaService.getCentralTenantId();
       systemUserScopedExecutionService.executeAsyncSystemUserScoped(centralTenantId,
         () -> handler.handle(event));
     } catch (Exception e) {

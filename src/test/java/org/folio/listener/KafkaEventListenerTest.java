@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import java.util.Map;
 
 import org.folio.listener.kafka.KafkaEventListener;
+import org.folio.service.ConsortiaService;
 import org.folio.service.UserTenantsService;
 import org.folio.service.impl.LoanEventHandler;
 import org.folio.service.impl.RequestBatchUpdateEventHandler;
@@ -37,7 +38,7 @@ class KafkaEventListenerTest {
   @Mock
   UserEventHandler userEventHandler;
   @Mock
-  UserTenantsService userTenantsService;
+  ConsortiaService consortiaService;
   @InjectMocks
   KafkaEventListener kafkaEventListener;
 
