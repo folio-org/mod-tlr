@@ -14,5 +14,5 @@ public interface EcsTlrRepository extends JpaRepository<EcsTlrEntity, UUID> {
   Optional<EcsTlrEntity> findByPrimaryRequestId(UUID primaryRequestId);
   Optional<EcsTlrEntity> findByInstanceId(UUID instanceId);
   List<EcsTlrEntity> findByPrimaryRequestIdIn(List<UUID> primaryRequestIds);
-  List<EcsTlrEntity>findByItemIdAndRequesterId(UUID itemId, UUID requesterId);
+  List<EcsTlrEntity>findByItemId(UUID itemId);
 }

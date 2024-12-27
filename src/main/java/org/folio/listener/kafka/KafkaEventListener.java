@@ -12,7 +12,6 @@ import org.folio.domain.dto.UserGroup;
 import org.folio.exception.KafkaEventDeserializationException;
 import org.folio.service.ConsortiaService;
 import org.folio.service.KafkaEventHandler;
-import org.folio.service.UserTenantsService;
 import org.folio.service.impl.LoanEventHandler;
 import org.folio.service.impl.RequestBatchUpdateEventHandler;
 import org.folio.service.impl.RequestEventHandler;
