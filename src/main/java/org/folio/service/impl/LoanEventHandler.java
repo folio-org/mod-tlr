@@ -10,6 +10,7 @@ import static org.folio.support.KafkaEvent.EventType.UPDATED;
 
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.UUID;
 
 import org.folio.domain.dto.Loan;
@@ -129,15 +130,17 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
         dcbService.updateTransactionStatuses(StatusEnum.CLOSED, ecsTlr);
         return;
       }
-      log.info("updateEcsTlr:: ECS TLR {} was not updated", ecsTlr::getId);
+      log.info("updateEcsTlr:: ECS TLR {} does not match loan update event, skipping", ecsTlr::getId);
     }
     log.info("updateEcsTlr:: suitable ECS TLR for loan {} in tenant {} was not found", loan.getId(), tenantId);
   }
 
   private Collection<EcsTlrEntity> findEcsTlrs(Loan loan) {
-    log.info("findEcsTlr:: searching ECS TLRs for loan {}", loan::getId);
-    return ecsTlrRepository.findByItemIdAndRequesterId(UUID.fromString(loan.getItemId()),
-        UUID.fromString(loan.getUserId()));
+    log.info("findEcsTlrs:: searching ECS TLRs for item {}", loan::getItemId);
+    List<EcsTlrEntity> ecsTlrs = ecsTlrRepository.findByItemId(UUID.fromString(loan.getItemId()));
+    log.info("findEcsTlrs:: found {} ECS TLRs", ecsTlrs::size);
+
+    return ecsTlrs;
   }
 
 }

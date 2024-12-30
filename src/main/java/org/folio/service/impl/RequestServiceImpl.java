@@ -234,7 +234,7 @@ public class RequestServiceImpl implements RequestService {
       .effectiveLocationId(item.getEffectiveLocationId())
       .lendingLibraryCode("TEST_CODE");
 
-    log.info("createCirculationItem:: creating circulation item {}", circulationItem.toString());
+    log.info("createCirculationItem:: creating circulation item {}", itemId);
     return circulationItemClient.createCirculationItem(itemId, circulationItem);
   }
 

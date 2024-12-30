@@ -69,14 +69,14 @@ class LoanEventHandlerTest {
       .itemId(itemId.toString())
       .userId(userId.toString());
 
-    when(ecsTlrRepository.findByItemIdAndRequesterId(itemId, userId))
+    when(ecsTlrRepository.findByItemId(itemId))
       .thenReturn(emptyList());
 
     KafkaEvent<Loan> event = new KafkaEvent<>(randomUUID().toString(), "test_tenant", UPDATED,
       0L, new KafkaEvent.EventData<>(loan, loan), "test_tenant");
     loanEventHandler.handle(event);
 
-    verify(ecsTlrRepository).findByItemIdAndRequesterId(itemId, userId);
+    verify(ecsTlrRepository).findByItemId(itemId);
     verifyNoInteractions(dcbService);
   }
 
@@ -90,14 +90,14 @@ class LoanEventHandlerTest {
       .itemId(itemId.toString())
       .userId(userId.toString());
 
-    when(ecsTlrRepository.findByItemIdAndRequesterId(itemId, userId))
+    when(ecsTlrRepository.findByItemId(itemId))
       .thenReturn(List.of(new EcsTlrEntity()));
 
     KafkaEvent<Loan> event = new KafkaEvent<>(randomUUID().toString(), "test_tenant", UPDATED,
       0L, new KafkaEvent.EventData<>(loan, loan), "test_tenant");
     loanEventHandler.handle(event);
 
-    verify(ecsTlrRepository).findByItemIdAndRequesterId(itemId, userId);
+    verify(ecsTlrRepository).findByItemId(itemId);
     verifyNoInteractions(dcbService);
   }
 
@@ -117,14 +117,14 @@ class LoanEventHandlerTest {
     ecsTlr.setPrimaryRequestDcbTransactionId(randomUUID());
     ecsTlr.setSecondaryRequestDcbTransactionId(randomUUID());
 
-    when(ecsTlrRepository.findByItemIdAndRequesterId(itemId, userId))
+    when(ecsTlrRepository.findByItemId(itemId))
       .thenReturn(List.of(ecsTlr));
 
     KafkaEvent<Loan> event = new KafkaEvent<>(randomUUID().toString(), "test_tenant", UPDATED,
       0L, new KafkaEvent.EventData<>(loan, loan), "test_tenant");
     loanEventHandler.handle(event);
 
-    verify(ecsTlrRepository).findByItemIdAndRequesterId(itemId, userId);
+    verify(ecsTlrRepository).findByItemId(itemId);
     verifyNoInteractions(dcbService);
   }
 
@@ -162,7 +162,7 @@ class LoanEventHandlerTest {
     mockEcsTlr.setPrimaryRequestDcbTransactionId(primaryTransactionId);
     mockEcsTlr.setSecondaryRequestDcbTransactionId(secondaryTransactionId);
 
-    when(ecsTlrRepository.findByItemIdAndRequesterId(itemId, userId))
+    when(ecsTlrRepository.findByItemId(itemId))
       .thenReturn(List.of(mockEcsTlr));
 
     TransactionStatusResponse mockPrimaryTransactionResponse = buildTransactionStatusResponse(
@@ -185,7 +185,7 @@ class LoanEventHandlerTest {
 
     loanEventHandler.handle(event);
 
-    verify(ecsTlrRepository).findByItemIdAndRequesterId(itemId, userId);
+    verify(ecsTlrRepository).findByItemId(itemId);
     verify(dcbService).getTransactionStatus(primaryTransactionId, primaryRequestTenant);
     verify(dcbService).getTransactionStatus(secondaryTransactionId, secondaryRequestTenant);
     verify(dcbService).updateTransactionStatuses(expectedNewStatus, mockEcsTlr);
