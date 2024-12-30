@@ -9,7 +9,6 @@ import java.util.Map;
 
 import org.folio.listener.kafka.KafkaEventListener;
 import org.folio.service.ConsortiaService;
-import org.folio.service.UserTenantsService;
 import org.folio.service.impl.LoanEventHandler;
 import org.folio.service.impl.RequestBatchUpdateEventHandler;
 import org.folio.service.impl.RequestEventHandler;
