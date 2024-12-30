@@ -30,7 +30,6 @@ import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.folio.support.KafkaEvent;
 import org.springframework.stereotype.Service;
 
-import feign.FeignException;
 import lombok.AllArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
@@ -149,7 +148,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
       oldRequestStatus, newRequestStatus);
 
     if (newRequestStatus == oldRequestStatus) {
-      log.info("determineNewTransactionStatus:: request status did not change");
+      log.info("determineNewTransactionStatus:: request status did not change, doing nothing");
       return Optional.empty();
     }
 
@@ -171,51 +170,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
 
   private void updateTransactionStatuses(KafkaEvent<Request> event, EcsTlrEntity ecsTlr) {
     determineNewTransactionStatus(event)
-      .ifPresent(newStatus -> updateTransactionStatuses(newStatus, ecsTlr));
-  }
-
-  private void updateTransactionStatuses(TransactionStatus.StatusEnum newStatus, EcsTlrEntity ecsTlr) {
-    log.info("updateTransactionStatuses:: updating primary transaction status to {}", newStatus::getValue);
-    updateTransactionStatus(ecsTlr.getPrimaryRequestDcbTransactionId(), newStatus,
-      ecsTlr.getPrimaryRequestTenantId());
-
-    log.info("updateTransactionStatuses:: updating intermediate transaction status to {}", newStatus::getValue);
-    updateTransactionStatus(ecsTlr.getIntermediateRequestDcbTransactionId(), newStatus,
-      ecsTlr.getIntermediateRequestTenantId());
-
-    log.info("updateTransactionStatuses:: updating secondary transaction status to {}", newStatus::getValue);
-    updateTransactionStatus(ecsTlr.getSecondaryRequestDcbTransactionId(), newStatus,
-      ecsTlr.getSecondaryRequestTenantId());
-  }
-
-  private void updateTransactionStatus(UUID transactionId,
-    TransactionStatus.StatusEnum newStatus, String tenantId) {
-
-    if (transactionId == null) {
-      log.info("updateTransactionStatus:: transaction ID is null, doing nothing");
-      return;
-    }
-    if (tenantId == null) {
-      log.info("updateTransactionStatus:: tenant ID is null, doing nothing");
-      return;
-    }
-
-    try {
-      var currentStatus = dcbService.getTransactionStatus(transactionId, tenantId).getStatus();
-      log.info("updateTransactionStatus:: current transaction status: {}", currentStatus);
-      if (newStatus.getValue().equals(currentStatus.getValue())) {
-        log.info("updateTransactionStatus:: transaction status did not change, doing nothing");
-        return;
-      }
-      log.info("updateTransactionStatus: changing status of transaction {} in tenant {} from {} to {}",
-        transactionId, tenantId, currentStatus.getValue(), newStatus.getValue());
-      dcbService.updateTransactionStatus(transactionId, newStatus, tenantId);
-    } catch (FeignException.NotFound e) {
-      log.error("updateTransactionStatus:: transaction {} not found: {}", transactionId, e.getMessage());
-    } catch (Exception e) {
-      log.error("updateTransactionStatus:: failed to update transaction status: {}", e::getMessage);
-      log.debug("updateTransactionStatus:: ", e);
-    }
+      .ifPresent(newStatus -> dcbService.updateTransactionStatuses(newStatus, ecsTlr));
   }
 
   private void propagateChangesFromPrimaryToSecondaryRequest(EcsTlrEntity ecsTlr,

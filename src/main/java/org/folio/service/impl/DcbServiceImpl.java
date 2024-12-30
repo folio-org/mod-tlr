@@ -4,6 +4,13 @@ import static org.folio.domain.dto.DcbTransaction.RoleEnum.BORROWER;
 import static org.folio.domain.dto.DcbTransaction.RoleEnum.BORROWING_PICKUP;
 import static org.folio.domain.dto.DcbTransaction.RoleEnum.LENDER;
 import static org.folio.domain.dto.DcbTransaction.RoleEnum.PICKUP;
+import static org.folio.domain.dto.TransactionStatus.StatusEnum.AWAITING_PICKUP;
+import static org.folio.domain.dto.TransactionStatus.StatusEnum.CANCELLED;
+import static org.folio.domain.dto.TransactionStatus.StatusEnum.CLOSED;
+import static org.folio.domain.dto.TransactionStatus.StatusEnum.CREATED;
+import static org.folio.domain.dto.TransactionStatus.StatusEnum.ITEM_CHECKED_IN;
+import static org.folio.domain.dto.TransactionStatus.StatusEnum.ITEM_CHECKED_OUT;
+import static org.folio.domain.dto.TransactionStatus.StatusEnum.OPEN;
 
 import java.util.UUID;
 
@@ -14,6 +21,7 @@ import org.folio.domain.dto.DcbTransaction;
 import org.folio.domain.dto.DcbTransaction.RoleEnum;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.TransactionStatus;
+import org.folio.domain.dto.TransactionStatus.StatusEnum;
 import org.folio.domain.dto.TransactionStatusResponse;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.service.DcbService;
@@ -21,6 +29,7 @@ import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import feign.FeignException;
 import lombok.extern.log4j.Log4j2;
 
 @Service
@@ -115,18 +124,6 @@ public class DcbServiceImpl implements DcbService {
   }
 
   @Override
-  public TransactionStatusResponse updateTransactionStatus(UUID transactionId,
-    TransactionStatus.StatusEnum newStatus, String tenantId) {
-
-    log.info("updateTransactionStatus:: transactionId={}, newStatus={}, tenantId={}",
-      transactionId, newStatus, tenantId);
-
-    return executionService.executeSystemUserScoped(tenantId,
-      () -> dcbTransactionClient.changeDcbTransactionStatus(
-        transactionId.toString(), new TransactionStatus().status(newStatus)));
-  }
-
-  @Override
   public void createTransactions(EcsTlrEntity ecsTlr, Request secondaryRequest) {
     log.info("createTransactions:: creating transactions for ECS TLR {}", ecsTlr::getId);
     if (secondaryRequest.getItemId() == null) {
@@ -141,6 +138,91 @@ public class DcbServiceImpl implements DcbService {
       createBorrowerTransaction(ecsTlr, secondaryRequest);
       createPickupTransaction(ecsTlr, secondaryRequest);
     }
+  }
+
+  @Override
+  public void updateTransactionStatuses(TransactionStatus.StatusEnum newStatus, EcsTlrEntity ecsTlr) {
+    log.info("updateTransactionStatuses:: updating primary transaction status to {}", newStatus::getValue);
+    updateTransactionStatus(ecsTlr.getPrimaryRequestDcbTransactionId(), newStatus,
+      ecsTlr.getPrimaryRequestTenantId());
+
+    log.info("updateTransactionStatuses:: updating intermediate transaction status to {}", newStatus::getValue);
+    updateTransactionStatus(ecsTlr.getIntermediateRequestDcbTransactionId(), newStatus,
+      ecsTlr.getIntermediateRequestTenantId());
+
+    log.info("updateTransactionStatuses:: updating secondary transaction status to {}", newStatus::getValue);
+    updateTransactionStatus(ecsTlr.getSecondaryRequestDcbTransactionId(), newStatus,
+      ecsTlr.getSecondaryRequestTenantId());
+  }
+
+  @Override
+  public void updateTransactionStatus(UUID transactionId, StatusEnum newStatus, String tenantId) {
+    if (transactionId == null) {
+      log.info("updateTransactionStatus:: transaction ID is null, doing nothing");
+      return;
+    }
+    if (tenantId == null) {
+      log.info("updateTransactionStatus:: tenant ID is null, doing nothing");
+      return;
+    }
+
+    try {
+      if (isTransactionStatusChangeAllowed(transactionId, newStatus, tenantId)) {
+        log.info("updateTransactionStatus: changing status of transaction {} in tenant {} to {}",
+          transactionId, tenantId, newStatus.getValue());
+
+        executionService.executeSystemUserScoped(tenantId,
+          () -> dcbTransactionClient.changeDcbTransactionStatus(transactionId.toString(),
+            new TransactionStatus().status(newStatus)));
+      }
+    } catch (FeignException.NotFound e) {
+      log.error("updateTransactionStatus:: transaction {} not found: {}", transactionId, e.getMessage());
+    } catch (Exception e) {
+      log.error("updateTransactionStatus:: failed to update transaction status: {}", e::getMessage);
+      log.debug("updateTransactionStatus:: ", e);
+    }
+  }
+
+  private boolean isTransactionStatusChangeAllowed(UUID transactionId, StatusEnum newStatus,
+    String tenantId) {
+
+    TransactionStatusResponse transaction = getTransactionStatus(transactionId, tenantId);
+    RoleEnum transactionRole = RoleEnum.fromValue(transaction.getRole().getValue());
+    StatusEnum currentStatus = StatusEnum.fromValue(transaction.getStatus().getValue());
+
+    return isTransactionStatusChangeAllowed(transactionRole, currentStatus, newStatus);
+  }
+
+  private static boolean isTransactionStatusChangeAllowed(RoleEnum role, StatusEnum oldStatus,
+    StatusEnum newStatus) {
+
+    log.info("isTransactionStatusChangeAllowed:: role={}, oldStatus={}, newStatus={}", role,
+      oldStatus, newStatus);
+
+    boolean isStatusChangeAllowed = false;
+
+    if (role == LENDER) {
+      isStatusChangeAllowed = (oldStatus == CREATED && newStatus == OPEN) ||
+        (oldStatus == OPEN && newStatus == AWAITING_PICKUP) ||
+        (oldStatus == AWAITING_PICKUP && newStatus == ITEM_CHECKED_OUT) ||
+        (oldStatus == ITEM_CHECKED_OUT && newStatus == ITEM_CHECKED_IN) ||
+        (oldStatus != CANCELLED && newStatus == CANCELLED);
+    }
+    else if (role == BORROWER) {
+      isStatusChangeAllowed = (oldStatus == CREATED && newStatus == OPEN) ||
+        (oldStatus == OPEN && newStatus == AWAITING_PICKUP) ||
+        (oldStatus == AWAITING_PICKUP && newStatus == ITEM_CHECKED_OUT) ||
+        (oldStatus == ITEM_CHECKED_OUT && newStatus == ITEM_CHECKED_IN) ||
+        (oldStatus == ITEM_CHECKED_IN && newStatus == CLOSED) ||
+        (oldStatus != CANCELLED && newStatus == CANCELLED);
+    }
+    else if (role == BORROWING_PICKUP || role == PICKUP) {
+      isStatusChangeAllowed = (oldStatus == CREATED && newStatus == OPEN) ||
+        (oldStatus == ITEM_CHECKED_IN && newStatus == CLOSED) ||
+        (oldStatus != CANCELLED && newStatus == CANCELLED);
+    }
+    log.info("isTransactionStatusChangeAllowed:: status change is allowed: {}", isStatusChangeAllowed);
+    return isStatusChangeAllowed;
   }
 
 }

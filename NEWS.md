@@ -1,3 +1,7 @@
+## 1.0.3 2024-12-30
+* DCB transaction status synchronization (MODTLR-112)
+* Resolve central tenant ID dynamically (MODTLR-118)
+* 
 ## 1.0.2 2024-12-12
 * Copy Secure Patron name when cloning users (MODTLR-116)
 * Support for intermediate requests (MODTLR-98)

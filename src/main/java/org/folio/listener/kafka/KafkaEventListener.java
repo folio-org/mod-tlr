@@ -1,114 +1,115 @@
 package org.folio.listener.kafka;
 
-import static org.folio.domain.Constants.CENTRAL_TENANT_ID;
-
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.Optional;
 
+import org.folio.domain.dto.Loan;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.RequestsBatchUpdate;
 import org.folio.domain.dto.User;
 import org.folio.domain.dto.UserGroup;
 import org.folio.exception.KafkaEventDeserializationException;
+import org.folio.service.ConsortiaService;
 import org.folio.service.KafkaEventHandler;
+import org.folio.service.impl.LoanEventHandler;
 import org.folio.service.impl.RequestBatchUpdateEventHandler;
 import org.folio.service.impl.RequestEventHandler;
 import org.folio.service.impl.UserEventHandler;
 import org.folio.service.impl.UserGroupEventHandler;
+import org.folio.spring.DefaultFolioExecutionContext;
+import org.folio.spring.FolioExecutionContext;
+import org.folio.spring.FolioModuleMetadata;
 import org.folio.spring.integration.XOkapiHeaders;
+import org.folio.spring.scope.FolioExecutionContextSetter;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.folio.support.KafkaEvent;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.messaging.MessageHeaders;
+import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
 @Component
 @Log4j2
+@RequiredArgsConstructor
 public class KafkaEventListener {
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private final RequestEventHandler requestEventHandler;
+  private final LoanEventHandler loanEventHandler;
   private final UserGroupEventHandler userGroupEventHandler;
   private final UserEventHandler userEventHandler;
   private final SystemUserScopedExecutionService systemUserScopedExecutionService;
   private final RequestBatchUpdateEventHandler requestBatchEventHandler;
-
-  public KafkaEventListener(@Autowired RequestEventHandler requestEventHandler,
-    @Autowired RequestBatchUpdateEventHandler requestBatchEventHandler,
-    @Autowired SystemUserScopedExecutionService systemUserScopedExecutionService,
-    @Autowired UserGroupEventHandler userGroupEventHandler,
-    @Autowired UserEventHandler userEventHandler) {
-
-    this.requestEventHandler = requestEventHandler;
-    this.systemUserScopedExecutionService = systemUserScopedExecutionService;
-    this.userGroupEventHandler = userGroupEventHandler;
-    this.requestBatchEventHandler = requestBatchEventHandler;
-    this.userEventHandler = userEventHandler;
-  }
+  private final ConsortiaService consortiaService;
+  private final FolioModuleMetadata folioModuleMetadata;
 
   @KafkaListener(
     topicPattern = "${folio.environment}\\.\\w+\\.circulation\\.request",
     groupId = "${spring.kafka.consumer.group-id}"
   )
-  public void handleRequestEvent(String eventString, MessageHeaders messageHeaders) {
-    log.debug("handleRequestEvent:: event: {}", () -> eventString);
-    KafkaEvent<Request> event = deserialize(eventString, messageHeaders, Request.class);
-    log.info("handleRequestEvent:: event received: {}", event::getId);
-    handleEvent(event, requestEventHandler);
-    log.info("handleRequestEvent:: event consumed: {}", event::getId);
+  public void handleRequestEvent(String eventString, @Headers Map<String, Object> messageHeaders) {
+    handleEvent(eventString, requestEventHandler, messageHeaders, Request.class);
+  }
+
+  @KafkaListener(
+    topicPattern = "${folio.environment}\\.\\w+\\.circulation\\.loan",
+    groupId = "${spring.kafka.consumer.group-id}"
+  )
+  public void handleLoanEvent(String eventString, @Headers Map<String, Object> messageHeaders) {
+    handleEvent(eventString, loanEventHandler, messageHeaders, Loan.class);
   }
 
   @KafkaListener(
     topicPattern = "${folio.environment}\\.\\w+\\.circulation\\.request-queue-reordering",
     groupId = "${spring.kafka.consumer.group-id}"
   )
-  public void handleRequestBatchUpdateEvent(String eventString, MessageHeaders messageHeaders) {
-    log.debug("handleRequestBatchUpdateEvent:: event: {}", () -> eventString);
-    KafkaEvent<RequestsBatchUpdate> event = deserialize(eventString, messageHeaders, RequestsBatchUpdate.class);
-    log.info("handleRequestBatchUpdateEvent:: event received: {}", event::getId);
-    handleEvent(event, requestBatchEventHandler);
-    log.info("handleRequestBatchUpdateEvent:: event consumed: {}", event::getId);
-  }
-
-  private <T> void handleEvent(KafkaEvent<T> event, KafkaEventHandler<T> handler) {
-    try {
-      systemUserScopedExecutionService.executeAsyncSystemUserScoped(CENTRAL_TENANT_ID,
-        () -> handler.handle(event));
-    } catch (Exception e) {
-      log.error("handleEvent:: Failed to handle Kafka event in tenant {}", CENTRAL_TENANT_ID);
-    }
+  public void handleRequestBatchUpdateEvent(String eventString, @Headers Map<String, Object> messageHeaders) {
+    handleEvent(eventString, requestBatchEventHandler, messageHeaders, RequestsBatchUpdate.class);
   }
 
   @KafkaListener(
     topicPattern = "${folio.environment}\\.\\w+\\.users\\.userGroup",
     groupId = "${spring.kafka.consumer.group-id}"
   )
-  public void handleUserGroupEvent(String eventString, MessageHeaders messageHeaders) {
-    KafkaEvent<UserGroup> event = deserialize(eventString, messageHeaders, UserGroup.class);
-
-    log.info("handleUserGroupEvent:: event received: {}", event::getId);
-    log.debug("handleUserGroupEvent:: event: {}", () -> event);
-    handleEvent(event, userGroupEventHandler);
+  public void handleUserGroupEvent(String eventString, @Headers Map<String, Object> messageHeaders) {
+    handleEvent(eventString, userGroupEventHandler, messageHeaders, UserGroup.class);
   }
 
   @KafkaListener(
     topicPattern = "${folio.environment}\\.\\w+\\.users\\.users",
     groupId = "${spring.kafka.consumer.group-id}"
   )
-  public void handleUserEvent(String eventString, MessageHeaders messageHeaders) {
-    KafkaEvent<User> event = deserialize(eventString, messageHeaders, User.class);
-
-    log.info("handleUserEvent:: event received: {}", event::getId);
-    handleEvent(event, userEventHandler);
+  public void handleUserEvent(String eventString, @Headers Map<String, Object> messageHeaders) {
+    handleEvent(eventString, userEventHandler, messageHeaders, User.class);
   }
 
-  private static <T> KafkaEvent<T> deserialize(String eventString, MessageHeaders messageHeaders,
+  private <T> void handleEvent(String eventString, KafkaEventHandler<T> handler,
+    Map<String, Object> messageHeaders, Class<T> payloadType) {
+
+    log.debug("handleEvent:: event: {}", () -> eventString);
+    KafkaEvent<T> event = deserialize(eventString, messageHeaders, payloadType);
+    log.info("handleEvent:: event received: {}", event::getId);
+
+    FolioExecutionContext context = DefaultFolioExecutionContext.fromMessageHeaders(
+      folioModuleMetadata, messageHeaders);
+
+    try (FolioExecutionContextSetter contextSetter = new FolioExecutionContextSetter(context)) {
+      String centralTenantId = consortiaService.getCentralTenantId();
+      systemUserScopedExecutionService.executeAsyncSystemUserScoped(centralTenantId,
+        () -> handler.handle(event));
+    } catch (Exception e) {
+      log.error("handleEvent:: failed to handle event {}", event.getId(), e);
+    }
+    log.info("handleEvent:: event consumed: {}", event::getId);
+  }
+
+  private static <T> KafkaEvent<T> deserialize(String eventString, Map<String, Object> messageHeaders,
     Class<T> dataType) {
 
     try {
@@ -125,7 +126,7 @@ public class KafkaEventListener {
     }
   }
 
-  private static String getHeaderValue(MessageHeaders headers, String headerName) {
+  private static String getHeaderValue(Map<String, Object> headers, String headerName) {
     log.debug("getHeaderValue:: headers: {}, headerName: {}", () -> headers, () -> headerName);
     var headerValue = headers.get(headerName);
     var value = headerValue == null
