@@ -27,8 +27,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.time.ZonedDateTime;
+import java.util.Collection;
 import java.util.Date;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -37,7 +37,7 @@ import org.apache.http.HttpStatus;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.header.internals.RecordHeader;
+import org.apache.kafka.common.header.Header;
 import org.awaitility.Awaitility;
 import org.folio.api.BaseIT;
 import org.folio.domain.dto.DcbItem;
@@ -622,11 +622,8 @@ class KafkaEventListenerTest extends BaseIT {
 
   @SneakyThrows
   private void publishEvent(String tenant, String topic, String payload) {
-    kafkaTemplate.send(new ProducerRecord<>(topic, 0, randomId(), payload,
-        List.of(
-          new RecordHeader(XOkapiHeaders.TENANT, tenant.getBytes()),
-          new RecordHeader("folio.tenantId", randomId().getBytes())
-        )))
+    Collection<Header> headers = buildHeadersForKafkaProducer(tenant);
+    kafkaTemplate.send(new ProducerRecord<>(topic, 0, randomId(), payload, headers))
       .get(10, SECONDS);
   }
 

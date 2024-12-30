@@ -90,9 +90,11 @@ components:
     transactionStatusResponse:
       $ref: 'schemas/transactionStatusResponse.yaml#/TransactionStatusResponse'
     tenant:
-      $ref: 'schemas/tenant.yaml#/Tenant'
+      $ref: 'schemas/consortia/tenant.yaml#/Tenant'
     tenants:
-      $ref: 'schemas/tenant.yaml#/TenantCollection'
+      $ref: 'schemas/consortia/tenant.yaml#/TenantCollection'
+    consortiaConfiguration:
+      $ref: 'schemas/consortia/consortiaConfiguration.yaml#/ConsortiaConfiguration'
     publicationRequest:
       $ref: 'schemas/publication.yaml#/PublicationRequest'
     publicationResponse:
@@ -103,6 +105,8 @@ components:
       $ref: 'schemas/request.json'
     requests:
       $ref: 'schemas/requests.json'
+    loan:
+      $ref: 'schemas/loan.json'
     searchInstancesResponse:
       $ref: 'schemas/search/searchInstancesResponse.yaml'
     searchItemResponse:

@@ -116,7 +116,7 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
       null, new RequestsBatchUpdate()
         .instanceId(instanceId)
         .requestLevel(RequestsBatchUpdate.RequestLevelEnum.TITLE))),
-      getMessageHeaders(CENTRAL_TENANT_ID, CENTRAL_TENANT_ID));
+      buildKafkaHeaders(CENTRAL_TENANT_ID));
 
     verify(requestService, times(1)).reorderRequestsQueueForInstance(
       instanceId, firstTenant, reorderQueue);
@@ -193,7 +193,7 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
       null, new RequestsBatchUpdate()
         .instanceId(instanceId)
         .requestLevel(RequestsBatchUpdate.RequestLevelEnum.TITLE))),
-      getMessageHeaders(CENTRAL_TENANT_ID, CENTRAL_TENANT_ID));
+      buildKafkaHeaders(CENTRAL_TENANT_ID));
 
     verify(requestService, times(1)).reorderRequestsQueueForInstance(
       instanceId, firstTenant, reorderQueue);
@@ -250,7 +250,7 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
       null, new RequestsBatchUpdate()
           .instanceId(instanceId)
           .requestLevel(RequestsBatchUpdate.RequestLevelEnum.TITLE))),
-      getMessageHeaders(CENTRAL_TENANT_ID, CENTRAL_TENANT_ID));
+      buildKafkaHeaders(CENTRAL_TENANT_ID));
 
     verify(requestService, times(0)).reorderRequestsQueueForInstance(
       eq(instanceId), eq(firstTenant), any());
@@ -308,7 +308,7 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
       null, new RequestsBatchUpdate()
         .instanceId(instanceId)
         .requestLevel(RequestsBatchUpdate.RequestLevelEnum.TITLE))),
-      getMessageHeaders(CENTRAL_TENANT_ID, CENTRAL_TENANT_ID));
+      buildKafkaHeaders(CENTRAL_TENANT_ID));
 
     verify(requestService, times(0)).reorderRequestsQueueForInstance(
       eq(instanceId), eq(firstTenant), any());
@@ -377,7 +377,7 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
           .instanceId(instanceId)
           .itemId(itemId)
           .requestLevel(RequestsBatchUpdate.RequestLevelEnum.ITEM))),
-      getMessageHeaders(CENTRAL_TENANT_ID, CENTRAL_TENANT_ID));
+      buildKafkaHeaders(CENTRAL_TENANT_ID));
 
     verify(requestService, times(1)).reorderRequestsQueueForItem(
       itemId, firstTenant, reorderQueue);

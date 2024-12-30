@@ -13,7 +13,8 @@ public interface DcbService {
   void createBorrowerTransaction(EcsTlrEntity ecsTlr, Request request);
   void createBorrowingPickupTransaction(EcsTlrEntity ecsTlr, Request request);
   void createPickupTransaction(EcsTlrEntity ecsTlr, Request request);
+  void updateTransactionStatuses(TransactionStatus.StatusEnum newStatus, EcsTlrEntity ecsTlr);
   TransactionStatusResponse getTransactionStatus(UUID transactionId, String tenantId);
-  TransactionStatusResponse updateTransactionStatus(UUID transactionId,
-    TransactionStatus.StatusEnum newStatus, String tenantId);
+  void updateTransactionStatus(UUID transactionId, TransactionStatus.StatusEnum newStatus,
+    String tenantId);
 }

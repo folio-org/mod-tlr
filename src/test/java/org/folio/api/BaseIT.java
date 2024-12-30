@@ -1,5 +1,6 @@
 package org.folio.api;
 
+import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -16,6 +17,8 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.KafkaAdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.internals.RecordHeader;
 import org.folio.spring.FolioExecutionContext;
 import org.folio.spring.FolioModuleMetadata;
 import org.folio.spring.integration.XOkapiHeaders;
@@ -35,7 +38,6 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.messaging.MessageHeaders;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -74,6 +76,7 @@ import lombok.extern.log4j.Log4j2;
 public class BaseIT {
   private static final String FOLIO_ENVIRONMENT = "folio";
   protected static final String HEADER_TENANT = "x-okapi-tenant";
+  protected static final String USED_ID = "08d51c7a-0f36-4f3d-9e35-d285612a23df";
   protected static final String TOKEN = "test_token";
   protected static final String TENANT_ID_CONSORTIUM = "consortium"; // central tenant
   protected static final String TENANT_ID_UNIVERSITY = "university";
@@ -156,20 +159,46 @@ public class BaseIT {
   protected static void setUpTenant(MockMvc mockMvc) {
     mockMvc.perform(MockMvcRequestBuilders.post("/_/tenant")
       .content(asJsonString(new TenantAttributes().moduleTo("mod-tlr")))
-      .headers(defaultHeaders())
+      .headers(defaultHeadersForRequest())
       .contentType(APPLICATION_JSON)).andExpect(status().isNoContent());
   }
 
-  public static HttpHeaders defaultHeaders() {
+  public static HttpHeaders defaultHeadersForRequest() {
     final HttpHeaders httpHeaders = new HttpHeaders();
-
     httpHeaders.setContentType(APPLICATION_JSON);
-    httpHeaders.add(XOkapiHeaders.TENANT, TENANT_ID_CONSORTIUM);
-    httpHeaders.add(XOkapiHeaders.URL, wireMockServer.baseUrl());
-    httpHeaders.add(XOkapiHeaders.TOKEN, TOKEN);
-    httpHeaders.add(XOkapiHeaders.USER_ID, "08d51c7a-0f36-4f3d-9e35-d285612a23df");
-
+    buildHeaders().forEach(httpHeaders::add);
     return httpHeaders;
+  }
+
+  protected static Collection<Header> buildHeadersForKafkaProducer(String tenant) {
+    return buildKafkaHeaders(tenant)
+      .entrySet()
+      .stream()
+      .map(entry -> new RecordHeader(entry.getKey(), (byte[]) entry.getValue()))
+      .collect(toList());
+  }
+
+  protected static Map<String, Object> buildKafkaHeaders(String tenantId) {
+    Map<String, String> headers = buildHeaders(tenantId);
+    headers.put("folio.tenantId", tenantId);
+
+    return headers.entrySet()
+      .stream()
+      .collect(toMap(Map.Entry::getKey, entry -> entry.getValue().getBytes()));
+  }
+
+  protected static Map<String, String> buildHeaders() {
+    return buildHeaders(TENANT_ID_CONSORTIUM);
+  }
+
+  protected static Map<String, String> buildHeaders(String tenantId) {
+    Map<String, String> headers = new HashMap<>();
+    headers.put(XOkapiHeaders.TENANT, tenantId);
+    headers.put(XOkapiHeaders.URL, wireMockServer.baseUrl());
+    headers.put(XOkapiHeaders.TOKEN, TOKEN);
+    headers.put(XOkapiHeaders.USER_ID, USED_ID);
+    headers.put(XOkapiHeaders.REQUEST_ID, randomId());
+    return headers;
   }
 
   @SneakyThrows
@@ -228,7 +257,7 @@ public class BaseIT {
   }
 
   private static Map<String, Collection<String>> buildDefaultHeaders() {
-    return new HashMap<>(defaultHeaders().entrySet()
+    return new HashMap<>(defaultHeadersForRequest().entrySet()
       .stream()
       .collect(toMap(Map.Entry::getKey, Map.Entry::getValue)));
   }
@@ -260,11 +289,4 @@ public class BaseIT {
     return String.format("%s.%s.%s.%s", env, tenant, module, objectType);
   }
 
-  protected MessageHeaders getMessageHeaders(String tenantName, String tenantId) {
-    Map<String, Object> header = new HashMap<>();
-    header.put(XOkapiHeaders.TENANT, tenantName.getBytes());
-    header.put("folio.tenantId", tenantId);
-
-    return new MessageHeaders(header);
-  }
 }
