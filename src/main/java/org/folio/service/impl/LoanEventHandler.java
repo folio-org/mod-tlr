@@ -136,11 +136,6 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
   }
 
   private Collection<EcsTlrEntity> findEcsTlrs(Loan loan) {
-    log.info("findEcsTlrs:: searching ECS TLRs for item {}", loan::getItemId);
-    List<EcsTlrEntity> ecsTlrs = ecsTlrRepository.findByItemId(UUID.fromString(loan.getItemId()));
-    log.info("findEcsTlrs:: found {} ECS TLRs", ecsTlrs::size);
-
-    return ecsTlrs;
   }
 
 }
