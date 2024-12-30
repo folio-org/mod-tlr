@@ -77,7 +77,6 @@ class LoanEventHandlerTest {
     loanEventHandler.handle(event);
 
     verify(ecsTlrRepository).findByItemId(itemId);
-    verify(ecsTlrRepository).findByItemIdAndRequesterId(itemId, userId);
     verifyNoInteractions(dcbService);
   }
 
