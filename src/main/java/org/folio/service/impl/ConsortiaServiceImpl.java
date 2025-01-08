@@ -13,6 +13,7 @@ import org.folio.domain.dto.TenantCollection;
 import org.folio.domain.dto.UserTenant;
 import org.folio.service.ConsortiaService;
 import org.folio.service.UserTenantsService;
+import org.folio.spring.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -47,10 +48,15 @@ public class ConsortiaServiceImpl implements ConsortiaService {
   @Override
   public String getCentralTenantId() {
     log.info("getCentralTenantId:: resolving central tenant ID");
-    String centralTenantId = Optional.ofNullable(consortiaConfigurationClient.getConfiguration())
-      .map(ConsortiaConfiguration::getCentralTenantId)
-      .orElseThrow();
-    log.info("getCentralTenantId:: central tenant ID: {}", centralTenantId);
-    return centralTenantId;
+    try {
+      String centralTenantId = Optional.ofNullable(consortiaConfigurationClient.getConfiguration())
+        .map(ConsortiaConfiguration::getCentralTenantId)
+        .orElseThrow();
+      log.info("getCentralTenantId:: central tenant ID: {}", centralTenantId);
+      return centralTenantId;
+    } catch (NotFoundException notFoundException) {
+      log.info("getCentralTenantId:: 404 Not Found: {}", notFoundException.getMessage());
+      return null;
+    }
   }
 }
