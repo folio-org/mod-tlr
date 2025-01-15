@@ -1,3 +1,6 @@
+## 1.0.5 2025-01-15
+* Upgrade to Spring Boot 3.3.7, folio-spring 8.2.2 (MODTLR-125)
+
 ## 1.0.4 2025-01-09
 * Fix dependencies and permissions, move interface `consortia` to optional (MODTLR-123)
 
