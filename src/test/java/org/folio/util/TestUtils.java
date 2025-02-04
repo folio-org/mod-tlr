@@ -91,11 +91,12 @@ public class TestUtils {
       .type(type)
       .timestamp(new Date().getTime())
       .tenant(tenant)
+      .tenantIdHeaderValue(tenant)
       .data(data)
       .build();
   }
 
-  private static String randomId() {
+  public static String randomId() {
     return UUID.randomUUID().toString();
   }
 }

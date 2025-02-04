@@ -6,6 +6,7 @@ import static org.folio.domain.dto.TransactionStatus.StatusEnum.AWAITING_PICKUP;
 import static org.folio.domain.dto.TransactionStatus.StatusEnum.CANCELLED;
 import static org.folio.domain.dto.TransactionStatus.StatusEnum.ITEM_CHECKED_OUT;
 import static org.folio.domain.dto.TransactionStatus.StatusEnum.OPEN;
+import static org.folio.support.Constants.INTERIM_SERVICE_POINT_ID;
 import static org.folio.support.KafkaEvent.EventType.UPDATED;
 
 import java.util.Date;
@@ -116,7 +117,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
   }
 
   private void handlePrimaryRequestUpdate(EcsTlrEntity ecsTlr, KafkaEvent<Request> event) {
-    propagateChangesFromPrimaryToSecondaryRequest(ecsTlr, event);
+    propagatePrimaryRequestChanges(ecsTlr, event);
     updateTransactionStatuses(event, ecsTlr);
   }
 
@@ -173,59 +174,81 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
       .ifPresent(newStatus -> dcbService.updateTransactionStatuses(newStatus, ecsTlr));
   }
 
-  private void propagateChangesFromPrimaryToSecondaryRequest(EcsTlrEntity ecsTlr,
-    KafkaEvent<Request> event) {
+  private void propagatePrimaryRequestChanges(EcsTlrEntity ecsTlr, KafkaEvent<Request> event) {
+    log.info("propagatePrimaryRequestChanges:: propagating primary request changes");
 
-    String secondaryRequestId = ecsTlr.getSecondaryRequestId().toString();
-    String secondaryRequestTenantId = ecsTlr.getSecondaryRequestTenantId();
+   Optional.ofNullable(ecsTlr.getSecondaryRequestId())
+     .map(UUID::toString)
+     .ifPresent(secondaryRequestId -> propagatePrimaryRequestChanges(ecsTlr, event,
+       secondaryRequestId, ecsTlr.getSecondaryRequestTenantId()));
+
+    Optional.ofNullable(ecsTlr.getIntermediateRequestId())
+      .map(UUID::toString)
+      .ifPresent(intermediateRequestId -> propagatePrimaryRequestChanges(ecsTlr, event,
+        intermediateRequestId, ecsTlr.getIntermediateRequestTenantId()));
+  }
+
+  private void propagatePrimaryRequestChanges(EcsTlrEntity ecsTlr, KafkaEvent<Request> event,
+    String targetRequestId, String targetRequestTenantId) {
+
+    log.info("propagatePrimaryRequestChanges:: propagating changes to request {} in tenant {}",
+      targetRequestId, targetRequestTenantId);
+
     Request primaryRequest = event.getData().getNewVersion();
-    Request secondaryRequest = requestService.getRequestFromStorage(
-      secondaryRequestId, secondaryRequestTenantId);
+    Request targetRequest = requestService.getRequestFromStorage(targetRequestId, targetRequestTenantId);
 
-    boolean shouldUpdateSecondaryRequest = false;
-    if (valueIsNotEqual(primaryRequest, secondaryRequest, Request::getRequestExpirationDate)) {
+    boolean shouldUpdateTargetRequest = false;
+    if (valueIsNotEqual(primaryRequest, targetRequest, Request::getRequestExpirationDate)) {
       Date requestExpirationDate = primaryRequest.getRequestExpirationDate();
-      log.info("propagateChangesFromPrimaryToSecondaryRequest:: request expiration date changed: {}",
+      log.info("propagatePrimaryRequestChanges:: request expiration date changed: {}",
         requestExpirationDate);
-      secondaryRequest.setRequestExpirationDate(requestExpirationDate);
-      shouldUpdateSecondaryRequest = true;
+      targetRequest.setRequestExpirationDate(requestExpirationDate);
+      shouldUpdateTargetRequest = true;
     }
-    if (valueIsNotEqual(primaryRequest, secondaryRequest, Request::getFulfillmentPreference)) {
-      FulfillmentPreferenceEnum fulfillmentPreference = primaryRequest.getFulfillmentPreference();
-      log.info("propagateChangesFromPrimaryToSecondaryRequest:: fulfillment preference changed: {}",
-        fulfillmentPreference);
-      secondaryRequest.setFulfillmentPreference(fulfillmentPreference);
-      shouldUpdateSecondaryRequest = true;
-    }
-    if (valueIsNotEqual(primaryRequest, secondaryRequest, Request::getPickupServicePointId)) {
-      String pickupServicePointId = primaryRequest.getPickupServicePointId();
-      log.info("propagateChangesFromPrimaryToSecondaryRequest:: pickup service point ID changed: {}",
-        pickupServicePointId);
-      secondaryRequest.setPickupServicePointId(pickupServicePointId);
-      shouldUpdateSecondaryRequest = true;
-      clonePickupServicePoint(ecsTlr, pickupServicePointId);
+    if (INTERIM_SERVICE_POINT_ID.equals(targetRequest.getPickupServicePointId())) {
+      log.info("propagatePrimaryRequestChanges:: request {} has interim service point as pickup " +
+        "service point, no need to update fulfillment preference", targetRequestId);
+    } else {
+      if (valueIsNotEqual(primaryRequest, targetRequest, Request::getFulfillmentPreference)) {
+        FulfillmentPreferenceEnum fulfillmentPreference = primaryRequest.getFulfillmentPreference();
+        log.info("propagatePrimaryRequestChanges:: fulfillment preference changed: {}",
+          fulfillmentPreference);
+        targetRequest.setFulfillmentPreference(fulfillmentPreference);
+        shouldUpdateTargetRequest = true;
+      }
+      if (valueIsNotEqual(primaryRequest, targetRequest, Request::getPickupServicePointId)) {
+        String pickupServicePointId = primaryRequest.getPickupServicePointId();
+        log.info("propagatePrimaryRequestChanges:: pickup service point ID changed: {}",
+          pickupServicePointId);
+        targetRequest.setPickupServicePointId(pickupServicePointId);
+        shouldUpdateTargetRequest = true;
+        clonePickupServicePoint(ecsTlr.getPrimaryRequestTenantId(), targetRequestTenantId,
+          pickupServicePointId);
+      }
     }
 
-    if (!shouldUpdateSecondaryRequest) {
-      log.info("propagateChangesFromPrimaryToSecondaryRequest:: no relevant changes detected");
+    if (!shouldUpdateTargetRequest) {
+      log.info("propagatePrimaryRequestChanges:: no relevant changes detected");
       return;
     }
 
-    log.info("propagateChangesFromPrimaryToSecondaryRequest:: updating secondary request");
-    requestService.updateRequestInStorage(secondaryRequest, secondaryRequestTenantId);
-    log.info("propagateChangesFromPrimaryToSecondaryRequest:: secondary request updated");
+    log.info("propagatePrimaryRequestChanges:: updating request {}", targetRequestId);
+    requestService.updateRequestInStorage(targetRequest, targetRequestTenantId);
+    log.info("propagatePrimaryRequestChanges:: request {} updated", targetRequestId);
   }
 
-  private void clonePickupServicePoint(EcsTlrEntity ecsTlr, String pickupServicePointId) {
+  private void clonePickupServicePoint(String primaryRequestTenantId, String targetRequestTenantId,
+    String pickupServicePointId) {
+
     if (pickupServicePointId == null) {
       log.info("clonePickupServicePoint:: pickupServicePointId is null, doing nothing");
       return;
     }
-    log.info("clonePickupServicePoint:: ensuring that service point {} exists in lending tenant",
-      pickupServicePointId);
+    log.info("clonePickupServicePoint:: ensuring that service point {} exists in tenant {}",
+      pickupServicePointId, targetRequestTenantId);
     ServicePoint pickupServicePoint = executionService.executeSystemUserScoped(
-      ecsTlr.getPrimaryRequestTenantId(), () -> servicePointService.find(pickupServicePointId));
-    executionService.executeSystemUserScoped(ecsTlr.getSecondaryRequestTenantId(),
+      primaryRequestTenantId, () -> servicePointService.find(pickupServicePointId));
+    executionService.executeSystemUserScoped(targetRequestTenantId,
       () -> servicePointCloningService.clone(pickupServicePoint));
   }
 
