@@ -542,7 +542,8 @@ class EcsTlrApiTest extends BaseIT {
       .requestType(secondaryRequest.getRequestType())
       .ecsRequestPhase(ecsRequestPhase)
       .fulfillmentPreference(secondaryRequest.getFulfillmentPreference())
-      .pickupServicePointId(secondaryRequest.getPickupServicePointId());
+      .pickupServicePointId(secondaryRequest.getPickupServicePointId())
+      .patronComments(secondaryRequest.getPatronComments());
   }
 
   private static SearchItem buildItem(String id, String tenantId, String status) {
