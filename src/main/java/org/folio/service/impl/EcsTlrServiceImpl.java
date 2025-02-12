@@ -163,7 +163,8 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       .requestType(secondaryRequest.getRequestType())
       .ecsRequestPhase(ecsRequestPhase)
       .fulfillmentPreference(secondaryRequest.getFulfillmentPreference())
-      .pickupServicePointId(secondaryRequest.getPickupServicePointId());
+      .pickupServicePointId(secondaryRequest.getPickupServicePointId())
+      .patronComments(secondaryRequest.getPatronComments());
   }
 
   private Request buildSecondaryRequest(EcsTlrEntity ecsTlr) {
