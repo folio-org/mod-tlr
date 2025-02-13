@@ -108,7 +108,7 @@ public class RequestServiceImpl implements RequestService {
           Request secondaryRequest = circulationClient.createRequest(request);
           log.info("createSecondaryRequest:: secondary request {} created in tenant {}",
             secondaryRequest.getId(), secondaryRequestTenantId);
-          log.debug("createSecondaryRequest:: secondary request: {}", () -> secondaryRequest);
+          log.info("createSecondaryRequest:: secondary request: {}", () -> secondaryRequest);
 
           return new RequestWrapper(secondaryRequest, secondaryRequestTenantId);
         });
@@ -190,6 +190,10 @@ public class RequestServiceImpl implements RequestService {
     String instanceId = request.getInstanceId();
     String pickupLocation = request.getPickupServicePointId();
 
+    log.info("The complete request item is {}", request.getItem());
+
+    log.info("createCirculationItem:: Get request item details {}", request.getItem().getAdditionalProperties());
+
     log.info("createCirculationItem:: creating circulation item, params: itemId={}, instanceId={}, " +
       "pickupLocation={}, inventoryTenantId={}", itemId, instanceId, pickupLocation, inventoryTenantId);
 
@@ -212,11 +216,16 @@ public class RequestServiceImpl implements RequestService {
     InventoryItem item = getItemFromStorage(itemId, inventoryTenantId);
     InventoryInstance instance = getInstanceFromStorage(instanceId, inventoryTenantId);
 
+    log.info("The item's effective location id {}", item.getEffectiveLocationId());
+    log.info("Items more details {}", item);
+
     var itemStatus = item.getStatus().getName();
+
     var circulationItemStatus = CirculationItemStatus.NameEnum.fromValue(itemStatus.getValue());
     if (itemStatus == InventoryItemStatus.NameEnum.PAGED) {
       circulationItemStatus = CirculationItemStatus.NameEnum.AVAILABLE;
     }
+
 
     var circulationItem = new CirculationItem()
       .id(UUID.fromString(itemId))
@@ -247,7 +256,7 @@ public class RequestServiceImpl implements RequestService {
       return null;
     }
     log.info("updateCirculationItemOnRequestCreation:: updating circulation item {}",
-      circulationItem.getId());
+      circulationItem);
 
     if (request.getRequestType() == Request.RequestTypeEnum.PAGE) {
       log.info("updateCirculationItemOnRequestCreation:: request {} type is 'Page', " +
