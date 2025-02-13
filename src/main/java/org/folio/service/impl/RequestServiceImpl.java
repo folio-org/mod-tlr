@@ -197,18 +197,19 @@ public class RequestServiceImpl implements RequestService {
       return null;
     }
 
-    InventoryItem item = getItemFromStorage(itemId, inventoryTenantId);
+    var item = getItemFromStorage(itemId, inventoryTenantId);
     var itemStatus = item.getStatus().getName();
-    var circulationItemStatus = calculateCirculationItemStatus(itemStatus);
-    log.info("createCirculationItem:: item status '{}', calculated status: '{}'",
+    var circulationItemStatus = defineCirculationItemStatus(itemStatus);
+    log.info("createCirculationItem:: item status {}, calculated status: {}",
       itemStatus, circulationItemStatus);
 
     // Check if circulation item already exists in the tenant we want to create it in
     CirculationItem existingCirculationItem = circulationItemClient.getCirculationItem(itemId);
     if (existingCirculationItem != null) {
-      var existingStatus = existingCirculationItem.getStatus() == null ?
-        null : existingCirculationItem.getStatus().getName();
-      log.info("createCirculationItem:: circulation item already exists in status '{}'",
+      var existingStatus = existingCirculationItem.getStatus() == null
+        ? null
+        : existingCirculationItem.getStatus().getName();
+      log.info("createCirculationItem:: circulation item already exists in status {}",
         existingStatus);
 
       if (existingStatus == circulationItemStatus) {
@@ -243,7 +244,7 @@ public class RequestServiceImpl implements RequestService {
     return circulationItemClient.createCirculationItem(itemId, circulationItem);
   }
 
-  private CirculationItemStatus.NameEnum calculateCirculationItemStatus(
+  private CirculationItemStatus.NameEnum defineCirculationItemStatus(
     InventoryItemStatus.NameEnum itemStatus) {
     return itemStatus == InventoryItemStatus.NameEnum.PAGED
       ? CirculationItemStatus.NameEnum.AVAILABLE
