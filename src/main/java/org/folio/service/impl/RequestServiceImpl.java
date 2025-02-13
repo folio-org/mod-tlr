@@ -16,7 +16,7 @@ import org.folio.client.feign.RequestStorageClient;
 import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.CirculationItem;
 import org.folio.domain.dto.CirculationItemStatus;
-import org.folio.domain.dto.InventoryInstance;
+import org.folio.domain.dto.Instance;
 import org.folio.domain.dto.InventoryItem;
 import org.folio.domain.dto.InventoryItemStatus;
 import org.folio.domain.dto.ReorderQueue;
@@ -26,8 +26,11 @@ import org.folio.domain.dto.ServicePoint;
 import org.folio.domain.dto.User;
 import org.folio.exception.RequestCreatingException;
 import org.folio.service.CloningService;
+import org.folio.service.ConsortiaService;
+import org.folio.service.InventoryService;
 import org.folio.service.RequestService;
 import org.folio.service.ServicePointService;
+import org.folio.service.ConsortiumService;
 import org.folio.service.UserService;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.folio.support.BulkFetcher;
@@ -54,6 +57,9 @@ public class RequestServiceImpl implements RequestService {
   private final CloningService<User> userCloningService;
   private final CloningService<ServicePoint> servicePointCloningService;
   private final SystemUserScopedExecutionService systemUserScopedExecutionService;
+  private final ConsortiaService consortiaService;
+  private final ConsortiumService consortiumService;
+  private final InventoryService inventoryService;
 
   public static final String HOLDINGS_RECORD_ID = "10cd3a5a-d36f-4c7a-bc4f-e1ae3cf820c9";
 
@@ -66,6 +72,7 @@ public class RequestServiceImpl implements RequestService {
       primaryRequestTenantId);
 
     return executionService.executeSystemUserScoped(primaryRequestTenantId, () -> {
+      createShadowInstance(primaryRequest.getInstanceId(), primaryRequestTenantId);
       CirculationItem circItem = createCirculationItem(primaryRequest, secondaryRequestTenantId);
       Request request = circulationClient.createRequest(primaryRequest);
       log.info("createPrimaryRequest:: primary request {} created in tenant {}",
@@ -74,6 +81,22 @@ public class RequestServiceImpl implements RequestService {
       updateCirculationItemOnRequestCreation(circItem, request);
       return new RequestWrapper(request, primaryRequestTenantId);
     });
+  }
+
+  private void createShadowInstance(String instanceId, String tenantId) {
+    if (consortiumService.isCentralTenant(tenantId)) {
+      log.info("createShadowInstance:: tenant {} is central tenant, doing nothing", tenantId);
+      return;
+    }
+
+    Optional<Instance> instance = inventoryService.findInstance(instanceId);
+    if (instance.isPresent()) {
+      log.info("createShadowInstance:: instance {} already exists in tenant {}, doing nothing",
+        instanceId, tenantId);
+    } else {
+      log.info("createShadowInstance:: instance {} not found in tenant {}", instanceId, tenantId);
+      consortiaService.shareInstance(instanceId, tenantId);
+    }
   }
 
   @Override
@@ -210,7 +233,7 @@ public class RequestServiceImpl implements RequestService {
     }
 
     InventoryItem item = getItemFromStorage(itemId, inventoryTenantId);
-    InventoryInstance instance = getInstanceFromStorage(instanceId, inventoryTenantId);
+    Instance instance = getInstanceFromStorage(instanceId, inventoryTenantId);
 
     var itemStatus = item.getStatus().getName();
     var circulationItemStatus = CirculationItemStatus.NameEnum.fromValue(itemStatus.getValue());
@@ -267,7 +290,7 @@ public class RequestServiceImpl implements RequestService {
   }
 
   @Override
-  public InventoryInstance getInstanceFromStorage(String instanceId, String tenantId) {
+  public Instance getInstanceFromStorage(String instanceId, String tenantId) {
     log.info("getInstanceFromStorage:: Fetching instance {} from tenant {}", instanceId, tenantId);
     return systemUserScopedExecutionService.executeSystemUserScoped(tenantId,
       () -> instanceClient.get(instanceId));

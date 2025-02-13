@@ -95,6 +95,8 @@ components:
       $ref: 'schemas/consortia/tenant.yaml#/TenantCollection'
     consortiaConfiguration:
       $ref: 'schemas/consortia/consortiaConfiguration.yaml#/ConsortiaConfiguration'
+    sharingInstances:
+      $ref: 'schemas/consortia/sharingInstance.yaml#/SharingInstance'
     publicationRequest:
       $ref: 'schemas/publication.yaml#/PublicationRequest'
     publicationResponse:
@@ -129,8 +131,6 @@ components:
       $ref: 'schemas/circulationItem.yaml#/CirculationItem'
     inventoryItem:
       $ref: 'schemas/inventory/item.json'
-    inventoryInstance:
-      $ref: 'schemas/inventory/instance.json'
   parameters:
     requestId:
       name: requestId

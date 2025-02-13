@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.CirculationItem;
-import org.folio.domain.dto.InventoryInstance;
+import org.folio.domain.dto.Instance;
 import org.folio.domain.dto.InventoryItem;
 import org.folio.domain.dto.ReorderQueue;
 import org.folio.domain.dto.Request;
@@ -26,7 +26,7 @@ public interface RequestService {
     Request secondaryRequest);
 
   InventoryItem getItemFromStorage(String itemId, String tenantId);
-  InventoryInstance getInstanceFromStorage(String instanceId, String tenantId);
+  Instance getInstanceFromStorage(String instanceId, String tenantId);
   Request getRequestFromStorage(String requestId, String tenantId);
   Request getRequestFromStorage(String requestId);
   Collection<Request> getRequestsFromStorage(CqlQuery query, String idIndex, Collection<String> ids);

@@ -14,7 +14,7 @@ import java.util.UUID;
 import org.folio.client.feign.CirculationItemClient;
 import org.folio.domain.dto.CirculationItem;
 import org.folio.domain.dto.CirculationItemStatus;
-import org.folio.domain.dto.InventoryInstance;
+import org.folio.domain.dto.Instance;
 import org.folio.domain.dto.InventoryItem;
 import org.folio.domain.dto.InventoryItemStatus;
 import org.folio.domain.dto.Request;
@@ -87,7 +87,7 @@ class RequestServiceTest {
     when(requestService.getItemFromStorage(eq(ITEM_ID), anyString())).thenReturn(item);
 
     String instanceTitle = "Title";
-    InventoryInstance instance = new InventoryInstance();
+    Instance instance = new Instance();
     instance.setTitle(instanceTitle);
     when(requestService.getInstanceFromStorage(eq(INSTANCE_ID), anyString())).thenReturn(instance);
 
