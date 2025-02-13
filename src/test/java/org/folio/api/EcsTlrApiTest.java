@@ -32,8 +32,8 @@ import org.folio.domain.dto.DcbTransaction;
 import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.EcsTlr.RequestTypeEnum;
 import org.folio.domain.dto.Instance;
-import org.folio.domain.dto.InventoryItem;
-import org.folio.domain.dto.InventoryItemStatus;
+import org.folio.domain.dto.Item;
+import org.folio.domain.dto.ItemStatus;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.RequestInstance;
 import org.folio.domain.dto.RequestItem;
@@ -283,16 +283,16 @@ class EcsTlrApiTest extends BaseIT {
     wireMockServer.stubFor(get(urlMatching("/circulation-item/" + ITEM_ID))
       .willReturn(notFound()));
 
-    InventoryItem mockInventoryItem = new InventoryItem()
+    Item mockItem = new Item()
       .id(ITEM_ID)
       .status(requestType == HOLD
-        ? new InventoryItemStatus(InventoryItemStatus.NameEnum.CHECKED_OUT)
-        : new InventoryItemStatus(InventoryItemStatus.NameEnum.AVAILABLE));
+        ? new ItemStatus(ItemStatus.NameEnum.CHECKED_OUT)
+        : new ItemStatus(ItemStatus.NameEnum.AVAILABLE));
 
     wireMockServer.stubFor(get(urlMatching("/item-storage/items.*"))
       .willReturn(aResponse()
         .withHeader("Content-Type", "application/json")
-        .withBody(asJsonString(mockInventoryItem))
+        .withBody(asJsonString(mockItem))
         .withStatus(HttpStatus.SC_OK)));
 
     Instance mockInventoryInstance = new Instance().title(INSTANCE_TITLE);
@@ -319,13 +319,13 @@ class EcsTlrApiTest extends BaseIT {
     wireMockServer.stubFor(post(urlMatching("/circulation-item.*"))
       .willReturn(aResponse()
         .withHeader("Content-Type", "application/json")
-        .withBody(asJsonString(mockInventoryItem))
+        .withBody(asJsonString(mockItem))
         .withStatus(HttpStatus.SC_CREATED)));
 
     wireMockServer.stubFor(put(urlMatching("/circulation-item.*"))
       .willReturn(aResponse()
         .withHeader("Content-Type", "application/json")
-        .withBody(asJsonString(mockInventoryItem))
+        .withBody(asJsonString(mockItem))
         .withStatus(HttpStatus.SC_OK)));
 
     // 1.7 Mock consortia endpoints

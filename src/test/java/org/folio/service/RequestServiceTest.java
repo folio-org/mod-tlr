@@ -15,8 +15,8 @@ import org.folio.client.feign.CirculationItemClient;
 import org.folio.domain.dto.CirculationItem;
 import org.folio.domain.dto.CirculationItemStatus;
 import org.folio.domain.dto.Instance;
-import org.folio.domain.dto.InventoryItem;
-import org.folio.domain.dto.InventoryItemStatus;
+import org.folio.domain.dto.Item;
+import org.folio.domain.dto.ItemStatus;
 import org.folio.domain.dto.Request;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.service.impl.RequestServiceImpl;
@@ -82,8 +82,8 @@ class RequestServiceTest {
     when(circulationItemClient.getCirculationItem(any())).thenReturn(null);
     when(circulationItemClient.createCirculationItem(any(), any())).thenReturn(new CirculationItem());
 
-    InventoryItem item = new InventoryItem();
-    item.setStatus(new InventoryItemStatus((InventoryItemStatus.NameEnum.PAGED)));
+    Item item = new Item();
+    item.setStatus(new ItemStatus(ItemStatus.NameEnum.PAGED));
     when(requestService.getItemFromStorage(eq(ITEM_ID), anyString())).thenReturn(item);
 
     String instanceTitle = "Title";

@@ -17,8 +17,8 @@ import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.CirculationItem;
 import org.folio.domain.dto.CirculationItemStatus;
 import org.folio.domain.dto.Instance;
-import org.folio.domain.dto.InventoryItem;
-import org.folio.domain.dto.InventoryItemStatus;
+import org.folio.domain.dto.Item;
+import org.folio.domain.dto.ItemStatus;
 import org.folio.domain.dto.ReorderQueue;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.Requests;
@@ -27,10 +27,10 @@ import org.folio.domain.dto.User;
 import org.folio.exception.RequestCreatingException;
 import org.folio.service.CloningService;
 import org.folio.service.ConsortiaService;
+import org.folio.service.ConsortiumService;
 import org.folio.service.InventoryService;
 import org.folio.service.RequestService;
 import org.folio.service.ServicePointService;
-import org.folio.service.ConsortiumService;
 import org.folio.service.UserService;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.folio.support.BulkFetcher;
@@ -232,12 +232,12 @@ public class RequestServiceImpl implements RequestService {
       return existingCirculationItem;
     }
 
-    InventoryItem item = getItemFromStorage(itemId, inventoryTenantId);
+    Item item = getItemFromStorage(itemId, inventoryTenantId);
     Instance instance = getInstanceFromStorage(instanceId, inventoryTenantId);
 
     var itemStatus = item.getStatus().getName();
     var circulationItemStatus = CirculationItemStatus.NameEnum.fromValue(itemStatus.getValue());
-    if (itemStatus == InventoryItemStatus.NameEnum.PAGED) {
+    if (itemStatus == ItemStatus.NameEnum.PAGED) {
       circulationItemStatus = CirculationItemStatus.NameEnum.AVAILABLE;
     }
 
@@ -283,7 +283,7 @@ public class RequestServiceImpl implements RequestService {
   }
 
   @Override
-  public InventoryItem getItemFromStorage(String itemId, String tenantId) {
+  public Item getItemFromStorage(String itemId, String tenantId) {
     log.info("getItemFromStorage:: Fetching item {} from tenant {}", itemId, tenantId);
     return systemUserScopedExecutionService.executeSystemUserScoped(tenantId,
       () -> itemClient.get(itemId));
