@@ -592,8 +592,14 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
   private static StaffSlipItem buildStaffSlipItem(Request request, StaffSlipsContext context) {
     log.debug("buildStaffSlipItem:: building staff slip item");
     String itemId = request.getItemId();
+    Instance instance = context.getInstancesById().get(request.getInstanceId());
     if (itemId == null) {
       log.info("buildStaffSlipItem:: request is not linked to an item, doing nothing");
+      if (instance != null) {
+        StaffSlipItem staffSlipItem = new StaffSlipItem();
+        staffSlipItem.title(instance.getTitle());
+        return staffSlipItem;
+      }
       return null;
     }
 
@@ -644,7 +650,6 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
       .displaySummary(item.getDisplaySummary())
       .descriptionOfPieces(item.getDescriptionOfPieces());
 
-    Instance instance = context.getInstancesById().get(request.getInstanceId());
     if (instance != null) {
       staffSlipItem.title(instance.getTitle());
       List<InstanceContributorsInner> contributors = instance.getContributors();
