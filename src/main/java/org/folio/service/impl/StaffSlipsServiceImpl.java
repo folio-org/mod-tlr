@@ -593,30 +593,34 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
     log.debug("buildStaffSlipItem:: building staff slip item");
     Instance instance = context.getInstancesById().get(request.getInstanceId());
     StaffSlipItem staffSlipItem = new StaffSlipItem();
+    String itemId = request.getItemId();
     if (instance != null) {
       staffSlipItem.title(instance.getTitle());
+      if (itemId == null) {
+        log.info("buildStaffSlipItem:: request is not linked to an item, return");
+        return staffSlipItem;
+      }
       List<InstanceContributorsInner> contributors = instance.getContributors();
       if (contributors != null && !contributors.isEmpty()) {
         String primaryContributor = contributors.stream()
-                .filter(InstanceContributorsInner::getPrimary)
-                .findFirst()
-                .map(InstanceContributorsInner::getName)
-                .orElse(null);
+          .filter(InstanceContributorsInner::getPrimary)
+          .findFirst()
+          .map(InstanceContributorsInner::getName)
+          .orElse(null);
 
         String allContributors = contributors.stream()
-                .map(InstanceContributorsInner::getName)
-                .collect(joining("; "));
+          .map(InstanceContributorsInner::getName)
+          .collect(joining("; "));
 
         staffSlipItem
-                .primaryContributor(primaryContributor)
-                .allContributors(allContributors);
+          .primaryContributor(primaryContributor)
+          .allContributors(allContributors);
       }
     }
 
-    String itemId = request.getItemId();
     if (itemId == null) {
-      log.info("buildStaffSlipItem:: request is not linked to an item, return");
-      return staffSlipItem;
+      log.info("buildStaffSlipItem:: request is not linked to an item, doing nothing");
+      return null;
     }
 
     ItemContext itemContext = context.getItemContextsByTenant()

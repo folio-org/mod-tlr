@@ -20,7 +20,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.oneOf;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -394,7 +393,7 @@ class StaffSlipsServiceTest {
     assertThat(searchSlipForRequestWithoutItem.getRequest().getDeliveryAddressType(), nullValue());
     assertThat(searchSlipForRequestWithoutItem.getRequest().getServicePointPickup(),
       is("Pickup service point"));
-    assertEquals(searchSlipForRequestWithoutItem.getItem().getTitle(), instance.getTitle());
+    assertThat(searchSlipForRequestWithoutItem.getItem().getTitle(), is(instance.getTitle()));
 
     Stream.of(searchSlipForRequestWithItem, searchSlipForRequestWithoutItem).forEach(searchSlip -> {
       assertThat(searchSlip.getCurrentDateTime(), notNullValue());
