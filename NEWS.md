@@ -1,3 +1,7 @@
+## 1.0.6 2025-02-13
+* Fix request update event handling (MODTLR-138)
+* Add patronComments mapping to primary request (MODTLR-139)
+
 ## 1.0.5 2025-01-15
 * Upgrade to Spring Boot 3.3.7, folio-spring 8.2.2 (MODTLR-125)
 
