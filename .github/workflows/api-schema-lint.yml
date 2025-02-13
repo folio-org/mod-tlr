@@ -23,6 +23,7 @@ on:
   pull_request:
     paths:
       - 'src/main/resources/swagger.api/**'
+  workflow_dispatch:
 
 jobs:
   api-schema-lint:
