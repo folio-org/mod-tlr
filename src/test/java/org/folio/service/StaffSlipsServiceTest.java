@@ -393,7 +393,7 @@ class StaffSlipsServiceTest {
     assertThat(searchSlipForRequestWithoutItem.getRequest().getDeliveryAddressType(), nullValue());
     assertThat(searchSlipForRequestWithoutItem.getRequest().getServicePointPickup(),
       is("Pickup service point"));
-    assertThat(searchSlipForRequestWithoutItem.getItem(), nullValue());
+    assertThat(searchSlipForRequestWithoutItem.getItem().getTitle(), is(instance.getTitle()));
 
     Stream.of(searchSlipForRequestWithItem, searchSlipForRequestWithoutItem).forEach(searchSlip -> {
       assertThat(searchSlip.getCurrentDateTime(), notNullValue());

@@ -591,7 +591,33 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
 
   private static StaffSlipItem buildStaffSlipItem(Request request, StaffSlipsContext context) {
     log.debug("buildStaffSlipItem:: building staff slip item");
+    Instance instance = context.getInstancesById().get(request.getInstanceId());
+    StaffSlipItem staffSlipItem = new StaffSlipItem();
     String itemId = request.getItemId();
+    if (instance != null) {
+      staffSlipItem.title(instance.getTitle());
+      if (itemId == null) {
+        log.info("buildStaffSlipItem:: request is not linked to an item, return");
+        return staffSlipItem;
+      }
+      List<InstanceContributorsInner> contributors = instance.getContributors();
+      if (contributors != null && !contributors.isEmpty()) {
+        String primaryContributor = contributors.stream()
+          .filter(InstanceContributorsInner::getPrimary)
+          .findFirst()
+          .map(InstanceContributorsInner::getName)
+          .orElse(null);
+
+        String allContributors = contributors.stream()
+          .map(InstanceContributorsInner::getName)
+          .collect(joining("; "));
+
+        staffSlipItem
+          .primaryContributor(primaryContributor)
+          .allContributors(allContributors);
+      }
+    }
+
     if (itemId == null) {
       log.info("buildStaffSlipItem:: request is not linked to an item, doing nothing");
       return null;
@@ -630,8 +656,7 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
       .map(LoanType::getName)
       .orElse(null);
 
-    StaffSlipItem staffSlipItem = new StaffSlipItem()
-      .barcode(item.getBarcode())
+    staffSlipItem.barcode(item.getBarcode())
       .status(item.getStatus().getName().getValue())
       .materialType(materialType)
       .loanType(loanType)
@@ -643,28 +668,6 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
       .numberOfPieces(item.getNumberOfPieces())
       .displaySummary(item.getDisplaySummary())
       .descriptionOfPieces(item.getDescriptionOfPieces());
-
-    Instance instance = context.getInstancesById().get(request.getInstanceId());
-    if (instance != null) {
-      staffSlipItem.title(instance.getTitle());
-      List<InstanceContributorsInner> contributors = instance.getContributors();
-      if (contributors != null && !contributors.isEmpty()) {
-        String primaryContributor = contributors.stream()
-          .filter(InstanceContributorsInner::getPrimary)
-          .findFirst()
-          .map(InstanceContributorsInner::getName)
-          .orElse(null);
-
-        String allContributors = contributors.stream()
-          .map(InstanceContributorsInner::getName)
-          .collect(joining("; "));
-
-        staffSlipItem
-          .title(instance.getTitle())
-          .primaryContributor(primaryContributor)
-          .allContributors(allContributors);
-      }
-    }
 
     Location location = itemContext.getLocation();
     if (location != null) {
