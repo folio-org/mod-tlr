@@ -68,6 +68,8 @@ public class EcsTlrServiceImpl implements EcsTlrService {
 
     log.info("create:: Creating primary request for ECS TLR (ILR), instance {}, item {}, requester {}",
       ecsTlrDto.getInstanceId(), ecsTlrDto.getItemId(), ecsTlrDto.getRequesterId());
+    log.info("The secondary request is {}", secondaryRequest);
+    log.info("The secondary request item details is {}", secondaryRequest.getItem());
     RequestWrapper primaryRequestWrapper = requestService.createPrimaryRequest(
       buildPrimaryRequest(secondaryRequest), primaryRequestTenantId, secondaryRequestTenantId);
 

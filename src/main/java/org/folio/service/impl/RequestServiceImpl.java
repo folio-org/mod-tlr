@@ -201,9 +201,6 @@ public class RequestServiceImpl implements RequestService {
 
     log.info("The complete request item is {}", request.getItem());
 
-    log.info("createCirculationItem:: Get request item details {}", request.getItem().getAdditionalProperties());
-
-
     // Check if circulation item already exists in the tenant we want to create it in
     CirculationItem existingCirculationItem = circulationItemClient.getCirculationItem(itemId);
     if (existingCirculationItem != null) {
