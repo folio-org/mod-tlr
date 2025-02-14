@@ -154,7 +154,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   }
 
   private static Request buildRequest(Request secondaryRequest, EcsRequestPhaseEnum ecsRequestPhase) {
-    return new Request()
+    Request request = new Request()
       .id(secondaryRequest.getId())
       .instanceId(secondaryRequest.getInstanceId())
       .itemId(secondaryRequest.getItemId())
@@ -166,6 +166,12 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       .ecsRequestPhase(ecsRequestPhase)
       .fulfillmentPreference(secondaryRequest.getFulfillmentPreference())
       .pickupServicePointId(secondaryRequest.getPickupServicePointId());
+
+    if (ecsRequestPhase == EcsRequestPhaseEnum.PRIMARY) {
+      request.item(secondaryRequest.getItem());
+    }
+
+    return request;
   }
 
   private Request buildSecondaryRequest(EcsTlrEntity ecsTlr) {
