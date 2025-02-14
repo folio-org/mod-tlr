@@ -37,12 +37,12 @@ public class ConsortiumServiceImpl implements ConsortiumService {
   @Override
   public String getCentralTenantId() {
     return getTenantContext(getCurrentTenantId())
-      .consortiumId();
+      .centralTenantId();
   }
 
   @Override
   public boolean isCurrentTenantCentral() {
-    return getCentralTenantId().equals(getCurrentTenantId());
+    return isCentralTenant(getCurrentTenantId());
   }
 
   @Override
