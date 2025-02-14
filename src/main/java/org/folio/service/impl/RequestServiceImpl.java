@@ -246,6 +246,7 @@ public class RequestServiceImpl implements RequestService {
 
   private CirculationItemStatus.NameEnum defineCirculationItemStatus(
     InventoryItemStatus.NameEnum itemStatus) {
+
     return itemStatus == InventoryItemStatus.NameEnum.PAGED
       ? CirculationItemStatus.NameEnum.AVAILABLE
       : CirculationItemStatus.NameEnum.fromValue(itemStatus.getValue());
