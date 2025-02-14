@@ -30,7 +30,8 @@
             "inventory-storage.service-points.item.get",
             "inventory-storage.service-points.collection.get",
             "inventory-storage.service-points.item.post",
-            "user-tenants.collection.get"
+            "user-tenants.collection.get",
+            "consortia.sharing-instances.item.post"
           ]
         },
         {
