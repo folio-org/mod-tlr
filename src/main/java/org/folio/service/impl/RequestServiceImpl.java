@@ -190,9 +190,6 @@ public class RequestServiceImpl implements RequestService {
     String instanceId = request.getInstanceId();
     String pickupLocation = request.getPickupServicePointId();
 
-    log.info("The complete request item is {}", request.getItem());
-
-    log.info("createCirculationItem:: Get request item details {}", request.getItem().getAdditionalProperties());
 
     log.info("createCirculationItem:: creating circulation item, params: itemId={}, instanceId={}, " +
       "pickupLocation={}, inventoryTenantId={}", itemId, instanceId, pickupLocation, inventoryTenantId);
@@ -201,6 +198,11 @@ public class RequestServiceImpl implements RequestService {
       log.info("createCirculationItem:: item ID is {}, instance ID is {}, skipping", itemId, instanceId);
       return null;
     }
+
+    log.info("The complete request item is {}", request.getItem());
+
+    log.info("createCirculationItem:: Get request item details {}", request.getItem().getAdditionalProperties());
+
 
     // Check if circulation item already exists in the tenant we want to create it in
     CirculationItem existingCirculationItem = circulationItemClient.getCirculationItem(itemId);
