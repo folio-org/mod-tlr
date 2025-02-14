@@ -217,7 +217,7 @@ public class RequestServiceImpl implements RequestService {
       }
       log.info("createCirculationItem:: updating circulation item status to {}", circulationItemStatus);
       existingCirculationItem.setStatus(new CirculationItemStatus()
-        .name(CirculationItemStatus.NameEnum.AVAILABLE)
+        .name(circulationItemStatus)
         .date(item.getStatus().getDate())
       );
       return circulationItemClient.updateCirculationItem(itemId, existingCirculationItem);
