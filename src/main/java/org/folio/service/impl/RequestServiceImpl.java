@@ -71,8 +71,9 @@ public class RequestServiceImpl implements RequestService {
     log.info("createPrimaryRequest:: creating primary request {} in tenant {}", requestId,
       primaryRequestTenantId);
 
+    createShadowInstance(primaryRequest.getInstanceId(), primaryRequestTenantId);
+
     return executionService.executeSystemUserScoped(primaryRequestTenantId, () -> {
-      createShadowInstance(primaryRequest.getInstanceId(), primaryRequestTenantId);
       CirculationItem circItem = createCirculationItem(primaryRequest, secondaryRequestTenantId);
       Request request = circulationClient.createRequest(primaryRequest);
       log.info("createPrimaryRequest:: primary request {} created in tenant {}",
@@ -89,7 +90,9 @@ public class RequestServiceImpl implements RequestService {
       return;
     }
 
-    Optional<Instance> instance = inventoryService.findInstance(instanceId);
+    Optional<Instance> instance = systemUserScopedExecutionService.executeSystemUserScoped(tenantId,
+      () -> inventoryService.findInstance(instanceId));
+
     if (instance.isPresent()) {
       log.info("createShadowInstance:: instance {} already exists in tenant {}, doing nothing",
         instanceId, tenantId);

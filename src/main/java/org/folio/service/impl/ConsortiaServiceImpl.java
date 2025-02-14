@@ -68,7 +68,6 @@ public class ConsortiaServiceImpl implements ConsortiaService {
       .sourceTenantId(consortiumService.getCentralTenantId())
       .targetTenantId(targetTenantId);
 
-    return systemUserService.executeSystemUserScoped(consortiumService.getCentralTenantId(),
-      () -> consortiaClient.shareInstance(consortiumService.getCurrentConsortiumId(), sharingRequest));
+    return consortiaClient.shareInstance(consortiumService.getCurrentConsortiumId(), sharingRequest);
   }
 }
