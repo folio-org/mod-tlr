@@ -74,7 +74,7 @@ public class ConsortiumServiceImpl implements ConsortiumService {
 
   private record TenantContext(String tenantId, String consortiumId, String centralTenantId) {
     public TenantContext(String tenantId, UserTenant userTenant) {
-      this(tenantId, userTenant.getConsortiumId(), userTenant.getTenantId());
+      this(tenantId, userTenant.getConsortiumId(), userTenant.getCentralTenantId());
     }
   }
 
