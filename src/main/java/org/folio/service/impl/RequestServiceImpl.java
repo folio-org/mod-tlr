@@ -25,7 +25,6 @@ import org.folio.domain.dto.ServicePoint;
 import org.folio.domain.dto.User;
 import org.folio.exception.RequestCreatingException;
 import org.folio.service.CloningService;
-import org.folio.service.ConsortiaService;
 import org.folio.service.ConsortiumService;
 import org.folio.service.InventoryService;
 import org.folio.service.RequestService;
@@ -57,7 +56,6 @@ public class RequestServiceImpl implements RequestService {
   private final CloningService<ServicePoint> servicePointCloningService;
   private final CloningService<Instance> instanceCloningService;
   private final SystemUserScopedExecutionService systemUserScopedExecutionService;
-  private final ConsortiaService consortiaService;
   private final ConsortiumService consortiumService;
   private final InventoryService inventoryService;
 
