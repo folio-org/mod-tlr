@@ -86,10 +86,13 @@ public class RequestServiceImpl implements RequestService {
   }
 
   private void cloneInstance(String instanceId, String targetTenantId) {
+    log.info("cloneInstance:: checking if instance {} must be cloned to tenant {}", instanceId,
+      targetTenantId);
     if (consortiumService.isCentralTenant(targetTenantId)) {
       log.info("createShadowInstance:: tenant {} is central tenant, doing nothing", targetTenantId);
       return;
     }
+
     Instance instanceInCentralTenant = inventoryService.findInstance(instanceId);
     executionService.executeSystemUserScoped(targetTenantId,
       () -> instanceCloningService.clone(instanceInCentralTenant));
