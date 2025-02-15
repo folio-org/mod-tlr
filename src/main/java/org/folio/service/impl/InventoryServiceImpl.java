@@ -1,7 +1,6 @@
 package org.folio.service.impl;
 
 import java.util.Collection;
-import java.util.Optional;
 
 import org.folio.client.feign.HoldingClient;
 import org.folio.client.feign.InstanceClient;
@@ -32,7 +31,6 @@ import org.folio.support.BulkFetcher;
 import org.folio.support.CqlQuery;
 import org.springframework.stereotype.Service;
 
-import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
@@ -81,16 +79,15 @@ public class InventoryServiceImpl implements InventoryService {
   }
 
   @Override
-  public Optional<Instance> findInstance(String instanceId) {
+  public Instance findInstance(String instanceId) {
     log.info("findInstance:: searching instance {}", instanceId);
-    try {
-      Instance instance = instanceClient.get(instanceId);
-      log.info("findInstance:: instance {} found", instanceId);
-      return Optional.of(instance);
-    } catch (FeignException.NotFound e) {
-      log.warn("findInstance:: instance {} not found", instanceId);
-      return Optional.empty();
-    }
+    return instanceClient.get(instanceId);
+  }
+
+  @Override
+  public Instance createInstance(Instance instance) {
+    log.info("createInstance:: creating instance {}", instance.getId());
+    return instanceClient.post(instance);
   }
 
   @Override

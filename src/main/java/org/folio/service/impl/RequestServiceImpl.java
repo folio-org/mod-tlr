@@ -56,6 +56,7 @@ public class RequestServiceImpl implements RequestService {
   private final ServicePointService servicePointService;
   private final CloningService<User> userCloningService;
   private final CloningService<ServicePoint> servicePointCloningService;
+  private final CloningService<Instance> instanceCloningService;
   private final SystemUserScopedExecutionService systemUserScopedExecutionService;
   private final ConsortiaService consortiaService;
   private final ConsortiumService consortiumService;
@@ -71,7 +72,7 @@ public class RequestServiceImpl implements RequestService {
     log.info("createPrimaryRequest:: creating primary request {} in tenant {}", requestId,
       primaryRequestTenantId);
 
-    createShadowInstance(primaryRequest.getInstanceId(), primaryRequestTenantId);
+    cloneInstance(primaryRequest.getInstanceId(), primaryRequestTenantId);
 
     return executionService.executeSystemUserScoped(primaryRequestTenantId, () -> {
       CirculationItem circItem = createCirculationItem(primaryRequest, secondaryRequestTenantId);
@@ -84,22 +85,14 @@ public class RequestServiceImpl implements RequestService {
     });
   }
 
-  private void createShadowInstance(String instanceId, String tenantId) {
-    if (consortiumService.isCentralTenant(tenantId)) {
-      log.info("createShadowInstance:: tenant {} is central tenant, doing nothing", tenantId);
+  private void cloneInstance(String instanceId, String targetTenantId) {
+    if (consortiumService.isCentralTenant(targetTenantId)) {
+      log.info("createShadowInstance:: tenant {} is central tenant, doing nothing", targetTenantId);
       return;
     }
-
-    Optional<Instance> instance = systemUserScopedExecutionService.executeSystemUserScoped(tenantId,
-      () -> inventoryService.findInstance(instanceId));
-
-    if (instance.isPresent()) {
-      log.info("createShadowInstance:: instance {} already exists in tenant {}, doing nothing",
-        instanceId, tenantId);
-    } else {
-      log.info("createShadowInstance:: instance {} not found in tenant {}", instanceId, tenantId);
-      consortiaService.shareInstance(instanceId, tenantId);
-    }
+    Instance instanceInCentralTenant = inventoryService.findInstance(instanceId);
+    executionService.executeSystemUserScoped(targetTenantId,
+      () -> instanceCloningService.clone(instanceInCentralTenant));
   }
 
   @Override

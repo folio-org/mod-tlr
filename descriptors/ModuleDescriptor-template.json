@@ -30,8 +30,8 @@
             "inventory-storage.service-points.item.get",
             "inventory-storage.service-points.collection.get",
             "inventory-storage.service-points.item.post",
-            "user-tenants.collection.get",
-            "consortia.sharing-instances.item.post"
+            "inventory-storage.instances.collection.get",
+            "user-tenants.collection.get"
           ]
         },
         {
@@ -400,6 +400,7 @@
         "inventory-storage.items.collection.get",
         "inventory-storage.instances.item.get",
         "inventory-storage.instances.collection.get",
+        "inventory-storage.instances.item.post",
         "circulation-item.item.post",
         "circulation-item.item.put",
         "circulation-item.item.get",
@@ -421,8 +422,7 @@
         "circulation.rules.request-policy.get",
         "mod-settings.entries.item.get",
         "mod-settings.entries.collection.get",
-        "mod-settings.global.read.circulation",
-        "consortia.sharing-instances.item.post"
+        "mod-settings.global.read.circulation"
       ]
     }
   },

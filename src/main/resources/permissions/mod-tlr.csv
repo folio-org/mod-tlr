@@ -26,6 +26,7 @@ inventory-storage.items.item.get
 inventory-storage.items.collection.get
 inventory-storage.instances.item.get
 inventory-storage.instances.collection.get
+inventory-storage.instances.item.post
 circulation-item.item.post
 circulation-item.item.put
 circulation-item.item.get
@@ -45,4 +46,3 @@ inventory-storage.location-units.campuses.collection.get
 inventory-storage.location-units.institutions.item.get
 inventory-storage.location-units.institutions.collection.get
 circulation.rules.request-policy.get
-consortia.sharing-instances.item.post
