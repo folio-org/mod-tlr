@@ -91,17 +91,15 @@ public class RequestServiceImpl implements RequestService {
       return;
     }
 
-    systemUserScopedExecutionService.executeSystemUserScoped(targetTenantId,
-      () -> {
-        if (inventoryService.findInstance(instanceId).isPresent()) {
-          log.info("createShadowInstance:: instance {} already exists in tenant {}, doing nothing",
-            instanceId, targetTenantId);
-        } else {
-          log.info("createShadowInstance:: instance {} not found in tenant {}", instanceId, targetTenantId);
-          consortiaService.shareInstance(instanceId, targetTenantId);
-        }
-        return instanceId;
-      });
+    systemUserScopedExecutionService.executeSystemUserScoped(targetTenantId, () -> {
+      if (inventoryService.findInstance(instanceId).isPresent()) {
+        log.info("createShadowInstance:: instance {} already exists in tenant {}, doing nothing",
+          instanceId, targetTenantId);
+      } else {
+        consortiaService.shareInstance(instanceId, targetTenantId);
+      }
+      return instanceId;
+    });
   }
 
   @Override

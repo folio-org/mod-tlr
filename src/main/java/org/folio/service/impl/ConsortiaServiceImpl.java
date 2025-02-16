@@ -64,6 +64,7 @@ public class ConsortiaServiceImpl implements ConsortiaService {
   @Override
   public SharingInstance shareInstance(String instanceId, String targetTenantId) {
     log.info("shareInstance:: sharing instance {} with tenant {}", instanceId, targetTenantId);
+
     SharingInstance sharingRequest = new SharingInstance()
       .instanceIdentifier(UUID.fromString(instanceId))
       .sourceTenantId(consortiumService.getCentralTenantId())
