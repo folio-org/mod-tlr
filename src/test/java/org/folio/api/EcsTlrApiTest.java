@@ -31,9 +31,10 @@ import org.folio.domain.dto.DcbItem;
 import org.folio.domain.dto.DcbTransaction;
 import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.EcsTlr.RequestTypeEnum;
-import org.folio.domain.dto.InventoryInstance;
-import org.folio.domain.dto.InventoryItem;
-import org.folio.domain.dto.InventoryItemStatus;
+import org.folio.domain.dto.ExtendedInstance;
+import org.folio.domain.dto.Instance;
+import org.folio.domain.dto.Item;
+import org.folio.domain.dto.ItemStatus;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.RequestInstance;
 import org.folio.domain.dto.RequestItem;
@@ -53,7 +54,6 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
-import com.github.tomakehurst.wiremock.client.WireMock;
 
 class EcsTlrApiTest extends BaseIT {
   private static final String ITEM_ID = randomId();
@@ -74,6 +74,7 @@ class EcsTlrApiTest extends BaseIT {
   private static final String INSTANCE_REQUESTS_URL = "/circulation/requests/instances";
   private static final String REQUESTS_URL = "/circulation/requests";
   private static final String USERS_URL = "/users";
+  private static final String INSTANCES_URL = "/inventory/instances";
   private static final String SERVICE_POINTS_URL = "/service-points";
   private static final String SEARCH_INSTANCES_URL =
     "/search/instances\\?query=id==" + INSTANCE_ID + "&expandAll=true";
@@ -166,7 +167,7 @@ class EcsTlrApiTest extends BaseIT {
       : notFound();
 
     wireMockServer.stubFor(get(urlMatching(USERS_URL + "/" + REQUESTER_ID))
-      .withHeader(HEADER_TENANT, WireMock.including(TENANT_ID_COLLEGE))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
       .willReturn(mockGetClonedRequesterResponse));
 
     wireMockServer.stubFor(get(urlMatching(USERS_URL + "/" + REQUESTER_ID))
@@ -279,33 +280,55 @@ class EcsTlrApiTest extends BaseIT {
     wireMockServer.stubFor(get(urlMatching("/circulation-item/" + ITEM_ID))
       .willReturn(notFound()));
 
-    InventoryItem mockInventoryItem = new InventoryItem()
+    Item mockItem = new Item()
       .id(ITEM_ID)
       .status(requestType == HOLD
-        ? new InventoryItemStatus(InventoryItemStatus.NameEnum.CHECKED_OUT)
-        : new InventoryItemStatus(InventoryItemStatus.NameEnum.AVAILABLE));
+        ? new ItemStatus(ItemStatus.NameEnum.CHECKED_OUT)
+        : new ItemStatus(ItemStatus.NameEnum.AVAILABLE));
 
     wireMockServer.stubFor(get(urlMatching("/item-storage/items.*"))
       .willReturn(aResponse()
         .withHeader("Content-Type", "application/json")
-        .withBody(asJsonString(mockInventoryItem))
+        .withBody(asJsonString(mockItem))
         .withStatus(HttpStatus.SC_OK)));
 
-    InventoryInstance mockInventoryInstance = new InventoryInstance().title(INSTANCE_TITLE);
+    Instance mockInstance = new Instance()
+      .id(INSTANCE_ID)
+      .title(INSTANCE_TITLE);
+
     wireMockServer.stubFor(get(urlMatching("/instance-storage/instances/" + INSTANCE_ID))
-      .willReturn(jsonResponse(mockInventoryInstance, HttpStatus.SC_OK)));
+      .willReturn(jsonResponse(asJsonString(mockInstance), HttpStatus.SC_OK)));
 
     wireMockServer.stubFor(post(urlMatching("/circulation-item.*"))
       .willReturn(aResponse()
         .withHeader("Content-Type", "application/json")
-        .withBody(asJsonString(mockInventoryItem))
+        .withBody(asJsonString(mockItem))
         .withStatus(HttpStatus.SC_CREATED)));
 
     wireMockServer.stubFor(put(urlMatching("/circulation-item.*"))
       .willReturn(aResponse()
         .withHeader("Content-Type", "application/json")
-        .withBody(asJsonString(mockInventoryItem))
+        .withBody(asJsonString(mockItem))
         .withStatus(HttpStatus.SC_OK)));
+
+    // 1.7 Mock inventory endpoints
+
+    ExtendedInstance mockExtendedInstance = new ExtendedInstance()
+      .id(INSTANCE_ID)
+      .title(INSTANCE_TITLE)
+      .source("FOLIO");
+
+    wireMockServer.stubFor(get(urlMatching(INSTANCES_URL + "/" + INSTANCE_ID))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(jsonResponse(mockExtendedInstance, HttpStatus.SC_OK)));
+
+    wireMockServer.stubFor(get(urlMatching(INSTANCES_URL + "/" + INSTANCE_ID))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
+      .willReturn(notFound()));
+
+    wireMockServer.stubFor(post(urlMatching(INSTANCES_URL))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
+      .willReturn(jsonResponse(asJsonString(mockExtendedInstance), HttpStatus.SC_CREATED)));
 
     // 2. Create ECS TLR
 
@@ -380,17 +403,25 @@ class EcsTlrApiTest extends BaseIT {
         .withRequestBody(equalToJson(asJsonString(servicePointClone))));
     }
 
-      wireMockServer.verify(postRequestedFor(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
-        .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
-        .withRequestBody(equalToJson(asJsonString(borrowerTransactionPostRequest))));
+    wireMockServer.verify(postRequestedFor(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .withRequestBody(equalToJson(asJsonString(borrowerTransactionPostRequest))));
 
-      wireMockServer.verify(postRequestedFor(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
-        .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
-        .withRequestBody(equalToJson(asJsonString(lenderTransactionPostRequest))));
+    wireMockServer.verify(postRequestedFor(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
+      .withRequestBody(equalToJson(asJsonString(lenderTransactionPostRequest))));
 
     wireMockServer.verify(postRequestedFor(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
       .withRequestBody(equalToJson(asJsonString(pickupTransactionPostRequest))));
+
+    wireMockServer.verify(getRequestedFor(urlMatching(INSTANCES_URL + "/" + INSTANCE_ID))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
+    wireMockServer.verify(getRequestedFor(urlMatching(INSTANCES_URL + "/" + INSTANCE_ID))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY)));
+    wireMockServer.verify(postRequestedFor(urlMatching(INSTANCES_URL))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
+      .withRequestBody(equalToJson(asJsonString(mockExtendedInstance.source("CONSORTIUM-FOLIO")))));
   }
 
   @Test

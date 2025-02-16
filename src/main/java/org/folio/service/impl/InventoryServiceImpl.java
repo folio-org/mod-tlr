@@ -4,6 +4,7 @@ import java.util.Collection;
 
 import org.folio.client.feign.HoldingClient;
 import org.folio.client.feign.InstanceClient;
+import org.folio.client.feign.InventoryClient;
 import org.folio.client.feign.ItemClient;
 import org.folio.client.feign.LoanTypeClient;
 import org.folio.client.feign.LocationCampusClient;
@@ -12,6 +13,7 @@ import org.folio.client.feign.LocationLibraryClient;
 import org.folio.client.feign.MaterialTypeClient;
 import org.folio.domain.dto.Campus;
 import org.folio.domain.dto.Campuses;
+import org.folio.domain.dto.ExtendedInstance;
 import org.folio.domain.dto.HoldingsRecord;
 import org.folio.domain.dto.HoldingsRecords;
 import org.folio.domain.dto.Instance;
@@ -47,6 +49,7 @@ public class InventoryServiceImpl implements InventoryService {
   private final LocationLibraryClient libraryClient;
   private final LocationInstitutionClient institutionClient;
   private final LocationCampusClient campusClient;
+  private final InventoryClient inventoryClient;
 
   @Override
   public Collection<Item> findItems(CqlQuery query, String idIndex, Collection<String> ids) {
@@ -70,12 +73,23 @@ public class InventoryServiceImpl implements InventoryService {
     return BulkFetcher.fetch(holdingClient, ids, HoldingsRecords::getHoldingsRecords);
   }
 
-
   @Override
   public Collection<Instance> findInstances(Collection<String> ids) {
     log.info("findInstances:: searching instances by {} IDs", ids::size);
     log.debug("findInstances:: ids={}", ids);
     return BulkFetcher.fetch(instanceClient, ids, Instances::getInstances);
+  }
+
+  @Override
+  public ExtendedInstance findExtendedInstance(String instanceId) {
+    log.info("findExtendedInstance:: getting extended instance {}", instanceId);
+    return inventoryClient.getInstance(instanceId);
+  }
+
+  @Override
+  public ExtendedInstance createExtendedInstance(ExtendedInstance instance) {
+    log.info("createInstance:: creating extended instance {}", instance.getId());
+    return inventoryClient.postInstance(instance);
   }
 
   @Override

@@ -15,9 +15,10 @@ import org.folio.client.feign.RequestStorageClient;
 import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.CirculationItem;
 import org.folio.domain.dto.CirculationItemStatus;
-import org.folio.domain.dto.InventoryInstance;
-import org.folio.domain.dto.InventoryItem;
-import org.folio.domain.dto.InventoryItemStatus;
+import org.folio.domain.dto.ExtendedInstance;
+import org.folio.domain.dto.Instance;
+import org.folio.domain.dto.Item;
+import org.folio.domain.dto.ItemStatus;
 import org.folio.domain.dto.ReorderQueue;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.Requests;
@@ -25,6 +26,8 @@ import org.folio.domain.dto.ServicePoint;
 import org.folio.domain.dto.User;
 import org.folio.exception.RequestCreatingException;
 import org.folio.service.CloningService;
+import org.folio.service.ConsortiumService;
+import org.folio.service.InventoryService;
 import org.folio.service.RequestService;
 import org.folio.service.ServicePointService;
 import org.folio.service.UserService;
@@ -52,7 +55,10 @@ public class RequestServiceImpl implements RequestService {
   private final ServicePointService servicePointService;
   private final CloningService<User> userCloningService;
   private final CloningService<ServicePoint> servicePointCloningService;
+  private final CloningService<ExtendedInstance> instanceCloningService;
   private final SystemUserScopedExecutionService systemUserScopedExecutionService;
+  private final ConsortiumService consortiumService;
+  private final InventoryService inventoryService;
 
   public static final String HOLDINGS_RECORD_ID = "10cd3a5a-d36f-4c7a-bc4f-e1ae3cf820c9";
 
@@ -64,6 +70,8 @@ public class RequestServiceImpl implements RequestService {
     log.info("createPrimaryRequest:: creating primary request {} in tenant {}", requestId,
       primaryRequestTenantId);
 
+    cloneInstance(primaryRequest.getInstanceId(), primaryRequestTenantId);
+
     return executionService.executeSystemUserScoped(primaryRequestTenantId, () -> {
       CirculationItem circItem = createCirculationItem(primaryRequest, secondaryRequestTenantId);
       Request request = circulationClient.createRequest(primaryRequest);
@@ -73,6 +81,19 @@ public class RequestServiceImpl implements RequestService {
       updateCirculationItemOnRequestCreation(circItem, request);
       return new RequestWrapper(request, primaryRequestTenantId);
     });
+  }
+
+  private void cloneInstance(String instanceId, String targetTenantId) {
+    log.info("cloneInstance:: checking if instance {} must be cloned to tenant {}", instanceId,
+      targetTenantId);
+    if (consortiumService.isCentralTenant(targetTenantId)) {
+      log.info("createShadowInstance:: tenant {} is central tenant, doing nothing", targetTenantId);
+      return;
+    }
+
+    ExtendedInstance instanceInCentralTenant = inventoryService.findExtendedInstance(instanceId);
+    executionService.executeSystemUserScoped(targetTenantId,
+      () -> instanceCloningService.clone(instanceInCentralTenant));
   }
 
   @Override
@@ -223,7 +244,7 @@ public class RequestServiceImpl implements RequestService {
       return circulationItemClient.updateCirculationItem(itemId, existingCirculationItem);
     }
 
-    InventoryInstance instance = getInstanceFromStorage(instanceId, inventoryTenantId);
+    Instance instance = getInstanceFromStorage(instanceId, inventoryTenantId);
     var circulationItem = new CirculationItem()
       .id(UUID.fromString(itemId))
       .holdingsRecordId(UUID.fromString(HOLDINGS_RECORD_ID))
@@ -245,9 +266,9 @@ public class RequestServiceImpl implements RequestService {
   }
 
   private CirculationItemStatus.NameEnum defineCirculationItemStatus(
-    InventoryItemStatus.NameEnum itemStatus) {
+    ItemStatus.NameEnum itemStatus) {
 
-    return itemStatus == InventoryItemStatus.NameEnum.PAGED
+    return itemStatus == ItemStatus.NameEnum.PAGED
       ? CirculationItemStatus.NameEnum.AVAILABLE
       : CirculationItemStatus.NameEnum.fromValue(itemStatus.getValue());
   }
@@ -274,14 +295,14 @@ public class RequestServiceImpl implements RequestService {
   }
 
   @Override
-  public InventoryItem getItemFromStorage(String itemId, String tenantId) {
+  public Item getItemFromStorage(String itemId, String tenantId) {
     log.info("getItemFromStorage:: Fetching item {} from tenant {}", itemId, tenantId);
     return systemUserScopedExecutionService.executeSystemUserScoped(tenantId,
       () -> itemClient.get(itemId));
   }
 
   @Override
-  public InventoryInstance getInstanceFromStorage(String instanceId, String tenantId) {
+  public Instance getInstanceFromStorage(String instanceId, String tenantId) {
     log.info("getInstanceFromStorage:: Fetching instance {} from tenant {}", instanceId, tenantId);
     return systemUserScopedExecutionService.executeSystemUserScoped(tenantId,
       () -> instanceClient.get(instanceId));
