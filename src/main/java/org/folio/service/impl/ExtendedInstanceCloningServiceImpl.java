@@ -11,10 +11,6 @@ import lombok.extern.log4j.Log4j2;
 @Service
 public class ExtendedInstanceCloningServiceImpl extends CloningServiceImpl<ExtendedInstance> {
 
-  public static final String CONSORTIUM_FOLIO_INSTANCE_SOURCE = "CONSORTIUM-FOLIO";
-  public static final String CONSORTIUM_MARC_INSTANCE_SOURCE = "CONSORTIUM-MARC";
-  public static final String CONSORTIUM_LINKED_DATA_INSTANCE_SOURCE = "CONSORTIUM-LINKED_DATA";
-
   private final InventoryService inventoryService;
 
   public ExtendedInstanceCloningServiceImpl(@Autowired InventoryService inventoryService) {
@@ -36,9 +32,9 @@ public class ExtendedInstanceCloningServiceImpl extends CloningServiceImpl<Exten
   protected ExtendedInstance buildClone(ExtendedInstance instance) {
     String originalSource = instance.getSource();
     String newSource = switch (originalSource.toLowerCase()) {
-      case "folio" -> CONSORTIUM_FOLIO_INSTANCE_SOURCE;
-      case "marc" -> CONSORTIUM_MARC_INSTANCE_SOURCE;
-      case "linked_data" -> CONSORTIUM_LINKED_DATA_INSTANCE_SOURCE;
+      case "folio" -> "CONSORTIUM-FOLIO";
+      case "marc" -> "CONSORTIUM-MARC";
+      case "linked_data" -> "CONSORTIUM-LINKED_DATA";
       default -> null;
     };
 
