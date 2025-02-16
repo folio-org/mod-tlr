@@ -34,8 +34,8 @@ public class ExtendedInstanceCloningServiceImpl extends CloningServiceImpl<Exten
 
   @Override
   protected ExtendedInstance buildClone(ExtendedInstance instance) {
-    String source = instance.getSource();
-    String newSource = switch (source.toLowerCase()) {
+    String originalSource = instance.getSource();
+    String newSource = switch (originalSource.toLowerCase()) {
       case "folio" -> CONSORTIUM_FOLIO_INSTANCE_SOURCE;
       case "marc" -> CONSORTIUM_MARC_INSTANCE_SOURCE;
       case "linked_data" -> CONSORTIUM_LINKED_DATA_INSTANCE_SOURCE;
@@ -43,6 +43,7 @@ public class ExtendedInstanceCloningServiceImpl extends CloningServiceImpl<Exten
     };
 
     if (newSource != null) {
+      log.info("buildClone:: replacing source '{}' with '{}'", originalSource, newSource);
       instance.setSource(newSource);
     }
 
