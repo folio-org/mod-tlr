@@ -84,20 +84,21 @@ public class RequestServiceImpl implements RequestService {
     });
   }
 
-  private void createShadowInstance(String instanceId, String tenantId) {
-    if (consortiumService.isCentralTenant(tenantId)) {
-      log.info("createShadowInstance:: tenant {} is central tenant, doing nothing", tenantId);
+  private void createShadowInstance(String instanceId, String targetTenantId) {
+    log.info("createShadowInstance:: checking if instance must be shared with primary request tenant");
+    if (consortiumService.isCentralTenant(targetTenantId)) {
+      log.info("createShadowInstance:: tenant {} is central tenant, doing nothing", targetTenantId);
       return;
     }
 
-    systemUserScopedExecutionService.executeSystemUserScoped(tenantId,
+    systemUserScopedExecutionService.executeSystemUserScoped(targetTenantId,
       () -> {
         if (inventoryService.findInstance(instanceId).isPresent()) {
           log.info("createShadowInstance:: instance {} already exists in tenant {}, doing nothing",
-            instanceId, tenantId);
+            instanceId, targetTenantId);
         } else {
-          log.info("createShadowInstance:: instance {} not found in tenant {}", instanceId, tenantId);
-          consortiaService.shareInstance(instanceId, tenantId);
+          log.info("createShadowInstance:: instance {} not found in tenant {}", instanceId, targetTenantId);
+          consortiaService.shareInstance(instanceId, targetTenantId);
         }
         return instanceId;
       });

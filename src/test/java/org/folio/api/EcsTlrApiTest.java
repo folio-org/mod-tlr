@@ -338,7 +338,7 @@ class EcsTlrApiTest extends BaseIT {
       .status(Status.COMPLETE);
 
     wireMockServer.stubFor(post(urlMatching(SHARE_INSTANCE_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
       .inScenario("Create ECS TLR")
       .whenScenarioStateIs(Scenario.STARTED)
       .willSetStateTo("Shadow instance created")
