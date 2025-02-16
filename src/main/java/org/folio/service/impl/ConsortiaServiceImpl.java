@@ -10,6 +10,7 @@ import org.folio.client.feign.ConsortiaClient;
 import org.folio.client.feign.ConsortiaConfigurationClient;
 import org.folio.domain.dto.ConsortiaConfiguration;
 import org.folio.domain.dto.SharingInstance;
+import org.folio.domain.dto.Status;
 import org.folio.domain.dto.Tenant;
 import org.folio.domain.dto.TenantCollection;
 import org.folio.domain.dto.UserTenant;
@@ -68,6 +69,17 @@ public class ConsortiaServiceImpl implements ConsortiaService {
       .sourceTenantId(consortiumService.getCentralTenantId())
       .targetTenantId(targetTenantId);
 
-    return consortiaClient.shareInstance(consortiumService.getCurrentConsortiumId(), sharingRequest);
+    SharingInstance sharingInstance = consortiaClient.shareInstance(
+      consortiumService.getCurrentConsortiumId(), sharingRequest);
+
+    Status sharingStatus = sharingInstance.getStatus();
+    log.info("shareInstance:: instance sharing status: {}", sharingStatus);
+    if (Status.ERROR == sharingStatus) {
+      log.error("shareInstance:: instance sharing failed: {}", sharingInstance::getError);
+      throw new IllegalStateException(String.format("Failed to share instance %s with tenant %s: %s",
+        instanceId, targetTenantId, sharingInstance.getError()));
+    }
+
+    return sharingInstance;
   }
 }
