@@ -55,6 +55,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 
 class EcsTlrApiTest extends BaseIT {
@@ -84,6 +85,7 @@ class EcsTlrApiTest extends BaseIT {
   private static final String POST_ECS_REQUEST_TRANSACTION_URL_PATTERN =
     ECS_REQUEST_TRANSACTIONS_URL + "/" + UUID_PATTERN;
   private static final String SHARE_INSTANCE_URL = "/consortia/" + CONSORTIUM_ID + "/sharing/instances";
+  private static final String INSTANCES_URL = "/instance-storage/instances";
 
   private static final String INSTANCE_TITLE = "Test title";
   private static final String ITEM_BARCODE = "test_item_barcode";
@@ -297,20 +299,20 @@ class EcsTlrApiTest extends BaseIT {
 
     Instance mockInventoryInstance = new Instance().title(INSTANCE_TITLE);
     // Instance already exists in central and secondary tenant
-    wireMockServer.stubFor(get(urlMatching("/instance-storage/instances/" + INSTANCE_ID))
+    wireMockServer.stubFor(get(urlMatching(INSTANCES_URL + "/" + INSTANCE_ID))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
       .willReturn(jsonResponse(mockInventoryInstance, HttpStatus.SC_OK)));
-    wireMockServer.stubFor(get(urlMatching("/instance-storage/instances/" + INSTANCE_ID))
+    wireMockServer.stubFor(get(urlMatching(INSTANCES_URL + "/" + INSTANCE_ID))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
       .willReturn(jsonResponse(mockInventoryInstance, HttpStatus.SC_OK)));
 
     // Instance is found in primary tenant only after its shadow is created (see consortia stubs below)
-    wireMockServer.stubFor(get(urlMatching("/instance-storage/instances/" + INSTANCE_ID))
+    wireMockServer.stubFor(get(urlMatching(INSTANCES_URL + "/" + INSTANCE_ID))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
       .inScenario("Create ECS TLR")
       .whenScenarioStateIs(Scenario.STARTED)
       .willReturn(notFound()));
-    wireMockServer.stubFor(get(urlMatching("/instance-storage/instances/" + INSTANCE_ID))
+    wireMockServer.stubFor(get(urlMatching(INSTANCES_URL + "/" + INSTANCE_ID))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
       .inScenario("Create ECS TLR")
       .whenScenarioStateIs("Shadow instance created")
@@ -417,17 +419,29 @@ class EcsTlrApiTest extends BaseIT {
         .withRequestBody(equalToJson(asJsonString(servicePointClone))));
     }
 
-      wireMockServer.verify(postRequestedFor(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
-        .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
-        .withRequestBody(equalToJson(asJsonString(borrowerTransactionPostRequest))));
+    wireMockServer.verify(postRequestedFor(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .withRequestBody(equalToJson(asJsonString(borrowerTransactionPostRequest))));
 
-      wireMockServer.verify(postRequestedFor(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
-        .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
-        .withRequestBody(equalToJson(asJsonString(lenderTransactionPostRequest))));
+    wireMockServer.verify(postRequestedFor(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
+      .withRequestBody(equalToJson(asJsonString(lenderTransactionPostRequest))));
 
     wireMockServer.verify(postRequestedFor(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
       .withRequestBody(equalToJson(asJsonString(pickupTransactionPostRequest))));
+
+    wireMockServer.verify(getRequestedFor(urlMatching(INSTANCES_URL + "/" + INSTANCE_ID))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY)));
+
+    SharingInstance expectedInstanceSharingRequest = new SharingInstance()
+      .instanceIdentifier(UUID.fromString(INSTANCE_ID))
+      .sourceTenantId(TENANT_ID_CONSORTIUM)
+      .targetTenantId(TENANT_ID_UNIVERSITY);
+
+    wireMockServer.verify(postRequestedFor(urlMatching(SHARE_INSTANCE_URL))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
+      .withRequestBody(equalToJson(asJsonString(expectedInstanceSharingRequest))));
   }
 
   @Test
