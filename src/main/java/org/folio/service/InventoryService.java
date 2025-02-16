@@ -3,6 +3,7 @@ package org.folio.service;
 import java.util.Collection;
 
 import org.folio.domain.dto.Campus;
+import org.folio.domain.dto.ExtendedInstance;
 import org.folio.domain.dto.HoldingsRecord;
 import org.folio.domain.dto.Instance;
 import org.folio.domain.dto.Institution;
@@ -17,8 +18,8 @@ public interface InventoryService {
   Collection<HoldingsRecord> findHoldings(CqlQuery query, String idIndex, Collection<String> ids);
   Collection<HoldingsRecord> findHoldings(Collection<String> ids);
   Collection<Instance> findInstances(Collection<String> ids);
-  Instance findInstance(String instanceId);
-  Instance createInstance(Instance instance);
+  ExtendedInstance findExtendedInstance(String instanceId);
+  ExtendedInstance createExtendedInstance(ExtendedInstance instance);
   Collection<MaterialType> findMaterialTypes(Collection<String> ids);
   Collection<LoanType> findLoanTypes(Collection<String> ids);
   Collection<Library> findLibraries(Collection<String> ids);

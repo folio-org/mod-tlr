@@ -15,6 +15,7 @@ import org.folio.client.feign.RequestStorageClient;
 import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.CirculationItem;
 import org.folio.domain.dto.CirculationItemStatus;
+import org.folio.domain.dto.ExtendedInstance;
 import org.folio.domain.dto.Instance;
 import org.folio.domain.dto.Item;
 import org.folio.domain.dto.ItemStatus;
@@ -54,7 +55,7 @@ public class RequestServiceImpl implements RequestService {
   private final ServicePointService servicePointService;
   private final CloningService<User> userCloningService;
   private final CloningService<ServicePoint> servicePointCloningService;
-  private final CloningService<Instance> instanceCloningService;
+  private final CloningService<ExtendedInstance> instanceCloningService;
   private final SystemUserScopedExecutionService systemUserScopedExecutionService;
   private final ConsortiumService consortiumService;
   private final InventoryService inventoryService;
@@ -90,7 +91,7 @@ public class RequestServiceImpl implements RequestService {
       return;
     }
 
-    Instance instanceInCentralTenant = inventoryService.findInstance(instanceId);
+    ExtendedInstance instanceInCentralTenant = inventoryService.findExtendedInstance(instanceId);
     executionService.executeSystemUserScoped(targetTenantId,
       () -> instanceCloningService.clone(instanceInCentralTenant));
   }

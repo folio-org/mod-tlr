@@ -31,6 +31,7 @@ import org.folio.domain.dto.DcbItem;
 import org.folio.domain.dto.DcbTransaction;
 import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.EcsTlr.RequestTypeEnum;
+import org.folio.domain.dto.ExtendedInstance;
 import org.folio.domain.dto.Instance;
 import org.folio.domain.dto.Item;
 import org.folio.domain.dto.ItemStatus;
@@ -53,7 +54,6 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
-import com.github.tomakehurst.wiremock.stubbing.Scenario;
 
 class EcsTlrApiTest extends BaseIT {
   private static final String ITEM_ID = randomId();
@@ -67,7 +67,6 @@ class EcsTlrApiTest extends BaseIT {
   private static final String SECONDARY_REQUEST_ID = randomId();
   private static final String PRIMARY_REQUEST_ID = SECONDARY_REQUEST_ID;
   private static final String INTERMEDIATE_REQUEST_ID = SECONDARY_REQUEST_ID;
-  private static final String CONSORTIUM_ID = "23085034-7e68-4927-9d17-1de20a06a512";
 
   private static final String UUID_PATTERN =
     "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}";
@@ -75,13 +74,13 @@ class EcsTlrApiTest extends BaseIT {
   private static final String INSTANCE_REQUESTS_URL = "/circulation/requests/instances";
   private static final String REQUESTS_URL = "/circulation/requests";
   private static final String USERS_URL = "/users";
+  private static final String INSTANCES_URL = "/inventory/instances";
   private static final String SERVICE_POINTS_URL = "/service-points";
   private static final String SEARCH_INSTANCES_URL =
     "/search/instances\\?query=id==" + INSTANCE_ID + "&expandAll=true";
   private static final String ECS_REQUEST_TRANSACTIONS_URL = "/ecs-request-transactions";
   private static final String POST_ECS_REQUEST_TRANSACTION_URL_PATTERN =
     ECS_REQUEST_TRANSACTIONS_URL + "/" + UUID_PATTERN;
-  private static final String INSTANCES_URL = "/instance-storage/instances";
 
   private static final String INSTANCE_TITLE = "Test title";
   private static final String ITEM_BARCODE = "test_item_barcode";
@@ -295,34 +294,10 @@ class EcsTlrApiTest extends BaseIT {
 
     Instance mockInstance = new Instance()
       .id(INSTANCE_ID)
-      .source("FOLIO")
       .title(INSTANCE_TITLE);
 
-    // Instance should already exist in central and secondary tenant
-    wireMockServer.stubFor(get(urlMatching(INSTANCES_URL + "/" + INSTANCE_ID))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
-      .willReturn(jsonResponse(mockInstance, HttpStatus.SC_OK)));
-    wireMockServer.stubFor(get(urlMatching(INSTANCES_URL + "/" + INSTANCE_ID))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
-      .willReturn(jsonResponse(mockInstance, HttpStatus.SC_OK)));
-
-    // Instance is found in primary tenant only after it is cloned from central tenant
-    wireMockServer.stubFor(get(urlMatching(INSTANCES_URL + "/" + INSTANCE_ID))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
-      .inScenario("Create ECS TLR")
-      .whenScenarioStateIs(Scenario.STARTED)
-      .willReturn(notFound()));
-    wireMockServer.stubFor(get(urlMatching(INSTANCES_URL + "/" + INSTANCE_ID))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
-      .inScenario("Create ECS TLR")
-      .whenScenarioStateIs("Instance cloned")
+    wireMockServer.stubFor(get(urlMatching("/instance-storage/instances/" + INSTANCE_ID))
       .willReturn(jsonResponse(asJsonString(mockInstance), HttpStatus.SC_OK)));
-
-    wireMockServer.stubFor(post(urlMatching(INSTANCES_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
-      .inScenario("Create ECS TLR")
-      .willSetStateTo("Instance cloned")
-      .willReturn(jsonResponse(asJsonString(mockInstance), HttpStatus.SC_CREATED)));
 
     wireMockServer.stubFor(post(urlMatching("/circulation-item.*"))
       .willReturn(aResponse()
@@ -335,6 +310,25 @@ class EcsTlrApiTest extends BaseIT {
         .withHeader("Content-Type", "application/json")
         .withBody(asJsonString(mockItem))
         .withStatus(HttpStatus.SC_OK)));
+
+    // 1.7 Mock inventory endpoints
+
+    ExtendedInstance mockExtendedInstance = new ExtendedInstance()
+      .id(INSTANCE_ID)
+      .title(INSTANCE_TITLE)
+      .source("FOLIO");
+
+    wireMockServer.stubFor(get(urlMatching(INSTANCES_URL + "/" + INSTANCE_ID))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(jsonResponse(mockExtendedInstance, HttpStatus.SC_OK)));
+
+    wireMockServer.stubFor(get(urlMatching(INSTANCES_URL + "/" + INSTANCE_ID))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
+      .willReturn(notFound()));
+
+    wireMockServer.stubFor(post(urlMatching(INSTANCES_URL))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
+      .willReturn(jsonResponse(asJsonString(mockExtendedInstance), HttpStatus.SC_CREATED)));
 
     // 2. Create ECS TLR
 

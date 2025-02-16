@@ -127,6 +127,8 @@ components:
       $ref: 'schemas/reorder-queue.json'
     circulationItem:
       $ref: 'schemas/circulationItem.yaml#/CirculationItem'
+    extendedInstance:
+      $ref: 'schemas/inventory/extendedInstance.json'
   parameters:
     requestId:
       name: requestId

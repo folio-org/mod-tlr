@@ -1,6 +1,6 @@
 package org.folio.service.impl;
 
-import org.folio.domain.dto.Instance;
+import org.folio.domain.dto.ExtendedInstance;
 import org.folio.service.InventoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -9,7 +9,7 @@ import lombok.extern.log4j.Log4j2;
 
 @Log4j2
 @Service
-public class InstanceCloningServiceImpl extends CloningServiceImpl<Instance> {
+public class ExtendedInstanceCloningServiceImpl extends CloningServiceImpl<ExtendedInstance> {
 
   public static final String CONSORTIUM_FOLIO_INSTANCE_SOURCE = "CONSORTIUM-FOLIO";
   public static final String CONSORTIUM_MARC_INSTANCE_SOURCE = "CONSORTIUM-MARC";
@@ -17,23 +17,23 @@ public class InstanceCloningServiceImpl extends CloningServiceImpl<Instance> {
 
   private final InventoryService inventoryService;
 
-  public InstanceCloningServiceImpl(@Autowired InventoryService inventoryService) {
-    super(Instance::getId);
+  public ExtendedInstanceCloningServiceImpl(@Autowired InventoryService inventoryService) {
+    super(ExtendedInstance::getId);
     this.inventoryService = inventoryService;
   }
 
   @Override
-  protected Instance find(String instanceId) {
-    return inventoryService.findInstance(instanceId);
+  protected ExtendedInstance find(String instanceId) {
+    return inventoryService.findExtendedInstance(instanceId);
   }
 
   @Override
-  protected Instance create(Instance clone) {
-    return inventoryService.createInstance(clone);
+  protected ExtendedInstance create(ExtendedInstance clone) {
+    return inventoryService.createExtendedInstance(clone);
   }
 
   @Override
-  protected Instance buildClone(Instance instance) {
+  protected ExtendedInstance buildClone(ExtendedInstance instance) {
     String source = instance.getSource();
     String newSource = switch (source.toLowerCase()) {
       case "folio" -> CONSORTIUM_FOLIO_INSTANCE_SOURCE;

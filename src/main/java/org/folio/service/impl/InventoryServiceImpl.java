@@ -4,6 +4,7 @@ import java.util.Collection;
 
 import org.folio.client.feign.HoldingClient;
 import org.folio.client.feign.InstanceClient;
+import org.folio.client.feign.InventoryClient;
 import org.folio.client.feign.ItemClient;
 import org.folio.client.feign.LoanTypeClient;
 import org.folio.client.feign.LocationCampusClient;
@@ -12,6 +13,7 @@ import org.folio.client.feign.LocationLibraryClient;
 import org.folio.client.feign.MaterialTypeClient;
 import org.folio.domain.dto.Campus;
 import org.folio.domain.dto.Campuses;
+import org.folio.domain.dto.ExtendedInstance;
 import org.folio.domain.dto.HoldingsRecord;
 import org.folio.domain.dto.HoldingsRecords;
 import org.folio.domain.dto.Instance;
@@ -47,6 +49,7 @@ public class InventoryServiceImpl implements InventoryService {
   private final LocationLibraryClient libraryClient;
   private final LocationInstitutionClient institutionClient;
   private final LocationCampusClient campusClient;
+  private final InventoryClient inventoryClient;
 
   @Override
   public Collection<Item> findItems(CqlQuery query, String idIndex, Collection<String> ids) {
@@ -70,7 +73,6 @@ public class InventoryServiceImpl implements InventoryService {
     return BulkFetcher.fetch(holdingClient, ids, HoldingsRecords::getHoldingsRecords);
   }
 
-
   @Override
   public Collection<Instance> findInstances(Collection<String> ids) {
     log.info("findInstances:: searching instances by {} IDs", ids::size);
@@ -79,15 +81,15 @@ public class InventoryServiceImpl implements InventoryService {
   }
 
   @Override
-  public Instance findInstance(String instanceId) {
-    log.info("findInstance:: searching instance {}", instanceId);
-    return instanceClient.get(instanceId);
+  public ExtendedInstance findExtendedInstance(String instanceId) {
+    log.info("findExtendedInstance:: getting extended instance {}", instanceId);
+    return inventoryClient.getInstance(instanceId);
   }
 
   @Override
-  public Instance createInstance(Instance instance) {
-    log.info("createInstance:: creating instance {}", instance.getId());
-    return instanceClient.post(instance);
+  public ExtendedInstance createExtendedInstance(ExtendedInstance instance) {
+    log.info("createInstance:: creating extended instance {}", instance.getId());
+    return inventoryClient.postInstance(instance);
   }
 
   @Override

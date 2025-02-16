@@ -31,6 +31,7 @@
             "inventory-storage.service-points.collection.get",
             "inventory-storage.service-points.item.post",
             "inventory-storage.instances.collection.get",
+            "inventory.instances.item.get",
             "user-tenants.collection.get"
           ]
         },
@@ -360,6 +361,10 @@
     {
       "id": "transactions",
       "version": "1.0"
+    },
+    {
+      "id": "inventory",
+      "version": "14.0"
     }
   ],
   "optional": [
@@ -400,7 +405,8 @@
         "inventory-storage.items.collection.get",
         "inventory-storage.instances.item.get",
         "inventory-storage.instances.collection.get",
-        "inventory-storage.instances.item.post",
+        "inventory.instances.item.get",
+        "inventory.instances.item.post",
         "circulation-item.item.post",
         "circulation-item.item.put",
         "circulation-item.item.get",
