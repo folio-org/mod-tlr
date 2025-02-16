@@ -403,17 +403,25 @@ class EcsTlrApiTest extends BaseIT {
         .withRequestBody(equalToJson(asJsonString(servicePointClone))));
     }
 
-      wireMockServer.verify(postRequestedFor(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
-        .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
-        .withRequestBody(equalToJson(asJsonString(borrowerTransactionPostRequest))));
+    wireMockServer.verify(postRequestedFor(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .withRequestBody(equalToJson(asJsonString(borrowerTransactionPostRequest))));
 
-      wireMockServer.verify(postRequestedFor(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
-        .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
-        .withRequestBody(equalToJson(asJsonString(lenderTransactionPostRequest))));
+    wireMockServer.verify(postRequestedFor(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
+      .withRequestBody(equalToJson(asJsonString(lenderTransactionPostRequest))));
 
     wireMockServer.verify(postRequestedFor(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
       .withRequestBody(equalToJson(asJsonString(pickupTransactionPostRequest))));
+
+    wireMockServer.verify(getRequestedFor(urlMatching(INSTANCES_URL + "/" + INSTANCE_ID))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
+    wireMockServer.verify(getRequestedFor(urlMatching(INSTANCES_URL + "/" + INSTANCE_ID))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY)));
+    wireMockServer.verify(postRequestedFor(urlMatching(INSTANCES_URL))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
+      .withRequestBody(equalToJson(asJsonString(mockExtendedInstance.source("CONSORTIUM-FOLIO")))));
   }
 
   @Test
