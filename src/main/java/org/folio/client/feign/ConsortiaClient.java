@@ -2,6 +2,7 @@ package org.folio.client.feign;
 
 import org.folio.domain.dto.PublicationRequest;
 import org.folio.domain.dto.PublicationResponse;
+import org.folio.domain.dto.SharingInstance;
 import org.folio.domain.dto.TenantCollection;
 import org.folio.spring.config.FeignClientConfiguration;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -20,4 +21,8 @@ public interface ConsortiaClient {
   @PostMapping(value = "/{consortiumId}/publications", consumes = MediaType.APPLICATION_JSON_VALUE)
   PublicationResponse postPublications(@PathVariable String consortiumId,
     @RequestBody PublicationRequest publicationRequest);
+
+  @PostMapping(value = "/{consortiumId}/sharing/instances", produces = MediaType.APPLICATION_JSON_VALUE)
+  SharingInstance shareInstance(@PathVariable String consortiumId,
+    @RequestBody SharingInstance sharingInstance);
 }
