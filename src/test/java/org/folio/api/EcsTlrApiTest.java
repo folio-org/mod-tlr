@@ -55,7 +55,6 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
-import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 
 class EcsTlrApiTest extends BaseIT {
@@ -434,14 +433,14 @@ class EcsTlrApiTest extends BaseIT {
     wireMockServer.verify(getRequestedFor(urlMatching(INSTANCES_URL + "/" + INSTANCE_ID))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY)));
 
-    SharingInstance expectedInstanceSharingRequest = new SharingInstance()
-      .instanceIdentifier(UUID.fromString(INSTANCE_ID))
-      .sourceTenantId(TENANT_ID_CONSORTIUM)
-      .targetTenantId(TENANT_ID_UNIVERSITY);
-
     wireMockServer.verify(postRequestedFor(urlMatching(SHARE_INSTANCE_URL))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
-      .withRequestBody(equalToJson(asJsonString(expectedInstanceSharingRequest))));
+      .withRequestBody(equalToJson(asJsonString(
+        new SharingInstance()
+          .instanceIdentifier(UUID.fromString(INSTANCE_ID))
+          .sourceTenantId(TENANT_ID_CONSORTIUM)
+          .targetTenantId(TENANT_ID_UNIVERSITY)
+      ))));
   }
 
   @Test
