@@ -72,7 +72,7 @@ class RequestServiceTest {
   @Test
   void shouldReturnExistingCirculationItemWhenStatusMatches() {
     when(requestService.getItemFromStorage(eq(ITEM_ID), anyString())).thenReturn(
-      new InventoryItem().status(new InventoryItemStatus().name(InventoryItemStatus.NameEnum.AVAILABLE))
+      new Item().status(new ItemStatus().name(ItemStatus.NameEnum.AVAILABLE))
     );
     CirculationItem existingItem = new CirculationItem()
       .status(new CirculationItemStatus().name(CirculationItemStatus.NameEnum.AVAILABLE));
@@ -84,7 +84,7 @@ class RequestServiceTest {
   @Test
   void shouldUpdateExistingCirculationItemWhenStatusDiverges() {
     when(requestService.getItemFromStorage(eq(ITEM_ID), anyString())).thenReturn(
-      new InventoryItem().status(new InventoryItemStatus().name(InventoryItemStatus.NameEnum.PAGED))
+      new Item().status(new ItemStatus().name(ItemStatus.NameEnum.PAGED))
     );
     CirculationItem existingItem = new CirculationItem().id(UUID.randomUUID());
     when(circulationItemClient.getCirculationItem(any())).thenReturn(existingItem);
