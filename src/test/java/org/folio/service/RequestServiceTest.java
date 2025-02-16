@@ -70,11 +70,29 @@ class RequestServiceTest {
   }
 
   @Test
-  void shouldReturnExistingCirculationItemIfFound() {
-    CirculationItem existingItem = new CirculationItem();
+  void shouldReturnExistingCirculationItemWhenStatusMatches() {
+    when(requestService.getItemFromStorage(eq(ITEM_ID), anyString())).thenReturn(
+      new InventoryItem().status(new InventoryItemStatus().name(InventoryItemStatus.NameEnum.AVAILABLE))
+    );
+    CirculationItem existingItem = new CirculationItem()
+      .status(new CirculationItemStatus().name(CirculationItemStatus.NameEnum.AVAILABLE));
     when(circulationItemClient.getCirculationItem(any())).thenReturn(existingItem);
 
     assertEquals(existingItem, requestService.createCirculationItem(secondaryRequest, LENDER_ID));
+  }
+
+  @Test
+  void shouldUpdateExistingCirculationItemWhenStatusDiverges() {
+    when(requestService.getItemFromStorage(eq(ITEM_ID), anyString())).thenReturn(
+      new InventoryItem().status(new InventoryItemStatus().name(InventoryItemStatus.NameEnum.PAGED))
+    );
+    CirculationItem existingItem = new CirculationItem().id(UUID.randomUUID());
+    when(circulationItemClient.getCirculationItem(any())).thenReturn(existingItem);
+    CirculationItem updatedItem = new CirculationItem().id(UUID.randomUUID())
+      .status(new CirculationItemStatus().name(CirculationItemStatus.NameEnum.AVAILABLE));
+    when(circulationItemClient.updateCirculationItem(anyString(), any())).thenReturn(updatedItem);
+
+    assertEquals(updatedItem, requestService.createCirculationItem(secondaryRequest, LENDER_ID));
   }
 
   @Test

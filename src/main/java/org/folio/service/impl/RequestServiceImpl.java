@@ -4,7 +4,6 @@ import static java.lang.String.format;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.folio.client.feign.CirculationClient;
@@ -224,26 +223,33 @@ public class RequestServiceImpl implements RequestService {
       return null;
     }
 
+    var item = getItemFromStorage(itemId, inventoryTenantId);
+    var itemStatus = item.getStatus().getName();
+    var circulationItemStatus = defineCirculationItemStatus(itemStatus);
+    log.info("createCirculationItem:: item status {}, calculated status: {}",
+      itemStatus, circulationItemStatus);
+
     // Check if circulation item already exists in the tenant we want to create it in
     CirculationItem existingCirculationItem = circulationItemClient.getCirculationItem(itemId);
     if (existingCirculationItem != null) {
-      log.info("createCirculationItem:: circulation item already exists in status '{}'",
-        Optional.ofNullable(existingCirculationItem.getStatus())
-          .map(CirculationItemStatus::getName)
-          .map(CirculationItemStatus.NameEnum::getValue)
-          .orElse(null));
-      return existingCirculationItem;
+      var existingStatus = existingCirculationItem.getStatus() == null
+        ? null
+        : existingCirculationItem.getStatus().getName();
+      log.info("createCirculationItem:: circulation item already exists in status {}",
+        existingStatus);
+
+      if (existingStatus == circulationItemStatus) {
+        return existingCirculationItem;
+      }
+      log.info("createCirculationItem:: updating circulation item status to {}", circulationItemStatus);
+      existingCirculationItem.setStatus(new CirculationItemStatus()
+        .name(circulationItemStatus)
+        .date(item.getStatus().getDate())
+      );
+      return circulationItemClient.updateCirculationItem(itemId, existingCirculationItem);
     }
 
-    Item item = getItemFromStorage(itemId, inventoryTenantId);
     Instance instance = getInstanceFromStorage(instanceId, inventoryTenantId);
-
-    var itemStatus = item.getStatus().getName();
-    var circulationItemStatus = CirculationItemStatus.NameEnum.fromValue(itemStatus.getValue());
-    if (itemStatus == ItemStatus.NameEnum.PAGED) {
-      circulationItemStatus = CirculationItemStatus.NameEnum.AVAILABLE;
-    }
-
     var circulationItem = new CirculationItem()
       .id(UUID.fromString(itemId))
       .holdingsRecordId(UUID.fromString(HOLDINGS_RECORD_ID))
@@ -262,6 +268,14 @@ public class RequestServiceImpl implements RequestService {
 
     log.info("createCirculationItem:: creating circulation item {}", itemId);
     return circulationItemClient.createCirculationItem(itemId, circulationItem);
+  }
+
+  private CirculationItemStatus.NameEnum defineCirculationItemStatus(
+    ItemStatus.NameEnum itemStatus) {
+
+    return itemStatus == ItemStatus.NameEnum.PAGED
+      ? CirculationItemStatus.NameEnum.AVAILABLE
+      : CirculationItemStatus.NameEnum.fromValue(itemStatus.getValue());
   }
 
   @Override
