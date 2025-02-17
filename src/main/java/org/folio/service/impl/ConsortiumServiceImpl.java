@@ -59,7 +59,7 @@ public class ConsortiumServiceImpl implements ConsortiumService {
       log.info("getTenantContext:: cache miss for tenant {}", tenantId);
       tenantContext = Optional.ofNullable(userTenantsService.findFirstUserTenant())
         .map(userTenant -> new TenantContext(tenantId, userTenant))
-        .orElseThrow();
+        .orElseThrow(() -> new IllegalStateException("Failed to fetch user tenant"));
       log.info("getTenantContext:: populating cache: {}", tenantContext);
       CACHE.put(tenantId, tenantContext);
     }
