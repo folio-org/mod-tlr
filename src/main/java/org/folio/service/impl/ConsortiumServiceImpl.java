@@ -4,7 +4,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.folio.domain.dto.UserTenant;
 import org.folio.service.ConsortiumService;
 import org.folio.service.UserTenantsService;
 import org.folio.spring.FolioExecutionContext;
@@ -51,20 +50,23 @@ public class ConsortiumServiceImpl implements ConsortiumService {
   }
 
   private TenantContext getTenantContext(String tenantId) {
-    TenantContext tenantContext;
-    if (CACHE.containsKey(tenantId)) {
-      tenantContext = CACHE.get(tenantId);
+    TenantContext tenantContext = CACHE.get(tenantId);
+    if (tenantContext != null) {
       log.info("getTenantContext:: cache hit: {}", tenantContext);
     } else {
       log.info("getTenantContext:: cache miss for tenant {}", tenantId);
-      tenantContext = Optional.ofNullable(userTenantsService.findFirstUserTenant())
-        .map(userTenant -> new TenantContext(tenantId, userTenant))
-        .orElseThrow(() -> new IllegalStateException("Failed to fetch user tenant"));
-      log.info("getTenantContext:: populating cache: {}", tenantContext);
+      tenantContext = buildTenantContext(tenantId);
+      log.info("getTenantContext:: caching: {}", tenantContext);
       CACHE.put(tenantId, tenantContext);
     }
     log.debug("getTenantContext:: cache: {}", CACHE);
     return tenantContext;
+  }
+
+  private TenantContext buildTenantContext(String tenantId) {
+    return Optional.ofNullable(userTenantsService.findFirstUserTenant())
+      .map(ut -> new TenantContext(tenantId, ut.getConsortiumId(), ut.getCentralTenantId()))
+      .orElseThrow(() -> new IllegalStateException("Failed to fetch user tenant"));
   }
 
   public static void clearCache() {
@@ -72,10 +74,6 @@ public class ConsortiumServiceImpl implements ConsortiumService {
     CACHE.clear();
   }
 
-  private record TenantContext(String tenantId, String consortiumId, String centralTenantId) {
-    public TenantContext(String tenantId, UserTenant userTenant) {
-      this(tenantId, userTenant.getConsortiumId(), userTenant.getCentralTenantId());
-    }
-  }
+  private record TenantContext(String tenantId, String consortiumId, String centralTenantId) { }
 
 }
