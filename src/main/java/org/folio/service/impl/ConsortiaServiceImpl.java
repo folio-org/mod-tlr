@@ -70,17 +70,17 @@ public class ConsortiaServiceImpl implements ConsortiaService {
       .sourceTenantId(consortiumService.getCentralTenantId())
       .targetTenantId(targetTenantId);
 
-    SharingInstance sharingInstance = consortiaClient.shareInstance(
+    SharingInstance sharingResponse = consortiaClient.shareInstance(
       consortiumService.getCurrentConsortiumId(), sharingRequest);
 
-    Status sharingStatus = sharingInstance.getStatus();
-    log.info("shareInstance:: instance sharing status: {}", sharingStatus);
+    Status sharingStatus = sharingResponse.getStatus();
+    log.info("shareInstance:: sharing status: {}", sharingStatus);
     if (Status.ERROR == sharingStatus) {
-      log.error("shareInstance:: instance sharing failed: {}", sharingInstance::getError);
+      log.error("shareInstance:: instance sharing failed: {}", sharingResponse::getError);
       throw new IllegalStateException(String.format("Failed to share instance %s with tenant %s: %s",
-        instanceId, targetTenantId, sharingInstance.getError()));
+        instanceId, targetTenantId, sharingResponse.getError()));
     }
 
-    return sharingInstance;
+    return sharingResponse;
   }
 }
