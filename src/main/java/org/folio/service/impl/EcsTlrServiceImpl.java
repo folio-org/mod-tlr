@@ -167,9 +167,9 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       .fulfillmentPreference(secondaryRequest.getFulfillmentPreference())
       .pickupServicePointId(secondaryRequest.getPickupServicePointId());
 
-//    if (ecsRequestPhase == EcsRequestPhaseEnum.PRIMARY) {
-//      request.item(secondaryRequest.getItem());
-//    }
+    if (ecsRequestPhase == EcsRequestPhaseEnum.PRIMARY) {
+      request.item(secondaryRequest.getItem());
+    }
 
     return request;
   }

@@ -261,6 +261,7 @@ public class RequestServiceImpl implements RequestService {
       log.info("updateCirculationItemOnRequestCreation:: request {} type is 'Page', " +
         "updating circulation item {} with status 'Paged'", request.getId(), circulationItem.getId());
       circulationItem.getStatus().setName(CirculationItemStatus.NameEnum.PAGED);
+      // set effective location.
       circulationItemClient.updateCirculationItem(circulationItem.getId().toString(),
         circulationItem);
     }
