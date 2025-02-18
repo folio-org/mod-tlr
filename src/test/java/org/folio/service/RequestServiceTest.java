@@ -14,9 +14,9 @@ import java.util.UUID;
 import org.folio.client.feign.CirculationItemClient;
 import org.folio.domain.dto.CirculationItem;
 import org.folio.domain.dto.CirculationItemStatus;
-import org.folio.domain.dto.InventoryInstance;
-import org.folio.domain.dto.InventoryItem;
-import org.folio.domain.dto.InventoryItemStatus;
+import org.folio.domain.dto.Instance;
+import org.folio.domain.dto.Item;
+import org.folio.domain.dto.ItemStatus;
 import org.folio.domain.dto.Request;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.service.impl.RequestServiceImpl;
@@ -70,11 +70,29 @@ class RequestServiceTest {
   }
 
   @Test
-  void shouldReturnExistingCirculationItemIfFound() {
-    CirculationItem existingItem = new CirculationItem();
+  void shouldReturnExistingCirculationItemWhenStatusMatches() {
+    when(requestService.getItemFromStorage(eq(ITEM_ID), anyString())).thenReturn(
+      new Item().status(new ItemStatus().name(ItemStatus.NameEnum.AVAILABLE))
+    );
+    CirculationItem existingItem = new CirculationItem()
+      .status(new CirculationItemStatus().name(CirculationItemStatus.NameEnum.AVAILABLE));
     when(circulationItemClient.getCirculationItem(any())).thenReturn(existingItem);
 
     assertEquals(existingItem, requestService.createCirculationItem(secondaryRequest, LENDER_ID));
+  }
+
+  @Test
+  void shouldUpdateExistingCirculationItemWhenStatusDiverges() {
+    when(requestService.getItemFromStorage(eq(ITEM_ID), anyString())).thenReturn(
+      new Item().status(new ItemStatus().name(ItemStatus.NameEnum.PAGED))
+    );
+    CirculationItem existingItem = new CirculationItem().id(UUID.randomUUID());
+    when(circulationItemClient.getCirculationItem(any())).thenReturn(existingItem);
+    CirculationItem updatedItem = new CirculationItem().id(UUID.randomUUID())
+      .status(new CirculationItemStatus().name(CirculationItemStatus.NameEnum.AVAILABLE));
+    when(circulationItemClient.updateCirculationItem(anyString(), any())).thenReturn(updatedItem);
+
+    assertEquals(updatedItem, requestService.createCirculationItem(secondaryRequest, LENDER_ID));
   }
 
   @Test
@@ -82,12 +100,12 @@ class RequestServiceTest {
     when(circulationItemClient.getCirculationItem(any())).thenReturn(null);
     when(circulationItemClient.createCirculationItem(any(), any())).thenReturn(new CirculationItem());
 
-    InventoryItem item = new InventoryItem();
-    item.setStatus(new InventoryItemStatus((InventoryItemStatus.NameEnum.PAGED)));
+    Item item = new Item();
+    item.setStatus(new ItemStatus(ItemStatus.NameEnum.PAGED));
     when(requestService.getItemFromStorage(eq(ITEM_ID), anyString())).thenReturn(item);
 
     String instanceTitle = "Title";
-    InventoryInstance instance = new InventoryInstance();
+    Instance instance = new Instance();
     instance.setTitle(instanceTitle);
     when(requestService.getInstanceFromStorage(eq(INSTANCE_ID), anyString())).thenReturn(instance);
 

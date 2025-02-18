@@ -1,0 +1,6 @@
+Status:
+  type: string
+  enum:
+    - IN_PROGRESS
+    - COMPLETE
+    - ERROR

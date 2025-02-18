@@ -4,7 +4,6 @@ import static java.lang.String.format;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.folio.client.feign.CirculationClient;
@@ -16,9 +15,9 @@ import org.folio.client.feign.RequestStorageClient;
 import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.CirculationItem;
 import org.folio.domain.dto.CirculationItemStatus;
-import org.folio.domain.dto.InventoryInstance;
-import org.folio.domain.dto.InventoryItem;
-import org.folio.domain.dto.InventoryItemStatus;
+import org.folio.domain.dto.Instance;
+import org.folio.domain.dto.Item;
+import org.folio.domain.dto.ItemStatus;
 import org.folio.domain.dto.ReorderQueue;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.Requests;
@@ -26,6 +25,9 @@ import org.folio.domain.dto.ServicePoint;
 import org.folio.domain.dto.User;
 import org.folio.exception.RequestCreatingException;
 import org.folio.service.CloningService;
+import org.folio.service.ConsortiaService;
+import org.folio.service.ConsortiumService;
+import org.folio.service.InventoryService;
 import org.folio.service.RequestService;
 import org.folio.service.ServicePointService;
 import org.folio.service.UserService;
@@ -54,6 +56,9 @@ public class RequestServiceImpl implements RequestService {
   private final CloningService<User> userCloningService;
   private final CloningService<ServicePoint> servicePointCloningService;
   private final SystemUserScopedExecutionService systemUserScopedExecutionService;
+  private final ConsortiaService consortiaService;
+  private final ConsortiumService consortiumService;
+  private final InventoryService inventoryService;
 
   public static final String HOLDINGS_RECORD_ID = "10cd3a5a-d36f-4c7a-bc4f-e1ae3cf820c9";
 
@@ -65,6 +70,8 @@ public class RequestServiceImpl implements RequestService {
     log.info("createPrimaryRequest:: creating primary request {} in tenant {}", requestId,
       primaryRequestTenantId);
 
+    createShadowInstance(primaryRequest.getInstanceId(), primaryRequestTenantId);
+
     return executionService.executeSystemUserScoped(primaryRequestTenantId, () -> {
       CirculationItem circItem = createCirculationItem(primaryRequest, secondaryRequestTenantId);
       Request request = circulationClient.createRequest(primaryRequest);
@@ -73,6 +80,24 @@ public class RequestServiceImpl implements RequestService {
       log.debug("createPrimaryRequest:: primary request: {}", () -> request);
       updateCirculationItemOnRequestCreation(circItem, request);
       return new RequestWrapper(request, primaryRequestTenantId);
+    });
+  }
+
+  private void createShadowInstance(String instanceId, String targetTenantId) {
+    log.info("createShadowInstance:: checking if instance must be shared with primary request tenant");
+    if (consortiumService.isCentralTenant(targetTenantId)) {
+      log.info("createShadowInstance:: tenant {} is central tenant, doing nothing", targetTenantId);
+      return;
+    }
+
+    systemUserScopedExecutionService.executeSystemUserScoped(targetTenantId, () -> {
+      if (inventoryService.findInstance(instanceId).isPresent()) {
+        log.info("createShadowInstance:: instance {} already exists in tenant {}, doing nothing",
+          instanceId, targetTenantId);
+      } else {
+        consortiaService.shareInstance(instanceId, targetTenantId);
+      }
+      return instanceId;
     });
   }
 
@@ -198,26 +223,33 @@ public class RequestServiceImpl implements RequestService {
       return null;
     }
 
+    var item = getItemFromStorage(itemId, inventoryTenantId);
+    var itemStatus = item.getStatus().getName();
+    var circulationItemStatus = defineCirculationItemStatus(itemStatus);
+    log.info("createCirculationItem:: item status {}, calculated status: {}",
+      itemStatus, circulationItemStatus);
+
     // Check if circulation item already exists in the tenant we want to create it in
     CirculationItem existingCirculationItem = circulationItemClient.getCirculationItem(itemId);
     if (existingCirculationItem != null) {
-      log.info("createCirculationItem:: circulation item already exists in status '{}'",
-        Optional.ofNullable(existingCirculationItem.getStatus())
-          .map(CirculationItemStatus::getName)
-          .map(CirculationItemStatus.NameEnum::getValue)
-          .orElse(null));
-      return existingCirculationItem;
+      var existingStatus = existingCirculationItem.getStatus() == null
+        ? null
+        : existingCirculationItem.getStatus().getName();
+      log.info("createCirculationItem:: circulation item already exists in status {}",
+        existingStatus);
+
+      if (existingStatus == circulationItemStatus) {
+        return existingCirculationItem;
+      }
+      log.info("createCirculationItem:: updating circulation item status to {}", circulationItemStatus);
+      existingCirculationItem.setStatus(new CirculationItemStatus()
+        .name(circulationItemStatus)
+        .date(item.getStatus().getDate())
+      );
+      return circulationItemClient.updateCirculationItem(itemId, existingCirculationItem);
     }
 
-    InventoryItem item = getItemFromStorage(itemId, inventoryTenantId);
-    InventoryInstance instance = getInstanceFromStorage(instanceId, inventoryTenantId);
-
-    var itemStatus = item.getStatus().getName();
-    var circulationItemStatus = CirculationItemStatus.NameEnum.fromValue(itemStatus.getValue());
-    if (itemStatus == InventoryItemStatus.NameEnum.PAGED) {
-      circulationItemStatus = CirculationItemStatus.NameEnum.AVAILABLE;
-    }
-
+    Instance instance = getInstanceFromStorage(instanceId, inventoryTenantId);
     var circulationItem = new CirculationItem()
       .id(UUID.fromString(itemId))
       .holdingsRecordId(UUID.fromString(HOLDINGS_RECORD_ID))
@@ -236,6 +268,14 @@ public class RequestServiceImpl implements RequestService {
 
     log.info("createCirculationItem:: creating circulation item {}", itemId);
     return circulationItemClient.createCirculationItem(itemId, circulationItem);
+  }
+
+  private CirculationItemStatus.NameEnum defineCirculationItemStatus(
+    ItemStatus.NameEnum itemStatus) {
+
+    return itemStatus == ItemStatus.NameEnum.PAGED
+      ? CirculationItemStatus.NameEnum.AVAILABLE
+      : CirculationItemStatus.NameEnum.fromValue(itemStatus.getValue());
   }
 
   @Override
@@ -260,14 +300,14 @@ public class RequestServiceImpl implements RequestService {
   }
 
   @Override
-  public InventoryItem getItemFromStorage(String itemId, String tenantId) {
+  public Item getItemFromStorage(String itemId, String tenantId) {
     log.info("getItemFromStorage:: Fetching item {} from tenant {}", itemId, tenantId);
     return systemUserScopedExecutionService.executeSystemUserScoped(tenantId,
       () -> itemClient.get(itemId));
   }
 
   @Override
-  public InventoryInstance getInstanceFromStorage(String instanceId, String tenantId) {
+  public Instance getInstanceFromStorage(String instanceId, String tenantId) {
     log.info("getInstanceFromStorage:: Fetching instance {} from tenant {}", instanceId, tenantId);
     return systemUserScopedExecutionService.executeSystemUserScoped(tenantId,
       () -> instanceClient.get(instanceId));

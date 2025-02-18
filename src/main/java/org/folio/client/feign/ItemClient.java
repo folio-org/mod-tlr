@@ -1,6 +1,6 @@
 package org.folio.client.feign;
 
-import org.folio.domain.dto.InventoryItem;
+import org.folio.domain.dto.Item;
 import org.folio.domain.dto.Items;
 import org.folio.spring.config.FeignClientConfiguration;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -11,5 +11,5 @@ import org.springframework.web.bind.annotation.PathVariable;
 public interface ItemClient extends GetByQueryClient<Items> {
 
   @GetMapping("/{id}")
-  InventoryItem get(@PathVariable String id);
+  Item get(@PathVariable String id);
 }

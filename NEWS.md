@@ -1,3 +1,8 @@
+## 1.0.7 2025-02-18
+* Add missing tokens to search slips for TLRs (MODTLR-131)
+* Create shadow instance in primary request tenant for secure requests (MODTLR-141)
+* Allow primary ECS requests for items which were previously requested, loaned and returned (MODTLR-144)
+
 ## 1.0.6 2025-02-13
 * Fix request update event handling (MODTLR-138)
 * Add patronComments mapping to primary request (MODTLR-139)
