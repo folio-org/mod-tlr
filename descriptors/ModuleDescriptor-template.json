@@ -420,7 +420,8 @@
         "circulation.rules.request-policy.get",
         "mod-settings.entries.item.get",
         "mod-settings.entries.collection.get",
-        "mod-settings.global.read.circulation"
+        "mod-settings.global.read.circulation",
+        "consortia.sharing-instances.item.post"
       ]
     }
   },

@@ -19,6 +19,7 @@ import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
+import org.folio.service.impl.ConsortiumServiceImpl;
 import org.folio.spring.FolioExecutionContext;
 import org.folio.spring.FolioModuleMetadata;
 import org.folio.spring.integration.XOkapiHeaders;
@@ -128,6 +129,7 @@ public class BaseIT {
 
     contextSetter = initFolioContext();
     wireMockServer.resetAll();
+    ConsortiumServiceImpl.clearCache();
   }
 
   @AfterEach
