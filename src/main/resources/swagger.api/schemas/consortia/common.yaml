@@ -1,0 +1,112 @@
+uuid:
+  type: string
+  format: uuid
+
+Metadata:
+  type: object
+  title: Metadata
+  description: Metadata about creation and changes to records
+  properties:
+    createdDate:
+      type: string
+      description: Date and time when the record was created
+    createdByUserId:
+      $ref: '#/uuid'
+      description: ID of the user who created the record
+    createdByUsername:
+      type: string
+      description: Username of the user who created the record (when available)
+    createdBy:
+      $ref: '#/userInfo'
+      description: Additional information of the user who created the record (when available)
+    updatedDate:
+      type: string
+      description: Date and time when the record was last updated
+    updatedByUserId:
+      $ref: '#/uuid'
+      description: ID of the user who last updated the record
+    updatedByUsername:
+      type: string
+      description: Username of the user who updated the record (when available)
+    updatedBy:
+      $ref: '#/userInfo'
+      description: Additional information of the user who updated the record (when available)
+  required:
+    - createdDate
+
+userInfo:
+  type: object
+  description: User Display Information
+  properties:
+    lastName:
+      type: string
+      readOnly: true
+      description: Last name of the user
+    firstName:
+      type: string
+      readOnly: true
+      description: First name of the user
+    middleName:
+      type: string
+      readOnly: true
+      description: Middle name or initial of the user
+  example:
+    lastName: Doe
+    firstName: John
+    middleName: X.
+
+Error:
+  description: "An error"
+  type: object
+  properties:
+    message:
+      type: string
+      minLength: 1
+      description: "Error message text"
+    type:
+      type: string
+      description: "Error message type"
+    code:
+      type: string
+      description: "Error message code"
+    parameters:
+      description: "Error message parameters"
+      $ref: "common.yaml#/Parameters"
+  additionalProperties: false
+  required:
+    - message
+
+Errors:
+  description: "A set of errors"
+  type: object
+  properties:
+    errors:
+      description: "List of errors"
+      type: array
+      items:
+        type: object
+        $ref: "common.yaml#/Error"
+    total_records:
+      description: "Total number of errors"
+      type: integer
+  additionalProperties: false
+
+Parameter:
+  description: "List of key/value parameters of an error"
+  type: object
+  properties:
+    key:
+      type: string
+      minLength: 1
+    value:
+      type: string
+  additionalProperties: false
+  required:
+    - key
+
+Parameters:
+  description: "List of key/value parameters of an error"
+  type: array
+  items:
+    $ref: "common.yaml#/Parameter"
+  additionalProperties: false
