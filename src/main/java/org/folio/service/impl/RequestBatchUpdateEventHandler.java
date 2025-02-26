@@ -3,6 +3,7 @@ package org.folio.service.impl;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toMap;
+import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.INTERMEDIATE;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.PRIMARY;
 import static org.folio.domain.dto.Request.RequestLevelEnum.TITLE;
 
@@ -63,7 +64,8 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
   private void updateQueuePositions(List<Request> unifiedQueue, boolean isTlrRequestQueue) {
     log.debug("updateQueuePositions:: parameters unifiedQueue: {}", unifiedQueue);
     List<UUID> sortedPrimaryRequestIds = unifiedQueue.stream()
-      .filter(request -> PRIMARY == request.getEcsRequestPhase())
+      .filter(request -> PRIMARY == request.getEcsRequestPhase() ||
+        INTERMEDIATE == request.getEcsRequestPhase())
       .filter(request -> request.getPosition() != null)
       .sorted(Comparator.comparing(Request::getPosition))
       .map(request -> UUID.fromString(request.getId()))
