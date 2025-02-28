@@ -12,8 +12,6 @@ import org.folio.support.CqlQuery;
 public interface SearchService {
   Collection<SearchInstance> searchInstances(CqlQuery commonQuery, String idIndex,
     Collection<String> ids);
-
   ConsortiumItems searchItems(BatchIds batchIds);
-
   Optional<ConsortiumItem> searchItem(String itemBarcode);
 }
