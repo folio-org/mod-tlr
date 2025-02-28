@@ -15,6 +15,7 @@ import java.util.UUID;
 import org.folio.domain.dto.AllowedServicePointsInner;
 import org.folio.domain.dto.AllowedServicePointsResponse;
 import org.folio.domain.dto.Request;
+import org.folio.domain.dto.SearchHolding;
 import org.folio.domain.dto.SearchInstance;
 import org.folio.domain.dto.SearchInstancesResponse;
 import org.folio.domain.dto.SearchItemResponse;
@@ -75,9 +76,13 @@ class AllowedServicePointsApiTest extends BaseIT {
 
     var item1 = new SearchItem().tenantId(TENANT_ID_UNIVERSITY);
     var item2 = new SearchItem().tenantId(TENANT_ID_COLLEGE);
+    var holding1 = new SearchHolding().tenantId(TENANT_ID_UNIVERSITY);
+    var holding2 = new SearchHolding().tenantId(TENANT_ID_COLLEGE);
     var searchInstancesResponse = new SearchInstancesResponse();
     searchInstancesResponse.setTotalRecords(1);
-    searchInstancesResponse.setInstances(List.of(new SearchInstance().items(List.of(item1, item2))));
+    searchInstancesResponse.setInstances(List.of(new SearchInstance()
+      .items(List.of(item1, item2))
+      .holdings(List.of(holding1, holding2))));
 
     wireMockServer.stubFor(get(urlMatching(SEARCH_INSTANCES_URL))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
@@ -123,9 +128,13 @@ class AllowedServicePointsApiTest extends BaseIT {
 
     var item1 = new SearchItem().tenantId(TENANT_ID_UNIVERSITY);
     var item2 = new SearchItem().tenantId(TENANT_ID_COLLEGE);
+    var holding1 = new SearchHolding().tenantId(TENANT_ID_UNIVERSITY);
+    var holding2 = new SearchHolding().tenantId(TENANT_ID_COLLEGE);
     var searchInstancesResponse = new SearchInstancesResponse();
     searchInstancesResponse.setTotalRecords(1);
-    searchInstancesResponse.setInstances(List.of(new SearchInstance().items(List.of(item1, item2))));
+    searchInstancesResponse.setInstances(List.of(new SearchInstance()
+      .items(List.of(item1, item2))
+      .holdings(List.of(holding1, holding2))));
 
     wireMockServer.stubFor(get(urlMatching(SEARCH_INSTANCES_URL))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
