@@ -1,0 +1,61 @@
+type: object
+description: Check-out request
+properties:
+  itemBarcode:
+    description: Barcode of the item to be lent to the patron
+    type: string
+  userBarcode:
+    description: Barcode of the user (representing the patron) the item is to be lent to
+    type: string
+  proxyUserBarcode:
+    description: Barcode of the user representing a proxy for the patron
+    type: string
+  loanDate:
+    description: When the loan is to begin, defaults to current date and time
+    type: string
+    format: date-time
+  servicePointId:
+    description: Service point where the item has been checked out
+    type: string
+    format: uuid
+  overrideBlocks:
+    description: Blocks to override
+    type: object
+    properties:
+      itemNotLoanableBlock:
+        description: "'Item not loanable' block"
+        type: object
+        properties:
+          dueDate:
+            description: Due date for a new loan
+            type: string
+            format: date-time
+        required:
+          - dueDate
+      patronBlock:
+        description: Automated patron block
+        type: object
+      itemLimitBlock:
+        description: Item limit block
+        type: object
+      renewalBlock:
+        description: Renewal block
+        type: object
+      renewalDueDateRequiredBlock:
+        description: Override renewal block which requires due date field
+        type: object
+        properties:
+          dueDate:
+            description: Due date for a new loan
+            type: string
+            format: date-time
+        required:
+          - dueDate
+      comment:
+        description: Reason for override
+        type: string
+
+required:
+  - itemBarcode
+  - userBarcode
+  - servicePointId
