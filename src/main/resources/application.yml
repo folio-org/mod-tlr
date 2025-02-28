@@ -32,6 +32,13 @@ spring:
         enabled: true
   kafka:
     bootstrap-servers: ${KAFKA_HOST:localhost}:${KAFKA_PORT:9092}
+    security:
+      protocol: ${KAFKA_SECURITY_PROTOCOL:PLAINTEXT}
+    ssl:
+      key-store-password: ${KAFKA_SSL_KEYSTORE_PASSWORD:}
+      key-store-location: ${KAFKA_SSL_KEYSTORE_LOCATION:}
+      trust-store-password: ${KAFKA_SSL_TRUSTSTORE_PASSWORD:}
+      trust-store-location: ${KAFKA_SSL_TRUSTSTORE_LOCATION:}
     consumer:
       auto-offset-reset: latest
       group-id: ${ENV:folio}-mod-tlr-group

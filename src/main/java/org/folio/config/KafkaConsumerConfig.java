@@ -1,42 +1,39 @@
 package org.folio.config;
 
-import java.util.Map;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG;
 
-import org.apache.kafka.clients.consumer.ConsumerConfig;
+import java.util.HashMap;
+
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 
-import lombok.extern.log4j.Log4j2;
+import lombok.RequiredArgsConstructor;
 
 @Configuration
-@Log4j2
+@RequiredArgsConstructor
 public class KafkaConsumerConfig {
 
-  @Bean
-  public ConsumerFactory<String, String> consumerFactory(KafkaProperties kafkaProperties) {
-    log.debug("consumerFactory:: {}", kafkaProperties);
+  private final KafkaProperties kafkaProperties;
 
-    Map<String, Object> consumerConfig = Map.of(
-      ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProperties.getBootstrapServers(),
-      ConsumerConfig.GROUP_ID_CONFIG, kafkaProperties.getConsumer().getGroupId(),
-      ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, kafkaProperties.getConsumer().getAutoOffsetReset(),
-      ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class,
-      ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+  @Bean
+  public ConsumerFactory<String, String> consumerFactory() {
+    var consumerConfig = new HashMap<>(kafkaProperties.buildConsumerProperties());
+    consumerConfig.put(KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+    consumerConfig.put(VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
 
     return new DefaultKafkaConsumerFactory<>(consumerConfig);
   }
 
   @Bean
-  public ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerContainerFactory(
-    KafkaProperties kafkaProperties) {
-
+  public ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerContainerFactory() {
     var factory = new ConcurrentKafkaListenerContainerFactory<String, String>();
-    factory.setConsumerFactory(consumerFactory(kafkaProperties));
-
+    factory.setConsumerFactory(consumerFactory());
     return factory;
   }
 
