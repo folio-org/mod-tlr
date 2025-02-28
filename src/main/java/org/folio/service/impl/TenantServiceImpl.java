@@ -65,24 +65,26 @@ public class TenantServiceImpl implements TenantService {
       "for instance {}", instanceId);
     var searchInstanceResponse = searchClient.searchInstance(instanceId);
     var itemStatusOccurrencesByTenant = getItemStatusOccurrencesByTenant(searchInstanceResponse);
-    log.info("getSecondaryRequestTenants:: item status occurrences by tenant: {}",
-      itemStatusOccurrencesByTenant);
 
-    List<String> tenantIds = itemStatusOccurrencesByTenant.entrySet()
-      .stream()
-      .sorted(compareByItemCount(AVAILABLE)
-        .thenComparing(compareByItemCount(CHECKED_OUT, IN_TRANSIT))
-        .thenComparing(compareByItemCount(alwaysTrue())))
-      .map(Entry::getKey)
-      .toList();
-
-    if (tenantIds.isEmpty()) {
+    List<String> tenantIds;
+    if (itemStatusOccurrencesByTenant.isEmpty()) {
       log.info("getSecondaryRequestTenants:: no items found, looking for tenants with holdings");
 
       tenantIds = getHoldingOccurrencesByTenant(searchInstanceResponse)
         .entrySet()
         .stream()
         .sorted(comparingLong(Entry::getValue))
+        .map(Entry::getKey)
+        .toList();
+    } else {
+      log.info("getSecondaryRequestTenants:: item status occurrences by tenant: {}",
+        itemStatusOccurrencesByTenant);
+
+      tenantIds = itemStatusOccurrencesByTenant.entrySet()
+        .stream()
+        .sorted(compareByItemCount(AVAILABLE)
+          .thenComparing(compareByItemCount(CHECKED_OUT, IN_TRANSIT))
+          .thenComparing(compareByItemCount(alwaysTrue())))
         .map(Entry::getKey)
         .toList();
     }
@@ -104,6 +106,7 @@ public class TenantServiceImpl implements TenantService {
       .stream()
       .filter(Objects::nonNull)
       .map(SearchInstance::getItems)
+      .filter(Objects::nonNull)
       .flatMap(Collection::stream)
       .filter(item -> item.getTenantId() != null)
       .collect(collectingAndThen(groupingBy(SearchItem::getTenantId),
