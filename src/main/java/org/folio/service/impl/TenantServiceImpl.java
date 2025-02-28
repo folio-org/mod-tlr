@@ -118,6 +118,7 @@ public class TenantServiceImpl implements TenantService {
       .stream()
       .filter(Objects::nonNull)
       .map(SearchInstance::getHoldings)
+      .filter(Objects::nonNull)
       .flatMap(Collection::stream)
       .map(SearchHolding::getTenantId)
       .filter(Objects::nonNull)
