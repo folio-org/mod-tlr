@@ -9,6 +9,8 @@ paths:
     post:
       operationId: checkOutByBarcode
       description: Checks item out by barcode
+      tags:
+        - ecsLoans
       requestBody:
         content:
           application/json:
@@ -30,6 +32,10 @@ components:
       $ref: 'schemas/circulation/check-out-request.yaml'
     errorResponse:
       $ref: 'schemas/errors.json'
+    consortiumItems:
+      $ref: 'schemas/search/consortiumItems.yaml'
+    searchBatchIds:
+      $ref: 'schemas/search/batchIds.yaml'
   responses:
     check-out-response:
       description: Check out response

@@ -173,8 +173,8 @@
           "pathPattern": "/tlr/loans/check-out-by-barcode",
           "permissionsRequired": ["tlr.loans.check-out-by-barcode.execute"],
           "modulePermissions": [
-            "consortium-search.items.item.get",
-            "consortium-search.items.collection.get"
+            "consortium-search.items.batch.collection.get",
+            "circulation.check-out-by-barcode.post"
           ]
         }
       ]
@@ -292,6 +292,11 @@
       "permissionName": "tlr.ecs-request-external.post",
       "displayName": "ecs-request-external - create ECS request external",
       "description": "Create ECS request external"
+    },
+    {
+      "permissionName": "tlr.loans.check-out-by-barcode.execute",
+      "displayName": "ecs-loans - check item out by barcode",
+      "description": "Check item out by barcode"
     }
   ],
   "requires": [
@@ -436,8 +441,7 @@
         "mod-settings.entries.item.get",
         "mod-settings.entries.collection.get",
         "mod-settings.global.read.circulation",
-        "consortia.sharing-instances.item.post",
-        "circulation.check-out-by-barcode.post"
+        "consortia.sharing-instances.item.post"
       ]
     }
   },
