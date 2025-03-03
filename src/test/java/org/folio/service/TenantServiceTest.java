@@ -10,6 +10,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.folio.client.feign.SearchInstanceClient;
+import org.folio.domain.dto.SearchHolding;
 import org.folio.domain.dto.SearchInstance;
 import org.folio.domain.dto.SearchInstancesResponse;
 import org.folio.domain.dto.SearchItem;
@@ -137,6 +138,11 @@ class TenantServiceTest {
         buildItem("b", "Paged"),
         buildItem("c", "Paged"),
         buildItem("c", "Awaiting pickup")
+      )),
+      Arguments.of(List.of("b", "a"), buildInstanceWithHoldingsOnly(
+        buildHolding("a"),
+        buildHolding("a"),
+        buildHolding("b")
       ))
     );
   }
@@ -148,11 +154,24 @@ class TenantServiceTest {
       .items(Arrays.stream(items).toList());
   }
 
+  private static SearchInstance buildInstanceWithHoldingsOnly(SearchHolding... holdings) {
+    return new SearchInstance()
+      .id(INSTANCE_ID.toString())
+      .tenantId("centralTenant")
+      .holdings(Arrays.stream(holdings).toList());
+  }
+
   private static SearchItem buildItem(String tenantId, String status) {
     return new SearchItem()
       .id(UUID.randomUUID().toString())
       .tenantId(tenantId)
       .status(new SearchItemStatus().name(status));
+  }
+
+  private static SearchHolding buildHolding(String tenantId) {
+    return new SearchHolding()
+      .id(UUID.randomUUID().toString())
+      .tenantId(tenantId);
   }
 
 }
