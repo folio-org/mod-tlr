@@ -58,7 +58,7 @@ public class SearchServiceImpl implements SearchService {
 
     consortiumItem.ifPresentOrElse(
       item -> log.info("searchItem:: item found: id={}, tenantId={}", item.getId(), item.getTenantId()),
-      () -> log.info("searchItem:: item with barcode {} was not found", itemBarcode));
+      () -> log.warn("searchItem:: item with barcode {} was not found", itemBarcode));
 
     return consortiumItem;
   }
