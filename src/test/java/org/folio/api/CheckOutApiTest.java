@@ -22,7 +22,7 @@ import org.folio.domain.dto.ConsortiumItems;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
-public class CheckOutApiTest extends BaseIT {
+class CheckOutApiTest extends BaseIT {
 
   private static final String CHECK_OUT_URL = "/tlr/loans/check-out-by-barcode";
   private static final String CIRCULATION_CHECK_OUT_URL = "/circulation/check-out-by-barcode";
@@ -35,7 +35,7 @@ public class CheckOutApiTest extends BaseIT {
   private static final UUID SERVICE_POINT_ID = randomUUID();
 
   @Test
-  public void checkOutSuccess() {
+  void checkOutSuccess() {
     CheckOutRequest checkOutRequest = buildCheckoutRequest();
     CheckOutResponse checkOutResponse = buildCheckOutResponse();
 
@@ -71,7 +71,7 @@ public class CheckOutApiTest extends BaseIT {
   }
 
   @Test
-  public void checkOutFailsIfItemIsNotFound() {
+  void checkOutFailsIfItemIsNotFound() {
     CheckOutRequest checkOutRequest = buildCheckoutRequest();
 
     BatchIds itemsSearchRequest = new BatchIds()
