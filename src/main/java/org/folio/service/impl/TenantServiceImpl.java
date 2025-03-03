@@ -3,7 +3,6 @@ package org.folio.service.impl;
 import static com.google.common.base.Predicates.alwaysTrue;
 import static com.google.common.base.Predicates.notNull;
 import static java.util.Comparator.comparingLong;
-import static java.util.Optional.ofNullable;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.counting;
@@ -20,13 +19,15 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 
 import org.folio.client.feign.SearchInstanceClient;
 import org.folio.domain.dto.ItemStatusEnum;
+import org.folio.domain.dto.SearchHolding;
 import org.folio.domain.dto.SearchInstance;
+import org.folio.domain.dto.SearchInstancesResponse;
 import org.folio.domain.dto.SearchItem;
 import org.folio.domain.dto.SearchItemStatus;
 import org.folio.domain.entity.EcsTlrEntity;
@@ -60,17 +61,33 @@ public class TenantServiceImpl implements TenantService {
   @Override
   public List<String> getSecondaryRequestTenants(EcsTlrEntity ecsTlr) {
     final String instanceId = ecsTlr.getInstanceId().toString();
-    log.info("getSecondaryRequestTenants:: looking for potential secondary request tenants for instance {}", instanceId);
-    var itemStatusOccurrencesByTenant = getItemStatusOccurrencesByTenant(instanceId);
-    log.info("getSecondaryRequestTenants:: item status occurrences by tenant: {}", itemStatusOccurrencesByTenant);
+    log.info("getSecondaryRequestTenants:: looking for potential secondary request tenants " +
+      "for instance {}", instanceId);
+    var searchInstanceResponse = searchClient.searchInstance(instanceId);
+    var itemStatusOccurrencesByTenant = getItemStatusOccurrencesByTenant(searchInstanceResponse);
 
-    List<String> tenantIds = itemStatusOccurrencesByTenant.entrySet()
-      .stream()
-      .sorted(compareByItemCount(AVAILABLE)
-        .thenComparing(compareByItemCount(CHECKED_OUT, IN_TRANSIT))
-        .thenComparing(compareByItemCount(alwaysTrue())))
-      .map(Entry::getKey)
-      .toList();
+    List<String> tenantIds;
+    if (itemStatusOccurrencesByTenant.isEmpty()) {
+      log.info("getSecondaryRequestTenants:: no items found, looking for tenants with holdings");
+
+      tenantIds = getHoldingOccurrencesByTenant(searchInstanceResponse)
+        .entrySet()
+        .stream()
+        .sorted(comparingLong(Entry::getValue))
+        .map(Entry::getKey)
+        .toList();
+    } else {
+      log.info("getSecondaryRequestTenants:: item status occurrences by tenant: {}",
+        itemStatusOccurrencesByTenant);
+
+      tenantIds = itemStatusOccurrencesByTenant.entrySet()
+        .stream()
+        .sorted(compareByItemCount(AVAILABLE)
+          .thenComparing(compareByItemCount(CHECKED_OUT, IN_TRANSIT))
+          .thenComparing(compareByItemCount(alwaysTrue())))
+        .map(Entry::getKey)
+        .toList();
+    }
 
     if (tenantIds.isEmpty()) {
       log.warn("getSecondaryRequestTenants:: failed to find secondary request tenants for instance {}", instanceId);
@@ -81,16 +98,34 @@ public class TenantServiceImpl implements TenantService {
     return tenantIds;
   }
 
-  private Map<String, Map<String, Long>> getItemStatusOccurrencesByTenant(String instanceId) {
-    return searchClient.searchInstance(instanceId)
+  private Map<String, Map<String, Long>> getItemStatusOccurrencesByTenant(
+    SearchInstancesResponse searchInstancesResponse) {
+
+    return searchInstancesResponse
       .getInstances()
       .stream()
-      .filter(notNull())
+      .filter(Objects::nonNull)
       .map(SearchInstance::getItems)
+      .filter(Objects::nonNull)
       .flatMap(Collection::stream)
       .filter(item -> item.getTenantId() != null)
       .collect(collectingAndThen(groupingBy(SearchItem::getTenantId),
         TenantServiceImpl::mapItemsToItemStatusOccurrences));
+  }
+
+  private Map<String, Long> getHoldingOccurrencesByTenant(
+    SearchInstancesResponse searchInstancesResponse) {
+
+    return searchInstancesResponse
+      .getInstances()
+      .stream()
+      .filter(Objects::nonNull)
+      .map(SearchInstance::getHoldings)
+      .filter(Objects::nonNull)
+      .flatMap(Collection::stream)
+      .map(SearchHolding::getTenantId)
+      .filter(Objects::nonNull)
+      .collect(groupingBy(identity(), counting()));
   }
 
   @NotNull
