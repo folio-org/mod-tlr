@@ -1,5 +1,6 @@
 package org.folio.api;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
@@ -20,7 +21,11 @@ import org.folio.domain.dto.CheckOutResponse;
 import org.folio.domain.dto.ConsortiumItem;
 import org.folio.domain.dto.ConsortiumItems;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.test.web.reactive.server.WebTestClient;
+
+import com.github.tomakehurst.wiremock.client.WireMock;
 
 class CheckOutApiTest extends BaseIT {
 
@@ -91,6 +96,43 @@ class CheckOutApiTest extends BaseIT {
       .expectStatus().is5xxServerError();
 
     wireMockServer.verify(postRequestedFor(urlEqualTo(SEARCH_ITEMS_URL))
+      .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM)));
+  }
+
+  @ParameterizedTest
+  @ValueSource(ints = { 400, 422, 500 })
+  void circulationCheckOutErrorsAreForwarded(int statusCode) {
+    CheckOutRequest checkOutRequest = buildCheckoutRequest();
+
+    BatchIds itemsSearchRequest = new BatchIds()
+      .identifierType(BatchIds.IdentifierTypeEnum.BARCODE)
+      .identifierValues(List.of(checkOutRequest.getItemBarcode()));
+
+    ConsortiumItems itemsSearchResponse = new ConsortiumItems()
+      .totalRecords(1)
+      .items(List.of(new ConsortiumItem()
+        .id(ITEM_ID)
+        .barcode(ITEM_BARCODE)
+        .tenantId(TENANT_ID_COLLEGE)));
+
+    wireMockServer.stubFor(post(urlEqualTo(SEARCH_ITEMS_URL))
+      .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .withRequestBody(equalToJson(asJsonString(itemsSearchRequest)))
+      .willReturn(jsonResponse(asJsonString(itemsSearchResponse), HttpStatus.SC_OK)));
+
+    wireMockServer.stubFor(post(urlEqualTo(CIRCULATION_CHECK_OUT_URL))
+      .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .withRequestBody(equalToJson(asJsonString(checkOutRequest)))
+      .willReturn(aResponse().withStatus(statusCode).withBody("Status code is " + statusCode)));
+
+    checkOut(checkOutRequest)
+      .expectStatus().isEqualTo(statusCode)
+      .expectBody(String.class).isEqualTo("Status code is " + statusCode);
+
+    wireMockServer.verify(postRequestedFor(urlEqualTo(SEARCH_ITEMS_URL))
+      .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM)));
+
+    wireMockServer.verify(postRequestedFor(urlEqualTo(CIRCULATION_CHECK_OUT_URL))
       .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM)));
   }
 

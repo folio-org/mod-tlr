@@ -1,6 +1,6 @@
 package org.folio.service.impl;
 
-import org.folio.client.feign.CirculationClient;
+import org.folio.client.feign.CheckOutClient;
 import org.folio.domain.dto.CheckOutRequest;
 import org.folio.domain.dto.CheckOutResponse;
 import org.folio.domain.dto.ConsortiumItem;
@@ -17,7 +17,7 @@ import lombok.extern.log4j.Log4j2;
 public class CheckOutServiceImpl implements CheckOutService {
 
   private final SearchService searchService;
-  private final CirculationClient circulationClient;
+  private final CheckOutClient checkOutClient;
 
   @Override
   public CheckOutResponse checkOut(CheckOutRequest checkOutRequest) {
@@ -25,7 +25,7 @@ public class CheckOutServiceImpl implements CheckOutService {
       checkOutRequest.getUserBarcode());
     String itemTenant = findItemTenant(checkOutRequest.getItemBarcode());
 
-    CheckOutResponse checkOutResponse = circulationClient.checkOut(checkOutRequest);
+    CheckOutResponse checkOutResponse = checkOutClient.checkOut(checkOutRequest);
     log.info("checkOutByBarcode:: item checked out");
 
     return checkOutResponse;
