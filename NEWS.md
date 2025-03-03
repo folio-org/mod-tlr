@@ -1,3 +1,7 @@
+## 1.0.8 2025-03-03
+* Fix ECS TLRs for instance with holding and no items (MODTLR-156)
+* Add Kafka TLS support (MODTLR-159)
+
 ## 1.0.7 2025-02-18
 * Add missing tokens to search slips for TLRs (MODTLR-131)
 * Create shadow instance in primary request tenant for secure requests (MODTLR-141)
