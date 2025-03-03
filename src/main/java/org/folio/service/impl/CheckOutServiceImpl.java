@@ -24,9 +24,11 @@ public class CheckOutServiceImpl implements CheckOutService {
     log.info("checkOutByBarcode:: checking out item {} to user {}", checkOutRequest.getItemBarcode(),
       checkOutRequest.getUserBarcode());
     String itemTenant = findItemTenant(checkOutRequest.getItemBarcode());
-    log.info("checkOut:: item tenant: {}", itemTenant);
 
-    return circulationClient.checkOut(checkOutRequest);
+    CheckOutResponse checkOutResponse = circulationClient.checkOut(checkOutRequest);
+    log.info("checkOutByBarcode:: item checked out");
+
+    return checkOutResponse;
   }
 
   private String findItemTenant(String itemBarcode) {
@@ -34,10 +36,13 @@ public class CheckOutServiceImpl implements CheckOutService {
       throw new IllegalArgumentException("Item barcode cannot be null");
     }
 
-    return searchService.searchItem(itemBarcode)
+    String itemTenant = searchService.searchItem(itemBarcode)
       .map(ConsortiumItem::getTenantId)
       .orElseThrow(() -> new IllegalStateException("Failed to find tenant for item with barcode " +
         itemBarcode));
+
+    log.info("findItemTenant:: item found in tenant {}", itemTenant);
+    return itemTenant;
   }
 
 }

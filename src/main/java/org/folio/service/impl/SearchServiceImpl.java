@@ -44,7 +44,6 @@ public class SearchServiceImpl implements SearchService {
 
   @Override
   public ConsortiumItems searchItems(BatchIds batchIds) {
-    log.info("searchItem:: searching items: {}", batchIds);
     return consortiumSearchClient.searchItems(batchIds);
   }
 
