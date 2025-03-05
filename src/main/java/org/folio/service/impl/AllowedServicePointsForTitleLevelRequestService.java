@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 
 import org.folio.client.feign.CirculationClient;
 import org.folio.client.feign.SearchInstanceClient;
-import org.folio.client.feign.SearchItemClient;
+import org.folio.client.feign.ConsortiumSearchClient;
 import org.folio.domain.dto.AllowedServicePointsRequest;
 import org.folio.domain.dto.AllowedServicePointsResponse;
 import org.folio.domain.dto.SearchHolding;
@@ -26,7 +26,7 @@ public class AllowedServicePointsForTitleLevelRequestService extends AllowedServ
 
   private final SearchInstanceClient searchInstanceClient;
 
-  public AllowedServicePointsForTitleLevelRequestService(SearchItemClient searchClient,
+  public AllowedServicePointsForTitleLevelRequestService(ConsortiumSearchClient searchClient,
     SearchInstanceClient searchInstanceClient, CirculationClient circulationClient,
     UserService userService, SystemUserScopedExecutionService executionService,
     RequestService requestService, EcsTlrRepository ecsTlrRepository) {
