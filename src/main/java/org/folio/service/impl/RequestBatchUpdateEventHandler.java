@@ -3,6 +3,7 @@ package org.folio.service.impl;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toMap;
+import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.INTERMEDIATE;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.PRIMARY;
 import static org.folio.domain.dto.Request.RequestLevelEnum.TITLE;
 
@@ -62,22 +63,25 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
 
   private void updateQueuePositions(List<Request> unifiedQueue, boolean isTlrRequestQueue) {
     log.debug("updateQueuePositions:: parameters unifiedQueue: {}", unifiedQueue);
-    List<UUID> sortedPrimaryRequestIds = unifiedQueue.stream()
-      .filter(request -> PRIMARY == request.getEcsRequestPhase())
+    List<UUID> sortedRequestIds = unifiedQueue.stream()
+      .filter(request -> PRIMARY == request.getEcsRequestPhase() ||
+        INTERMEDIATE == request.getEcsRequestPhase())
       .filter(request -> request.getPosition() != null)
       .sorted(Comparator.comparing(Request::getPosition))
       .map(request -> UUID.fromString(request.getId()))
       .toList();
-    log.debug("updateQueuePositions:: sortedPrimaryRequestIds: {}", sortedPrimaryRequestIds);
+    log.debug("updateQueuePositions:: sortedRequestIds: {}", sortedRequestIds);
 
-    List<EcsTlrEntity> ecsTlrByPrimaryRequests = ecsTlrRepository.findByPrimaryRequestIdIn(
-      sortedPrimaryRequestIds);
-    if (ecsTlrByPrimaryRequests == null || ecsTlrByPrimaryRequests.isEmpty()) {
+    // Primary and intermediate request within the same ECS TLR share the same ID, so
+    // we can search by either one
+    List<EcsTlrEntity> ecsTlrs = ecsTlrRepository.findByPrimaryRequestIdIn(
+      sortedRequestIds);
+    if (ecsTlrs == null || ecsTlrs.isEmpty()) {
       log.warn("updateQueuePositions:: no corresponding ECS TLR found");
       return;
     }
-    List<EcsTlrEntity> sortedEcsTlrQueue = sortEcsTlrEntities(sortedPrimaryRequestIds,
-      ecsTlrByPrimaryRequests);
+    List<EcsTlrEntity> sortedEcsTlrQueue = sortEcsTlrEntities(sortedRequestIds,
+      ecsTlrs);
     Map<String, List<Request>> groupedSecondaryRequestsByTenantId = groupSecondaryRequestsByTenantId(
       sortedEcsTlrQueue);
 
@@ -98,14 +102,14 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
       ));
   }
 
-  private List<EcsTlrEntity> sortEcsTlrEntities(List<UUID> sortedPrimaryRequestIds,
+  private List<EcsTlrEntity> sortEcsTlrEntities(List<UUID> sortedRequestIds,
     List<EcsTlrEntity> ecsTlrQueue) {
 
-    log.debug("sortEcsTlrEntities:: parameters sortedPrimaryRequestIds: {}, ecsTlrQueue: {}",
-      sortedPrimaryRequestIds, ecsTlrQueue);
+    log.debug("sortEcsTlrEntities:: parameters sortedRequestIds: {}, ecsTlrQueue: {}",
+      sortedRequestIds, ecsTlrQueue);
     Map<UUID, EcsTlrEntity> ecsTlrByPrimaryRequestId = ecsTlrQueue.stream()
       .collect(toMap(EcsTlrEntity::getPrimaryRequestId, Function.identity()));
-    List<EcsTlrEntity> sortedEcsTlrQueue = sortedPrimaryRequestIds
+    List<EcsTlrEntity> sortedEcsTlrQueue = sortedRequestIds
       .stream()
       .map(ecsTlrByPrimaryRequestId::get)
       .toList();
