@@ -21,12 +21,12 @@ public class CheckOutServiceImpl implements CheckOutService {
 
   @Override
   public CheckOutResponse checkOut(CheckOutRequest checkOutRequest) {
-    log.info("checkOutByBarcode:: checking out item {} to user {}", checkOutRequest.getItemBarcode(),
+    log.info("checkOut:: checking out item {} to user {}", checkOutRequest.getItemBarcode(),
       checkOutRequest.getUserBarcode());
     String itemTenant = findItemTenant(checkOutRequest.getItemBarcode());
 
     CheckOutResponse checkOutResponse = checkOutClient.checkOut(checkOutRequest);
-    log.info("checkOutByBarcode:: item checked out");
+    log.info("checkOut:: item checked out");
 
     return checkOutResponse;
   }
