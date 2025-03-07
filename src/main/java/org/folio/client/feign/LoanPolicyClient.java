@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@FeignClient(name = "items", url = "loan-policy-storage/loan-policies",
+@FeignClient(name = "loan-policies", url = "loan-policy-storage/loan-policies",
   configuration = { FeignClientConfiguration.class, ErrorForwardingFeignClientConfiguration.class })
 public interface LoanPolicyClient extends GetByQueryClient<LoanPolicy> {
 

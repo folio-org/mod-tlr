@@ -24,7 +24,7 @@ import lombok.extern.log4j.Log4j2;
 @RequiredArgsConstructor
 public class CheckOutServiceImpl implements CheckOutService {
 
-  private static final String LOAN_POLICY_PREFIX = "CLONE_";
+  private static final String LOAN_POLICY_PREFIX = "CLONE_%s";
   private final SearchService searchService;
   private final CheckOutClient checkOutClient;
   private final LoanPolicyClient loanPolicyClient;
@@ -41,8 +41,7 @@ public class CheckOutServiceImpl implements CheckOutService {
 
     var loanPolicy = executionService.executeSystemUserScoped(itemTenant,
       () -> retrieveLoanPolicy(checkOutRequest));
-    loanPolicyClient.post(loanPolicy.name(format(LOAN_POLICY_PREFIX + "%s",
-      loanPolicy.getName())));
+    loanPolicyClient.post(loanPolicy.name(format(LOAN_POLICY_PREFIX, loanPolicy.getName())));
 
     var checkOutResponse = checkOutClient.checkOut(checkOutRequest.forceLoanPolicyId(
       UUID.fromString(loanPolicy.getId())));
