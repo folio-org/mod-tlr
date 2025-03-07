@@ -179,10 +179,5 @@
       "readonly": true
     }
   },
-  "additionalProperties": true,
-  "required": [
-    "name",
-    "loanable",
-    "renewable"
-  ]
+  "additionalProperties": true
 }

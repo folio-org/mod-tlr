@@ -20,9 +20,5 @@
       ]
     }
   },
-  "required": [
-    "duration",
-    "intervalId"
-  ],
   "additionalProperties": true
 }
