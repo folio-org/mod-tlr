@@ -49,3 +49,4 @@ inventory-storage.location-units.institutions.collection.get
 circulation.rules.request-policy.get
 consortia.sharing-instances.item.post
 circulation.check-out-by-barcode-dry-run.post
+configuration.entries.collection.get

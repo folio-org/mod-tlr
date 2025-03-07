@@ -52,15 +52,9 @@ class CheckOutApiTest extends BaseIT {
     CheckOutResponse checkOutResponse = buildCheckOutResponse();
     CheckOutDryRunResponse checkOutDryRunResponse = buildCheckoutDryRunResponse(loanPolicyId);
 
-    wireMockServer.stubFor(post(urlEqualTo(CIRCULATION_CHECK_OUT_URL))
-      .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM))
-      .withRequestBody(equalToJson(asJsonString(checkOutRequest)))
-      .willReturn(jsonResponse(asJsonString(checkOutResponse), HttpStatus.SC_OK)));
-
     BatchIds itemsSearchRequest = new BatchIds()
       .identifierType(BatchIds.IdentifierTypeEnum.BARCODE)
         .identifierValues(List.of(checkOutRequest.getItemBarcode()));
-
     ConsortiumItems itemsSearchResponse = new ConsortiumItems()
       .totalRecords(1)
       .items(List.of(new ConsortiumItem()
@@ -68,29 +62,29 @@ class CheckOutApiTest extends BaseIT {
         .barcode(ITEM_BARCODE)
         .tenantId(TENANT_ID_COLLEGE)));
 
+    wireMockServer.stubFor(post(urlEqualTo(CIRCULATION_CHECK_OUT_URL))
+      .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .withRequestBody(equalToJson(asJsonString(checkOutRequest)))
+      .willReturn(jsonResponse(asJsonString(checkOutResponse), HttpStatus.SC_OK)));
     wireMockServer.stubFor(post(urlEqualTo(SEARCH_ITEMS_URL))
       .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM))
       .withRequestBody(equalToJson(asJsonString(itemsSearchRequest)))
       .willReturn(jsonResponse(asJsonString(itemsSearchResponse), HttpStatus.SC_OK)));
-
     wireMockServer.stubFor(post(urlEqualTo(CIRCULATION_CHECK_OUT_DRY_RUN_URL))
       .withHeader(TENANT, equalTo(TENANT_ID_COLLEGE))
       .withRequestBody(equalToJson(asJsonString(checkOutDryRunRequest)))
       .willReturn(jsonResponse(asJsonString(checkOutDryRunResponse), HttpStatus.SC_CREATED)));
-
     LoanPolicy loanPolicy = new LoanPolicy().id(loanPolicyId).name("test loanPolicy");
     wireMockServer.stubFor(get(urlEqualTo(LOAN_POLICY_STORAGE_URL + "/" + loanPolicyId))
       .withHeader(TENANT, equalTo(TENANT_ID_COLLEGE))
       .willReturn(jsonResponse(asJsonString(loanPolicy), HttpStatus.SC_OK)));
-
     LoanPolicy clonedLoanPolicy = loanPolicy.name("COPY_OF_" + loanPolicy.getName());
     wireMockServer.stubFor(post(urlEqualTo(LOAN_POLICY_STORAGE_URL))
       .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM))
       .withRequestBody(equalToJson(asJsonString(loanPolicy.name(clonedLoanPolicy.getName()))))
       .willReturn(jsonResponse(asJsonString(clonedLoanPolicy), HttpStatus.SC_OK)));
 
-    checkOut(checkOutRequest)
-      .expectStatus().isOk();
+    checkOut(checkOutRequest).expectStatus().isOk();
 
     wireMockServer.verify(postRequestedFor(urlEqualTo(CIRCULATION_CHECK_OUT_URL))
       .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM)));

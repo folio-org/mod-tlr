@@ -448,7 +448,8 @@
         "mod-settings.entries.collection.get",
         "mod-settings.global.read.circulation",
         "consortia.sharing-instances.item.post",
-        "circulation.check-out-by-barcode-dry-run.post"
+        "circulation.check-out-by-barcode-dry-run.post",
+        "configuration.entries.collection.get"
       ]
     }
   },
