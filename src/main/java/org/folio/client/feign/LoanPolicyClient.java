@@ -1,6 +1,5 @@
 package org.folio.client.feign;
 
-import org.folio.client.feign.config.ErrorForwardingFeignClientConfiguration;
 import org.folio.domain.dto.LoanPolicy;
 import org.folio.spring.config.FeignClientConfiguration;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -11,8 +10,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 @FeignClient(name = "loan-policies", url = "loan-policy-storage/loan-policies",
-  configuration = { FeignClientConfiguration.class, ErrorForwardingFeignClientConfiguration.class })
-public interface LoanPolicyClient extends GetByQueryClient<LoanPolicy> {
+  configuration = FeignClientConfiguration.class)
+public interface LoanPolicyClient {
 
   @GetMapping("/{id}")
   LoanPolicy get(@PathVariable String id);

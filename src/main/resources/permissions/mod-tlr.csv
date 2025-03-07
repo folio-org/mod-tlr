@@ -47,4 +47,5 @@ inventory-storage.location-units.campuses.collection.get
 inventory-storage.location-units.institutions.item.get
 inventory-storage.location-units.institutions.collection.get
 circulation.rules.request-policy.get
-consortia.sharing-instances.item.post
+consortia.sharing-instances.item.post,
+circulation.check-out-by-barcode-dry-run.post

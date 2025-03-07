@@ -1,7 +1,5 @@
 package org.folio.service.impl;
 
-import static java.lang.String.format;
-
 import java.util.UUID;
 
 import org.folio.client.feign.CheckOutClient;
@@ -12,6 +10,7 @@ import org.folio.domain.dto.ConsortiumItem;
 import org.folio.domain.dto.LoanPolicy;
 import org.folio.domain.mapper.CheckOutDryRunRequestMapper;
 import org.folio.service.CheckOutService;
+import org.folio.service.CloningService;
 import org.folio.service.SearchService;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.springframework.stereotype.Service;
@@ -24,8 +23,8 @@ import lombok.extern.log4j.Log4j2;
 @RequiredArgsConstructor
 public class CheckOutServiceImpl implements CheckOutService {
 
-  private static final String LOAN_POLICY_PREFIX = "CLONE_%s";
   private final SearchService searchService;
+  private final CloningService<LoanPolicy> loanPolicyCloningService;
   private final CheckOutClient checkOutClient;
   private final LoanPolicyClient loanPolicyClient;
   private final CheckOutDryRunRequestMapper checkOutDryRunRequestMapper;
@@ -41,7 +40,7 @@ public class CheckOutServiceImpl implements CheckOutService {
 
     var loanPolicy = executionService.executeSystemUserScoped(itemTenant,
       () -> retrieveLoanPolicy(checkOutRequest));
-    loanPolicyClient.post(loanPolicy.name(format(LOAN_POLICY_PREFIX, loanPolicy.getName())));
+    loanPolicyCloningService.clone(loanPolicy);
 
     var checkOutResponse = checkOutClient.checkOut(checkOutRequest.forceLoanPolicyId(
       UUID.fromString(loanPolicy.getId())));
