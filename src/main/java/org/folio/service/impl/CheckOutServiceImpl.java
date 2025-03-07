@@ -1,11 +1,19 @@
 package org.folio.service.impl;
 
+import static java.lang.String.format;
+
+import java.util.UUID;
+
 import org.folio.client.feign.CheckOutClient;
+import org.folio.client.feign.LoanPolicyClient;
 import org.folio.domain.dto.CheckOutRequest;
 import org.folio.domain.dto.CheckOutResponse;
 import org.folio.domain.dto.ConsortiumItem;
+import org.folio.domain.dto.LoanPolicy;
+import org.folio.domain.mapper.CheckOutDryRunRequestMapper;
 import org.folio.service.CheckOutService;
 import org.folio.service.SearchService;
+import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -16,19 +24,41 @@ import lombok.extern.log4j.Log4j2;
 @RequiredArgsConstructor
 public class CheckOutServiceImpl implements CheckOutService {
 
+  private static final String LOAN_POLICY_PREFIX = "CLONE_";
   private final SearchService searchService;
   private final CheckOutClient checkOutClient;
+  private final LoanPolicyClient loanPolicyClient;
+  private final CheckOutDryRunRequestMapper checkOutDryRunRequestMapper;
+  private final SystemUserScopedExecutionService executionService;
+
 
   @Override
   public CheckOutResponse checkOut(CheckOutRequest checkOutRequest) {
     log.info("checkOut:: checking out item {} to user {}", checkOutRequest.getItemBarcode(),
       checkOutRequest.getUserBarcode());
-    String itemTenant = findItemTenant(checkOutRequest.getItemBarcode());
+    var itemTenant = findItemTenant(checkOutRequest.getItemBarcode());
+    log.info("checkOut:: itemTenant: {} ", itemTenant);
 
-    CheckOutResponse checkOutResponse = checkOutClient.checkOut(checkOutRequest);
+    var loanPolicy = executionService.executeSystemUserScoped(itemTenant,
+      () -> retrieveLoanPolicy(checkOutRequest));
+    loanPolicyClient.post(loanPolicy.name(format(LOAN_POLICY_PREFIX + "%s",
+      loanPolicy.getName())));
+
+    var checkOutResponse = checkOutClient.checkOut(checkOutRequest.forceLoanPolicyId(
+      UUID.fromString(loanPolicy.getId())));
     log.info("checkOut:: item checked out");
 
     return checkOutResponse;
+  }
+
+  private LoanPolicy retrieveLoanPolicy(CheckOutRequest checkOutRequest) {
+    var checkOutDryRunResponse = checkOutClient.checkOutDryRun(checkOutDryRunRequestMapper
+      .mapCheckOutRequestToCheckOutDryRunRequest(checkOutRequest));
+    log.info("retrieveLoanPolicy:: checkOutDryRunResponse: {}", checkOutDryRunResponse);
+    var loanPolicy = loanPolicyClient.get(checkOutDryRunResponse.getLoanPolicyId());
+    log.debug("retrieveLoanPolicy:: loanPolicy: {}", loanPolicy);
+
+    return loanPolicy;
   }
 
   private String findItemTenant(String itemBarcode) {

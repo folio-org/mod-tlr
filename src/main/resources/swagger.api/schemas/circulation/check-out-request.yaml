@@ -18,6 +18,10 @@ properties:
     description: Service point where the item has been checked out
     type: string
     format: uuid
+  forceLoanPolicyId:
+    description: Force loan policy ID
+    type: string
+    format: uuid
   overrideBlocks:
     description: Blocks to override
     type: object

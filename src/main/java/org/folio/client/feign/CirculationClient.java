@@ -36,7 +36,4 @@ public interface CirculationClient {
   AllowedServicePointsResponse allowedServicePoints(
     @RequestParam("operation") String operation,
     @RequestParam("requestId") String requestId);
-
-  @PostMapping("/check-out-by-barcode")
-  CheckOutResponse checkOut(@RequestBody CheckOutRequest request);
 }

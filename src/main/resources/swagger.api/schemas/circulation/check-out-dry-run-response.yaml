@@ -1,0 +1,16 @@
+type: object
+description: Check out dry run response
+properties:
+  loanPolicyId:
+    description: ID of the loan policy determined by the circulation rules
+    type: string
+  overdueFinePolicyId:
+    description: ID of the overdue fine policy determined by the circulation rules
+    type: string
+  lostItemPolicyId:
+    description: ID of the lost item policy determined by the circulation rules
+    type: string
+  patronNoticePolicyId:
+    description: ID of the patron notice policy determined by the circulation rules
+    type: string
+additionalProperties: true

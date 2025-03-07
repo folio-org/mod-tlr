@@ -174,7 +174,11 @@
           "permissionsRequired": ["tlr.loans.check-out-by-barcode.execute"],
           "modulePermissions": [
             "consortium-search.items.batch.collection.get",
-            "circulation.check-out-by-barcode.post"
+            "circulation.check-out-by-barcode.post",
+            "circulation.check-out-by-barcode-dry-run.post",
+            "circulation-storage.loan-policies.collection.get",
+            "circulation-storage.loan-policies.item.get",
+            "circulation-storage.loan-policies.item.post"
           ]
         }
       ]
