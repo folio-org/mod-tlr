@@ -174,7 +174,11 @@
           "permissionsRequired": ["tlr.loans.check-out-by-barcode.execute"],
           "modulePermissions": [
             "consortium-search.items.batch.collection.get",
-            "circulation.check-out-by-barcode.post"
+            "circulation.check-out-by-barcode.post",
+            "circulation.check-out-by-barcode-dry-run.post",
+            "circulation-storage.loan-policies.collection.get",
+            "circulation-storage.loan-policies.item.get",
+            "circulation-storage.loan-policies.item.post"
           ]
         }
       ]
@@ -408,6 +412,8 @@
         "circulation-storage.requests.item.get",
         "circulation-storage.requests.collection.get",
         "circulation-storage.requests.item.put",
+        "circulation-storage.loan-policies.collection.get",
+        "circulation-storage.loan-policies.item.get",
         "inventory-storage.service-points.item.get",
         "inventory-storage.service-points.collection.get",
         "inventory-storage.service-points.item.post",
@@ -441,7 +447,9 @@
         "mod-settings.entries.item.get",
         "mod-settings.entries.collection.get",
         "mod-settings.global.read.circulation",
-        "consortia.sharing-instances.item.post"
+        "consortia.sharing-instances.item.post",
+        "circulation.check-out-by-barcode-dry-run.post",
+        "configuration.entries.collection.get"
       ]
     }
   },

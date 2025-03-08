@@ -1,6 +1,8 @@
 package org.folio.client.feign;
 
 import org.folio.client.feign.config.ErrorForwardingFeignClientConfiguration;
+import org.folio.domain.dto.CheckOutDryRunRequest;
+import org.folio.domain.dto.CheckOutDryRunResponse;
 import org.folio.domain.dto.CheckOutRequest;
 import org.folio.domain.dto.CheckOutResponse;
 import org.folio.spring.config.FeignClientConfiguration;
@@ -14,4 +16,7 @@ public interface CheckOutClient {
 
   @PostMapping("/check-out-by-barcode")
   CheckOutResponse checkOut(@RequestBody CheckOutRequest request);
+
+  @PostMapping("/check-out-by-barcode-dry-run")
+  CheckOutDryRunResponse checkOutDryRun(@RequestBody CheckOutDryRunRequest request);
 }
