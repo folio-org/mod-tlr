@@ -79,6 +79,7 @@ class CheckOutApiTest extends BaseIT {
     wireMockServer.stubFor(get(urlEqualTo(LOAN_POLICY_STORAGE_URL + "/" + loanPolicyId))
       .withHeader(TENANT, equalTo(TENANT_ID_COLLEGE))
       .willReturn(jsonResponse(asJsonString(loanPolicy), HttpStatus.SC_OK)));
+
     LoanPolicy clonedLoanPolicy = loanPolicy.name("COPY_OF_" + loanPolicy.getName());
     wireMockServer.stubFor(post(urlEqualTo(LOAN_POLICY_STORAGE_URL))
       .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM))
