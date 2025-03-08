@@ -66,10 +66,12 @@ class CheckOutApiTest extends BaseIT {
       .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM))
       .withRequestBody(equalToJson(asJsonString(checkOutRequest)))
       .willReturn(jsonResponse(asJsonString(checkOutResponse), HttpStatus.SC_OK)));
+
     wireMockServer.stubFor(post(urlEqualTo(SEARCH_ITEMS_URL))
       .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM))
       .withRequestBody(equalToJson(asJsonString(itemsSearchRequest)))
       .willReturn(jsonResponse(asJsonString(itemsSearchResponse), HttpStatus.SC_OK)));
+
     wireMockServer.stubFor(post(urlEqualTo(CIRCULATION_CHECK_OUT_DRY_RUN_URL))
       .withHeader(TENANT, equalTo(TENANT_ID_COLLEGE))
       .withRequestBody(equalToJson(asJsonString(checkOutDryRunRequest)))
