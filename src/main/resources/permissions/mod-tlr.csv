@@ -15,6 +15,8 @@ circulation.requests.queue.instance-reorder.collection.post
 circulation-storage.requests.item.get
 circulation-storage.requests.collection.get
 circulation-storage.requests.item.put
+circulation-storage.loan-policies.collection.get
+circulation-storage.loan-policies.item.get
 inventory-storage.service-points.item.get
 inventory-storage.service-points.collection.get
 inventory-storage.service-points.item.post
@@ -46,3 +48,5 @@ inventory-storage.location-units.institutions.item.get
 inventory-storage.location-units.institutions.collection.get
 circulation.rules.request-policy.get
 consortia.sharing-instances.item.post
+circulation.check-out-by-barcode-dry-run.post
+configuration.entries.collection.get

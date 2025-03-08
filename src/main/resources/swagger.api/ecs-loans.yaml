@@ -30,6 +30,12 @@ components:
   schemas:
     check-out-request:
       $ref: 'schemas/circulation/check-out-request.yaml'
+    check-out-dry-run-request:
+      $ref: 'schemas/circulation/check-out-dry-run-request.yaml'
+    check-out-dry-run-response:
+      $ref: 'schemas/circulation/check-out-dry-run-response.yaml'
+    loan-policy:
+      $ref: 'schemas/circulation-storage/loan-policy.json'
     errorResponse:
       $ref: 'schemas/errors.json'
     consortiumItems:
