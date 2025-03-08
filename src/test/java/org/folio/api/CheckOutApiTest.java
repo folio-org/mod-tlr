@@ -74,6 +74,7 @@ class CheckOutApiTest extends BaseIT {
       .withHeader(TENANT, equalTo(TENANT_ID_COLLEGE))
       .withRequestBody(equalToJson(asJsonString(checkOutDryRunRequest)))
       .willReturn(jsonResponse(asJsonString(checkOutDryRunResponse), HttpStatus.SC_CREATED)));
+
     LoanPolicy loanPolicy = new LoanPolicy().id(loanPolicyId).name("test loanPolicy");
     wireMockServer.stubFor(get(urlEqualTo(LOAN_POLICY_STORAGE_URL + "/" + loanPolicyId))
       .withHeader(TENANT, equalTo(TENANT_ID_COLLEGE))
