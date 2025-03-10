@@ -10,12 +10,12 @@ import static org.mockito.Mockito.when;
 
 import org.folio.domain.dto.User;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 class UserEventHandlerTest extends BaseEventHandlerTest {
   private static final String USER_UPDATING_EVENT_SAMPLE = getMockDataAsString(
     "mockdata/kafka/user_updating_event.json");
-  @MockBean
+  @MockitoBean
   private UserService userService;
 
   @Test

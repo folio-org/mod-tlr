@@ -12,17 +12,17 @@ import static org.mockito.Mockito.when;
 import org.folio.domain.dto.UserGroup;
 import org.folio.exception.KafkaEventDeserializationException;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.messaging.MessageHeaders;
 
 import lombok.SneakyThrows;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 class UserGroupEventHandlerTest extends BaseEventHandlerTest {
   private static final String USER_GROUP_CREATING_EVENT_SAMPLE = getMockDataAsString(
     "mockdata/kafka/usergroup_creating_event.json");
   private static final String USER_GROUP_UPDATING_EVENT_SAMPLE = getMockDataAsString(
     "mockdata/kafka/usergroup_updating_event.json");
-  @MockBean
+  @MockitoBean
   private UserGroupService userGroupService;
 
   @Test

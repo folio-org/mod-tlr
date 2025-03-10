@@ -34,7 +34,6 @@ class AllowedServicePointsApiTest extends BaseIT {
   private static final String INSTANCE_ID = randomId();
   private static final String REQUESTER_ID = randomId();
   private static final String PATRON_GROUP_ID = randomId();
-  private static final String ECS_TLR_ID = randomId();
   private static final String PRIMARY_REQUEST_ID = randomId();
   private static final String SECONDARY_REQUEST_ID = PRIMARY_REQUEST_ID;
   private static final String BORROWING_TENANT_ID = TENANT_ID_CONSORTIUM;
@@ -290,7 +289,6 @@ class AllowedServicePointsApiTest extends BaseIT {
 
   private static EcsTlrEntity buildEcsTlr(boolean withItem) {
     EcsTlrEntity ecsTlr = new EcsTlrEntity();
-    ecsTlr.setId(UUID.fromString(ECS_TLR_ID));
     ecsTlr.setInstanceId(UUID.fromString(INSTANCE_ID));
     ecsTlr.setPrimaryRequestId(UUID.fromString(PRIMARY_REQUEST_ID));
     ecsTlr.setSecondaryRequestId(UUID.fromString(SECONDARY_REQUEST_ID));
