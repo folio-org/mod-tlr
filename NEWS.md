@@ -1,3 +1,7 @@
+## 1.0.9 2025-03-10
+* Add force loan policy support during check-out (MODTLR-152)
+* Check-out API (MODTLR-151)
+
 ## 1.0.8 2025-03-03
 * Fix ECS TLRs for instance with holding and no items (MODTLR-156)
 * Add Kafka TLS support (MODTLR-159)
