@@ -1,0 +1,81 @@
+openapi: 3.0.0
+info:
+  title: ECS Loans API
+  version: v1
+tags:
+  - name: ecsLoans
+paths:
+  /tlr/loans/check-out-by-barcode:
+    post:
+      operationId: checkOutByBarcode
+      description: Checks item out by barcode
+      tags:
+        - ecsLoans
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/check-out-request"
+        required: true
+      responses:
+        '200':
+          $ref: "#/components/responses/check-out-response"
+        '400':
+          $ref: '#/components/responses/bad-request-response'
+        '422':
+          $ref: '#/components/responses/unprocessable-entity-response'
+        '500':
+          $ref: '#/components/responses/internal-server-error-response'
+components:
+  schemas:
+    check-out-request:
+      $ref: 'schemas/circulation/check-out-request.yaml'
+    check-out-dry-run-request:
+      $ref: 'schemas/circulation/check-out-dry-run-request.yaml'
+    check-out-dry-run-response:
+      $ref: 'schemas/circulation/check-out-dry-run-response.yaml'
+    loan-policy:
+      $ref: 'schemas/circulation-storage/loan-policy.json'
+    errorResponse:
+      $ref: 'schemas/errors.json'
+    consortiumItems:
+      $ref: 'schemas/search/consortiumItems.yaml'
+    searchBatchIds:
+      $ref: 'schemas/search/batchIds.yaml'
+  responses:
+    check-out-response:
+      description: Check out response
+      content:
+        application/json:
+          schema:
+            $ref: 'schemas/circulation/check-out-response.yaml'
+    bad-request-response:
+      description: Validation errors
+      content:
+        application/json:
+          example:
+            errors:
+              - message: Request is invalid
+            total_records: 1
+          schema:
+            $ref: "#/components/schemas/errorResponse"
+    unprocessable-entity-response:
+      description: Validation errors
+      content:
+        application/json:
+          example:
+            errors:
+              - message: Request is invalid
+            total_records: 1
+          schema:
+            $ref: "#/components/schemas/errorResponse"
+    internal-server-error-response:
+      description: When unhandled exception occurred during code execution, e.g. NullPointerException
+      content:
+        application/json:
+          example:
+            errors:
+              - message: Unexpected error
+            total_records: 1
+          schema:
+            $ref: "#/components/schemas/errorResponse"

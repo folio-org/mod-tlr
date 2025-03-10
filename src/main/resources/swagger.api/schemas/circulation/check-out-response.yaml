@@ -1,0 +1,129 @@
+type: object
+description: Check-out response
+properties:
+  id:
+    description: Unique ID (generated UUID) of the loan
+    type: string
+  userId:
+    description: ID of the patron the item was lent to. Required for open loans, not required for closed loans (for anonymization).
+    type: string
+  borrower:
+    description: Additional information about the borrower of the item, taken from the user referred to by the userId
+    type: object
+    properties:
+      firstName:
+        description: First name of the borrower (read-only, defined by the server)
+        type: string
+      lastName:
+        description: Last name of the borrower (read-only, defined by the server)
+        type: string
+      middleName:
+        description: Middle name of the borrower (read-only, defined by the server)
+        type: string
+      barcode:
+        description: Barcode used to identify the borrower (read-only, defined by the server)
+        type: string
+      preferredFirstName:
+        description: Preferred first name of the borrower (read-only, defined by the server)
+        type: string
+      patronGroup:
+        description: Current patron group of the borrower (read-only, defined by the server)
+        type: string
+    additionalProperties: true
+  proxyUserId:
+    description: ID of the user representing a proxy for the patron
+    type: string
+  itemId:
+    description: ID of the item lent to the patron
+    type: string
+  loanPolicyId:
+    description: ID of last policy used in relation to this loan
+    type: string
+  loanPolicy:
+    description: Additional information about the loan policy of the item, taken from the loanPolicyId
+    type: object
+    properties:
+      name:
+        description: Name of last policy used in relation to this loan (read-only, defined by the server)
+        type: string
+    additionalProperties: true
+  overdueFinePolicyId:
+    description: ID of last overdue fine policy used in relation to this loan
+    type: string
+  overdueFinePolicy:
+    description: Additional information about the overdue fine policy of the item
+    type: object
+    properties:
+      name:
+        description: Name of last overdue fine policy used (read-only, defined by the server)
+        type: string
+    additionalProperties: true
+  lostItemPolicyId:
+    description: ID of last lost item policy used in relation to this loan
+    type: string
+  lostItemPolicy:
+    description: Additional information about the lost item policy
+    type: object
+    properties:
+      name:
+        description: Name of last lost item policy used (read-only, defined by the server)
+        type: string
+    additionalProperties: true
+  item:
+    description: Additional information about the item
+    type: object
+    properties:
+      id:
+        description: ID of the item
+        type: string
+      title:
+        description: The title of the item lent to the patron
+        type: string
+      barcode:
+        description: The barcode of the item
+        type: string
+      status:
+        description: Overall status of the item
+        type: object
+        properties:
+          name:
+            description: Name of the item status
+            type: string
+          date:
+            description: Date time when status was last changed
+            type: string
+            format: date-time
+        additionalProperties: true
+    additionalProperties: true
+  loanDate:
+    description: Date and time when the loan began
+    type: string
+    format: date-time
+  dueDate:
+    description: Date and time when the item is due to be returned
+    type: string
+    format: date-time
+  returnDate:
+    description: Date and time when the item was returned
+    type: string
+    format: date-time
+  action:
+    description: Last action performed on a loan (e.g., checkedout, checkedin)
+    type: string
+  renewalCount:
+    description: Count of how many times a loan has been renewed
+    type: integer
+    minimum: 0
+  feesAndFines:
+    description: Fees and fines associated with loans
+    type: object
+    properties:
+      amountRemainingToPay:
+        description: Total remaining amount due on fees and fines for the loan (read-only, defined by the server)
+        type: number
+    additionalProperties: true
+  metadata:
+    description: Metadata about creation and changes to loan, provided by the server (client should not provide)
+    type: object
+
+additionalProperties: true

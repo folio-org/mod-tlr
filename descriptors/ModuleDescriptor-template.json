@@ -165,6 +165,25 @@
       ]
     },
     {
+      "id": "ecs-loans",
+      "version": "1.0",
+      "handlers": [
+        {
+          "methods": ["POST"],
+          "pathPattern": "/tlr/loans/check-out-by-barcode",
+          "permissionsRequired": ["tlr.loans.check-out-by-barcode.execute"],
+          "modulePermissions": [
+            "consortium-search.items.batch.collection.get",
+            "circulation.check-out-by-barcode.post",
+            "circulation.check-out-by-barcode-dry-run.post",
+            "circulation-storage.loan-policies.collection.get",
+            "circulation-storage.loan-policies.item.get",
+            "circulation-storage.loan-policies.item.post"
+          ]
+        }
+      ]
+    },
+    {
       "id": "_tenant",
       "version": "2.0",
       "interfaceType": "system",
@@ -277,6 +296,11 @@
       "permissionName": "tlr.ecs-request-external.post",
       "displayName": "ecs-request-external - create ECS request external",
       "description": "Create ECS request external"
+    },
+    {
+      "permissionName": "tlr.loans.check-out-by-barcode.execute",
+      "displayName": "ecs-loans - check item out by barcode",
+      "description": "Check item out by barcode"
     }
   ],
   "requires": [
@@ -388,6 +412,8 @@
         "circulation-storage.requests.item.get",
         "circulation-storage.requests.collection.get",
         "circulation-storage.requests.item.put",
+        "circulation-storage.loan-policies.collection.get",
+        "circulation-storage.loan-policies.item.get",
         "inventory-storage.service-points.item.get",
         "inventory-storage.service-points.collection.get",
         "inventory-storage.service-points.item.post",
@@ -421,7 +447,9 @@
         "mod-settings.entries.item.get",
         "mod-settings.entries.collection.get",
         "mod-settings.global.read.circulation",
-        "consortia.sharing-instances.item.post"
+        "consortia.sharing-instances.item.post",
+        "circulation.check-out-by-barcode-dry-run.post",
+        "configuration.entries.collection.get"
       ]
     }
   },

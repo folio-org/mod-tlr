@@ -10,7 +10,7 @@
   <groupId>org.folio</groupId>
   <artifactId>mod-tlr</artifactId>
   <name>mod-tlr</name>
-  <version>1.0.9-SNAPSHOT</version>
+  <version>1.0.10-SNAPSHOT</version>
   <description>FOLIO mod-tlr module</description>
   <packaging>jar</packaging>
 
@@ -412,6 +412,33 @@
             </goals>
             <configuration>
               <inputSpec>${project.basedir}/src/main/resources/swagger.api/ecs-request-external.yaml</inputSpec>
+              <output>${project.build.directory}/generated-sources</output>
+              <generatorName>spring</generatorName>
+              <modelPackage>${project.groupId}.domain.dto</modelPackage>
+              <apiPackage>${project.groupId}.rest.resource</apiPackage>
+              <generateApis>true</generateApis>
+              <generateApiTests>true</generateApiTests>
+              <generateApiDocumentation>true</generateApiDocumentation>
+              <generateModels>true</generateModels>
+              <generateModelTests>false</generateModelTests>
+              <generateSupportingFiles>true</generateSupportingFiles>
+              <supportingFilesToGenerate>ApiUtil.java</supportingFilesToGenerate>
+              <generateModelDocumentation>true</generateModelDocumentation>
+              <configOptions>
+                <dateLibrary>java</dateLibrary>
+                <interfaceOnly>true</interfaceOnly>
+                <useSpringBoot3>true</useSpringBoot3>
+                <useTags>true</useTags>
+              </configOptions>
+            </configuration>
+          </execution>
+          <execution>
+            <id>ecs-loans</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <inputSpec>${project.basedir}/src/main/resources/swagger.api/ecs-loans.yaml</inputSpec>
               <output>${project.build.directory}/generated-sources</output>
               <generatorName>spring</generatorName>
               <modelPackage>${project.groupId}.domain.dto</modelPackage>
