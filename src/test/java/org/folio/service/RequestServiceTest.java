@@ -24,16 +24,16 @@ import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class RequestServiceTest {
-  @MockBean
+  @MockitoBean
   private CirculationItemClient circulationItemClient;
-  @MockBean
+  @MockitoBean
   private SystemUserScopedExecutionService systemUserScopedExecutionService;
-  @SpyBean
+  @MockitoSpyBean
   private RequestServiceImpl requestService;
   private EcsTlrEntity ecsTlrEntity;
   private Request secondaryRequest;
