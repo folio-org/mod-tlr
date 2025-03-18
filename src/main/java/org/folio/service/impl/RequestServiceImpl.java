@@ -225,7 +225,7 @@ public class RequestServiceImpl implements RequestService {
 
     var item = getItemFromStorage(itemId, inventoryTenantId);
     var itemStatus = item.getStatus().getName();
-    var circulationItemStatus = defineCirculationItemStatus(itemStatus);
+    var circulationItemStatus = defineCirculationItemStatus(itemStatus, request.getRequestType());
     log.info("createCirculationItem:: item status {}, calculated status: {}",
       itemStatus, circulationItemStatus);
 
@@ -271,9 +271,9 @@ public class RequestServiceImpl implements RequestService {
   }
 
   private CirculationItemStatus.NameEnum defineCirculationItemStatus(
-    ItemStatus.NameEnum itemStatus) {
+    ItemStatus.NameEnum itemStatus, Request.RequestTypeEnum requestType) {
 
-    return itemStatus == ItemStatus.NameEnum.PAGED
+    return itemStatus == ItemStatus.NameEnum.PAGED && requestType == Request.RequestTypeEnum.PAGE
       ? CirculationItemStatus.NameEnum.AVAILABLE
       : CirculationItemStatus.NameEnum.fromValue(itemStatus.getValue());
   }
