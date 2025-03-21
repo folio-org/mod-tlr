@@ -29,6 +29,10 @@ public class KafkaEvent<T> {
   @JsonIgnore
   private String tenantIdHeaderValue;
 
+  @With
+  @JsonIgnore
+  private String userIdHeaderValue;
+
   public enum EventType {
     UPDATED, CREATED, DELETED, ALL_DELETED
   }
