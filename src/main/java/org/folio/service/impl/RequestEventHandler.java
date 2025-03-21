@@ -2,6 +2,7 @@ package org.folio.service.impl;
 
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.PRIMARY;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.SECONDARY;
+import static org.folio.domain.dto.Request.StatusEnum.CLOSED_CANCELLED;
 import static org.folio.domain.dto.TransactionStatus.StatusEnum.AWAITING_PICKUP;
 import static org.folio.domain.dto.TransactionStatus.StatusEnum.CANCELLED;
 import static org.folio.domain.dto.TransactionStatus.StatusEnum.ITEM_CHECKED_OUT;
@@ -15,11 +16,11 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 
+import org.apache.commons.lang3.StringUtils;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.Request.EcsRequestPhaseEnum;
 import org.folio.domain.dto.Request.FulfillmentPreferenceEnum;
 import org.folio.domain.dto.ServicePoint;
-import org.folio.domain.dto.TransactionStatus;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.CloningService;
@@ -38,6 +39,7 @@ import lombok.extern.log4j.Log4j2;
 @Service
 @Log4j2
 public class RequestEventHandler implements KafkaEventHandler<Request> {
+  private static final String DCB_CANCELLATION_REASON_ID = "50ed35b2-1397-4e83-a76b-642adf91ca2a";
 
   private final DcbService dcbService;
   private final EcsTlrRepository ecsTlrRepository;
@@ -98,8 +100,8 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
   private static boolean requestMatchesEcsTlr(EcsTlrEntity ecsTlr, Request updatedRequest,
     String updatedRequestTenant) {
 
-    final EcsRequestPhaseEnum updatedRequestPhase = updatedRequest.getEcsRequestPhase();
-    final UUID updatedRequestId = UUID.fromString(updatedRequest.getId());
+    EcsRequestPhaseEnum updatedRequestPhase = updatedRequest.getEcsRequestPhase();
+    UUID updatedRequestId = UUID.fromString(updatedRequest.getId());
 
     if (updatedRequestPhase == PRIMARY && updatedRequestId.equals(ecsTlr.getPrimaryRequestId())
       && updatedRequestTenant.equals(ecsTlr.getPrimaryRequestTenantId())) {
@@ -140,38 +142,32 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
     log.info("processItemIdUpdate: ECS TLR {} is updated", ecsTlr::getId);
   }
 
-  private static Optional<TransactionStatus.StatusEnum> determineNewTransactionStatus(
-    KafkaEvent<Request> event) {
+  private void updateTransactionStatuses(KafkaEvent<Request> event, EcsTlrEntity ecsTlr) {
 
-    final Request.StatusEnum oldRequestStatus = event.getData().getOldVersion().getStatus();
-    final Request.StatusEnum newRequestStatus = event.getData().getNewVersion().getStatus();
-    log.info("determineNewTransactionStatus:: oldRequestStatus='{}', newRequestStatus='{}'",
+    var oldRequestStatus = event.getData().getOldVersion().getStatus();
+    var newRequestStatus = event.getData().getNewVersion().getStatus();
+    log.info("updateTransactionStatuses:: oldRequestStatus='{}', newRequestStatus='{}'",
       oldRequestStatus, newRequestStatus);
 
     if (newRequestStatus == oldRequestStatus) {
-      log.info("determineNewTransactionStatus:: request status did not change, doing nothing");
-      return Optional.empty();
+      log.info("updateTransactionStatuses:: request status did not change, doing nothing");
+      return;
     }
 
-    var newTransactionStatus = Optional.ofNullable(
-      switch (newRequestStatus) {
-        case OPEN_IN_TRANSIT -> OPEN;
-        case OPEN_AWAITING_PICKUP -> AWAITING_PICKUP;
-        case CLOSED_FILLED -> ITEM_CHECKED_OUT;
-        case CLOSED_CANCELLED -> CANCELLED;
-        default -> null;
-      });
+    var newTransactionStatus = switch (newRequestStatus) {
+      case OPEN_IN_TRANSIT -> OPEN;
+      case OPEN_AWAITING_PICKUP -> AWAITING_PICKUP;
+      case CLOSED_FILLED -> ITEM_CHECKED_OUT;
+      case CLOSED_CANCELLED -> CANCELLED;
+      default -> null;
+    };
+    if (newTransactionStatus == null) {
+      log.info("updateTransactionStatuses:: irrelevant request status change");
+      return;
+    }
 
-    newTransactionStatus.ifPresentOrElse(
-      ts -> log.info("determineNewTransactionStatus:: new transaction status: {}", ts),
-      () -> log.info("determineNewTransactionStatus:: irrelevant request status change"));
-
-    return newTransactionStatus;
-  }
-
-  private void updateTransactionStatuses(KafkaEvent<Request> event, EcsTlrEntity ecsTlr) {
-    determineNewTransactionStatus(event)
-      .ifPresent(newStatus -> dcbService.updateTransactionStatuses(newStatus, ecsTlr));
+    log.info("updateTransactionStatuses:: new transaction status: {}", newTransactionStatus);
+    dcbService.updateTransactionStatuses(newTransactionStatus, ecsTlr);
   }
 
   private void propagatePrimaryRequestChanges(EcsTlrEntity ecsTlr, KafkaEvent<Request> event) {
@@ -205,10 +201,9 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
       targetRequest.setRequestExpirationDate(requestExpirationDate);
       shouldUpdateTargetRequest = true;
     }
-    if (INTERIM_SERVICE_POINT_ID.equals(targetRequest.getPickupServicePointId())) {
-      log.info("propagatePrimaryRequestChanges:: request {} has interim service point as pickup " +
-        "service point, no need to update fulfillment preference", targetRequestId);
-    } else {
+    if (!INTERIM_SERVICE_POINT_ID.equals(targetRequest.getPickupServicePointId())) {
+      log.info("propagatePrimaryRequestChanges:: request {} service point is not interim",
+        targetRequestId);
       if (valueIsNotEqual(primaryRequest, targetRequest, Request::getFulfillmentPreference)) {
         FulfillmentPreferenceEnum fulfillmentPreference = primaryRequest.getFulfillmentPreference();
         log.info("propagatePrimaryRequestChanges:: fulfillment preference changed: {}",
@@ -225,6 +220,19 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
         clonePickupServicePoint(ecsTlr.getPrimaryRequestTenantId(), targetRequestTenantId,
           pickupServicePointId);
       }
+    }
+
+    var dcbStatusSyncWillNotWork = StringUtils.isEmpty(primaryRequest.getItemId())
+      && primaryRequest.getStatus() == CLOSED_CANCELLED
+      && targetRequest.getStatus() != CLOSED_CANCELLED;
+    log.info("propagatePrimaryRequestChanges:: dcbStatusSyncWillNotWork: {}", dcbStatusSyncWillNotWork);
+    if (dcbStatusSyncWillNotWork) {
+      targetRequest.setStatus(CLOSED_CANCELLED);
+      targetRequest.setCancelledDate(new Date());
+      targetRequest.setCancellationAdditionalInformation("Request cancelled by DCB");
+      targetRequest.setCancelledByUserId(event.getUserIdHeaderValue());
+      targetRequest.setCancellationReasonId(DCB_CANCELLATION_REASON_ID);
+      shouldUpdateTargetRequest = true;
     }
 
     if (!shouldUpdateTargetRequest) {
