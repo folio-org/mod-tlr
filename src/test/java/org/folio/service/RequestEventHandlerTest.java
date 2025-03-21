@@ -6,6 +6,7 @@ import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.PRIMARY;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.SECONDARY;
 import static org.folio.domain.dto.Request.FulfillmentPreferenceEnum.DELIVERY;
 import static org.folio.domain.dto.Request.FulfillmentPreferenceEnum.HOLD_SHELF;
+import static org.folio.domain.dto.Request.StatusEnum.CLOSED_CANCELLED;
 import static org.folio.support.Constants.INTERIM_SERVICE_POINT_ID;
 import static org.folio.util.TestUtils.buildEvent;
 import static org.folio.util.TestUtils.randomId;
@@ -176,6 +177,35 @@ class RequestEventHandlerTest {
     assertThat(updatedIntermediateRequest.getFulfillmentPreference(), is(HOLD_SHELF));
     assertThat(updatedIntermediateRequest.getPickupServicePointId(),
       is(primaryRequest.getPickupServicePointId()));
+  }
+
+  @Test
+  void secondaryRequestCanceledWhenPrimaryHoldRequestCanceled() {
+    EcsTlrEntity ecsTlr = buildEcsTlr();
+    Request primaryRequest = new Request()
+      .id(PRIMARY_REQUEST_ID.toString())
+      .ecsRequestPhase(PRIMARY)
+      .requestType(Request.RequestTypeEnum.HOLD)
+      .status(CLOSED_CANCELLED);
+    Request secondaryRequest = new Request()
+      .id(SECONDARY_REQUEST_ID.toString())
+      .ecsRequestPhase(SECONDARY)
+      .status(Request.StatusEnum.OPEN_IN_TRANSIT);
+    when(ecsTlrRepository.findBySecondaryRequestId(PRIMARY_REQUEST_ID))
+      .thenReturn(Optional.of(ecsTlr));
+    when(requestService.getRequestFromStorage(SECONDARY_REQUEST_ID.toString(), SECONDARY_REQUEST_TENANT_ID))
+      .thenReturn(secondaryRequest);
+
+    KafkaEvent<Request> event = buildRequestUpdateEvent(primaryRequest, primaryRequest,
+      PRIMARY_REQUEST_TENANT_ID);
+    handler.handle(event);
+
+    verifyNoInteractions(dcbService);
+    verify(ecsTlrRepository).findBySecondaryRequestId(SECONDARY_REQUEST_ID);
+    verify(requestService).getRequestFromStorage(SECONDARY_REQUEST_ID.toString(), SECONDARY_REQUEST_TENANT_ID);
+    verify(requestService).updateRequestInStorage(requestCaptor.capture(), eq(SECONDARY_REQUEST_TENANT_ID));
+    Request updatedSecondaryRequest = requestCaptor.getValue();
+    assertThat(updatedSecondaryRequest.getStatus(), is(CLOSED_CANCELLED));
   }
 
   private static KafkaEvent<Request> buildRequestUpdateEvent(Request oldVersion,
