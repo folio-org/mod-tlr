@@ -50,9 +50,10 @@ public class EcsTlrServiceImpl implements EcsTlrService {
 
   @Override
   public EcsTlr create(EcsTlr ecsTlrDto) {
-    log.info("create:: creating ECS TLR {} instance {}, item {}, requester {}", ecsTlrDto.getId(),
+    log.info("create:: creating ECS TLR for instance {}, item {}, requester {}",
       ecsTlrDto.getInstanceId(), ecsTlrDto.getItemId(), ecsTlrDto.getRequesterId());
 
+    ecsTlrDto.setId(null); // remove client-provided id, it will be generated when entity is persisted
     final EcsTlrEntity ecsTlr = requestsMapper.mapDtoToEntity(ecsTlrDto);
     String primaryRequestTenantId = getPrimaryRequestTenant(ecsTlr);
     Collection<String> secondaryRequestsTenantIds = getSecondaryRequestTenants(ecsTlr).stream()
