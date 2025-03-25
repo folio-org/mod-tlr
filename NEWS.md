@@ -1,3 +1,6 @@
+## 1.0.10 2025-03-25
+* Handle intermediate request updates (MODTLR-150)
+
 ## 1.0.9 2025-03-10
 * Add force loan policy support during check-out (MODTLR-152)
 * Check-out API (MODTLR-151)
