@@ -1,3 +1,7 @@
+## 1.0.11 2025-03-28
+* Fix inability to create an ECS request for previously requested available Item (MODTLR-162)
+* Ignore client-provided ECS TLR id (MODTLR-182)
+
 ## 1.0.10 2025-03-25
 * Handle intermediate request updates (MODTLR-150)
 
