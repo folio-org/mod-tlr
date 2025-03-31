@@ -156,10 +156,6 @@
         "barcode": {
           "description": "barcode of the requesting patron",
           "type": "string"
-        },
-        "patronGroup" : {
-          "description": "DEPRECATED, to be removed in subsequent major version",
-          "type": "string"
         }
       },
       "additionalProperties": true
@@ -182,10 +178,6 @@
         },
         "barcode": {
           "description": "barcode of the proxy patron",
-          "type": "string"
-        },
-        "patronGroup": {
-          "description": "DEPRECATED, to be removed in subsequent major version",
           "type": "string"
         }
       },

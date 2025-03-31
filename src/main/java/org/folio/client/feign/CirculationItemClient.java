@@ -1,6 +1,7 @@
 package org.folio.client.feign;
 
 import org.folio.domain.dto.CirculationItem;
+import org.folio.domain.dto.CirculationItems;
 import org.folio.spring.config.FeignClientConfiguration;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,4 +25,6 @@ public interface CirculationItemClient {
   CirculationItem updateCirculationItem(@PathVariable String circulationItemId,
     @RequestBody CirculationItem circulationItem);
 
+  @GetMapping(value = "/query={query}")
+  CirculationItems getCirculationItems(@PathVariable String query);
 }
