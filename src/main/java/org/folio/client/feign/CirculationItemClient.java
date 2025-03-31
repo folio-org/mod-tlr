@@ -25,6 +25,6 @@ public interface CirculationItemClient {
   CirculationItem updateCirculationItem(@PathVariable String circulationItemId,
     @RequestBody CirculationItem circulationItem);
 
-  @GetMapping(value = "/query={query}")
+  @GetMapping(value = "?query={query}")
   CirculationItems getCirculationItems(@PathVariable String query);
 }
