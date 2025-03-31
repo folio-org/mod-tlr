@@ -47,7 +47,7 @@ public class KafkaEvent<T> {
   private String tenantIdHeaderValue;
 
   public enum EventType {
-    UPDATED, CREATED, DELETED, ALL_DELETED
+    UPDATED, CREATED, DELETED, ALL_DELETED, UPDATE
   }
 
   @Builder
