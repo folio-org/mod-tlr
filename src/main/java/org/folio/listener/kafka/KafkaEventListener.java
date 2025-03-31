@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Optional;
 
+import org.folio.domain.dto.Item;
 import org.folio.domain.dto.Loan;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.RequestsBatchUpdate;
@@ -12,6 +13,7 @@ import org.folio.domain.dto.UserGroup;
 import org.folio.exception.KafkaEventDeserializationException;
 import org.folio.service.ConsortiaService;
 import org.folio.service.KafkaEventHandler;
+import org.folio.service.impl.ItemEventHandler;
 import org.folio.service.impl.LoanEventHandler;
 import org.folio.service.impl.RequestBatchUpdateEventHandler;
 import org.folio.service.impl.RequestEventHandler;
@@ -42,6 +44,7 @@ public class KafkaEventListener {
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private final RequestEventHandler requestEventHandler;
   private final LoanEventHandler loanEventHandler;
+  private final ItemEventHandler itemEventHandler;
   private final UserGroupEventHandler userGroupEventHandler;
   private final UserEventHandler userEventHandler;
   private final SystemUserScopedExecutionService systemUserScopedExecutionService;
@@ -63,6 +66,14 @@ public class KafkaEventListener {
   )
   public void handleLoanEvent(String eventString, @Headers Map<String, Object> messageHeaders) {
     handleEvent(eventString, loanEventHandler, messageHeaders, Loan.class);
+  }
+
+  @KafkaListener(
+    topicPattern = "${folio.environment}\\.\\w+\\.inventory\\.item",
+    groupId = "${spring.kafka.consumer.group-id}"
+  )
+  public void handleItemEvent(String eventString, @Headers Map<String, Object> messageHeaders) {
+    handleEvent(eventString, itemEventHandler, messageHeaders, Item.class);
   }
 
   @KafkaListener(
