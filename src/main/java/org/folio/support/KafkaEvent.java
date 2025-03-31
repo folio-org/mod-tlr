@@ -25,6 +25,12 @@ public class KafkaEvent<T> {
   @ToString.Exclude
   private EventData<T> data;
 
+  // For inventory topics
+  @JsonProperty("old")
+  private T oldVersion;
+  @JsonProperty("new")
+  private T newVersion;
+
   @With
   @JsonIgnore
   private String tenantIdHeaderValue;

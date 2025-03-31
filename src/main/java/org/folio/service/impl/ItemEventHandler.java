@@ -30,8 +30,8 @@ public class ItemEventHandler  implements KafkaEventHandler<Item> {
   }
 
   private void handleUpdateEvent(KafkaEvent<Item> event) {
-    Item oldItem = event.getData().getOldVersion();
-    Item newItem = event.getData().getNewVersion();
+    Item oldItem = event.getOldVersion();
+    Item newItem = event.getNewVersion();
 
     if (oldItem == null || newItem == null) {
       log.warn("handle:: event update message is missing either old or new item info. " +
