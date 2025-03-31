@@ -31,6 +31,7 @@ import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -125,7 +126,9 @@ public class KafkaEventListener {
     Class<T> dataType) {
 
     try {
-      JavaType eventType = objectMapper.getTypeFactory()
+      JavaType eventType = objectMapper
+        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+        .getTypeFactory()
         .constructParametricType(KafkaEvent.class, dataType);
       var kafkaEvent = objectMapper.<KafkaEvent<T>>readValue(eventString, eventType);
       return Optional.ofNullable(getHeaderValue(messageHeaders, XOkapiHeaders.TENANT))
