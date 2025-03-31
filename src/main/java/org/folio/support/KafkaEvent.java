@@ -25,6 +25,17 @@ public class KafkaEvent<T> {
   @ToString.Exclude
   private EventData<T> data;
 
+  public KafkaEvent(String id, String tenant, EventType type, long timestamp, EventData<T> data,
+    String tenantIdHeaderValue) {
+
+    this.id = id;
+    this.tenant = tenant;
+    this.type = type;
+    this.timestamp = timestamp;
+    this.data = data;
+    this.tenantIdHeaderValue = tenantIdHeaderValue;
+  }
+
   // For inventory topics
   @JsonProperty("old")
   private T oldVersion;
