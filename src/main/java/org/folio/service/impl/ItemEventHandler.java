@@ -1,6 +1,6 @@
 package org.folio.service.impl;
 
-import static org.folio.support.KafkaEvent.EventType.UPDATED;
+import static org.folio.support.KafkaEvent.EventType.UPDATE;
 
 import org.folio.client.feign.CirculationItemClient;
 import org.folio.domain.dto.CirculationItem;
@@ -15,13 +15,13 @@ import lombok.extern.log4j.Log4j2;
 @AllArgsConstructor
 @Service
 @Log4j2
-public class ItemEventHandler  implements KafkaEventHandler<Item> {
+public class ItemEventHandler implements KafkaEventHandler<Item> {
   private final CirculationItemClient circulationItemClient;
 
   @Override
   public void handle(KafkaEvent<Item> event) {
     log.info("handle:: processing item event: {}", event::getId);
-    if (event.getType() == UPDATED) {
+    if (event.getType() == UPDATE) {
       handleUpdateEvent(event);
     } else {
       log.info("handle:: ignoring event {} of unsupported type: {}", event::getId, event::getType);
