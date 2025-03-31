@@ -37,6 +37,7 @@ public class KafkaEvent<T> {
   }
 
   // For inventory topics
+  private String eventId;
   @JsonProperty("old")
   private T oldVersion;
   @JsonProperty("new")
@@ -47,7 +48,9 @@ public class KafkaEvent<T> {
   private String tenantIdHeaderValue;
 
   public enum EventType {
-    UPDATED, CREATED, DELETED, ALL_DELETED, UPDATE
+    UPDATED, CREATED, DELETED, ALL_DELETED,
+    // For inventory topics
+    UPDATE
   }
 
   @Builder

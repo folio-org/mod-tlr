@@ -20,13 +20,13 @@ public class ItemEventHandler implements KafkaEventHandler<Item> {
 
   @Override
   public void handle(KafkaEvent<Item> event) {
-    log.info("handle:: processing item event: {}", event::getId);
+    log.info("handle:: processing item event: {}", event::getEventId);
     if (event.getType() == UPDATE) {
       handleUpdateEvent(event);
     } else {
-      log.info("handle:: ignoring event {} of unsupported type: {}", event::getId, event::getType);
+      log.info("handle:: ignoring event {} of unsupported type: {}", event::getEventId, event::getType);
     }
-    log.info("handle:: item event processed: {}", event::getId);
+    log.info("handle:: item event processed: {}", event::getEventId);
   }
 
   private void handleUpdateEvent(KafkaEvent<Item> event) {
@@ -48,11 +48,11 @@ public class ItemEventHandler implements KafkaEventHandler<Item> {
     }
 
     log.debug("handleUpdateEvent:: ignoring item update - barcode info hasn't changed. " +
-      "Item ID: {}", newItem.getId());
+      "Item ID: {}", newItem::getId);
   }
 
   private void handleAddedBarcodeEvent(KafkaEvent<Item> event) {
-    handleAddedBarcodeEvent(event.getData().getNewVersion(), event.getTenant());
+    handleAddedBarcodeEvent(event.getNewVersion(), event.getTenant());
   }
 
   private void handleAddedBarcodeEvent(Item item, String tenantId) {
@@ -60,19 +60,19 @@ public class ItemEventHandler implements KafkaEventHandler<Item> {
       "barcode==" + item.getBarcode());
 
     if (circulationItems.getTotalRecords() == 0) {
-      log.info("handleAddedBarcodeEvent:: circulation item not found, ID: {}", item.getId());
+      log.info("handleAddedBarcodeEvent:: circulation item not found, ID: {}", item::getId);
     }
 
-    log.info("handleAddedBarcodeEvent:: found {} circulation items, updating", item.getId());
+    log.info("handleAddedBarcodeEvent:: found {} circulation items, updating", item::getId);
 
     CirculationItem circulationItem = circulationItems.getItems().getFirst();
     log.info("handleAddedBarcodeEvent:: found circulation item {}, updating",
-      circulationItem.getId());
+      circulationItem::getId);
 
     circulationItemClient.updateCirculationItem(circulationItem.getId().toString(),
       circulationItem.barcode(item.getBarcode()));
 
     log.info("handleAddedBarcodeEvent:: updated circulation item {} with barcode {}",
-      circulationItem.getId(), item.getBarcode());
+      circulationItem::getId, item::getBarcode);
   }
 }
