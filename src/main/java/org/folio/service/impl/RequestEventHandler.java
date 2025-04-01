@@ -225,6 +225,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
     }
 
     if (needToCancelHoldTlr(primaryRequest, targetRequest)) {
+      log.info("propagatePrimaryRequestChanges:: canceling the request: {}", targetRequestId);
       targetRequest.setStatus(CLOSED_CANCELLED);
       targetRequest.setCancelledDate(new Date());
       targetRequest.setCancellationAdditionalInformation("Request cancelled by DCB");

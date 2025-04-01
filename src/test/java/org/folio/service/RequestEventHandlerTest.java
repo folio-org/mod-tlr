@@ -180,7 +180,7 @@ class RequestEventHandlerTest {
   }
 
   @Test
-  void secondaryRequestCanceledWhenPrimaryHoldRequestCanceled() {
+  void secondaryRequestCancelledWhenPrimaryHoldRequestCancelled() {
     EcsTlrEntity ecsTlr = buildEcsTlr();
     Request primaryRequest = new Request()
       .id(PRIMARY_REQUEST_ID.toString())
