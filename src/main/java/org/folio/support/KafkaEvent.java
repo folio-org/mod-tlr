@@ -50,7 +50,7 @@ public class KafkaEvent<T> {
   public enum EventType {
     UPDATED, CREATED, DELETED, ALL_DELETED,
     // For inventory topics
-    UPDATE
+    UPDATE, DELETE, CREATE, DELETE_ALL, REINDEX, ITERATE, MIGRATION
   }
 
   @Builder

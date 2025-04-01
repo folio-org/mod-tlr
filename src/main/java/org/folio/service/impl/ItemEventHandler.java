@@ -57,15 +57,12 @@ public class ItemEventHandler implements KafkaEventHandler<Item> {
 
   private void handleAddedBarcodeEvent(Item item, String tenantId) {
     var circulationItems = circulationItemClient.getCirculationItems(
-      "barcode==AUTO_" + item.getId());
+      "barcode==" + item.getId());
 
     if (circulationItems.getTotalRecords() == 0) {
       log.info("handleAddedBarcodeEvent:: circulation item not found, ID: {}", item::getId);
       return;
     }
-
-//    log.info("handleAddedBarcodeEvent:: found {} circulation items, updating",
-//      circulationItems::getTotalRecords);
 
     CirculationItem circulationItem = circulationItems.getItems().getFirst();
     log.info("handleAddedBarcodeEvent:: found circulation item {}, updating",
