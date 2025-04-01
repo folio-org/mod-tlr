@@ -2,6 +2,7 @@ package org.folio.service.impl;
 
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.PRIMARY;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.SECONDARY;
+import static org.folio.domain.dto.Request.RequestTypeEnum.HOLD;
 import static org.folio.domain.dto.Request.StatusEnum.CLOSED_CANCELLED;
 import static org.folio.domain.dto.TransactionStatus.StatusEnum.AWAITING_PICKUP;
 import static org.folio.domain.dto.TransactionStatus.StatusEnum.CANCELLED;
@@ -39,6 +40,7 @@ import lombok.extern.log4j.Log4j2;
 @Service
 @Log4j2
 public class RequestEventHandler implements KafkaEventHandler<Request> {
+  // the id used by DCB when canceling a request
   private static final String DCB_CANCELLATION_REASON_ID = "50ed35b2-1397-4e83-a76b-642adf91ca2a";
 
   private final DcbService dcbService;
@@ -222,11 +224,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
       }
     }
 
-    var dcbStatusSyncWillNotWork = StringUtils.isEmpty(primaryRequest.getItemId())
-      && primaryRequest.getStatus() == CLOSED_CANCELLED
-      && targetRequest.getStatus() != CLOSED_CANCELLED;
-    log.info("propagatePrimaryRequestChanges:: dcbStatusSyncWillNotWork: {}", dcbStatusSyncWillNotWork);
-    if (dcbStatusSyncWillNotWork) {
+    if (needToCancelHoldTlr(primaryRequest, targetRequest)) {
       targetRequest.setStatus(CLOSED_CANCELLED);
       targetRequest.setCancelledDate(new Date());
       targetRequest.setCancellationAdditionalInformation("Request cancelled by DCB");
@@ -258,6 +256,16 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
       primaryRequestTenantId, () -> servicePointService.find(pickupServicePointId));
     executionService.executeSystemUserScoped(targetRequestTenantId,
       () -> servicePointCloningService.clone(pickupServicePoint));
+  }
+
+  private boolean needToCancelHoldTlr(Request primaryRequest, Request targetRequest) {
+    log.info("needToCancelHoldTlr:: primary request level: {}, type: {}, itemId: {}",
+      primaryRequest.getRequestLevel(), primaryRequest.getRequestType(), primaryRequest.getItemId());
+    return primaryRequest.getRequestLevel() == Request.RequestLevelEnum.TITLE
+      && primaryRequest.getRequestType() == HOLD
+      && StringUtils.isEmpty(primaryRequest.getItemId())
+      && primaryRequest.getStatus() == CLOSED_CANCELLED
+      && targetRequest.getStatus() != CLOSED_CANCELLED;
   }
 
   private static <T, V> boolean valueIsNotEqual(T o1, T o2, Function<T, V> valueExtractor) {

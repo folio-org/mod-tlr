@@ -185,6 +185,7 @@ class RequestEventHandlerTest {
     Request primaryRequest = new Request()
       .id(PRIMARY_REQUEST_ID.toString())
       .ecsRequestPhase(PRIMARY)
+      .requestLevel(Request.RequestLevelEnum.TITLE)
       .requestType(Request.RequestTypeEnum.HOLD)
       .status(CLOSED_CANCELLED);
     Request secondaryRequest = new Request()
