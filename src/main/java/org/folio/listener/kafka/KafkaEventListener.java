@@ -2,7 +2,6 @@ package org.folio.listener.kafka;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.Optional;
 
 import org.folio.domain.dto.Loan;
 import org.folio.domain.dto.Request;
@@ -99,7 +98,7 @@ public class KafkaEventListener {
     FolioExecutionContext context = DefaultFolioExecutionContext.fromMessageHeaders(
       folioModuleMetadata, messageHeaders);
 
-    try (FolioExecutionContextSetter contextSetter = new FolioExecutionContextSetter(context)) {
+    try (FolioExecutionContextSetter ignored = new FolioExecutionContextSetter(context)) {
       String centralTenantId = consortiaService.getCentralTenantId();
       systemUserScopedExecutionService.executeAsyncSystemUserScoped(centralTenantId,
         () -> handler.handle(event));
@@ -115,11 +114,9 @@ public class KafkaEventListener {
     try {
       JavaType eventType = objectMapper.getTypeFactory()
         .constructParametricType(KafkaEvent.class, dataType);
-      var kafkaEvent = objectMapper.<KafkaEvent<T>>readValue(eventString, eventType);
-      return Optional.ofNullable(getHeaderValue(messageHeaders, XOkapiHeaders.TENANT))
-        .map(kafkaEvent::withTenantIdHeaderValue)
-        .orElseThrow(() -> new KafkaEventDeserializationException(
-          "Failed to get tenant ID from message headers"));
+      return objectMapper.<KafkaEvent<T>>readValue(eventString, eventType)
+        .withTenantIdHeaderValue(getHeaderValue(messageHeaders, XOkapiHeaders.TENANT))
+        .withUserIdHeaderValue(getHeaderValue(messageHeaders, XOkapiHeaders.USER_ID));
     } catch (JsonProcessingException e) {
       log.error("deserialize:: failed to deserialize event", e);
       throw new KafkaEventDeserializationException(e);
@@ -129,9 +126,11 @@ public class KafkaEventListener {
   private static String getHeaderValue(Map<String, Object> headers, String headerName) {
     log.debug("getHeaderValue:: headers: {}, headerName: {}", () -> headers, () -> headerName);
     var headerValue = headers.get(headerName);
-    var value = headerValue == null
-      ? null
-      : new String((byte[]) headerValue, StandardCharsets.UTF_8);
+    if (headerValue == null) {
+      throw new KafkaEventDeserializationException(
+        String.format("Failed to get [%s] from message headers", headerName));
+    }
+    var value = new String((byte[]) headerValue, StandardCharsets.UTF_8);
     log.info("getHeaderValue:: header {} value is {}", headerName, value);
     return value;
   }
