@@ -1,5 +1,6 @@
 package org.folio.client.feign;
 
+import org.folio.domain.dto.DcbUpdateTransaction;
 import org.folio.domain.dto.TransactionStatus;
 import org.folio.domain.dto.TransactionStatusResponse;
 import org.folio.spring.config.FeignClientConfiguration;
@@ -18,5 +19,9 @@ public interface DcbTransactionClient {
   @PutMapping("/{dcbTransactionId}/status")
   TransactionStatusResponse changeDcbTransactionStatus(@PathVariable String dcbTransactionId,
     @RequestBody TransactionStatus newStatus);
+
+  @PutMapping("/{dcbTransactionId}")
+  TransactionStatusResponse updateDcbTransaction(@PathVariable String dcbTransactionId,
+    @RequestBody DcbUpdateTransaction dcbUpdateTransaction);
 
 }

@@ -2,10 +2,19 @@ package org.folio.service.impl;
 
 import static org.folio.support.KafkaEvent.EventType.UPDATE;
 
+import java.util.UUID;
+
 import org.folio.client.feign.CirculationItemClient;
+import org.folio.client.feign.DcbTransactionClient;
 import org.folio.domain.dto.CirculationItem;
+import org.folio.domain.dto.DcbUpdateItem;
+import org.folio.domain.dto.DcbUpdateTransaction;
 import org.folio.domain.dto.Item;
+import org.folio.domain.entity.EcsTlrEntity;
+import org.folio.repository.EcsTlrRepository;
 import org.folio.service.KafkaEventHandler;
+import org.folio.service.TenantService;
+import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.folio.support.KafkaEvent;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +26,10 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public class ItemEventHandler implements KafkaEventHandler<Item> {
   private final CirculationItemClient circulationItemClient;
+  private final EcsTlrRepository ecsTlrRepository;
+  private final DcbTransactionClient dcbTransactionClient;
+  private final TenantService tenantService;
+  private final SystemUserScopedExecutionService executionService;
 
   @Override
   public void handle(KafkaEvent<Item> event) {
@@ -56,6 +69,8 @@ public class ItemEventHandler implements KafkaEventHandler<Item> {
   }
 
   private void handleAddedBarcodeEvent(Item item, String tenantId) {
+    // Update circulation item
+
     var circulationItems = circulationItemClient.getCirculationItems(
       "barcode==" + item.getId());
 
@@ -73,5 +88,40 @@ public class ItemEventHandler implements KafkaEventHandler<Item> {
 
     log.info("handleAddedBarcodeEvent:: updated circulation item {} with barcode {}",
       circulationItem::getId, item::getBarcode);
+
+    // Update DCB transactions
+
+    ecsTlrRepository.findByItemId(UUID.fromString(item.getId()))
+      .forEach(request -> updateDcbTransactionsBarcode(request, item));
+  }
+
+  private void updateDcbTransactionsBarcode(EcsTlrEntity ecsRequest, Item item) {
+    updateDcbTransactionBarcode(ecsRequest.getPrimaryRequestTenantId(),
+      ecsRequest.getPrimaryRequestDcbTransactionId(), item);
+
+    updateDcbTransactionBarcode(ecsRequest.getSecondaryRequestTenantId(),
+      ecsRequest.getSecondaryRequestDcbTransactionId(), item);
+
+    updateDcbTransactionBarcode(ecsRequest.getIntermediateRequestTenantId(),
+      ecsRequest.getIntermediateRequestDcbTransactionId(), item);
+  }
+
+  private void updateDcbTransactionBarcode(String tenantId, UUID transactionId, Item item) {
+    if (tenantId == null || transactionId == null) {
+      log.info("updateDcbTransactionBarcode:: tenantId is {}, transactionId is {}, skipping", tenantId, transactionId);
+      return;
+    }
+
+    log.info("updateDcbTransactionBarcode:: tenant: {}, transaction ID: {}, item barcode: {}",
+      tenantId, transactionId, item.getBarcode());
+
+    executionService.executeSystemUserScoped(tenantId, () ->
+      dcbTransactionClient.updateDcbTransaction(transactionId.toString(),
+      new DcbUpdateTransaction()
+        .item(new DcbUpdateItem()
+          .materialType(item.getMaterialTypeId())
+          .barcode(item.getBarcode())
+          .lendingLibraryCode(null)
+        )));
   }
 }

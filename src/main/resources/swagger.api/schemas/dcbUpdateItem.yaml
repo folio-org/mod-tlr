@@ -1,0 +1,18 @@
+DcbUpdateItem:
+  description: Item metadata required for updating the existing transaction
+  type: object
+  properties:
+    barcode:
+      description: The barcode of the item as specified in the lending library
+      type: string
+    materialType:
+      description: The “hub-normalized” form of the item item type, used in the circulation rules for determining the correct loan policy.
+      type: string
+    lendingLibraryCode:
+      description: The code which identifies the lending library
+      type: string
+  additionalProperties: false
+  required:
+    - barcode
+    - materialType
+    - lendingLibraryCode
