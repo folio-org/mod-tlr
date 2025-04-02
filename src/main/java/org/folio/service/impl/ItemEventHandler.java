@@ -121,7 +121,7 @@ public class ItemEventHandler implements KafkaEventHandler<Item> {
         .item(new DcbUpdateItem()
           .materialType(item.getMaterialTypeId())
           .barcode(item.getBarcode())
-          .lendingLibraryCode(null)
+          .lendingLibraryCode("some_code")
         )));
   }
 }
