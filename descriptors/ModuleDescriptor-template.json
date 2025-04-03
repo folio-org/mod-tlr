@@ -31,7 +31,7 @@
             "inventory-storage.service-points.collection.get",
             "inventory-storage.service-points.item.post",
             "user-tenants.collection.get",
-            "dcb.transactions.item.put"
+            "dcb.ecs-request.transactions.put"
           ]
         },
         {
@@ -451,7 +451,7 @@
         "consortia.sharing-instances.item.post",
         "circulation.check-out-by-barcode-dry-run.post",
         "configuration.entries.collection.get",
-        "dcb.transactions.item.put"
+        "dcb.ecs-request.transactions.put"
       ]
     }
   },

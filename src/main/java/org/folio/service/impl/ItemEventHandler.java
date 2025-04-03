@@ -5,15 +5,14 @@ import static org.folio.support.KafkaEvent.EventType.UPDATE;
 import java.util.UUID;
 
 import org.folio.client.feign.CirculationItemClient;
-import org.folio.client.feign.DcbTransactionClient;
+import org.folio.client.feign.DcbEcsTransactionClient;
 import org.folio.domain.dto.CirculationItem;
-import org.folio.domain.dto.DcbUpdateItem;
-import org.folio.domain.dto.DcbUpdateTransaction;
+import org.folio.domain.dto.DcbItem;
+import org.folio.domain.dto.DcbTransaction;
 import org.folio.domain.dto.Item;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.KafkaEventHandler;
-import org.folio.service.TenantService;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.folio.support.KafkaEvent;
 import org.springframework.stereotype.Service;
@@ -27,8 +26,7 @@ import lombok.extern.log4j.Log4j2;
 public class ItemEventHandler implements KafkaEventHandler<Item> {
   private final CirculationItemClient circulationItemClient;
   private final EcsTlrRepository ecsTlrRepository;
-  private final DcbTransactionClient dcbTransactionClient;
-  private final TenantService tenantService;
+  private final DcbEcsTransactionClient dcbEcsTransactionClient;
   private final SystemUserScopedExecutionService executionService;
 
   @Override
@@ -116,12 +114,7 @@ public class ItemEventHandler implements KafkaEventHandler<Item> {
       tenantId, transactionId, item.getBarcode());
 
     executionService.executeSystemUserScoped(tenantId, () ->
-      dcbTransactionClient.updateDcbTransaction(transactionId.toString(),
-      new DcbUpdateTransaction()
-        .item(new DcbUpdateItem()
-          .materialType(item.getMaterialTypeId())
-          .barcode(item.getBarcode())
-          .lendingLibraryCode("some_code")
-        )));
+      dcbEcsTransactionClient.updateTransaction(transactionId.toString(),
+        new DcbTransaction().item(new DcbItem().barcode(item.getBarcode()))));
   }
 }

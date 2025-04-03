@@ -1,6 +1,0 @@
-DcbUpdateTransaction:
-  type: object
-  properties:
-    item:
-      $ref: 'dcbUpdateItem.yaml#/DcbUpdateItem'
-

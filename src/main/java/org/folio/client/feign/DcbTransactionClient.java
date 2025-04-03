@@ -20,8 +20,4 @@ public interface DcbTransactionClient {
   TransactionStatusResponse changeDcbTransactionStatus(@PathVariable String dcbTransactionId,
     @RequestBody TransactionStatus newStatus);
 
-  @PutMapping("/{dcbTransactionId}")
-  TransactionStatusResponse updateDcbTransaction(@PathVariable String dcbTransactionId,
-    @RequestBody DcbUpdateTransaction dcbUpdateTransaction);
-
 }
