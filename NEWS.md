@@ -1,3 +1,6 @@
+## 1.0.12 2025-04-04
+* Cancel secondary title-level hold request when primary request is cancelled (MODTLR-164)
+
 ## 1.0.11 2025-03-28
 * Fix inability to create an ECS request for previously requested available Item (MODTLR-162)
 * Ignore client-provided ECS TLR id (MODTLR-182)
