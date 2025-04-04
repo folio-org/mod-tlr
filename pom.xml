@@ -10,7 +10,7 @@
   <groupId>org.folio</groupId>
   <artifactId>mod-tlr</artifactId>
   <name>mod-tlr</name>
-  <version>1.0.12-SNAPSHOT</version>
+  <version>1.0.13-SNAPSHOT</version>
   <description>FOLIO mod-tlr module</description>
   <packaging>jar</packaging>
 
