@@ -2,7 +2,9 @@ package org.folio.service.impl;
 
 import static org.folio.support.KafkaEvent.EventType.UPDATE;
 
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import org.folio.client.feign.CirculationItemClient;
 import org.folio.client.feign.DcbEcsTransactionClient;
@@ -67,30 +69,44 @@ public class ItemEventHandler implements KafkaEventHandler<Item> {
   }
 
   private void handleAddedBarcodeEvent(Item item, String tenantId) {
-    // Update circulation item
+    var ecsRequests = ecsTlrRepository.findByItemId(UUID.fromString(item.getId()));
 
-    var circulationItems = circulationItemClient.getCirculationItems(
-      "barcode==" + item.getId());
-
-    if (circulationItems.getTotalRecords() == 0) {
-      log.info("handleAddedBarcodeEvent:: circulation item not found, ID: {}", item::getId);
-      return;
-    }
-
-    CirculationItem circulationItem = circulationItems.getItems().getFirst();
-    log.info("handleAddedBarcodeEvent:: found circulation item {}, updating",
-      circulationItem::getId);
-
-    circulationItemClient.updateCirculationItem(circulationItem.getId().toString(),
-      circulationItem.barcode(item.getBarcode()));
-
-    log.info("handleAddedBarcodeEvent:: updated circulation item {} with barcode {}",
-      circulationItem::getId, item::getBarcode);
+    // Update circulation items in tenants with primary and intermediate requests
+    ecsRequests.stream()
+      .flatMap(r -> Stream.of(r.getPrimaryRequestTenantId(), r.getIntermediateRequestTenantId()))
+      .filter(Objects::nonNull)
+      .distinct()
+      .forEach(tenant -> updateCirculationItemInTenant(tenant, item.getId(), item.getBarcode()));
 
     // Update DCB transactions
-
     ecsTlrRepository.findByItemId(UUID.fromString(item.getId()))
       .forEach(request -> updateDcbTransactionsBarcode(request, item));
+  }
+
+  private void updateCirculationItemInTenant(String tenantId, String itemId, String itemBarcode) {
+    executionService.executeAsyncSystemUserScoped(tenantId,
+      () -> {
+        log.info("updateCirculationItemInTenant:: updating circulation item {} in tenant {}",
+          itemId, tenantId);
+        var circulationItems = circulationItemClient.getCirculationItems("barcode==" + itemId);
+
+        if (circulationItems.getTotalRecords() == 0) {
+          log.info("updateCirculationItemInTenant:: circulation item {} not found in tenant {}",
+            tenantId, itemId);
+          return;
+        }
+
+        CirculationItem circulationItem = circulationItems.getItems().getFirst();
+        var circulationItemId = circulationItem.getId().toString();
+        log.info("updateCirculationItemInTenant:: found circulation item {} in tenant {}, updating",
+          circulationItemId, tenantId);
+
+        circulationItemClient.updateCirculationItem(circulationItemId,
+          circulationItem.barcode(itemBarcode));
+
+        log.info("updateCirculationItemInTenant:: updated circulation item {} with barcode {}",
+          circulationItemId, itemBarcode);
+      });
   }
 
   private void updateDcbTransactionsBarcode(EcsTlrEntity ecsRequest, Item item) {
