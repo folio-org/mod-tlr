@@ -25,6 +25,24 @@ public class KafkaEvent<T> {
   @ToString.Exclude
   private EventData<T> data;
 
+  public KafkaEvent(String id, String tenant, EventType type, long timestamp, EventData<T> data,
+    String tenantIdHeaderValue) {
+
+    this.id = id;
+    this.tenant = tenant;
+    this.type = type;
+    this.timestamp = timestamp;
+    this.data = data;
+    this.tenantIdHeaderValue = tenantIdHeaderValue;
+  }
+
+  // For inventory topics
+  private String eventId;
+  @JsonProperty("old")
+  private T oldVersion;
+  @JsonProperty("new")
+  private T newVersion;
+
   @With
   @JsonIgnore
   private String tenantIdHeaderValue;
@@ -34,7 +52,9 @@ public class KafkaEvent<T> {
   private String userIdHeaderValue;
 
   public enum EventType {
-    UPDATED, CREATED, DELETED, ALL_DELETED
+    UPDATED, CREATED, DELETED, ALL_DELETED,
+    // For inventory topics
+    UPDATE, DELETE, CREATE, DELETE_ALL, REINDEX, ITERATE, MIGRATION
   }
 
   @Builder

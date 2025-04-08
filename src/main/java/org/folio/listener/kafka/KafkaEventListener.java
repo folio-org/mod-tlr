@@ -3,6 +3,7 @@ package org.folio.listener.kafka;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
+import org.folio.domain.dto.Item;
 import org.folio.domain.dto.Loan;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.RequestsBatchUpdate;
@@ -11,6 +12,7 @@ import org.folio.domain.dto.UserGroup;
 import org.folio.exception.KafkaEventDeserializationException;
 import org.folio.service.ConsortiaService;
 import org.folio.service.KafkaEventHandler;
+import org.folio.service.impl.ItemEventHandler;
 import org.folio.service.impl.LoanEventHandler;
 import org.folio.service.impl.RequestBatchUpdateEventHandler;
 import org.folio.service.impl.RequestEventHandler;
@@ -28,6 +30,7 @@ import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -41,6 +44,7 @@ public class KafkaEventListener {
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private final RequestEventHandler requestEventHandler;
   private final LoanEventHandler loanEventHandler;
+  private final ItemEventHandler itemEventHandler;
   private final UserGroupEventHandler userGroupEventHandler;
   private final UserEventHandler userEventHandler;
   private final SystemUserScopedExecutionService systemUserScopedExecutionService;
@@ -62,6 +66,16 @@ public class KafkaEventListener {
   )
   public void handleLoanEvent(String eventString, @Headers Map<String, Object> messageHeaders) {
     handleEvent(eventString, loanEventHandler, messageHeaders, Loan.class);
+  }
+
+  @KafkaListener(
+    topicPattern = "${folio.environment}\\.\\w+\\.inventory\\.item",
+    groupId = "${spring.kafka.consumer.group-id}"
+  )
+  public void handleItemEvent(String eventString, @Headers Map<String, Object> messageHeaders) {
+    // TODO: remove later
+    log.info("handleItemEvent:: {}", eventString);
+    handleEvent(eventString, itemEventHandler, messageHeaders, Item.class);
   }
 
   @KafkaListener(
@@ -112,7 +126,9 @@ public class KafkaEventListener {
     Class<T> dataType) {
 
     try {
-      JavaType eventType = objectMapper.getTypeFactory()
+      JavaType eventType = objectMapper
+        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+        .getTypeFactory()
         .constructParametricType(KafkaEvent.class, dataType);
       return objectMapper.<KafkaEvent<T>>readValue(eventString, eventType)
         .withTenantIdHeaderValue(getHeaderValue(messageHeaders, XOkapiHeaders.TENANT))
