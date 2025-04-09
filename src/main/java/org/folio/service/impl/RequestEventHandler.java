@@ -9,7 +9,7 @@ import static org.folio.domain.dto.TransactionStatus.StatusEnum.CANCELLED;
 import static org.folio.domain.dto.TransactionStatus.StatusEnum.ITEM_CHECKED_OUT;
 import static org.folio.domain.dto.TransactionStatus.StatusEnum.OPEN;
 import static org.folio.support.Constants.INTERIM_SERVICE_POINT_ID;
-import static org.folio.support.KafkaEvent.EventType.UPDATED;
+import static org.folio.support.kafka.EventType.UPDATE;
 
 import java.util.Date;
 import java.util.Objects;
@@ -30,7 +30,7 @@ import org.folio.service.KafkaEventHandler;
 import org.folio.service.RequestService;
 import org.folio.service.ServicePointService;
 import org.folio.spring.service.SystemUserScopedExecutionService;
-import org.folio.support.KafkaEvent;
+import org.folio.support.kafka.KafkaEvent;
 import org.springframework.stereotype.Service;
 
 import lombok.AllArgsConstructor;
@@ -53,17 +53,17 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
   @Override
   public void handle(KafkaEvent<Request> event) {
     log.info("handle:: processing request event: {}", event::getId);
-    if (event.getType() == UPDATED) {
+    if (event.getGenericType() == UPDATE) {
       handleRequestUpdateEvent(event);
     } else {
-      log.info("handle:: ignoring event {} of unsupported type: {}", event::getId, event::getType);
+      log.info("handle:: ignoring event {} of unsupported type: {}", event::getId, event::getGenericType);
     }
     log.info("handle:: request event processed: {}", event::getId);
   }
 
   private void handleRequestUpdateEvent(KafkaEvent<Request> event) {
     log.info("handleRequestUpdateEvent:: handling request update event: {}", event::getId);
-    Request updatedRequest = event.getData().getNewVersion();
+    Request updatedRequest = event.getNewVersion();
     if (updatedRequest == null) {
       log.warn("handleRequestUpdateEvent:: event does not contain new version of request");
       return;
@@ -86,7 +86,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
 
   private void handleRequestUpdateEvent(EcsTlrEntity ecsTlr, KafkaEvent<Request> event) {
     log.debug("handleRequestUpdateEvent:: ecsTlr={}", () -> ecsTlr);
-    Request updatedRequest = event.getData().getNewVersion();
+    Request updatedRequest = event.getNewVersion();
 
     if (!requestMatchesEcsTlr(ecsTlr, updatedRequest, event.getTenantIdHeaderValue())) {
       return;
@@ -126,7 +126,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
   }
 
   private void handleSecondaryRequestUpdate(EcsTlrEntity ecsTlr, KafkaEvent<Request> event) {
-    processItemIdUpdate(ecsTlr, event.getData().getNewVersion());
+    processItemIdUpdate(ecsTlr, event.getNewVersion());
     updateTransactionStatuses(event, ecsTlr);
   }
 
@@ -146,8 +146,8 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
 
   private void updateTransactionStatuses(KafkaEvent<Request> event, EcsTlrEntity ecsTlr) {
 
-    var oldRequestStatus = event.getData().getOldVersion().getStatus();
-    var newRequestStatus = event.getData().getNewVersion().getStatus();
+    var oldRequestStatus = event.getOldVersion().getStatus();
+    var newRequestStatus = event.getNewVersion().getStatus();
     log.info("updateTransactionStatuses:: oldRequestStatus='{}', newRequestStatus='{}'",
       oldRequestStatus, newRequestStatus);
 
@@ -192,7 +192,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
     log.info("propagatePrimaryRequestChanges:: propagating changes to request {} in tenant {}",
       targetRequestId, targetRequestTenantId);
 
-    Request primaryRequest = event.getData().getNewVersion();
+    Request primaryRequest = event.getNewVersion();
     Request targetRequest = requestService.getRequestFromStorage(targetRequestId, targetRequestTenantId);
 
     boolean shouldUpdateTargetRequest = false;

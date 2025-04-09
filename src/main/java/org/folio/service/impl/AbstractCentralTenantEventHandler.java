@@ -7,7 +7,7 @@ import org.folio.service.ConsortiaService;
 import org.folio.service.KafkaEventHandler;
 import org.folio.service.UserTenantsService;
 import org.folio.spring.service.SystemUserScopedExecutionService;
-import org.folio.support.KafkaEvent;
+import org.folio.support.kafka.KafkaEvent;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -35,7 +35,7 @@ public abstract class AbstractCentralTenantEventHandler<T> implements KafkaEvent
       log.info("processEvent: Ignoring non-central tenant event");
       return;
     }
-    processForAllDataTenants(consortiumId, () -> eventConsumer.accept(event.getData().getNewVersion()));
+    processForAllDataTenants(consortiumId, () -> eventConsumer.accept(event.getNewVersion()));
   }
 
   private void processForAllDataTenants(String consortiumId, Runnable action) {

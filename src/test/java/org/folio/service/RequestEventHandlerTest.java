@@ -29,8 +29,8 @@ import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.impl.RequestEventHandler;
 import org.folio.spring.service.SystemUserScopedExecutionService;
-import org.folio.support.KafkaEvent;
-import org.folio.support.KafkaEvent.EventType;
+import org.folio.support.kafka.DefaultKafkaEvent;
+import org.folio.support.kafka.KafkaEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -212,7 +212,8 @@ class RequestEventHandlerTest {
   private static KafkaEvent<Request> buildRequestUpdateEvent(Request oldVersion,
     Request newVersion, String tenantId) {
 
-    return buildEvent(tenantId, EventType.UPDATED, oldVersion, newVersion);
+    return buildEvent(tenantId, DefaultKafkaEvent.DefaultKafkaEventType.UPDATED, oldVersion,
+      newVersion);
   }
 
   private static EcsTlrEntity buildEcsTlr() {

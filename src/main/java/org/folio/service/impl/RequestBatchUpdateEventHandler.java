@@ -25,7 +25,7 @@ import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.KafkaEventHandler;
 import org.folio.service.RequestService;
-import org.folio.support.KafkaEvent;
+import org.folio.support.kafka.KafkaEvent;
 import org.springframework.stereotype.Service;
 
 import lombok.AllArgsConstructor;
@@ -42,7 +42,7 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
   @Override
   public void handle(KafkaEvent<RequestsBatchUpdate> event) {
     log.info("handle:: processing requests batch update event: {}", event::getId);
-    RequestsBatchUpdate requestsBatchUpdate = event.getData().getNewVersion();
+    RequestsBatchUpdate requestsBatchUpdate = event.getNewVersion();
 
     if (TITLE.getValue().equals(requestsBatchUpdate.getRequestLevel().getValue())) {
       updateQueuePositionsForTitleLevel(requestsBatchUpdate.getInstanceId());

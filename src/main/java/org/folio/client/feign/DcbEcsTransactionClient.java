@@ -6,6 +6,7 @@ import org.folio.spring.config.FeignClientConfiguration;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 @FeignClient(name = "dcb-ecs-transactions", url = "ecs-request-transactions",
@@ -15,6 +16,10 @@ public interface DcbEcsTransactionClient {
 
   @PostMapping("/{dcbTransactionId}")
   TransactionStatusResponse createTransaction(@PathVariable String dcbTransactionId,
+    @RequestBody DcbTransaction dcbTransaction);
+
+  @PutMapping("/{dcbTransactionId}")
+  TransactionStatusResponse updateTransaction(@PathVariable String dcbTransactionId,
     @RequestBody DcbTransaction dcbTransaction);
 
 }
