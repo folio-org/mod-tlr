@@ -1,6 +1,6 @@
 package org.folio.service.impl;
 
-import static org.folio.support.KafkaEvent.EventType.UPDATE;
+import static org.folio.support.kafka.EventType.UPDATE;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -16,7 +16,7 @@ import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.KafkaEventHandler;
 import org.folio.spring.service.SystemUserScopedExecutionService;
-import org.folio.support.KafkaEvent;
+import org.folio.support.kafka.KafkaEvent;
 import org.springframework.stereotype.Service;
 
 import lombok.AllArgsConstructor;
@@ -33,13 +33,13 @@ public class ItemEventHandler implements KafkaEventHandler<Item> {
 
   @Override
   public void handle(KafkaEvent<Item> event) {
-    log.info("handle:: processing item event: {}", event::getEventId);
-    if (event.getType() == UPDATE) {
+    log.info("handle:: processing item event: {}", event::getId);
+    if (event.getGenericType() == UPDATE) {
       handleUpdateEvent(event);
     } else {
-      log.info("handle:: ignoring event {} of unsupported type: {}", event::getEventId, event::getType);
+      log.info("handle:: ignoring event {} of unsupported type: {}", event::getId, event::getGenericType);
     }
-    log.info("handle:: item event processed: {}", event::getEventId);
+    log.info("handle:: item event processed: {}", event::getId);
   }
 
   private void handleUpdateEvent(KafkaEvent<Item> event) {
