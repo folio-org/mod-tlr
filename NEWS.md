@@ -1,3 +1,6 @@
+## 1.0.13 2025-04-10
+* Fix batch request update event handling by removing `patronGroup` from request schema (MODTLR-150)
+
 ## 1.0.12 2025-04-04
 * Cancel secondary title-level hold request when primary request is cancelled (MODTLR-164)
 
