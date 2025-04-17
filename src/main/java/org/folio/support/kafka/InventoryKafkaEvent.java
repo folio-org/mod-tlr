@@ -39,16 +39,6 @@ public class InventoryKafkaEvent<T> extends KafkaEvent<T> {
     InventoryKafkaEventType.ITERATE, EventType.ITERATE,
     InventoryKafkaEventType.MIGRATION, EventType.MIGRATION);
 
-//  static Map<EventType, InventoryKafkaEvent.InventoryKafkaEventType>
-//    EVENT_TYPE_GENERIC_TO_INTERNAL = Map.of(
-//    EventType.UPDATE,InventoryKafkaEventType.UPDATE,
-//    EventType.DELETE,InventoryKafkaEventType.DELETE,
-//    EventType.CREATE,InventoryKafkaEventType.CREATE,
-//    EventType.DELETE_ALL,InventoryKafkaEventType.DELETE_ALL,
-//    EventType.REINDEX,InventoryKafkaEventType.REINDEX,
-//    EventType.ITERATE,InventoryKafkaEventType.ITERATE,
-//    EventType.MIGRATION, InventoryKafkaEventType.MIGRATION);
-
   @Override
   public String getId() {
     return eventId;
@@ -58,10 +48,6 @@ public class InventoryKafkaEvent<T> extends KafkaEvent<T> {
   public EventType getGenericType() {
     return type == null ? null : EVENT_TYPE_INTERNAL_TO_GENERIC.get(type);
   }
-
-//  public InventoryKafkaEvent<T> withGenericType(EventType type) {
-//    return type == null ? this : this.withType(EVENT_TYPE_GENERIC_TO_INTERNAL.get(type));
-//  }
 
   public enum InventoryKafkaEventType {
     UPDATE, DELETE, CREATE, DELETE_ALL, REINDEX, ITERATE, MIGRATION

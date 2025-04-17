@@ -46,27 +46,23 @@ public class ItemEventHandler implements KafkaEventHandler<Item> {
     Item newItem = event.getNewVersion();
 
     if (oldItem == null || newItem == null) {
-      log.warn("handle:: event update message is missing either old or new item info. " +
+      log.warn("handleUpdateEvent:: event update message is missing either old or new item info. " +
         "Old item is null: {}. New item is null: {}.", oldItem == null, newItem == null);
       return;
     }
 
     if (isBlank(oldItem.getBarcode()) && !isBlank(newItem.getBarcode())) {
-      log.info("handle:: item without a barcode updated, new barcode: {}", newItem.getBarcode());
+      log.info("handleUpdateEvent:: item without a barcode updated, new barcode: {}", newItem.getBarcode());
 
-      handleAddedBarcodeEvent(event);
+      handleAddedBarcodeEvent(event.getNewVersion());
     }
 
-    log.debug("handleUpdateEvent:: ignoring item update - barcode info hasn't changed. " +
+    log.info("handleUpdateEvent:: ignoring item update - barcode info hasn't changed. " +
       "Item ID: {}", newItem::getId);
   }
 
   private boolean isBlank(String str) {
     return str == null || str.isBlank();
-  }
-
-  private void handleAddedBarcodeEvent(KafkaEvent<Item> event) {
-    handleAddedBarcodeEvent(event.getNewVersion());
   }
 
   private void handleAddedBarcodeEvent(Item item) {
