@@ -6,7 +6,7 @@ import static org.folio.domain.dto.TransactionStatusResponse.RoleEnum.PICKUP;
 import static org.folio.domain.dto.TransactionStatusResponse.StatusEnum.CLOSED;
 import static org.folio.domain.dto.TransactionStatusResponse.StatusEnum.ITEM_CHECKED_IN;
 import static org.folio.domain.dto.TransactionStatusResponse.StatusEnum.ITEM_CHECKED_OUT;
-import static org.folio.support.KafkaEvent.EventType.UPDATED;
+import static org.folio.support.kafka.EventType.UPDATE;
 
 import java.util.Collection;
 import java.util.EnumSet;
@@ -21,7 +21,7 @@ import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.DcbService;
 import org.folio.service.KafkaEventHandler;
-import org.folio.support.KafkaEvent;
+import org.folio.support.kafka.KafkaEvent;
 import org.springframework.stereotype.Service;
 
 import lombok.AllArgsConstructor;
@@ -41,16 +41,16 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
   @Override
   public void handle(KafkaEvent<Loan> event) {
     log.info("handle:: processing loan event: {}", event::getId);
-    if (event.getType() == UPDATED) {
+    if (event.getGenericType() == UPDATE) {
       handleUpdateEvent(event);
     } else {
-      log.info("handle:: ignoring event {} of unsupported type: {}", event::getId, event::getType);
+      log.info("handle:: ignoring event {} of unsupported type: {}", event::getId, event::getGenericType);
     }
     log.info("handle:: loan event processed: {}", event::getId);
   }
 
   private void handleUpdateEvent(KafkaEvent<Loan> event) {
-    Loan loan = event.getData().getNewVersion();
+    Loan loan = event.getNewVersion();
     String loanAction = loan.getAction();
     log.info("handle:: loan action: {}", loanAction);
     if (LOAN_ACTION_CHECKED_IN.equals(loanAction)) {
@@ -62,7 +62,7 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
   }
 
   private void handleCheckInEvent(KafkaEvent<Loan> event) {
-    updateEcsTlr(event.getData().getNewVersion(), event.getTenant());
+    updateEcsTlr(event.getNewVersion(), event.getTenant());
   }
 
   private void updateEcsTlr(Loan loan, String tenantId) {
