@@ -75,8 +75,6 @@ public class KafkaEventListener {
     groupId = "${spring.kafka.consumer.group-id}"
   )
   public void handleItemEvent(String eventString, @Headers Map<String, Object> messageHeaders) {
-    // TODO: remove later
-    log.info("handleItemEvent:: {}", eventString);
     handleEvent(eventString, itemEventHandler, messageHeaders, InventoryKafkaEvent.class, Item.class);
   }
 
