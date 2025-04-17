@@ -29,7 +29,7 @@ public class InventoryKafkaEvent<T> extends KafkaEvent<T> {
   @JsonProperty("new")
   private T newVersion;
 
-  static Map<InventoryKafkaEvent.InventoryKafkaEventType, EventType>
+  private static final Map<InventoryKafkaEvent.InventoryKafkaEventType, EventType>
     EVENT_TYPE_INTERNAL_TO_GENERIC = Map.of(
     InventoryKafkaEventType.UPDATE, EventType.UPDATE,
     InventoryKafkaEventType.DELETE, EventType.DELETE,

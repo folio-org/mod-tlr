@@ -36,8 +36,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
-public class ItemEventHandlerTest extends BaseIT {
-
+class ItemEventHandlerTest extends BaseIT {
   private static final EnumSet<EventType> SUPPORTED_EVENT_TYPES = EnumSet.of(UPDATE);
   private static final String NEW_BARCODE = "new_barcode";
 

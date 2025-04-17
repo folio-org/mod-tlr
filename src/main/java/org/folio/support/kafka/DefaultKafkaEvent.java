@@ -27,17 +27,17 @@ public class DefaultKafkaEvent<T> extends KafkaEvent<T> {
   @ToString.Exclude
   private DefaultKafkaEventData<T> data;
 
-  static Map<DefaultKafkaEventType, EventType> EVENT_TYPE_INTERNAL_TO_GENERIC = Map.of(
-    DefaultKafkaEventType.UPDATED, EventType.UPDATE,
-    DefaultKafkaEventType.CREATED, EventType.CREATE,
-    DefaultKafkaEventType.DELETED, EventType.DELETE,
-    DefaultKafkaEventType.ALL_DELETED, EventType.DELETE_ALL);
+  private static final Map<DefaultKafkaEventType, EventType> EVENT_TYPE_INTERNAL_TO_GENERIC =
+    Map.of(DefaultKafkaEventType.UPDATED, EventType.UPDATE,
+      DefaultKafkaEventType.CREATED, EventType.CREATE,
+      DefaultKafkaEventType.DELETED, EventType.DELETE,
+      DefaultKafkaEventType.ALL_DELETED, EventType.DELETE_ALL);
 
-  static Map<EventType, DefaultKafkaEventType> EVENT_TYPE_GENERIC_TO_INTERNAL = Map.of(
-    EventType.UPDATE, DefaultKafkaEventType.UPDATED,
-    EventType.CREATE, DefaultKafkaEventType.CREATED,
-    EventType.DELETE, DefaultKafkaEventType.DELETED,
-    EventType.DELETE_ALL, DefaultKafkaEventType.ALL_DELETED);
+  private static final Map<EventType, DefaultKafkaEventType> EVENT_TYPE_GENERIC_TO_INTERNAL =
+    Map.of(EventType.UPDATE, DefaultKafkaEventType.UPDATED,
+      EventType.CREATE, DefaultKafkaEventType.CREATED,
+      EventType.DELETE, DefaultKafkaEventType.DELETED,
+      EventType.DELETE_ALL, DefaultKafkaEventType.ALL_DELETED);
 
   @Override
   public T getNewVersion() {
