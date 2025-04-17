@@ -19,6 +19,8 @@ import org.folio.client.feign.CirculationItemClient;
 import org.folio.client.feign.DcbEcsTransactionClient;
 import org.folio.domain.dto.CirculationItem;
 import org.folio.domain.dto.CirculationItems;
+import org.folio.domain.dto.DcbItem;
+import org.folio.domain.dto.DcbTransaction;
 import org.folio.domain.dto.Item;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
@@ -115,14 +117,19 @@ public class ItemEventHandlerTest extends BaseIT {
     var event = createItemUpdateEvent(oldItem, newItem);
     itemEventHandler.handle(event);
 
+    var dcbTransactionPatch = new DcbTransaction().item(new DcbItem().barcode(NEW_BARCODE));
+
     verify(ecsTlrRepository).findByItemId(itemId);
     verify(executionService).executeAsyncSystemUserScoped(eq(TENANT_ID_UNIVERSITY), any());
     verify(executionService).executeAsyncSystemUserScoped(eq(TENANT_ID_CONSORTIUM), any());
     verify(circulationItemClient, times(2))
       .updateCirculationItem(itemId.toString(), circulationItem);
-    verify(dcbEcsTransactionClient).updateTransaction(eq(primaryRequestDcbTransactionId.toString()), any());
-    verify(dcbEcsTransactionClient).updateTransaction(eq(secondaryRequestDcbTransactionId.toString()), any());
-    verify(dcbEcsTransactionClient).updateTransaction(eq(intermediateRequestDcbTransactionId.toString()), any());
+    verify(dcbEcsTransactionClient).updateTransaction(primaryRequestDcbTransactionId.toString(),
+      dcbTransactionPatch);
+    verify(dcbEcsTransactionClient).updateTransaction(secondaryRequestDcbTransactionId.toString(),
+      dcbTransactionPatch);
+    verify(dcbEcsTransactionClient).updateTransaction(
+      intermediateRequestDcbTransactionId.toString(), dcbTransactionPatch);
   }
 
   private static KafkaEvent<Item> createItemUpdateEvent(Item oldItem, Item newItem) {

@@ -35,7 +35,7 @@ public class DefaultKafkaEvent<T> extends KafkaEvent<T> {
 
   static Map<EventType, DefaultKafkaEventType> EVENT_TYPE_GENERIC_TO_INTERNAL = Map.of(
     EventType.UPDATE, DefaultKafkaEventType.UPDATED,
-    EventType.CREATE,DefaultKafkaEventType.CREATED,
+    EventType.CREATE, DefaultKafkaEventType.CREATED,
     EventType.DELETE, DefaultKafkaEventType.DELETED,
     EventType.DELETE_ALL, DefaultKafkaEventType.ALL_DELETED);
 
