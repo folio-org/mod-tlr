@@ -7,6 +7,10 @@
       "type": "string",
       "description": "Unique ID of the item record"
     },
+    "instanceId": {
+      "type": "string",
+      "description": "Unique ID of the instance record (added for Kafka event compatibility)"
+    },
     "_version": {
       "type": "integer",
       "description": "Record version for optimistic locking"

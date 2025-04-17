@@ -4,6 +4,7 @@ import org.folio.domain.dto.DcbTransaction;
 import org.folio.domain.dto.TransactionStatusResponse;
 import org.folio.spring.config.FeignClientConfiguration;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,6 +16,10 @@ public interface DcbEcsTransactionClient {
 
   @PostMapping("/{dcbTransactionId}")
   TransactionStatusResponse createTransaction(@PathVariable String dcbTransactionId,
+    @RequestBody DcbTransaction dcbTransaction);
+
+  @PatchMapping("/{dcbTransactionId}")
+  TransactionStatusResponse updateTransaction(@PathVariable String dcbTransactionId,
     @RequestBody DcbTransaction dcbTransaction);
 
 }
