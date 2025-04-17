@@ -8,7 +8,6 @@ import java.util.stream.Stream;
 
 import org.folio.client.feign.CirculationItemClient;
 import org.folio.client.feign.DcbEcsTransactionClient;
-import org.folio.domain.dto.CirculationItem;
 import org.folio.domain.dto.DcbItem;
 import org.folio.domain.dto.DcbTransaction;
 import org.folio.domain.dto.Item;
@@ -52,9 +51,7 @@ public class ItemEventHandler implements KafkaEventHandler<Item> {
       return;
     }
 
-    if ((oldItem.getBarcode() == null || oldItem.getBarcode().isBlank())
-      && newItem.getBarcode() != null && !newItem.getBarcode().isBlank()) {
-
+    if (isBlank(oldItem.getBarcode()) && !isBlank(newItem.getBarcode())) {
       log.info("handle:: item without a barcode updated, new barcode: {}", newItem.getBarcode());
 
       handleAddedBarcodeEvent(event);
@@ -64,11 +61,15 @@ public class ItemEventHandler implements KafkaEventHandler<Item> {
       "Item ID: {}", newItem::getId);
   }
 
-  private void handleAddedBarcodeEvent(KafkaEvent<Item> event) {
-    handleAddedBarcodeEvent(event.getNewVersion(), event.getTenant());
+  private boolean isBlank(String str) {
+    return str == null || str.isBlank();
   }
 
-  private void handleAddedBarcodeEvent(Item item, String tenantId) {
+  private void handleAddedBarcodeEvent(KafkaEvent<Item> event) {
+    handleAddedBarcodeEvent(event.getNewVersion());
+  }
+
+  private void handleAddedBarcodeEvent(Item item) {
     var ecsRequests = ecsTlrRepository.findByItemId(UUID.fromString(item.getId()));
 
     // Update circulation items in tenants with primary and intermediate requests
@@ -79,8 +80,7 @@ public class ItemEventHandler implements KafkaEventHandler<Item> {
       .forEach(tenant -> updateCirculationItemInTenant(tenant, item.getId(), item.getBarcode()));
 
     // Update DCB transactions
-    ecsTlrRepository.findByItemId(UUID.fromString(item.getId()))
-      .forEach(request -> updateDcbTransactionsBarcode(request, item));
+    ecsRequests.forEach(request -> updateDcbTransactionsBarcode(request, item));
   }
 
   private void updateCirculationItemInTenant(String tenantId, String itemId, String itemBarcode) {
@@ -96,7 +96,7 @@ public class ItemEventHandler implements KafkaEventHandler<Item> {
           return;
         }
 
-        CirculationItem circulationItem = circulationItems.getItems().getFirst();
+        var circulationItem = circulationItems.getItems().getFirst();
         var circulationItemId = circulationItem.getId().toString();
         log.info("updateCirculationItemInTenant:: found circulation item {} in tenant {}, updating",
           circulationItemId, tenantId);

@@ -55,7 +55,7 @@ public class DefaultKafkaEvent<T> extends KafkaEvent<T> {
   }
 
   public DefaultKafkaEvent<T> withGenericType(EventType type) {
-    return type == null ? null : this.withType(EVENT_TYPE_GENERIC_TO_INTERNAL.get(type));
+    return type == null ? this : this.withType(EVENT_TYPE_GENERIC_TO_INTERNAL.get(type));
   }
 
   public enum DefaultKafkaEventType {
