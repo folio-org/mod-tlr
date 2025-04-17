@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+import org.apache.commons.lang3.StringUtils;
 import org.folio.client.feign.CirculationItemClient;
 import org.folio.client.feign.DcbEcsTransactionClient;
 import org.folio.domain.dto.DcbItem;
@@ -51,7 +52,7 @@ public class ItemEventHandler implements KafkaEventHandler<Item> {
       return;
     }
 
-    if (isBlank(oldItem.getBarcode()) && !isBlank(newItem.getBarcode())) {
+    if (StringUtils.isBlank(oldItem.getBarcode()) && !StringUtils.isBlank(newItem.getBarcode())) {
       log.info("handleUpdateEvent:: item without a barcode updated, new barcode: {}",
         newItem.getBarcode());
       handleAddedBarcodeEvent(event.getNewVersion());
@@ -59,10 +60,6 @@ public class ItemEventHandler implements KafkaEventHandler<Item> {
 
     log.info("handleUpdateEvent:: ignoring item {} update. Old item barcode: {}, " +
       "new item barcode: {}", oldItem::getId, oldItem::getBarcode, newItem::getBarcode);
-  }
-
-  private boolean isBlank(String str) {
-    return str == null || str.isBlank();
   }
 
   private void handleAddedBarcodeEvent(Item item) {
