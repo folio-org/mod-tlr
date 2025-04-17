@@ -53,7 +53,6 @@ public class ItemEventHandler implements KafkaEventHandler<Item> {
 
     if (isBlank(oldItem.getBarcode()) && !isBlank(newItem.getBarcode())) {
       log.info("handleUpdateEvent:: item without a barcode updated, new barcode: {}", newItem.getBarcode());
-
       handleAddedBarcodeEvent(event.getNewVersion());
     }
 
