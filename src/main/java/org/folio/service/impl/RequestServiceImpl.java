@@ -1,6 +1,7 @@
 package org.folio.service.impl;
 
 import static java.lang.String.format;
+import static org.folio.support.BarcodeUtil.buildNonEmptyBarcode;
 
 import java.util.Collection;
 import java.util.List;
@@ -261,7 +262,7 @@ public class RequestServiceImpl implements RequestService {
       .materialTypeId(item.getMaterialTypeId())
       .permanentLoanTypeId(item.getPermanentLoanTypeId())
       .instanceTitle(instance.getTitle())
-      .barcode(item.getBarcode())
+      .barcode(buildNonEmptyBarcode(item.getBarcode(), item.getId()))
       .pickupLocation(pickupLocation)
       .effectiveLocationId(item.getEffectiveLocationId())
       .lendingLibraryCode("TEST_CODE");

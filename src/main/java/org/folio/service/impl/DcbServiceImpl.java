@@ -11,6 +11,7 @@ import static org.folio.domain.dto.TransactionStatus.StatusEnum.CREATED;
 import static org.folio.domain.dto.TransactionStatus.StatusEnum.ITEM_CHECKED_IN;
 import static org.folio.domain.dto.TransactionStatus.StatusEnum.ITEM_CHECKED_OUT;
 import static org.folio.domain.dto.TransactionStatus.StatusEnum.OPEN;
+import static org.folio.support.BarcodeUtil.buildNonEmptyBarcode;
 
 import java.util.UUID;
 
@@ -96,7 +97,7 @@ public class DcbServiceImpl implements DcbService {
     DcbItem dcbItem = new DcbItem()
       .id(request.getItemId())
       .title(request.getInstance().getTitle())
-      .barcode(request.getItem().getBarcode());
+      .barcode(buildNonEmptyBarcode(request.getItem().getBarcode(), request.getItemId()));
 
     return new DcbTransaction()
       .requestId(requestId.toString())
