@@ -89,7 +89,12 @@ public class ItemEventHandler implements KafkaEventHandler<Item> {
           return;
         }
 
-        var circulationItem = circulationItems.getItems().getFirst();
+        var circulationItem = circulationItems.getItems().stream().findFirst().orElse(null);
+        if (circulationItem == null) {
+          log.info("updateCirculationItemInTenant:: circulation item not found");
+          return;
+        }
+
         var circulationItemId = circulationItem.getId().toString();
         log.info("updateCirculationItemInTenant:: found circulation item {} in tenant {}, updating",
           circulationItemId, tenantId);

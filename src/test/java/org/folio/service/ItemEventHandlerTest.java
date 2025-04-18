@@ -33,20 +33,20 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 
 class ItemEventHandlerTest extends BaseIT {
   private static final EnumSet<EventType> SUPPORTED_EVENT_TYPES = EnumSet.of(UPDATE);
   private static final String NEW_BARCODE = "new_barcode";
 
-  @MockitoBean
+  @MockBean
   private CirculationItemClient circulationItemClient;
-  @MockitoBean
+  @MockBean
   private EcsTlrRepository ecsTlrRepository;
-  @MockitoSpyBean
+  @SpyBean
   private SystemUserScopedExecutionService executionService;
-  @MockitoBean
+  @MockBean
   private DcbEcsTransactionClient dcbEcsTransactionClient;
   @Autowired
   private ItemEventHandler itemEventHandler;
