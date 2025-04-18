@@ -1,3 +1,6 @@
+## 1.0.14 2025-04-18
+* Support ECS requests for items without barcodes (MODTLR-191)
+
 ## 1.0.13 2025-04-10
 * Fix batch request update event handling by removing `patronGroup` from request schema (MODTLR-150)
 

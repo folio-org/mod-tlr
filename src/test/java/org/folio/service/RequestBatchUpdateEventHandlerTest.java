@@ -2,8 +2,6 @@ package org.folio.service;
 
 import static org.folio.domain.dto.Request.RequestLevelEnum.ITEM;
 import static org.folio.domain.dto.Request.RequestLevelEnum.TITLE;
-import static org.folio.support.KafkaEvent.EventType.CREATED;
-import static org.folio.support.KafkaEvent.EventType.UPDATED;
 import static org.folio.util.TestUtils.buildEvent;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -28,7 +26,8 @@ import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.domain.mapper.EcsTlrMapperImpl;
 import org.folio.listener.kafka.KafkaEventListener;
 import org.folio.repository.EcsTlrRepository;
-import org.folio.support.KafkaEvent;
+import org.folio.support.kafka.DefaultKafkaEvent;
+import org.folio.support.kafka.KafkaEvent;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -115,10 +114,10 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
     when(requestService.reorderRequestsQueueForInstance(instanceId, firstTenant, reorderQueue))
       .thenReturn(secRequestsWithUpdatedPositions);
 
-    eventListener.handleRequestBatchUpdateEvent(serializeEvent(buildEvent(CENTRAL_TENANT_ID, CREATED,
-      null, new RequestsBatchUpdate()
-        .instanceId(instanceId)
-        .requestLevel(RequestsBatchUpdate.RequestLevelEnum.TITLE))),
+    eventListener.handleRequestBatchUpdateEvent(serializeEvent(buildEvent(CENTRAL_TENANT_ID,
+        DefaultKafkaEvent.DefaultKafkaEventType.CREATED, null, new RequestsBatchUpdate()
+          .instanceId(instanceId)
+          .requestLevel(RequestsBatchUpdate.RequestLevelEnum.TITLE))),
       buildKafkaHeaders(CENTRAL_TENANT_ID));
 
     verify(requestService, times(1)).reorderRequestsQueueForInstance(
@@ -195,10 +194,10 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
     when(requestService.reorderRequestsQueueForInstance(instanceId, firstTenant, reorderQueue))
       .thenReturn(secRequestsWithUpdatedPositions);
 
-    eventListener.handleRequestBatchUpdateEvent(serializeEvent(buildEvent(CENTRAL_TENANT_ID, UPDATED,
-      null, new RequestsBatchUpdate()
-        .instanceId(instanceId)
-        .requestLevel(RequestsBatchUpdate.RequestLevelEnum.TITLE))),
+    eventListener.handleRequestBatchUpdateEvent(serializeEvent(buildEvent(CENTRAL_TENANT_ID,
+        DefaultKafkaEvent.DefaultKafkaEventType.UPDATED, null, new RequestsBatchUpdate()
+          .instanceId(instanceId)
+          .requestLevel(RequestsBatchUpdate.RequestLevelEnum.TITLE))),
       buildKafkaHeaders(CENTRAL_TENANT_ID));
 
     verify(requestService, times(1)).reorderRequestsQueueForInstance(
@@ -255,8 +254,8 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
       ecsTlrMapper.mapDtoToEntity(firstEcsTlr), ecsTlrMapper.mapDtoToEntity(secondEcsTlr),
       ecsTlrMapper.mapDtoToEntity(thirdEcsTlr), ecsTlrMapper.mapDtoToEntity(fourthEcsTlr)));
 
-    eventListener.handleRequestBatchUpdateEvent(serializeEvent(buildEvent(CENTRAL_TENANT_ID, CREATED,
-      null, new RequestsBatchUpdate()
+    eventListener.handleRequestBatchUpdateEvent(serializeEvent(buildEvent(CENTRAL_TENANT_ID,
+        DefaultKafkaEvent.DefaultKafkaEventType.CREATED, null, new RequestsBatchUpdate()
           .instanceId(instanceId)
           .requestLevel(RequestsBatchUpdate.RequestLevelEnum.TITLE))),
       buildKafkaHeaders(CENTRAL_TENANT_ID));
@@ -313,10 +312,10 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
       List.of(thirdSecondaryRequest, fourthSecondaryRequest));
     when(ecsTlrRepository.findByPrimaryRequestIdIn(any())).thenReturn(primaryRequests);
 
-    eventListener.handleRequestBatchUpdateEvent(serializeEvent(buildEvent(CENTRAL_TENANT_ID, CREATED,
-      null, new RequestsBatchUpdate()
-        .instanceId(instanceId)
-        .requestLevel(RequestsBatchUpdate.RequestLevelEnum.TITLE))),
+    eventListener.handleRequestBatchUpdateEvent(serializeEvent(buildEvent(CENTRAL_TENANT_ID,
+        DefaultKafkaEvent.DefaultKafkaEventType.CREATED, null, new RequestsBatchUpdate()
+          .instanceId(instanceId)
+          .requestLevel(RequestsBatchUpdate.RequestLevelEnum.TITLE))),
       buildKafkaHeaders(CENTRAL_TENANT_ID));
 
     verify(requestService, times(0)).reorderRequestsQueueForInstance(
@@ -384,8 +383,8 @@ class RequestBatchUpdateEventHandlerTest extends BaseIT {
     when(requestService.reorderRequestsQueueForItem(itemId, firstTenant, reorderQueue))
       .thenReturn(secRequestsWithUpdatedPositions);
 
-    eventListener.handleRequestBatchUpdateEvent(serializeEvent(buildEvent(CENTRAL_TENANT_ID, CREATED,
-        null, new RequestsBatchUpdate()
+    eventListener.handleRequestBatchUpdateEvent(serializeEvent(buildEvent(CENTRAL_TENANT_ID,
+        DefaultKafkaEvent.DefaultKafkaEventType.CREATED, null, new RequestsBatchUpdate()
           .instanceId(instanceId)
           .itemId(itemId)
           .requestLevel(RequestsBatchUpdate.RequestLevelEnum.ITEM))),

@@ -17,8 +17,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.folio.domain.dto.Request.StatusEnum.CLOSED_CANCELLED;
 import static org.folio.domain.dto.Request.StatusEnum.OPEN_IN_TRANSIT;
 import static org.folio.domain.dto.Request.StatusEnum.OPEN_NOT_YET_FILLED;
-import static org.folio.support.KafkaEvent.EventType.CREATED;
-import static org.folio.support.KafkaEvent.EventType.UPDATED;
 import static org.folio.util.TestUtils.buildEvent;
 import static org.folio.util.TestUtils.mockConsortiaTenants;
 import static org.folio.util.TestUtils.mockUserTenants;
@@ -54,7 +52,8 @@ import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.spring.integration.XOkapiHeaders;
 import org.folio.spring.service.SystemUserScopedExecutionService;
-import org.folio.support.KafkaEvent;
+import org.folio.support.kafka.DefaultKafkaEvent;
+import org.folio.support.kafka.KafkaEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -247,7 +246,7 @@ class KafkaEventListenerTest extends BaseIT {
       urlMatching(format(REQUEST_STORAGE_URL_PATTERN, SECONDARY_REQUEST_ID)))
       .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID)));
 
-    Request updatedPrimaryRequest = event.getData().getNewVersion();
+    Request updatedPrimaryRequest = event.getNewVersion();
     wireMockServer.verify(putRequestedFor(
       urlMatching(format(REQUEST_STORAGE_URL_PATTERN, SECONDARY_REQUEST_ID)))
       .withHeader(HEADER_TENANT, equalTo(SECONDARY_REQUEST_TENANT_ID))
@@ -320,7 +319,7 @@ class KafkaEventListenerTest extends BaseIT {
     createEcsTlr(buildEcsTlrWithItemId());
 
     KafkaEvent<Request> event = buildPrimaryRequestUpdateEvent(OPEN_NOT_YET_FILLED, OPEN_IN_TRANSIT);
-    event.getData().getNewVersion()
+    event.getNewVersion()
       .pickupServicePointId(null)
       .fulfillmentPreference(Request.FulfillmentPreferenceEnum.DELIVERY);
 
@@ -420,7 +419,7 @@ class KafkaEventListenerTest extends BaseIT {
   @Test
   void requestEventOfUnsupportedTypeIsIgnored() {
     checkThatEventIsIgnored(
-      buildEvent(SECONDARY_REQUEST_TENANT_ID, KafkaEvent.EventType.CREATED,
+      buildEvent(SECONDARY_REQUEST_TENANT_ID, DefaultKafkaEvent.DefaultKafkaEventType.CREATED,
         buildSecondaryRequest(OPEN_NOT_YET_FILLED),
         buildSecondaryRequest(OPEN_IN_TRANSIT)
       ));
@@ -481,7 +480,7 @@ class KafkaEventListenerTest extends BaseIT {
 
     publishEventAndWait(CENTRAL_TENANT_ID, USER_GROUP_KAFKA_TOPIC_NAME, event);
 
-    var newUserGroup = event.getData().getNewVersion();
+    var newUserGroup = event.getNewVersion();
 
     wireMockServer.verify(1, postRequestedFor(urlMatching(USER_GROUPS_URL_PATTERN))
       .withRequestBody(equalToJson(asJsonString(newUserGroup)))
@@ -508,7 +507,7 @@ class KafkaEventListenerTest extends BaseIT {
 
     publishEventAndWait(CENTRAL_TENANT_ID, USER_GROUP_KAFKA_TOPIC_NAME, event);
 
-    var updatedUserGroup = event.getData().getNewVersion();
+    var updatedUserGroup = event.getNewVersion();
 
     wireMockServer.verify(1, putRequestedFor(urlMatching(userGroupUpdateUrlPattern))
       .withRequestBody(equalToJson(asJsonString(updatedUserGroup)))
@@ -697,11 +696,12 @@ class KafkaEventListenerTest extends BaseIT {
   }
 
   private static <T> KafkaEvent<T> buildCreateEvent(String tenant, T newVersion) {
-    return buildEvent(tenant, CREATED, null, newVersion);
+    return buildEvent(tenant, DefaultKafkaEvent.DefaultKafkaEventType.CREATED, null, newVersion);
   }
 
   private static <T> KafkaEvent<T> buildUpdateEvent(String tenant, T oldVersion, T newVersion) {
-    return buildEvent(tenant, UPDATED, oldVersion, newVersion);
+    return buildEvent(tenant, DefaultKafkaEvent.DefaultKafkaEventType.UPDATED, oldVersion,
+      newVersion);
   }
 
   private static Request buildPrimaryRequest(Request.StatusEnum status) {
