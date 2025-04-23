@@ -1,6 +1,7 @@
 package org.folio.listener;
 
 import static org.folio.spring.integration.XOkapiHeaders.TENANT;
+import static org.folio.spring.integration.XOkapiHeaders.USER_ID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
@@ -46,7 +47,10 @@ class KafkaEventListenerTest {
     doThrow(new NullPointerException("NPE")).when(systemUserScopedExecutionService)
       .executeAsyncSystemUserScoped(any(), any());
     kafkaEventListener.handleRequestEvent("{}",
-      new MessageHeaders(Map.of(TENANT, "default".getBytes())));
+      new MessageHeaders(Map.of(
+        TENANT, "default".getBytes(),
+        USER_ID, "08d51c7a-0f36-4f3d-9e35-d285612a23df".getBytes()
+      )));
 
     verify(systemUserScopedExecutionService).executeAsyncSystemUserScoped(any(), any());
   }

@@ -30,7 +30,8 @@
             "inventory-storage.service-points.item.get",
             "inventory-storage.service-points.collection.get",
             "inventory-storage.service-points.item.post",
-            "user-tenants.collection.get"
+            "user-tenants.collection.get",
+            "dcb.ecs-request.transactions.put"
           ]
         },
         {
@@ -449,7 +450,8 @@
         "mod-settings.global.read.circulation",
         "consortia.sharing-instances.item.post",
         "circulation.check-out-by-barcode-dry-run.post",
-        "configuration.entries.collection.get"
+        "configuration.entries.collection.get",
+        "dcb.ecs-request.transactions.put"
       ]
     }
   },
@@ -458,7 +460,7 @@
     "dockerPull": false,
     "dockerArgs": {
       "HostConfig": {
-        "Memory": 357913941,
+        "Memory": 1073741824,
         "PortBindings": { "8081/tcp": [ { "HostPort": "%p" } ] }
       }
     },

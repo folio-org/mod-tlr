@@ -18,6 +18,7 @@ import static org.folio.domain.dto.EcsTlr.RequestTypeEnum.HOLD;
 import static org.folio.domain.dto.EcsTlr.RequestTypeEnum.PAGE;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.INTERMEDIATE;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.PRIMARY;
+import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -48,6 +49,7 @@ import org.folio.domain.dto.TransactionStatusResponse;
 import org.folio.domain.dto.User;
 import org.folio.domain.dto.UserPersonal;
 import org.folio.domain.dto.UserType;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -127,6 +129,7 @@ class EcsTlrApiTest extends BaseIT {
     boolean pickupServicePointClonesExist, EcsTlr.RequestLevelEnum requestLevel) {
 
     EcsTlr ecsTlr = buildEcsTlr(requestType, requestLevel)
+      .id(randomId())
       .primaryRequestTenantId(TENANT_ID_UNIVERSITY);
 
     // 1. Create stubs for other modules
@@ -361,6 +364,7 @@ class EcsTlrApiTest extends BaseIT {
       .expectStatus().isCreated()
       .expectBody()
       .jsonPath("$.id").exists()
+      .jsonPath("$.id").value(not(Matchers.equalTo(ecsTlr.getId())))
       .json(asJsonString(expectedPostEcsTlrResponse));
     assertEquals(TENANT_ID_CONSORTIUM, getCurrentTenantId());
 

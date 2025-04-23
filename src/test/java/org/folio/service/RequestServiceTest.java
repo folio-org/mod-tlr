@@ -111,7 +111,7 @@ class RequestServiceTest {
 
     CirculationItem expectedCirculationItem = new CirculationItem()
       .status(new CirculationItemStatus()
-        .name(CirculationItemStatus.NameEnum.AVAILABLE))
+        .name(CirculationItemStatus.NameEnum.PAGED))
       .id(UUID.fromString(ITEM_ID))
       .holdingsRecordId(UUID.fromString(HOLDINGS_RECORD_ID))
       .dcbItem(true)

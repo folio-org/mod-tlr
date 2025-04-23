@@ -2,7 +2,7 @@ package org.folio.service;
 
 import static java.util.Collections.emptyList;
 import static java.util.UUID.randomUUID;
-import static org.folio.support.KafkaEvent.EventType.UPDATED;
+import static org.folio.support.kafka.EventType.UPDATE;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -18,8 +18,9 @@ import org.folio.domain.dto.TransactionStatusResponse;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.impl.LoanEventHandler;
-import org.folio.support.KafkaEvent;
-import org.folio.support.KafkaEvent.EventType;
+import org.folio.support.kafka.DefaultKafkaEvent;
+import org.folio.support.kafka.EventType;
+import org.folio.support.kafka.KafkaEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -32,7 +33,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class LoanEventHandlerTest {
 
-  private static final EnumSet<EventType> SUPPORTED_EVENT_TYPES = EnumSet.of(UPDATED);
+  private static final EnumSet<EventType> SUPPORTED_EVENT_TYPES = EnumSet.of(UPDATE);
 
   @Mock
   private DcbService dcbService;
@@ -45,7 +46,8 @@ class LoanEventHandlerTest {
   @EnumSource(EventType.class)
   void eventsOfUnsupportedTypesAreIgnored(EventType eventType) {
     if (!SUPPORTED_EVENT_TYPES.contains(eventType)) {
-      loanEventHandler.handle(new KafkaEvent<>(null, null, eventType, 0L, null, null));
+      loanEventHandler.handle(new DefaultKafkaEvent<Loan>(null, null, null, 0L, null)
+        .withGenericType(eventType));
       verifyNoInteractions(ecsTlrRepository, dcbService);
     }
   }
@@ -53,8 +55,7 @@ class LoanEventHandlerTest {
   @Test
   void updateEventForLoanWithUnsupportedActionInIgnored() {
     Loan loan = new Loan().action("random_action");
-    KafkaEvent<Loan> event = new KafkaEvent<>(randomUUID().toString(), "test_tenant", UPDATED,
-      0L, new KafkaEvent.EventData<>(loan, loan), "test_tenant");
+    KafkaEvent<Loan> event = createEvent(loan);
     loanEventHandler.handle(event);
     verifyNoInteractions(ecsTlrRepository, dcbService);
   }
@@ -72,8 +73,7 @@ class LoanEventHandlerTest {
     when(ecsTlrRepository.findByItemId(itemId))
       .thenReturn(emptyList());
 
-    KafkaEvent<Loan> event = new KafkaEvent<>(randomUUID().toString(), "test_tenant", UPDATED,
-      0L, new KafkaEvent.EventData<>(loan, loan), "test_tenant");
+    KafkaEvent<Loan> event = createEvent(loan);
     loanEventHandler.handle(event);
 
     verify(ecsTlrRepository).findByItemId(itemId);
@@ -93,8 +93,7 @@ class LoanEventHandlerTest {
     when(ecsTlrRepository.findByItemId(itemId))
       .thenReturn(List.of(new EcsTlrEntity()));
 
-    KafkaEvent<Loan> event = new KafkaEvent<>(randomUUID().toString(), "test_tenant", UPDATED,
-      0L, new KafkaEvent.EventData<>(loan, loan), "test_tenant");
+    KafkaEvent<Loan> event = createEvent(loan);
     loanEventHandler.handle(event);
 
     verify(ecsTlrRepository).findByItemId(itemId);
@@ -120,8 +119,7 @@ class LoanEventHandlerTest {
     when(ecsTlrRepository.findByItemId(itemId))
       .thenReturn(List.of(ecsTlr));
 
-    KafkaEvent<Loan> event = new KafkaEvent<>(randomUUID().toString(), "test_tenant", UPDATED,
-      0L, new KafkaEvent.EventData<>(loan, loan), "test_tenant");
+    KafkaEvent<Loan> event = createEvent(loan);
     loanEventHandler.handle(event);
 
     verify(ecsTlrRepository).findByItemId(itemId);
@@ -179,9 +177,12 @@ class LoanEventHandlerTest {
       expectedNewTransactionStatus);
     doNothing().when(dcbService).updateTransactionStatuses(expectedNewStatus, mockEcsTlr);
 
-    KafkaEvent.EventData<Loan> eventData = new KafkaEvent.EventData<>(loan, loan);
-    KafkaEvent<Loan> event = new KafkaEvent<>(randomUUID().toString(), eventTenant,
-      UPDATED, 0L, eventData, eventTenant);
+    DefaultKafkaEvent.DefaultKafkaEventData<Loan> eventData =
+      new DefaultKafkaEvent.DefaultKafkaEventData<>(loan, loan);
+    KafkaEvent<Loan> event = new DefaultKafkaEvent<>(randomUUID().toString(), eventTenant,
+      DefaultKafkaEvent.DefaultKafkaEventType.UPDATED, 0L, eventData)
+      .withTenantIdHeaderValue(eventTenant)
+      .withUserIdHeaderValue("random_user_id");
 
     loanEventHandler.handle(event);
 
@@ -195,5 +196,13 @@ class LoanEventHandlerTest {
     return new TransactionStatusResponse()
       .role(TransactionStatusResponse.RoleEnum.fromValue(role))
       .status(TransactionStatusResponse.StatusEnum.fromValue(status));
+  }
+
+  private static KafkaEvent<Loan> createEvent(Loan loan) {
+    return new DefaultKafkaEvent<>(randomUUID().toString(), "test_tenant",
+      DefaultKafkaEvent.DefaultKafkaEventType.UPDATED, 0L,
+      new DefaultKafkaEvent.DefaultKafkaEventData<>(loan, loan))
+      .withTenantIdHeaderValue("test_tenant")
+      .withUserIdHeaderValue("test_user");
   }
 }

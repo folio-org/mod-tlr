@@ -6,6 +6,7 @@ import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.PRIMARY;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.SECONDARY;
 import static org.folio.domain.dto.Request.FulfillmentPreferenceEnum.DELIVERY;
 import static org.folio.domain.dto.Request.FulfillmentPreferenceEnum.HOLD_SHELF;
+import static org.folio.domain.dto.Request.StatusEnum.CLOSED_CANCELLED;
 import static org.folio.support.Constants.INTERIM_SERVICE_POINT_ID;
 import static org.folio.util.TestUtils.buildEvent;
 import static org.folio.util.TestUtils.randomId;
@@ -28,8 +29,8 @@ import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.impl.RequestEventHandler;
 import org.folio.spring.service.SystemUserScopedExecutionService;
-import org.folio.support.KafkaEvent;
-import org.folio.support.KafkaEvent.EventType;
+import org.folio.support.kafka.DefaultKafkaEvent;
+import org.folio.support.kafka.KafkaEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -178,10 +179,41 @@ class RequestEventHandlerTest {
       is(primaryRequest.getPickupServicePointId()));
   }
 
+  @Test
+  void secondaryRequestCancelledWhenPrimaryHoldRequestCancelled() {
+    EcsTlrEntity ecsTlr = buildEcsTlr();
+    Request primaryRequest = new Request()
+      .id(PRIMARY_REQUEST_ID.toString())
+      .ecsRequestPhase(PRIMARY)
+      .requestLevel(Request.RequestLevelEnum.TITLE)
+      .requestType(Request.RequestTypeEnum.HOLD)
+      .status(CLOSED_CANCELLED);
+    Request secondaryRequest = new Request()
+      .id(SECONDARY_REQUEST_ID.toString())
+      .ecsRequestPhase(SECONDARY)
+      .status(Request.StatusEnum.OPEN_IN_TRANSIT);
+    when(ecsTlrRepository.findBySecondaryRequestId(PRIMARY_REQUEST_ID))
+      .thenReturn(Optional.of(ecsTlr));
+    when(requestService.getRequestFromStorage(SECONDARY_REQUEST_ID.toString(), SECONDARY_REQUEST_TENANT_ID))
+      .thenReturn(secondaryRequest);
+
+    KafkaEvent<Request> event = buildRequestUpdateEvent(primaryRequest, primaryRequest,
+      PRIMARY_REQUEST_TENANT_ID);
+    handler.handle(event);
+
+    verifyNoInteractions(dcbService);
+    verify(ecsTlrRepository).findBySecondaryRequestId(SECONDARY_REQUEST_ID);
+    verify(requestService).getRequestFromStorage(SECONDARY_REQUEST_ID.toString(), SECONDARY_REQUEST_TENANT_ID);
+    verify(requestService).updateRequestInStorage(requestCaptor.capture(), eq(SECONDARY_REQUEST_TENANT_ID));
+    Request updatedSecondaryRequest = requestCaptor.getValue();
+    assertThat(updatedSecondaryRequest.getStatus(), is(CLOSED_CANCELLED));
+  }
+
   private static KafkaEvent<Request> buildRequestUpdateEvent(Request oldVersion,
     Request newVersion, String tenantId) {
 
-    return buildEvent(tenantId, EventType.UPDATED, oldVersion, newVersion);
+    return buildEvent(tenantId, DefaultKafkaEvent.DefaultKafkaEventType.UPDATED, oldVersion,
+      newVersion);
   }
 
   private static EcsTlrEntity buildEcsTlr() {

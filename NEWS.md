@@ -1,3 +1,11 @@
+## 1.1.1 2025-04-23
+* Fix inability to create an ECS request for previously requested available Item (MODTLR-162)
+* Increase memory allocation (MODTLR-176)
+* Ignore client-provided ECS TLR id (MODTLR-182)
+* Cancel secondary title-level hold request when primary request is cancelled (MODTLR-164)
+* Fix batch request update event handling by removing patronGroup from request schema (MODTLR-150)
+* Support ECS requests for items without barcodes (MODTLR-191)
+
 ## 1.1.0 2025-03-13
 * Update to Java 21 (FOLREL-721)
 * Add force loan policy support during check-out (MODTLR-152)
