@@ -277,6 +277,7 @@ class AllowedServicePointsApiTest extends BaseIT {
   private AllowedServicePointsInner buildAllowedServicePoint(String name) {
     return new AllowedServicePointsInner()
       .id(randomId())
+      .discoveryDisplayName(name)
       .name(name);
   }
 
