@@ -1,3 +1,6 @@
+## 1.0.15 2025-05-06
+* [LOC Locate requirement] Allowed Service points should return discovery display name. (MODTLR-202)
+
 ## 1.0.14 2025-04-18
 * Support ECS requests for items without barcodes (MODTLR-191)
 
