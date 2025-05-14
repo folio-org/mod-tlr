@@ -3,25 +3,38 @@ package org.folio.service;
 import static java.util.Collections.emptyList;
 import static java.util.UUID.randomUUID;
 import static org.folio.support.kafka.EventType.UPDATE;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.ZonedDateTime;
+import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 
 import org.folio.client.feign.LoanStorageClient;
 import org.folio.domain.dto.Loan;
+import org.folio.domain.dto.Loans;
+import org.folio.domain.dto.Tenant;
 import org.folio.domain.dto.TransactionStatus;
 import org.folio.domain.dto.TransactionStatusResponse;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.impl.LoanEventHandler;
+import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.support.CqlQuery;
 import org.folio.support.kafka.DefaultKafkaEvent;
 import org.folio.support.kafka.EventType;
 import org.folio.support.kafka.KafkaEvent;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -35,6 +48,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class LoanEventHandlerTest {
 
   private static final EnumSet<EventType> SUPPORTED_EVENT_TYPES = EnumSet.of(UPDATE);
+  private static final String EVENT_TENANT_ID = "test_tenant";
+  private static final String TENANT_1 = "tenant-1";
 
   @Mock
   private DcbService dcbService;
@@ -42,6 +57,10 @@ class LoanEventHandlerTest {
   private EcsTlrRepository ecsTlrRepository;
   @Mock
   private LoanStorageClient loanStorageClient;
+  @Mock
+  private SystemUserScopedExecutionService executionService;
+  @Mock
+  private ConsortiaService consortiaService;
   @InjectMocks
   private LoanEventHandler loanEventHandler;
 
@@ -56,7 +75,7 @@ class LoanEventHandlerTest {
   }
 
   @Test
-  void updateEventForLoanWithUnsupportedActionInIgnored() {
+  void updateEventForLoanWithUnsupportedActionIsIgnored() {
     Loan loan = new Loan().action("random_action");
     KafkaEvent<Loan> event = createEvent(loan);
     loanEventHandler.handle(event);
@@ -64,11 +83,45 @@ class LoanEventHandlerTest {
   }
 
   @Test
-  void updateEventForLoanWithEqualRenewalCountShouldBeIgnored() {
+  void updateEventForLoanWithEqualRenewalCountIsIgnored() {
     Loan newloan = new Loan().action("checkedout").renewalCount(1);
     KafkaEvent<Loan> event = createEvent(newloan);
     loanEventHandler.handle(event);
     verifyNoInteractions(loanStorageClient);
+  }
+
+  @Test
+  void updateRenewalEventIsHandled() {
+    Date newDueDate = Date.from(ZonedDateTime.now().plusDays(1).toInstant());
+    Date oldDueDate = Date.from(ZonedDateTime.now().plusHours(1).toInstant());
+    String itemId = randomUUID().toString();
+    Loan newloan = new Loan()
+      .action("checkedout")
+      .renewalCount(1)
+      .dueDate(newDueDate)
+      .itemId(itemId);
+    Loan oldloan = new Loan()
+      .action("checkedout")
+      .dueDate(oldDueDate)
+      .itemId(itemId);
+    KafkaEvent<Loan> event = createEvent(newloan, oldloan);
+
+    when(consortiaService.getAllConsortiumTenants())
+      .thenReturn(List.of(new Tenant().id(TENANT_1), new Tenant().id(EVENT_TENANT_ID)));
+    when(loanStorageClient.getByQuery(any(CqlQuery.class), eq(1)))
+      .thenReturn(new Loans(List.of(oldloan), 1));
+    doAnswer(invocation -> {
+      ((Runnable) invocation.getArguments()[1]).run();
+      return null;
+    }).when(executionService).executeAsyncSystemUserScoped(anyString(), any(Runnable.class));
+
+    loanEventHandler.handle(event);
+
+    verify(loanStorageClient, times(1)).getByQuery(argThat(
+      query -> query.toString().contains("itemId") && query.toString().contains("Open")), eq(1));
+    verify(loanStorageClient, times(1)).updateLoan(eq(oldloan.getId()), eq(newloan));
+    verify(executionService, times(1)).executeAsyncSystemUserScoped(eq(TENANT_1),
+      any(Runnable.class));
   }
 
   @Test
@@ -210,10 +263,14 @@ class LoanEventHandlerTest {
   }
 
   private static KafkaEvent<Loan> createEvent(Loan loan) {
-    return new DefaultKafkaEvent<>(randomUUID().toString(), "test_tenant",
+    return createEvent(loan, loan);
+  }
+
+  private static KafkaEvent<Loan> createEvent(Loan newLoan, Loan oldLoan) {
+    return new DefaultKafkaEvent<>(randomUUID().toString(), EVENT_TENANT_ID,
       DefaultKafkaEvent.DefaultKafkaEventType.UPDATED, 0L,
-      new DefaultKafkaEvent.DefaultKafkaEventData<>(loan, loan))
-      .withTenantIdHeaderValue("test_tenant")
-      .withUserIdHeaderValue("test_user");
+      new DefaultKafkaEvent.DefaultKafkaEventData<>(oldLoan, newLoan))
+        .withTenantIdHeaderValue(EVENT_TENANT_ID)
+        .withUserIdHeaderValue("test_user");
   }
 }
