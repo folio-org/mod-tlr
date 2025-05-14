@@ -12,6 +12,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 
+import org.folio.client.feign.LoanStorageClient;
 import org.folio.domain.dto.Loan;
 import org.folio.domain.dto.TransactionStatus;
 import org.folio.domain.dto.TransactionStatusResponse;
@@ -39,6 +40,8 @@ class LoanEventHandlerTest {
   private DcbService dcbService;
   @Mock
   private EcsTlrRepository ecsTlrRepository;
+  @Mock
+  private LoanStorageClient loanStorageClient;
   @InjectMocks
   private LoanEventHandler loanEventHandler;
 
@@ -58,6 +61,14 @@ class LoanEventHandlerTest {
     KafkaEvent<Loan> event = createEvent(loan);
     loanEventHandler.handle(event);
     verifyNoInteractions(ecsTlrRepository, dcbService);
+  }
+
+  @Test
+  void updateEventForLoanWithEqualRenewalCountShouldBeIgnored() {
+    Loan newloan = new Loan().action("checkedout").renewalCount(1);
+    KafkaEvent<Loan> event = createEvent(newloan);
+    loanEventHandler.handle(event);
+    verifyNoInteractions(loanStorageClient);
   }
 
   @Test
