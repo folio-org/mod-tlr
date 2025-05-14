@@ -44,10 +44,11 @@ class CheckOutApiTest extends BaseIT {
   private static final String USER_BARCODE = "test_user_barcode";
   private static final UUID SERVICE_POINT_ID = randomUUID();
 
-  @Test
-  void checkOutSuccess() {
+  @ParameterizedTest
+  @ValueSource(strings = { "central", "secure", "random" })
+  void checkOutSuccess(String targetTenantId) {
     String loanPolicyId = randomId();
-    CheckOutRequest checkOutRequest = buildCheckoutRequest(loanPolicyId);
+    CheckOutRequest checkOutRequest = buildCheckoutRequest(loanPolicyId, targetTenantId);
     CheckOutDryRunRequest checkOutDryRunRequest = buildCheckoutDryRunRequest();
     CheckOutResponse checkOutResponse = buildCheckOutResponse();
     CheckOutDryRunResponse checkOutDryRunResponse = buildCheckoutDryRunResponse(loanPolicyId);
@@ -63,8 +64,8 @@ class CheckOutApiTest extends BaseIT {
         .tenantId(TENANT_ID_COLLEGE)));
 
     wireMockServer.stubFor(post(urlEqualTo(CIRCULATION_CHECK_OUT_URL))
-      .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM))
-      .withRequestBody(equalToJson(asJsonString(checkOutRequest)))
+      .withHeader(TENANT, equalTo(targetTenantId))
+      .withRequestBody(equalToJson(asJsonString(buildCirculationCheckoutRequest(loanPolicyId))))
       .willReturn(jsonResponse(asJsonString(checkOutResponse), HttpStatus.SC_OK)));
 
     wireMockServer.stubFor(post(urlEqualTo(SEARCH_ITEMS_URL))
@@ -84,20 +85,20 @@ class CheckOutApiTest extends BaseIT {
 
     LoanPolicy clonedLoanPolicy = loanPolicy.name("COPY_OF_" + loanPolicy.getName());
     wireMockServer.stubFor(post(urlEqualTo(LOAN_POLICY_STORAGE_URL))
-      .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .withHeader(TENANT, equalTo(targetTenantId))
       .withRequestBody(equalToJson(asJsonString(loanPolicy.name(clonedLoanPolicy.getName()))))
       .willReturn(jsonResponse(asJsonString(clonedLoanPolicy), HttpStatus.SC_OK)));
 
     checkOut(checkOutRequest).expectStatus().isOk();
 
     wireMockServer.verify(postRequestedFor(urlEqualTo(CIRCULATION_CHECK_OUT_URL))
-      .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM)));
+      .withHeader(TENANT, equalTo(targetTenantId)));
     wireMockServer.verify(postRequestedFor(urlEqualTo(CIRCULATION_CHECK_OUT_DRY_RUN_URL))
       .withHeader(TENANT, equalTo(TENANT_ID_COLLEGE)));
     wireMockServer.verify(getRequestedFor(urlEqualTo(LOAN_POLICY_STORAGE_URL + "/" + loanPolicyId))
       .withHeader(TENANT, equalTo(TENANT_ID_COLLEGE)));
     wireMockServer.verify(postRequestedFor(urlEqualTo(LOAN_POLICY_STORAGE_URL))
-      .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM)));
+      .withHeader(TENANT, equalTo(targetTenantId)));
     wireMockServer.verify(postRequestedFor(urlEqualTo(SEARCH_ITEMS_URL))
       .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM)));
   }
@@ -105,7 +106,7 @@ class CheckOutApiTest extends BaseIT {
   @Test
   void checkOutFailsIfItemIsNotFound() {
     String loanPolicyId = randomId();
-    CheckOutRequest checkOutRequest = buildCheckoutRequest(loanPolicyId);
+    CheckOutRequest checkOutRequest = buildCheckoutRequest(loanPolicyId, TENANT_ID_CONSORTIUM);
 
     BatchIds itemsSearchRequest = new BatchIds()
       .identifierType(BatchIds.IdentifierTypeEnum.BARCODE)
@@ -131,7 +132,7 @@ class CheckOutApiTest extends BaseIT {
   @ValueSource(ints = { 400, 422, 500 })
   void circulationCheckOutErrorsAreForwarded(int statusCode) {
     String loanPolicyId = randomId();
-    CheckOutRequest checkOutRequest = buildCheckoutRequest(loanPolicyId);
+    CheckOutRequest checkOutRequest = buildCheckoutRequest(loanPolicyId, TENANT_ID_CONSORTIUM);
     CheckOutDryRunRequest checkOutDryRunRequest = buildCheckoutDryRunRequest();
 
     BatchIds itemsSearchRequest = new BatchIds()
@@ -166,12 +167,25 @@ class CheckOutApiTest extends BaseIT {
       .withHeader(TENANT, equalTo(TENANT_ID_COLLEGE)));
   }
 
-  private static CheckOutRequest buildCheckoutRequest(String loanPolicyId) {
+  @Test
+  void checkOutFailsWhenTargetTenantIdIsNotSet() {
+    CheckOutRequest checkOutRequest = buildCheckoutRequest(randomId(), null);
+    checkOut(checkOutRequest)
+      .expectStatus()
+      .isEqualTo(HttpStatus.SC_BAD_REQUEST);
+  }
+
+  private static CheckOutRequest buildCirculationCheckoutRequest(String loanPolicyId) {
+    return buildCheckoutRequest(loanPolicyId, null);
+  }
+
+  private static CheckOutRequest buildCheckoutRequest(String loanPolicyId, String targetTenantId) {
     return new CheckOutRequest()
       .itemBarcode(ITEM_BARCODE)
       .servicePointId(SERVICE_POINT_ID)
       .userBarcode(USER_BARCODE)
-      .forceLoanPolicyId(UUID.fromString(loanPolicyId));
+      .forceLoanPolicyId(UUID.fromString(loanPolicyId))
+      .targetTenantId(targetTenantId);
   }
 
   private static CheckOutDryRunRequest buildCheckoutDryRunRequest() {

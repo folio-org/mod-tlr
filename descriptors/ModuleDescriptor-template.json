@@ -167,7 +167,7 @@
     },
     {
       "id": "ecs-loans",
-      "version": "1.0",
+      "version": "1.1",
       "handlers": [
         {
           "methods": ["POST"],
@@ -415,6 +415,7 @@
         "circulation-storage.requests.item.put",
         "circulation-storage.loan-policies.collection.get",
         "circulation-storage.loan-policies.item.get",
+        "circulation-storage.loan-policies.item.post",
         "inventory-storage.service-points.item.get",
         "inventory-storage.service-points.collection.get",
         "inventory-storage.service-points.item.post",
@@ -450,6 +451,7 @@
         "mod-settings.global.read.circulation",
         "consortia.sharing-instances.item.post",
         "circulation.check-out-by-barcode-dry-run.post",
+        "circulation.check-out-by-barcode.post",
         "configuration.entries.collection.get",
         "dcb.ecs-request.transactions.put"
       ]

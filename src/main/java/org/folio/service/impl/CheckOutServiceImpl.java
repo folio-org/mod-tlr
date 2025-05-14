@@ -33,20 +33,23 @@ public class CheckOutServiceImpl implements CheckOutService {
 
   @Override
   public CheckOutResponse checkOut(CheckOutRequest checkOutRequest) {
-    log.info("checkOut:: checking out item {} to user {}", checkOutRequest.getItemBarcode(),
-      checkOutRequest.getUserBarcode());
-    var itemTenant = findItemTenant(checkOutRequest.getItemBarcode());
-    log.info("checkOut:: itemTenant: {} ", itemTenant);
+    String targetTenant = checkOutRequest.getTargetTenantId();
+    log.info("checkOut:: checking out item {} to user {} in tenant {}",
+      checkOutRequest.getItemBarcode(), checkOutRequest.getUserBarcode(), targetTenant);
 
+    var itemTenant = findItemTenant(checkOutRequest.getItemBarcode());
     var loanPolicy = executionService.executeSystemUserScoped(itemTenant,
       () -> retrieveLoanPolicy(checkOutRequest));
-    loanPolicyCloningService.clone(loanPolicy);
 
-    var checkOutResponse = checkOutClient.checkOut(checkOutRequest.forceLoanPolicyId(
-      UUID.fromString(loanPolicy.getId())));
-    log.info("checkOut:: item checked out");
-
-    return checkOutResponse;
+    return executionService.executeSystemUserScoped(targetTenant, () -> {
+      loanPolicyCloningService.clone(loanPolicy);
+      CheckOutRequest circulationCheckOutRequest = checkOutRequest
+        .forceLoanPolicyId(UUID.fromString(loanPolicy.getId()))
+        .targetTenantId(null);
+      CheckOutResponse checkOutResponse = checkOutClient.checkOut(circulationCheckOutRequest);
+      log.info("checkOut:: item checked out");
+      return checkOutResponse;
+    });
   }
 
   private LoanPolicy retrieveLoanPolicy(CheckOutRequest checkOutRequest) {

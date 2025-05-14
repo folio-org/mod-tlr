@@ -22,6 +22,9 @@ properties:
     description: Force loan policy ID
     type: string
     format: uuid
+  targetTenantId:
+    description: Optional ID of the tenant in which check-out is to be made
+    type: string
   overrideBlocks:
     description: Blocks to override
     type: object
@@ -63,3 +66,4 @@ required:
   - itemBarcode
   - userBarcode
   - servicePointId
+  - targetTenantId
