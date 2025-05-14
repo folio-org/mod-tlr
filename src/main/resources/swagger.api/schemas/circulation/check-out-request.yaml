@@ -23,7 +23,7 @@ properties:
     type: string
     format: uuid
   targetTenantId:
-    description: Optional ID of the tenant in which check-out is to be made
+    description: ID of the tenant in which check-out is to be made
     type: string
   overrideBlocks:
     description: Blocks to override
