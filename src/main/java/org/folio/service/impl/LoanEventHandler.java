@@ -13,14 +13,19 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 
+import org.folio.client.feign.LoanStorageClient;
 import org.folio.domain.dto.Loan;
+import org.folio.domain.dto.Tenant;
 import org.folio.domain.dto.TransactionStatus.StatusEnum;
 import org.folio.domain.dto.TransactionStatusResponse;
 import org.folio.domain.dto.TransactionStatusResponse.RoleEnum;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
+import org.folio.service.ConsortiaService;
 import org.folio.service.DcbService;
 import org.folio.service.KafkaEventHandler;
+import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.support.CqlQuery;
 import org.folio.support.kafka.KafkaEvent;
 import org.springframework.stereotype.Service;
 
@@ -37,6 +42,9 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
 
   private final DcbService dcbService;
   private final EcsTlrRepository ecsTlrRepository;
+  private final SystemUserScopedExecutionService executionService;
+  private final ConsortiaService consortiaService;
+  private final LoanStorageClient loanStorageClient;
 
   @Override
   public void handle(KafkaEvent<Loan> event) {
@@ -53,11 +61,56 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
     Loan loan = event.getNewVersion();
     String loanAction = loan.getAction();
     log.info("handle:: loan action: {}", loanAction);
+    if (isRenewal(loan, event.getOldVersion())) {
+      log.info("handleUpdateEvent:: processing renewal update event");
+      updateLoans(event.getNewVersion(), event.getTenant());
+    }
     if (LOAN_ACTION_CHECKED_IN.equals(loanAction)) {
       log.info("handleUpdateEvent:: processing loan check-in event: {}", event::getId);
       handleCheckInEvent(event);
     } else {
       log.info("handleUpdateEvent:: ignoring loan update event with unsupported loan action: {}", loanAction);
+    }
+  }
+
+  private boolean isRenewal(Loan newLoan, Loan oldLoan) {
+    Integer newRenewalCount = newLoan.getRenewalCount();
+    Integer oldRenewalCount = oldLoan.getRenewalCount();
+    log.info("isRenewal:: newRenewalCount: {}, oldRenewalCount: {}", newRenewalCount,
+      oldRenewalCount);
+
+    return newRenewalCount != null && oldRenewalCount != null && newRenewalCount > oldRenewalCount;
+  }
+
+  private void updateLoans(Loan updatedLoan, String eventTenantId) {
+    log.info("updateLoans:: parameters updatedLoan: {}, eventTenantId: {}, ",
+      updatedLoan::getId, () -> eventTenantId);
+
+    consortiaService.getAllConsortiumTenants().stream()
+      .map(Tenant::getId)
+      .filter(tenantId -> !tenantId.equals(eventTenantId))
+      .forEach(tenantId -> executionService.executeAsyncSystemUserScoped(tenantId,
+        () -> synchronizeOpenLoanWithUpdatedLoan(updatedLoan)));
+  }
+
+  private void synchronizeOpenLoanWithUpdatedLoan(Loan updatedLoan) {
+    try {
+      var loans = loanStorageClient.getByQuery(CqlQuery.exactMatch("itemId", updatedLoan.getItemId())
+        .and(CqlQuery.exactMatch("status.name", "Open")), 1).getLoans();
+      if (loans.isEmpty()) {
+        log.info("synchronizeOpenLoanWithUpdatedLoan:: no open loans found for itemId: {}",
+          updatedLoan.getItemId());
+        return;
+      }
+      var loan = loans.get(0);
+      log.info("synchronizeOpenLoanWithUpdatedLoan:: found loan with id: {}", loan::getId);
+      loan.setRenewalCount(updatedLoan.getRenewalCount());
+      loan.setDueDate(updatedLoan.getDueDate());
+      loanStorageClient.updateLoan(loan.getId(), loan);
+      log.info("synchronizeOpenLoanWithUpdatedLoan:: successfully updated loan with id: {}", loan::getId);
+    } catch (Exception e) {
+      log.error("synchronizeOpenLoanWithUpdatedLoan:: Failed to update loan for itemId: {}",
+        updatedLoan::getItemId, () -> e);
     }
   }
 
