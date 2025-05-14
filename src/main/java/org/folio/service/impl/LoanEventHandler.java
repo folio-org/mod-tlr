@@ -74,12 +74,17 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
   }
 
   private boolean isRenewal(Loan newLoan, Loan oldLoan) {
-    Integer newRenewalCount = newLoan.getRenewalCount();
-    Integer oldRenewalCount = oldLoan.getRenewalCount();
-    log.info("isRenewal:: newRenewalCount: {}, oldRenewalCount: {}", newRenewalCount,
-      oldRenewalCount);
+    int newRenewalCount = getRenewalCountOrDefault(newLoan.getRenewalCount());
+    int oldRenewalCount = getRenewalCountOrDefault(oldLoan.getRenewalCount());
 
-    return newRenewalCount != null && oldRenewalCount != null && newRenewalCount > oldRenewalCount;
+    log.info("isRenewal:: Comparing renewal counts - newRenewalCount: {}, oldRenewalCount: {}",
+      newRenewalCount, oldRenewalCount);
+
+    return newRenewalCount > oldRenewalCount;
+  }
+
+  private int getRenewalCountOrDefault(Integer renewalCount) {
+    return renewalCount != null ? renewalCount : 0;
   }
 
   private void updateLoans(Loan updatedLoan, String eventTenantId) {
