@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@FeignClient(name = "loan-storage", url = "loans", configuration = FeignClientConfiguration.class)
+@FeignClient(name = "loan-storage", url = "loan-storage/loans", configuration = FeignClientConfiguration.class)
 public interface LoanStorageClient extends GetByQueryClient<Loans> {
 
   @GetMapping("/{loanId}")
