@@ -34,7 +34,6 @@ import org.folio.support.CqlQuery;
 import org.folio.support.kafka.DefaultKafkaEvent;
 import org.folio.support.kafka.EventType;
 import org.folio.support.kafka.KafkaEvent;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -96,12 +95,10 @@ class LoanEventHandlerTest {
     Date oldDueDate = Date.from(ZonedDateTime.now().plusHours(1).toInstant());
     String itemId = randomUUID().toString();
     Loan newloan = new Loan()
-      .action("checkedout")
       .renewalCount(1)
       .dueDate(newDueDate)
       .itemId(itemId);
     Loan oldloan = new Loan()
-      .action("checkedout")
       .dueDate(oldDueDate)
       .itemId(itemId);
     KafkaEvent<Loan> event = createEvent(newloan, oldloan);
@@ -119,7 +116,7 @@ class LoanEventHandlerTest {
 
     verify(loanStorageClient, times(1)).getByQuery(argThat(
       query -> query.toString().contains("itemId") && query.toString().contains("Open")), eq(1));
-    verify(loanStorageClient, times(1)).updateLoan(eq(oldloan.getId()), eq(newloan));
+    verify(loanStorageClient, times(1)).updateLoan(oldloan.getId(), newloan);
     verify(executionService, times(1)).executeAsyncSystemUserScoped(eq(TENANT_1),
       any(Runnable.class));
   }
