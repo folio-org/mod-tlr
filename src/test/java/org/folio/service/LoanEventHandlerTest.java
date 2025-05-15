@@ -15,6 +15,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.ZonedDateTime;
+import java.util.Collections;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
@@ -87,6 +88,35 @@ class LoanEventHandlerTest {
     KafkaEvent<Loan> event = createEvent(newloan);
     loanEventHandler.handle(event);
     verifyNoInteractions(loanStorageClient);
+  }
+
+  @Test
+  void updateEventForNotFoundLoansIsIgnored() {
+    Date newDueDate = Date.from(ZonedDateTime.now().plusDays(1).toInstant());
+    Date oldDueDate = Date.from(ZonedDateTime.now().plusHours(1).toInstant());
+    String itemId = randomUUID().toString();
+    Loan newloan = new Loan()
+      .renewalCount(1)
+      .dueDate(newDueDate)
+      .itemId(itemId);
+    Loan oldloan = new Loan()
+      .dueDate(oldDueDate)
+      .itemId(itemId);
+    KafkaEvent<Loan> event = createEvent(newloan, oldloan);
+    when(consortiaService.getAllConsortiumTenants())
+      .thenReturn(List.of(new Tenant().id(TENANT_1), new Tenant().id(EVENT_TENANT_ID)));
+    when(loanStorageClient.getByQuery(any(CqlQuery.class), eq(1)))
+      .thenReturn(new Loans(Collections.emptyList(), 0));
+    doAnswer(invocation -> {
+      ((Runnable) invocation.getArguments()[1]).run();
+      return null;
+    }).when(executionService).executeAsyncSystemUserScoped(anyString(), any(Runnable.class));
+
+    loanEventHandler.handle(event);
+
+    verify(loanStorageClient, times(1)).getByQuery(argThat(
+      query -> query.toString().contains("itemId") && query.toString().contains("Open")), eq(1));
+    verify(loanStorageClient, times(0)).updateLoan(oldloan.getId(), newloan);
   }
 
   @Test
