@@ -58,13 +58,14 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
   }
 
   private void handleUpdateEvent(KafkaEvent<Loan> event) {
+    if (isRenewalEvent(event)) {
+      log.info("handleUpdateEvent:: processing renewal update event");
+      updateLoans(event.getNewVersion(), event.getTenant());
+      return;
+    }
     Loan loan = event.getNewVersion();
     String loanAction = loan.getAction();
     log.info("handle:: loan action: {}", loanAction);
-    if (isRenewal(loan, event.getOldVersion())) {
-      log.info("handleUpdateEvent:: processing renewal update event");
-      updateLoans(event.getNewVersion(), event.getTenant());
-    }
     if (LOAN_ACTION_CHECKED_IN.equals(loanAction)) {
       log.info("handleUpdateEvent:: processing loan check-in event: {}", event::getId);
       handleCheckInEvent(event);
@@ -73,17 +74,18 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
     }
   }
 
-  private boolean isRenewal(Loan newLoan, Loan oldLoan) {
-    int newRenewalCount = getRenewalCountOrDefault(newLoan.getRenewalCount());
-    int oldRenewalCount = getRenewalCountOrDefault(oldLoan.getRenewalCount());
+  private boolean isRenewalEvent(KafkaEvent<Loan> event) {
+    int newRenewalCount = getRenewalCountOrDefault(event.getNewVersion());
+    int oldRenewalCount = getRenewalCountOrDefault(event.getOldVersion());
 
-    log.info("isRenewal:: Comparing renewal counts - newRenewalCount: {}, oldRenewalCount: {}",
+    log.info("isRenewalEvent:: comparing renewal counts - newRenewalCount: {}, oldRenewalCount: {}",
       newRenewalCount, oldRenewalCount);
 
     return newRenewalCount > oldRenewalCount;
   }
 
-  private int getRenewalCountOrDefault(Integer renewalCount) {
+  private int getRenewalCountOrDefault(Loan loan) {
+    Integer renewalCount = loan.getRenewalCount();
     return renewalCount != null ? renewalCount : 0;
   }
 
