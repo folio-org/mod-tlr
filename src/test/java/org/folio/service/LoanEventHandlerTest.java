@@ -5,7 +5,6 @@ import static java.util.UUID.randomUUID;
 import static org.folio.support.kafka.EventType.UPDATE;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
@@ -48,8 +47,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class LoanEventHandlerTest {
 
   private static final EnumSet<EventType> SUPPORTED_EVENT_TYPES = EnumSet.of(UPDATE);
-  private static final String EVENT_TENANT_ID = "test_tenant";
-  private static final String TENANT_1 = "tenant-1";
+  private static final String TENANT_ID_CONSORTIUM = "consortium";
+  private static final String TENANT_ID_COLLEGE = "college";
 
   @Mock
   private DcbService dcbService;
@@ -92,19 +91,9 @@ class LoanEventHandlerTest {
 
   @Test
   void updateEventForNotFoundLoansIsIgnored() {
-    Date newDueDate = Date.from(ZonedDateTime.now().plusDays(1).toInstant());
-    Date oldDueDate = Date.from(ZonedDateTime.now().plusHours(1).toInstant());
-    String itemId = randomUUID().toString();
-    Loan newloan = new Loan()
-      .renewalCount(1)
-      .dueDate(newDueDate)
-      .itemId(itemId);
-    Loan oldloan = new Loan()
-      .dueDate(oldDueDate)
-      .itemId(itemId);
-    KafkaEvent<Loan> event = createEvent(newloan, oldloan);
+    KafkaEvent<Loan> event = buildLoanRenewalEvent();
     when(consortiaService.getAllConsortiumTenants())
-      .thenReturn(List.of(new Tenant().id(TENANT_1), new Tenant().id(EVENT_TENANT_ID)));
+      .thenReturn(List.of(new Tenant().id(TENANT_ID_COLLEGE), new Tenant().id(TENANT_ID_CONSORTIUM)));
     when(loanStorageClient.getByQuery(any(CqlQuery.class), eq(1)))
       .thenReturn(new Loans(Collections.emptyList(), 0));
     doAnswer(invocation -> {
@@ -114,29 +103,21 @@ class LoanEventHandlerTest {
 
     loanEventHandler.handle(event);
 
-    verify(loanStorageClient, times(1)).getByQuery(argThat(
-      query -> query.toString().contains("itemId") && query.toString().contains("Open")), eq(1));
-    verify(loanStorageClient, times(0)).updateLoan(oldloan.getId(), newloan);
+    var expectedQuery = CqlQuery.exactMatch("itemId", event.getNewVersion().getItemId())
+      .and(CqlQuery.exactMatch("status.name", "Open"));
+    verify(loanStorageClient, times(1)).getByQuery(expectedQuery, 1);
+    verify(loanStorageClient, times(0)).updateLoan(event.getOldVersion().getId(),
+      event.getNewVersion());
   }
 
   @Test
   void updateRenewalEventIsHandled() {
-    Date newDueDate = Date.from(ZonedDateTime.now().plusDays(1).toInstant());
-    Date oldDueDate = Date.from(ZonedDateTime.now().plusHours(1).toInstant());
-    String itemId = randomUUID().toString();
-    Loan newloan = new Loan()
-      .renewalCount(1)
-      .dueDate(newDueDate)
-      .itemId(itemId);
-    Loan oldloan = new Loan()
-      .dueDate(oldDueDate)
-      .itemId(itemId);
-    KafkaEvent<Loan> event = createEvent(newloan, oldloan);
+    KafkaEvent<Loan> event = buildLoanRenewalEvent();
 
     when(consortiaService.getAllConsortiumTenants())
-      .thenReturn(List.of(new Tenant().id(TENANT_1), new Tenant().id(EVENT_TENANT_ID)));
+      .thenReturn(List.of(new Tenant().id(TENANT_ID_COLLEGE), new Tenant().id(TENANT_ID_CONSORTIUM)));
     when(loanStorageClient.getByQuery(any(CqlQuery.class), eq(1)))
-      .thenReturn(new Loans(List.of(oldloan), 1));
+      .thenReturn(new Loans(List.of(event.getNewVersion()), 1));
     doAnswer(invocation -> {
       ((Runnable) invocation.getArguments()[1]).run();
       return null;
@@ -144,10 +125,11 @@ class LoanEventHandlerTest {
 
     loanEventHandler.handle(event);
 
-    verify(loanStorageClient, times(1)).getByQuery(argThat(
-      query -> query.toString().contains("itemId") && query.toString().contains("Open")), eq(1));
-    verify(loanStorageClient, times(1)).updateLoan(oldloan.getId(), newloan);
-    verify(executionService, times(1)).executeAsyncSystemUserScoped(eq(TENANT_1),
+    var expectedQuery = CqlQuery.exactMatch("itemId", event.getNewVersion().getItemId())
+      .and(CqlQuery.exactMatch("status.name", "Open"));
+    verify(loanStorageClient, times(1)).getByQuery(expectedQuery, 1);
+    verify(loanStorageClient, times(1)).updateLoan(event.getOldVersion().getId(), event.getNewVersion());
+    verify(executionService, times(1)).executeAsyncSystemUserScoped(eq(TENANT_ID_COLLEGE),
       any(Runnable.class));
   }
 
@@ -289,15 +271,29 @@ class LoanEventHandlerTest {
       .status(TransactionStatusResponse.StatusEnum.fromValue(status));
   }
 
+  private KafkaEvent<Loan> buildLoanRenewalEvent() {
+    Date newDueDate = Date.from(ZonedDateTime.now().plusDays(1).toInstant());
+    Date oldDueDate = Date.from(ZonedDateTime.now().plusHours(1).toInstant());
+    String itemId = randomUUID().toString();
+    Loan newloan = new Loan()
+      .renewalCount(1)
+      .dueDate(newDueDate)
+      .itemId(itemId);
+    Loan oldloan = new Loan()
+      .dueDate(oldDueDate)
+      .itemId(itemId);
+    return createEvent(newloan, oldloan);
+  }
+
   private static KafkaEvent<Loan> createEvent(Loan loan) {
     return createEvent(loan, loan);
   }
 
   private static KafkaEvent<Loan> createEvent(Loan newLoan, Loan oldLoan) {
-    return new DefaultKafkaEvent<>(randomUUID().toString(), EVENT_TENANT_ID,
+    return new DefaultKafkaEvent<>(randomUUID().toString(), TENANT_ID_CONSORTIUM,
       DefaultKafkaEvent.DefaultKafkaEventType.UPDATED, 0L,
       new DefaultKafkaEvent.DefaultKafkaEventData<>(oldLoan, newLoan))
-        .withTenantIdHeaderValue(EVENT_TENANT_ID)
+        .withTenantIdHeaderValue(TENANT_ID_CONSORTIUM)
         .withUserIdHeaderValue("test_user");
   }
 }
