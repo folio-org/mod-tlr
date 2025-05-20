@@ -1,3 +1,6 @@
+## 1.0.16 2025-05-20
+* Synchronize loans after renewal (MODTLR-199)
+
 ## 1.0.15 2025-05-06
 * [LOC Locate requirement] Allowed Service points should return discovery display name. (MODTLR-202)
 
