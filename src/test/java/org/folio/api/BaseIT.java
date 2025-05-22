@@ -114,7 +114,8 @@ public class BaseIT {
     new PostgreSQLContainer<>("postgres:12-alpine");
   @Container
   private static final KafkaContainer kafka = new KafkaContainer(
-    DockerImageName.parse("apache/kafka-native:3.8.0"));
+      DockerImageName.parse("apache/kafka-native:3.8.0"))
+      .withStartupAttempts(3);
 
   @DynamicPropertySource
   static void overrideProperties(DynamicPropertyRegistry registry) {
