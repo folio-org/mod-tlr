@@ -158,7 +158,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
 
     var newTransactionStatus = switch (newRequestStatus) {
       case OPEN_IN_TRANSIT -> OPEN;
-      case OPEN_AWAITING_PICKUP -> AWAITING_PICKUP;
+      case OPEN_AWAITING_PICKUP, OPEN_AWAITING_DELIVERY -> AWAITING_PICKUP;
       case CLOSED_FILLED -> ITEM_CHECKED_OUT;
       case CLOSED_CANCELLED -> CANCELLED;
       default -> null;
