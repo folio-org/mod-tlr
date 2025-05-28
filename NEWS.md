@@ -1,3 +1,7 @@
+## 1.0.17 2025-05-28
+* Handle `Open - Awaiting delivery` status (MODTLR-209)
+* Renaming in `RequestBatchUpdateEventHandler` (MODTLR-201)
+
 ## 1.0.16 2025-05-20
 * Synchronize loans after renewal (MODTLR-199)
 
