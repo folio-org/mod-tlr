@@ -1,3 +1,9 @@
+## 1.1.2 2025-05-29
+* Handle `Open - Awaiting delivery` status (MODTLR-209)
+* Renaming in `RequestBatchUpdateEventHandler` (MODTLR-201)
+* Synchronize loans after renewal (MODTLR-199)
+* [LOC Locate requirement] Allowed Service points should return discovery display name (MODTLR-202)
+
 ## 1.1.1 2025-04-23
 * Fix inability to create an ECS request for previously requested available Item (MODTLR-162)
 * Increase memory allocation (MODTLR-176)
