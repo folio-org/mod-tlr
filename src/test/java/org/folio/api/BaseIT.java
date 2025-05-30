@@ -50,10 +50,10 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.web.reactive.function.BodyInserters;
-import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -114,7 +114,8 @@ public class BaseIT {
     new PostgreSQLContainer<>("postgres:12-alpine");
   @Container
   private static final KafkaContainer kafka = new KafkaContainer(
-    DockerImageName.parse("confluentinc/cp-kafka:7.5.3"));
+      DockerImageName.parse("apache/kafka-native:3.8.0"))
+      .withStartupAttempts(3);
 
   @DynamicPropertySource
   static void overrideProperties(DynamicPropertyRegistry registry) {
