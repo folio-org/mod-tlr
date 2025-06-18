@@ -44,26 +44,30 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
     log.info("handle:: processing requests batch update event: {}", event::getId);
     RequestsBatchUpdate requestsBatchUpdate = event.getNewVersion();
 
-    if (TITLE.getValue().equals(requestsBatchUpdate.getRequestLevel().getValue())) {
-      updateQueuePositionsForTitleLevel(requestsBatchUpdate.getInstanceId());
+    if (isUnifiedQueue(requestsBatchUpdate)) {
+      updatePositionsForUnifiedQueue(requestsBatchUpdate.getInstanceId());
     } else {
-      updateQueuePositionsForItemLevel(requestsBatchUpdate.getItemId());
+      updatePositionsForItemLevelQueue(requestsBatchUpdate.getItemId());
     }
 
     log.info("handle:: requests batch update event processed: {}", event::getId);
   }
 
-  private void updateQueuePositionsForTitleLevel(String instanceId) {
+  private static boolean isUnifiedQueue(RequestsBatchUpdate requestsBatchUpdate) {
+    return TITLE.getValue().equals(requestsBatchUpdate.getRequestLevel().getValue());
+  }
+
+  private void updatePositionsForUnifiedQueue(String instanceId) {
     updateQueuePositions(requestService.getRequestsQueueByInstanceId(instanceId), true);
   }
 
-  private void updateQueuePositionsForItemLevel(String itemId) {
+  private void updatePositionsForItemLevelQueue(String itemId) {
     updateQueuePositions(requestService.getRequestsQueueByItemId(itemId), false);
   }
 
-  private void updateQueuePositions(List<Request> unifiedQueue, boolean isTlrRequestQueue) {
-    log.debug("updateQueuePositions:: parameters unifiedQueue: {}", unifiedQueue);
-    List<UUID> sortedRequestIds = unifiedQueue.stream()
+  private void updateQueuePositions(List<Request> queue, boolean isUnifiedQueue) {
+    log.debug("updateQueuePositions:: parameters queue: {}, isUnifiedQueue: {}", queue, isUnifiedQueue);
+    List<UUID> sortedRequestIds = queue.stream()
       .filter(request -> PRIMARY == request.getEcsRequestPhase() ||
         INTERMEDIATE == request.getEcsRequestPhase())
       .filter(request -> request.getPosition() != null)
@@ -74,18 +78,16 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
 
     // Primary and intermediate request within the same ECS TLR share the same ID, so
     // we can search by either one
-    List<EcsTlrEntity> ecsTlrs = ecsTlrRepository.findByPrimaryRequestIdIn(
-      sortedRequestIds);
+    List<EcsTlrEntity> ecsTlrs = ecsTlrRepository.findByPrimaryRequestIdIn(sortedRequestIds);
     if (ecsTlrs == null || ecsTlrs.isEmpty()) {
-      log.warn("updateQueuePositions:: no corresponding ECS TLR found");
+      log.warn("updateQueuePositions:: no corresponding ECS TLRs found");
       return;
     }
-    List<EcsTlrEntity> sortedEcsTlrQueue = sortEcsTlrEntities(sortedRequestIds,
-      ecsTlrs);
+    List<EcsTlrEntity> sortedEcsTlrQueue = sortEcsTlrEntities(sortedRequestIds, ecsTlrs);
     Map<String, List<Request>> groupedSecondaryRequestsByTenantId = groupSecondaryRequestsByTenantId(
       sortedEcsTlrQueue);
 
-    reorderSecondaryRequestsQueue(groupedSecondaryRequestsByTenantId, sortedEcsTlrQueue, isTlrRequestQueue);
+    reorderSecondaryRequestsQueue(groupedSecondaryRequestsByTenantId, sortedEcsTlrQueue, isUnifiedQueue);
   }
 
   private Map<String, List<Request>> groupSecondaryRequestsByTenantId(
@@ -120,7 +122,7 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
 
   private void reorderSecondaryRequestsQueue(
     Map<String, List<Request>> groupedSecondaryRequestsByTenantId,
-    List<EcsTlrEntity> sortedEcsTlrQueue, boolean isTlrRequestQueue) {
+    List<EcsTlrEntity> sortedEcsTlrQueue, boolean isUnifiedQueue) {
 
     log.debug("reorderSecondaryRequestsQueue:: parameters groupedSecondaryRequestsByTenantId: {}, " +
       "sortedEcsTlrQueue: {}", groupedSecondaryRequestsByTenantId, sortedEcsTlrQueue);
@@ -136,7 +138,7 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
 
     groupedSecondaryRequestsByTenantId.forEach((tenantId, secondaryRequests) ->
       updateReorderedRequests(reorderSecondaryRequestsForTenant(
-        tenantId, secondaryRequests, correctOrder), tenantId, isTlrRequestQueue));
+        tenantId, secondaryRequests, correctOrder), tenantId, isUnifiedQueue));
   }
 
   private List<Request> reorderSecondaryRequestsForTenant(String tenantId,
@@ -169,7 +171,7 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
   }
 
   private void updateReorderedRequests(List<Request> requestsWithUpdatedPositions, String tenantId,
-    boolean isTlrRequestQueue) {
+    boolean isUnifiedQueue) {
 
     if (requestsWithUpdatedPositions == null || requestsWithUpdatedPositions.isEmpty()) {
       log.info("updateReorderedRequests:: no secondary requests with updated positions");
@@ -181,7 +183,7 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
     List<Request> updatedQueue;
 
     String id;
-    if (isTlrRequestQueue) {
+    if (isUnifiedQueue) {
       log.info("updateReorderedRequests:: getting requests queue by instanceId");
       id = requestsWithUpdatedPositions.get(0).getInstanceId();
       updatedQueue = new ArrayList<>(requestService.getRequestsQueueByInstanceId(id, tenantId));
@@ -204,7 +206,7 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
         .newPosition(request.getPosition())));
     log.debug("updateReorderedRequests:: reorderQueue: {}", reorderQueue);
 
-    List<Request> requests = isTlrRequestQueue
+    List<Request> requests = isUnifiedQueue
       ? requestService.reorderRequestsQueueForInstance(id, tenantId, reorderQueue)
       : requestService.reorderRequestsQueueForItem(id, tenantId, reorderQueue);
 

@@ -109,6 +109,8 @@ components:
       $ref: 'schemas/requests.json'
     loan:
       $ref: 'schemas/loan.json'
+    loans:
+      $ref: 'schemas/loans.json'
     searchInstancesResponse:
       $ref: 'schemas/search/searchInstancesResponse.yaml'
     searchItemResponse:
