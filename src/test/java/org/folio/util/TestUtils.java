@@ -5,13 +5,18 @@ import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static java.lang.String.format;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 
 import java.util.Base64;
 import java.util.Date;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 
 import org.apache.http.HttpStatus;
+import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.folio.support.kafka.DefaultKafkaEvent;
 import org.folio.support.kafka.KafkaEvent;
 import org.json.JSONArray;
@@ -96,6 +101,11 @@ public class TestUtils {
       .data(data)
       .build()
       .withTenantIdHeaderValue(tenant);
+  }
+
+  public static void mockSystemUserService(SystemUserScopedExecutionService systemUserService) {
+    doAnswer(invocation -> ((Callable<?>) invocation.getArguments()[1]).call())
+      .when(systemUserService).executeSystemUserScoped(anyString(), any(Callable.class));
   }
 
   public static String randomId() {

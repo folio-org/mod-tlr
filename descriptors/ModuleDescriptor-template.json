@@ -170,9 +170,13 @@
       "version": "1.0",
       "handlers": [
         {
-          "methods": ["POST"],
+          "methods": [
+            "POST"
+          ],
           "pathPattern": "/tlr/loans/check-out-by-barcode",
-          "permissionsRequired": ["tlr.loans.check-out-by-barcode.execute"],
+          "permissionsRequired": [
+            "tlr.loans.check-out-by-barcode.execute"
+          ],
           "modulePermissions": [
             "consortium-search.items.batch.collection.get",
             "circulation.check-out-by-barcode.post",
@@ -180,6 +184,18 @@
             "circulation-storage.loan-policies.collection.get",
             "circulation-storage.loan-policies.item.get",
             "circulation-storage.loan-policies.item.post"
+          ]
+        },
+        {
+          "methods": ["POST"],
+          "pathPattern": "/tlr/loans/declare-item-lost",
+          "permissionsRequired": ["tlr.loans.declare-item-lost.execute"],
+          "modulePermissions": [
+            "circulation.loans.declare-item-lost.post",
+            "circulation-storage.loans.collection.get",
+            "circulation-storage.loans.item.get",
+            "circulation-storage.requests.item.get",
+            "circulation-storage.requests.collection.get"
           ]
         }
       ]
@@ -302,6 +318,11 @@
       "permissionName": "tlr.loans.check-out-by-barcode.execute",
       "displayName": "ecs-loans - check item out by barcode",
       "description": "Check item out by barcode"
+    },
+    {
+      "permissionName": "tlr.loans.declare-item-lost.execute",
+      "displayName": "ecs-loans - declare item lost",
+      "description": "Declare item lost"
     }
   ],
   "requires": [
@@ -410,6 +431,7 @@
         "circulation.requests.queue-instance.collection.get",
         "circulation.requests.queue.item-reorder.collection.post",
         "circulation.requests.queue.instance-reorder.collection.post",
+        "circulation.loans.declare-item-lost.post",
         "circulation-storage.requests.item.get",
         "circulation-storage.requests.collection.get",
         "circulation-storage.requests.item.put",
