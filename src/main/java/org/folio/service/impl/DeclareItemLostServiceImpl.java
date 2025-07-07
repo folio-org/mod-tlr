@@ -48,7 +48,7 @@ public class DeclareItemLostServiceImpl implements DeclareItemLostService {
     boolean hasUserId = request.getUserId() != null;
 
     if ((hasLoanId && !hasItemId && !hasUserId) || (!hasLoanId && hasItemId && hasUserId)) {
-      log.info("validateRequest:: declare item lost request us valid");
+      log.info("validateRequest:: declare item lost request is valid");
       return;
     }
 

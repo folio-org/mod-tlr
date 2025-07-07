@@ -41,7 +41,7 @@ public class LoanServiceImpl implements LoanService {
 
     openLoan.ifPresentOrElse(
       loan -> log.info("findOpenLoan:: open loan found: {}", loan::getId),
-      () -> log.info("findOpenLoan:: no open loan found for user {} and itemId {}", userId, itemId)
+      () -> log.info("findOpenLoan:: no open loan found for user {} and item {}", userId, itemId)
     );
 
     return openLoan;
