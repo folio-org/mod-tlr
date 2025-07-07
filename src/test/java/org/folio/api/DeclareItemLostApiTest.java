@@ -188,6 +188,12 @@ public class DeclareItemLostApiTest extends BaseIT {
       .expectStatus().isEqualTo(circulationStatusCode);
   }
 
+  @Test
+  void declareItemLostFailsWhenRequestDoesNotHaveServicePointId() {
+    declareItemLost(new DeclareItemLostRequest().loanId(LOCAL_TENANT_LOAN_ID).servicePointId(null))
+      .expectStatus().isBadRequest();
+  }
+
   private WebTestClient.ResponseSpec declareItemLost(DeclareItemLostRequest declareItemLostRequest) {
     return doPost(DECLARE_ITEM_LOST_URL, declareItemLostRequest);
   }
