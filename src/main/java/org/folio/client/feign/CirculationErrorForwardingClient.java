@@ -17,5 +17,4 @@ public interface CirculationErrorForwardingClient {
   ResponseEntity<Void> declareItemLost(@PathVariable String loanId,
     @RequestBody CirculationDeclareItemLostRequest request);
 
-
 }

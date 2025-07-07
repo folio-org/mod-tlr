@@ -170,13 +170,9 @@
       "version": "1.0",
       "handlers": [
         {
-          "methods": [
-            "POST"
-          ],
+          "methods": ["POST"],
           "pathPattern": "/tlr/loans/check-out-by-barcode",
-          "permissionsRequired": [
-            "tlr.loans.check-out-by-barcode.execute"
-          ],
+          "permissionsRequired": ["tlr.loans.check-out-by-barcode.execute"],
           "modulePermissions": [
             "consortium-search.items.batch.collection.get",
             "circulation.check-out-by-barcode.post",
