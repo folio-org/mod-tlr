@@ -187,6 +187,14 @@ class DeclareItemLostServiceTest {
         .itemId(null)
         .userId(null)),
       Arguments.of(new DeclareItemLostRequest()
+        .loanId(randomUUID())
+        .itemId(randomUUID())
+        .userId(null)),
+      Arguments.of(new DeclareItemLostRequest()
+        .loanId(randomUUID())
+        .itemId(null)
+        .userId(randomUUID())),
+      Arguments.of(new DeclareItemLostRequest()
         .loanId(null)
         .itemId(randomUUID())
         .userId(null)),
