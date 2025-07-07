@@ -160,8 +160,9 @@ class DeclareItemLostServiceTest {
     when(loanService.findOpenLoan(USER_ID.toString(), ITEM_ID.toString()))
       .thenReturn(Optional.empty());
 
+    DeclareItemLostRequest request = buildDeclareItemLostByLoanIdRequest();
     assertThrows(NoSuchElementException.class,
-      () -> declareItemLostService.declareItemLost(buildDeclareItemLostByLoanIdRequest()));
+      () -> declareItemLostService.declareItemLost(request));
 
     verify(circulationClient, times(1)).declareItemLost(
       LOCAL_TENANT_LOAN_ID.toString(), buildCirculationDeclareItemLostRequest());

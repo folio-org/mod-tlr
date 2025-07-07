@@ -33,7 +33,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
-public class DeclareItemLostApiTest extends BaseIT {
+class DeclareItemLostApiTest extends BaseIT {
 
   private static final UUID SERVICE_POINT_ID = UUID.randomUUID();
   private static final UUID LOCAL_TENANT_LOAN_ID = UUID.randomUUID();
