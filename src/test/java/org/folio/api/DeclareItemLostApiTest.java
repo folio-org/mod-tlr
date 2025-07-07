@@ -163,6 +163,16 @@ public class DeclareItemLostApiTest extends BaseIT {
   @ParameterizedTest
   @ValueSource(ints = { 400, 404, 422, 500 })
   void circulationApiErrorsAreForwarded(int circulationStatusCode) {
+    Loan mockLocalLoan = new Loan()
+      .id(LOCAL_TENANT_LOAN_ID.toString())
+      .userId(USER_ID.toString())
+      .itemId(ITEM_ID.toString())
+      .metadata(new Metadata().createdDate(new Date()));
+
+    wireMockServer.stubFor(get(urlEqualTo(LOAN_STORAGE_URL + "/" + LOCAL_TENANT_LOAN_ID))
+      .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(okJson(asJsonString(mockLocalLoan))));
+
     wireMockServer.stubFor(post(urlEqualTo(
       CIRCULATION_DECLARE_ITEM_LOST_URL_TEMPLATE.formatted(LOCAL_TENANT_LOAN_ID.toString())))
       .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM))

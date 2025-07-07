@@ -29,13 +29,22 @@ public class LoanServiceImpl implements LoanService {
 
   @Override
   public Optional<Loan> findOpenLoan(String userId, String itemId) {
+    log.info("findOpenLoan:: looking for open loan: userId={}, itemId={}", userId, itemId);
+
     CqlQuery query = exactMatch("userId", userId)
       .and(exactMatch("itemId", itemId))
       .and(exactMatch("status.name", "Open"));
 
-    return findLoans(query, 1)
+    Optional<Loan> openLoan = findLoans(query, 1)
       .stream()
       .findFirst();
+
+    openLoan.ifPresentOrElse(
+      loan -> log.info("findOpenLoan:: open loan found: {}", loan::getId),
+      () -> log.info("findOpenLoan:: no open loan found for user {} and itemId {}", userId, itemId)
+    );
+
+    return openLoan;
   }
 
   private Collection<Loan> findLoans(CqlQuery query, int limit) {

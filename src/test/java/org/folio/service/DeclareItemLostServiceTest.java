@@ -14,6 +14,7 @@ import java.util.Date;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import org.folio.client.feign.CirculationErrorForwardingClient;
 import org.folio.domain.dto.CirculationDeclareItemLostRequest;
@@ -29,6 +30,9 @@ import org.folio.service.impl.DeclareItemLostServiceImpl;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -47,7 +51,6 @@ class DeclareItemLostServiceTest {
   private static final Date DECLARE_ITEM_LOST_DATE = new Date();
   private static final String DECLARE_ITEM_LOST_COMMENT = "Test comment";
 
-
   @Spy
   private CirculationMapper circulationMapper = new CirculationMapperImpl();
   @Mock
@@ -64,7 +67,7 @@ class DeclareItemLostServiceTest {
   private DeclareItemLostServiceImpl declareItemLostService;
 
   @Test
-  void declareItemLostInLocalAndLendingTenant() {
+  void declareItemLostByLoanIdInLocalAndLendingTenant() {
     mockSystemUserService(systemUserService);
     when(circulationClient.declareItemLost(anyString(), eq(buildCirculationDeclareItemLostRequest())))
       .thenReturn(ResponseEntity.noContent().build());
@@ -77,12 +80,36 @@ class DeclareItemLostServiceTest {
     when(ecsTlrRepository.findByPrimaryRequestId(ECS_REQUEST_ID))
       .thenReturn(Optional.of(buildEcsTlr()));
 
-    declareItemLostService.declareItemLost(buildDeclareItemLostRequest());
+    declareItemLostService.declareItemLost(buildDeclareItemLostByLoanIdRequest());
 
     verify(circulationClient, times(1)).declareItemLost(
       LOCAL_TENANT_LOAN_ID.toString(), buildCirculationDeclareItemLostRequest());
     verify(circulationClient, times(1)).declareItemLost(
       LENDING_TENANT_LOAN_ID.toString(), buildCirculationDeclareItemLostRequest());
+    verify(loanService, times(1)).findOpenLoan(USER_ID.toString(), ITEM_ID.toString());
+  }
+
+  @Test
+  void declareItemLostByUserAndItemIdInLocalAndLendingTenant() {
+    mockSystemUserService(systemUserService);
+    when(circulationClient.declareItemLost(anyString(), eq(buildCirculationDeclareItemLostRequest())))
+      .thenReturn(ResponseEntity.noContent().build());
+    when(loanService.findOpenLoan(USER_ID.toString(), ITEM_ID.toString()))
+      .thenReturn(Optional.of(buildLoan(LOCAL_TENANT_LOAN_ID))) // loan in local tenant
+      .thenReturn(Optional.of(buildLoan(LENDING_TENANT_LOAN_ID))); // loan in lending tenant
+    when(requestService.findEcsRequestForLoan(buildLoan(LOCAL_TENANT_LOAN_ID)))
+      .thenReturn(Optional.of(buildEcsRequest()));
+    when(ecsTlrRepository.findByPrimaryRequestId(ECS_REQUEST_ID))
+      .thenReturn(Optional.of(buildEcsTlr()));
+
+    declareItemLostService.declareItemLost(buildDeclareItemLostByItemAndUserIdIdRequest());
+
+    verify(circulationClient, times(1)).declareItemLost(
+      LOCAL_TENANT_LOAN_ID.toString(), buildCirculationDeclareItemLostRequest());
+    verify(circulationClient, times(1)).declareItemLost(
+      LENDING_TENANT_LOAN_ID.toString(), buildCirculationDeclareItemLostRequest());
+    verify(loanService, times(2)).findOpenLoan(USER_ID.toString(), ITEM_ID.toString());
+    verify(loanService, times(0)).fetchLoan(anyString());
   }
 
   @Test
@@ -94,7 +121,7 @@ class DeclareItemLostServiceTest {
     when(requestService.findEcsRequestForLoan(buildLoan(LOCAL_TENANT_LOAN_ID)))
       .thenReturn(Optional.empty());
 
-    declareItemLostService.declareItemLost(buildDeclareItemLostRequest());
+    declareItemLostService.declareItemLost(buildDeclareItemLostByLoanIdRequest());
 
     verify(circulationClient, times(1)).declareItemLost(
       LOCAL_TENANT_LOAN_ID.toString(), buildCirculationDeclareItemLostRequest());
@@ -112,7 +139,7 @@ class DeclareItemLostServiceTest {
     when(ecsTlrRepository.findByPrimaryRequestId(ECS_REQUEST_ID))
       .thenReturn(Optional.empty());
 
-    declareItemLostService.declareItemLost(buildDeclareItemLostRequest());
+    declareItemLostService.declareItemLost(buildDeclareItemLostByLoanIdRequest());
 
     verify(circulationClient, times(1)).declareItemLost(
       LOCAL_TENANT_LOAN_ID.toString(), buildCirculationDeclareItemLostRequest());
@@ -134,16 +161,53 @@ class DeclareItemLostServiceTest {
       .thenReturn(Optional.empty());
 
     assertThrows(NoSuchElementException.class,
-      () -> declareItemLostService.declareItemLost(buildDeclareItemLostRequest()));
+      () -> declareItemLostService.declareItemLost(buildDeclareItemLostByLoanIdRequest()));
 
     verify(circulationClient, times(1)).declareItemLost(
       LOCAL_TENANT_LOAN_ID.toString(), buildCirculationDeclareItemLostRequest());
     verifyNoMoreInteractions(circulationClient);
   }
 
-  private static DeclareItemLostRequest buildDeclareItemLostRequest() {
+  @ParameterizedTest
+  @MethodSource("invalidDeclareItemLostRequests")
+  void declareItemLostFailsWhenRequestHasInvalidCombinationOfParameters(DeclareItemLostRequest request) {
+    assertThrows(IllegalArgumentException.class,
+      () -> declareItemLostService.declareItemLost(request));
+  }
+
+  private static Stream<Arguments> invalidDeclareItemLostRequests() {
+    return Stream.of(
+      Arguments.of(new DeclareItemLostRequest()
+        .loanId(randomUUID())
+        .itemId(randomUUID())
+        .userId(randomUUID())),
+      Arguments.of(new DeclareItemLostRequest()
+        .loanId(null)
+        .itemId(null)
+        .userId(null)),
+      Arguments.of(new DeclareItemLostRequest()
+        .loanId(null)
+        .itemId(randomUUID())
+        .userId(null)),
+      Arguments.of(new DeclareItemLostRequest()
+        .loanId(null)
+        .itemId(null)
+        .userId(randomUUID()))
+    );
+  }
+
+  private static DeclareItemLostRequest buildDeclareItemLostByLoanIdRequest() {
     return new DeclareItemLostRequest()
       .loanId(LOCAL_TENANT_LOAN_ID)
+      .servicePointId(SERVICE_POINT_ID)
+      .declaredLostDateTime(DECLARE_ITEM_LOST_DATE)
+      .comment(DECLARE_ITEM_LOST_COMMENT);
+  }
+
+  private static DeclareItemLostRequest buildDeclareItemLostByItemAndUserIdIdRequest() {
+    return new DeclareItemLostRequest()
+      .itemId(ITEM_ID)
+      .userId(USER_ID)
       .servicePointId(SERVICE_POINT_ID)
       .declaredLostDateTime(DECLARE_ITEM_LOST_DATE)
       .comment(DECLARE_ITEM_LOST_COMMENT);

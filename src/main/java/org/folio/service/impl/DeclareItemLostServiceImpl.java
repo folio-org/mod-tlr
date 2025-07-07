@@ -34,25 +34,51 @@ public class DeclareItemLostServiceImpl implements DeclareItemLostService {
 
   @Override
   public void declareItemLost(DeclareItemLostRequest declareLostRequest) {
-    log.info("declareItemLost:: declaring item lost for loan {}", declareLostRequest::getLoanId);
-    declareItemLostInCirculation(declareLostRequest);
-    declareItemLostInLendingTenant(declareLostRequest);
+    log.info("declareItemLost:: processing declare item lost request: {}", declareLostRequest);
+    validateRequest(declareLostRequest);
+    Loan localLoan = findLoan(declareLostRequest);
+    declareItemLostInCirculation(localLoan, declareLostRequest);
+    declareItemLostInLendingTenant(localLoan, declareLostRequest);
     log.info("declareItemLost:: successfully declared item lost for loan {}", declareLostRequest::getLoanId);
   }
 
-  private void declareItemLostInLendingTenant(DeclareItemLostRequest declareLostRequest) {
-    log.info("declareItemLostInLendingTenant:: attempting to declare item lost in lending tenant");
-    Loan localLoan = findLoan(declareLostRequest);
-    requestService.findEcsRequestForLoan(localLoan).ifPresentOrElse(
-      ecsRequest -> declareItemLostInLendingTenant(localLoan, ecsRequest, declareLostRequest),
-      () -> log.info("declareItemLost:: no ECS request found for loan {}", localLoan::getId));
+  private static void validateRequest(DeclareItemLostRequest request) {
+    boolean hasLoanId = request.getLoanId() != null;
+    boolean hasItemId = request.getItemId() != null;
+    boolean hasUserId = request.getUserId() != null;
+
+    if ((hasLoanId && !hasItemId && !hasUserId) || (!hasLoanId && hasItemId && hasUserId)) {
+      log.info("validateRequest:: declare item lost request us valid");
+      return;
+    }
+
+    String errorMessage = "Invalid declare item lost request: must have either loanId or " +
+      "(itemId and userId): " + request;
+    log.error("validateRequest:: {}", errorMessage);
+    throw new IllegalArgumentException(errorMessage);
   }
 
   private Loan findLoan(DeclareItemLostRequest request) {
     return Optional.ofNullable(request.getLoanId())
       .map(UUID::toString)
       .map(loanService::fetchLoan)
+      .or(() -> loanService.findOpenLoan(request.getUserId().toString(), request.getItemId().toString()))
       .orElseThrow();
+  }
+
+  private ResponseEntity<Void> declareItemLostInCirculation(Loan loan,
+    DeclareItemLostRequest declareItemLostRequest) {
+
+    log.info("declareItemLostInCirculation:: declaring item lost for loan {}", loan::getId);
+    return circulationClient.declareItemLost(loan.getId(),
+      circulationMapper.toCirculationDeclareItemLostRequest(declareItemLostRequest));
+  }
+
+  private void declareItemLostInLendingTenant(Loan localLoan, DeclareItemLostRequest declareLostRequest) {
+    log.info("declareItemLostInLendingTenant:: attempting to declare item lost in lending tenant");
+    requestService.findEcsRequestForLoan(localLoan).ifPresentOrElse(
+      ecsRequest -> declareItemLostInLendingTenant(localLoan, ecsRequest, declareLostRequest),
+      () -> log.info("declareItemLost:: no ECS request found for loan {}", localLoan::getId));
   }
 
   private void declareItemLostInLendingTenant(Loan loan, Request ecsRequest,
@@ -78,25 +104,10 @@ public class DeclareItemLostServiceImpl implements DeclareItemLostService {
     log.info("declareItemLost:: declaring item lost in tenant {}", tenantId);
 
     systemUserService.executeSystemUserScoped(tenantId, () -> {
-      String loanId = loanService.findOpenLoan(loan.getUserId(), loan.getItemId())
-        .map(Loan::getId)
+      Loan openLoan = loanService.findOpenLoan(loan.getUserId(), loan.getItemId())
         .orElseThrow();
-
-      log.info("declareItemLost:: open loan found: {}", loanId);
-      return declareItemLostInCirculation(loanId, declareLostRequest);
+      return declareItemLostInCirculation(openLoan, declareLostRequest);
     });
-  }
-
-  private void declareItemLostInCirculation(DeclareItemLostRequest declareItemLostRequest) {
-    declareItemLostInCirculation(declareItemLostRequest.getLoanId().toString(), declareItemLostRequest);
-  }
-
-  private ResponseEntity<Void> declareItemLostInCirculation(String loanId,
-    DeclareItemLostRequest declareItemLostRequest) {
-
-    log.info("declareItemLostInCirculation:: declaring item lost for loan {}", loanId);
-    return circulationClient.declareItemLost(loanId,
-      circulationMapper.toCirculationDeclareItemLostRequest(declareItemLostRequest));
   }
 
 }
