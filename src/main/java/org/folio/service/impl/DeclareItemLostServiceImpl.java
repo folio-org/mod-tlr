@@ -39,7 +39,7 @@ public class DeclareItemLostServiceImpl implements DeclareItemLostService {
     Loan localLoan = findLoan(declareLostRequest);
     declareItemLostInCirculation(localLoan, declareLostRequest);
     declareItemLostInLendingTenant(localLoan, declareLostRequest);
-    log.info("declareItemLost:: successfully declared item lost for loan {}", declareLostRequest::getLoanId);
+    log.info("declareItemLost:: item successfully declared lost");
   }
 
   private static void validateRequest(DeclareItemLostRequest request) {
