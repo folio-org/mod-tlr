@@ -35,34 +35,16 @@ public class DeclareItemLostServiceImpl implements DeclareItemLostService {
   @Override
   public void declareItemLost(DeclareItemLostRequest declareLostRequest) {
     log.info("declareItemLost:: processing declare item lost request: {}", declareLostRequest);
-    validateRequest(declareLostRequest);
     Loan localLoan = findLoan(declareLostRequest);
     declareItemLostInCirculation(localLoan, declareLostRequest);
     declareItemLostInLendingTenant(localLoan, declareLostRequest);
     log.info("declareItemLost:: item successfully declared lost");
   }
 
-  private static void validateRequest(DeclareItemLostRequest request) {
-    boolean hasLoanId = request.getLoanId() != null;
-    boolean hasItemId = request.getItemId() != null;
-    boolean hasUserId = request.getUserId() != null;
-
-    if ((hasLoanId && !hasItemId && !hasUserId) || (!hasLoanId && hasItemId && hasUserId)) {
-      log.info("validateRequest:: declare item lost request is valid");
-      return;
-    }
-
-    String errorMessage = "Invalid declare item lost request: must have either loanId or " +
-      "(itemId and userId): " + request;
-    log.error("validateRequest:: {}", errorMessage);
-    throw new IllegalArgumentException(errorMessage);
-  }
-
   private Loan findLoan(DeclareItemLostRequest request) {
     return Optional.ofNullable(request.getLoanId())
       .map(UUID::toString)
       .map(loanService::fetchLoan)
-      .or(() -> loanService.findOpenLoan(request.getUserId().toString(), request.getItemId().toString()))
       .orElseThrow();
   }
 

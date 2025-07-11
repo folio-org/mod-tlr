@@ -13,6 +13,8 @@ public record CqlQuery(String query) {
   public static final String EXACT_MATCH_QUERY_TEMPLATE = "%s==\"%s\"";
   public static final String MATCH_QUERY_TEMPLATE = "%s=\"%s\"";
   public static final String EXACT_MATCH_ANY_QUERY_TEMPLATE = "%s==(%s)";
+  public static final String GREATER_THAN_QUERY_TEMPLATE = "%s>\"%s\"";
+  public static final String LESS_THAN_QUERY_TEMPLATE = "%s<\"%s\"";
 
   public static CqlQuery empty() {
     return new CqlQuery(EMPTY);
@@ -24,6 +26,10 @@ public record CqlQuery(String query) {
 
   public static CqlQuery match(String index, String value) {
     return new CqlQuery(format(MATCH_QUERY_TEMPLATE, index, value));
+  }
+
+  public static CqlQuery hasValue(String index) {
+    return match(index, EMPTY);
   }
 
   public static CqlQuery exactMatchAnyId(Collection<String> values) {
@@ -65,6 +71,14 @@ public record CqlQuery(String query) {
     }
 
     return new CqlQuery(format("%s not (%s)", query, other.query()));
+  }
+
+  public static CqlQuery greaterThen(String index, Object value) {
+    return new CqlQuery(format(GREATER_THAN_QUERY_TEMPLATE, index, value));
+  }
+
+  public static CqlQuery lessThen(String index, Object value) {
+    return new CqlQuery(format(LESS_THAN_QUERY_TEMPLATE, index, value));
   }
 
   @Override
