@@ -46,6 +46,7 @@ properties:
       comment:
         description: Reason for override
         type: string
+
 additionalProperties: true
 required:
   - itemBarcode
