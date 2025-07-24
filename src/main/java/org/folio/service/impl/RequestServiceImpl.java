@@ -2,9 +2,16 @@ package org.folio.service.impl;
 
 import static java.lang.String.format;
 import static org.folio.support.BarcodeUtil.buildNonEmptyBarcode;
+import static org.folio.support.CqlQuery.exactMatch;
+import static org.folio.support.CqlQuery.greaterThen;
+import static org.folio.support.CqlQuery.hasValue;
+import static org.folio.support.CqlQuery.lessThen;
+import static org.folio.support.DateTimeUtils.toZonedDateTime;
 
+import java.time.ZonedDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.folio.client.feign.CirculationClient;
@@ -19,6 +26,7 @@ import org.folio.domain.dto.CirculationItemStatus;
 import org.folio.domain.dto.Instance;
 import org.folio.domain.dto.Item;
 import org.folio.domain.dto.ItemStatus;
+import org.folio.domain.dto.Loan;
 import org.folio.domain.dto.ReorderQueue;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.Requests;
@@ -35,6 +43,7 @@ import org.folio.service.UserService;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.folio.support.BulkFetcher;
 import org.folio.support.CqlQuery;
+import org.folio.support.DateTimeUtils;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -61,7 +70,7 @@ public class RequestServiceImpl implements RequestService {
   private final ConsortiumService consortiumService;
   private final InventoryService inventoryService;
 
-  public static final String HOLDINGS_RECORD_ID = "10cd3a5a-d36f-4c7a-bc4f-e1ae3cf820c9";
+  private static final String HOLDINGS_RECORD_ID = "10cd3a5a-d36f-4c7a-bc4f-e1ae3cf820c9";
 
   @Override
   public RequestWrapper createPrimaryRequest(Request primaryRequest,
@@ -408,6 +417,23 @@ public class RequestServiceImpl implements RequestService {
     return executionService.executeSystemUserScoped(tenantId,
       () -> requestCirculationClient.reorderRequestsQueueForItemId(itemId, reorderQueue)
         .getRequests());
+  }
+
+  @Override
+  public Optional<Request> findEcsRequestForLoan(Loan loan) {
+    ZonedDateTime loanCreationDateTime = toZonedDateTime(loan.getMetadata().getCreatedDate());
+    ZonedDateTime ecsRequestMinUpdateDate = loanCreationDateTime.minusMinutes(1);
+
+    CqlQuery query = exactMatch("requesterId", loan.getUserId())
+      .and(exactMatch("itemId", loan.getItemId()))
+      .and(exactMatch("status", "Closed - Filled"))
+      .and(hasValue("ecsRequestPhase"))
+      .and(greaterThen("metadata.updatedDate", DateTimeUtils.toString(ecsRequestMinUpdateDate)))
+      .and(lessThen("metadata.updatedDate", DateTimeUtils.toString(loanCreationDateTime)));
+
+    return getRequestsFromStorage(query)
+      .stream()
+      .findFirst();
   }
 
   private void cloneRequester(User primaryRequestRequester) {

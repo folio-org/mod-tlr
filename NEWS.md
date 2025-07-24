@@ -1,3 +1,7 @@
+## 1.1.3 2025-07-24
+* Declare item lost by user and item ID (MODTLR-217)
+* Declare item lost API (MODTLR-216)
+
 ## 1.1.2 2025-05-29
 * Handle `Open - Awaiting delivery` status (MODTLR-209)
 * Renaming in `RequestBatchUpdateEventHandler` (MODTLR-201)

@@ -26,6 +26,27 @@ paths:
           $ref: '#/components/responses/unprocessable-entity-response'
         '500':
           $ref: '#/components/responses/internal-server-error-response'
+  /tlr/loans/declare-item-lost:
+    post:
+      operationId: declareItemLost
+      description: Declare item lost
+      tags:
+        - ecsLoans
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/declareItemLostRequest"
+        required: true
+      responses:
+        '204':
+          description: Item successfully declared lost
+        '400':
+          $ref: '#/components/responses/bad-request-response'
+        '422':
+          $ref: '#/components/responses/unprocessable-entity-response'
+        '500':
+          $ref: '#/components/responses/internal-server-error-response'
 components:
   schemas:
     check-out-request:
@@ -42,6 +63,8 @@ components:
       $ref: 'schemas/search/consortiumItems.yaml'
     searchBatchIds:
       $ref: 'schemas/search/batchIds.yaml'
+    declareItemLostRequest:
+      $ref: 'schemas/circulation/declare-item-lost-request.yaml'
   responses:
     check-out-response:
       description: Check out response
