@@ -1,0 +1,17 @@
+type: object
+description: Declare item lost request
+properties:
+  servicePointId:
+    description: ID of the service point where item is declared lost
+    type: string
+    format: uuid
+  declaredLostDateTime:
+    description: Date and time of the item loss
+    type: string
+    format: date-time
+  comment:
+    description: Additional information about item loss
+    type: string
+
+required:
+  - servicePointId

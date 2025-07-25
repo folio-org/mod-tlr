@@ -2,11 +2,13 @@ package org.folio.service;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.CirculationItem;
 import org.folio.domain.dto.Instance;
 import org.folio.domain.dto.Item;
+import org.folio.domain.dto.Loan;
 import org.folio.domain.dto.ReorderQueue;
 import org.folio.domain.dto.Request;
 import org.folio.support.CqlQuery;
@@ -38,4 +40,5 @@ public interface RequestService {
   List<Request> getRequestsQueueByItemId(String instanceId, String tenantId);
   List<Request> reorderRequestsQueueForInstance(String instanceId, String tenantId, ReorderQueue reorderQueue);
   List<Request> reorderRequestsQueueForItem(String itemId, String tenantId, ReorderQueue reorderQueue);
+  Optional<Request> findEcsRequestForLoan(Loan loan);
 }

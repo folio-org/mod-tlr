@@ -1,0 +1,8 @@
+allOf:
+  - $ref: circulation-declare-item-lost-request.yaml
+  - type: object
+    properties:
+      loanId:
+        description: ID of the loan created for the lost item
+        type: string
+        format: uuid
