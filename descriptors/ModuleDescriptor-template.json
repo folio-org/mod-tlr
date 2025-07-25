@@ -167,7 +167,7 @@
     },
     {
       "id": "ecs-loans",
-      "version": "1.1",
+      "version": "1.2",
       "handlers": [
         {
           "methods": ["POST"],
@@ -188,6 +188,18 @@
           "permissionsRequired": ["tlr.loans.declare-item-lost.execute"],
           "modulePermissions": [
             "circulation.loans.declare-item-lost.post",
+            "circulation-storage.loans.collection.get",
+            "circulation-storage.loans.item.get",
+            "circulation-storage.requests.item.get",
+            "circulation-storage.requests.collection.get"
+          ]
+        },
+        {
+          "methods": ["POST"],
+          "pathPattern": "/tlr/loans/claim-item-returned",
+          "permissionsRequired": ["tlr.loans.claim-item-returned.execute"],
+          "modulePermissions": [
+            "circulation.loans.claim-item-returned.post",
             "circulation-storage.loans.collection.get",
             "circulation-storage.loans.item.get",
             "circulation-storage.requests.item.get",
@@ -319,6 +331,11 @@
       "permissionName": "tlr.loans.declare-item-lost.execute",
       "displayName": "ecs-loans - declare item lost",
       "description": "Declare item lost"
+    },
+    {
+      "permissionName": "tlr.loans.claim-item-returned.execute",
+      "displayName": "ecs-loans - claim item returned",
+      "description": "Claim item returned"
     }
   ],
   "requires": [

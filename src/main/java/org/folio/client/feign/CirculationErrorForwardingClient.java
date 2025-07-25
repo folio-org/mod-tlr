@@ -1,6 +1,7 @@
 package org.folio.client.feign;
 
 import org.folio.client.feign.config.ErrorForwardingFeignClientConfiguration;
+import org.folio.domain.dto.CirculationClaimItemReturnedRequest;
 import org.folio.domain.dto.CirculationDeclareItemLostRequest;
 import org.folio.spring.config.FeignClientConfiguration;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -16,5 +17,9 @@ public interface CirculationErrorForwardingClient {
   @PostMapping("/loans/{loanId}/declare-item-lost")
   ResponseEntity<Void> declareItemLost(@PathVariable String loanId,
     @RequestBody CirculationDeclareItemLostRequest request);
+
+  @PostMapping("/loans/{loanId}/claim-item-returned")
+  ResponseEntity<Void> claimItemReturned(@PathVariable String loanId,
+    @RequestBody CirculationClaimItemReturnedRequest request);
 
 }

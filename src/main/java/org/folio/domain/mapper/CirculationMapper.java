@@ -2,6 +2,8 @@ package org.folio.domain.mapper;
 
 import org.folio.domain.dto.CirculationDeclareItemLostRequest;
 import org.folio.domain.dto.DeclareItemLostRequest;
+import org.folio.domain.dto.CirculationClaimItemReturnedRequest;
+import org.folio.domain.dto.ClaimItemReturnedRequest;
 import org.mapstruct.Mapper;
 import org.mapstruct.NullValueCheckStrategy;
 
@@ -10,5 +12,8 @@ public interface CirculationMapper {
 
   CirculationDeclareItemLostRequest toCirculationDeclareItemLostRequest(
     DeclareItemLostRequest declareItemLostRequest);
+
+  CirculationClaimItemReturnedRequest toCirculationClaimItemReturnedRequest(
+    ClaimItemReturnedRequest claimItemReturnedRequest);
 
 }
