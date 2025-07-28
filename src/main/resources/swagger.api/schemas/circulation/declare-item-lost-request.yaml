@@ -6,3 +6,11 @@ allOf:
         description: ID of the loan created for the lost item
         type: string
         format: uuid
+      itemId:
+        description: ID of the lost item
+        type: string
+        format: uuid
+      userId:
+        description: ID of the user who had lost item on loan
+        type: string
+        format: uuid
