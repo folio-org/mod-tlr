@@ -445,6 +445,7 @@
         "circulation.requests.queue.item-reorder.collection.post",
         "circulation.requests.queue.instance-reorder.collection.post",
         "circulation.loans.declare-item-lost.post",
+        "circulation.loans.claim-item-returned.post",
         "circulation-storage.requests.item.get",
         "circulation-storage.requests.collection.get",
         "circulation-storage.requests.item.put",
