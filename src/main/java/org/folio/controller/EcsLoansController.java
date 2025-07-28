@@ -3,10 +3,12 @@ package org.folio.controller;
 import org.folio.domain.dto.CheckOutRequest;
 import org.folio.domain.dto.CheckOutResponse;
 import org.folio.domain.dto.DeclareItemLostRequest;
+import org.folio.domain.dto.ClaimItemReturnedRequest;
 import org.folio.exception.HttpFailureFeignException;
 import org.folio.rest.resource.EcsLoansApi;
 import org.folio.service.CheckOutService;
 import org.folio.service.DeclareItemLostService;
+import org.folio.service.ClaimItemReturnedService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,6 +23,7 @@ public class EcsLoansController implements EcsLoansApi {
 
   private final CheckOutService checkOutService;
   private final DeclareItemLostService declareItemLostService;
+  private final ClaimItemReturnedService claimItemReturnedService;
 
   @Override
   public ResponseEntity<CheckOutResponse> checkOutByBarcode(CheckOutRequest checkOutRequest) {
@@ -30,6 +33,12 @@ public class EcsLoansController implements EcsLoansApi {
   @Override
   public ResponseEntity<Void> declareItemLost(DeclareItemLostRequest declareItemLostRequest) {
     declareItemLostService.declareItemLost(declareItemLostRequest);
+    return ResponseEntity.noContent().build();
+  }
+
+  @Override
+  public ResponseEntity<Void> claimItemReturned(ClaimItemReturnedRequest claimItemReturnedRequest) {
+    claimItemReturnedService.claimItemReturned(claimItemReturnedRequest);
     return ResponseEntity.noContent().build();
   }
 
