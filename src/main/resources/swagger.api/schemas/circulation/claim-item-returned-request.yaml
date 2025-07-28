@@ -1,0 +1,16 @@
+allOf:
+  - $ref: circulation-claim-item-returned-request.yaml
+  - type: object
+    properties:
+      loanId:
+        description: ID of the loan created for the item claimed returned
+        type: string
+        format: uuid
+      itemId:
+        description: ID of the item claimed returned
+        type: string
+        format: uuid
+      userId:
+        description: ID of the user who had claimed item returned
+        type: string
+        format: uuid
