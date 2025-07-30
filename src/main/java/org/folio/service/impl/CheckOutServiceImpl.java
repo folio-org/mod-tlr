@@ -1,5 +1,7 @@
 package org.folio.service.impl;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import org.folio.client.feign.CheckOutClient;
@@ -14,7 +16,10 @@ import org.folio.service.CloningService;
 import org.folio.service.SearchService;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
@@ -43,7 +48,7 @@ public class CheckOutServiceImpl implements CheckOutService {
     loanPolicyCloningService.clone(loanPolicy);
 
     var checkOutResponse = checkOutClient.checkOut(checkOutRequest.forceLoanPolicyId(
-      UUID.fromString(loanPolicy.getId())));
+      UUID.fromString(loanPolicy.getId())), extractHeaders());
     log.info("checkOut:: item checked out");
 
     return checkOutResponse;
@@ -51,15 +56,33 @@ public class CheckOutServiceImpl implements CheckOutService {
 
   private LoanPolicy retrieveLoanPolicy(CheckOutRequest checkOutRequest) {
     log.info("retrieveLoanPolicy:: checkOutRequest: {}", checkOutRequest);
-    log.info("retrieveLoanPolicy:: checkOutDryRunRequest{}", checkOutDryRunRequestMapper.mapCheckOutRequestToCheckOutDryRunRequest(checkOutRequest));
+    var dryRunRequest = checkOutDryRunRequestMapper.mapCheckOutRequestToCheckOutDryRunRequest(checkOutRequest);
+    log.info("retrieveLoanPolicy:: checkOutDryRunRequest{}", dryRunRequest);
 
-    var checkOutDryRunResponse = checkOutClient.checkOutDryRun(checkOutDryRunRequestMapper
-      .mapCheckOutRequestToCheckOutDryRunRequest(checkOutRequest));
+    var checkOutDryRunResponse = checkOutClient.checkOutDryRun(dryRunRequest, extractHeaders());
     log.info("retrieveLoanPolicy:: checkOutDryRunResponse: {}", checkOutDryRunResponse);
     var loanPolicy = loanPolicyClient.get(checkOutDryRunResponse.getLoanPolicyId());
     log.debug("retrieveLoanPolicy:: loanPolicy: {}", loanPolicy);
-
     return loanPolicy;
+  }
+
+  private Map<String, String> extractHeaders() {
+    Map<String, String> headers = new HashMap<>();
+    ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+    if (attrs != null) {
+      HttpServletRequest request = attrs.getRequest();
+      if (request != null) {
+        java.util.Enumeration<String> headerNames = request.getHeaderNames();
+        while (headerNames.hasMoreElements()) {
+          String headerName = headerNames.nextElement();
+          String headerValue = request.getHeader(headerName);
+          if (headerValue != null) {
+            headers.put(headerName, headerValue);
+          }
+        }
+      }
+    }
+    return headers;
   }
 
   private String findItemTenant(String itemBarcode) {
