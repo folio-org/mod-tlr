@@ -489,6 +489,7 @@
         "mod-settings.global.read.circulation",
         "consortia.sharing-instances.item.post",
         "circulation.check-out-by-barcode-dry-run.post",
+        "circulation.override-patron-block.post",
         "configuration.entries.collection.get",
         "dcb.ecs-request.transactions.put"
       ]
