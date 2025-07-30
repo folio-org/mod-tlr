@@ -19,7 +19,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
@@ -48,7 +47,7 @@ public class CheckOutServiceImpl implements CheckOutService {
     loanPolicyCloningService.clone(loanPolicy);
 
     var checkOutResponse = checkOutClient.checkOut(checkOutRequest.forceLoanPolicyId(
-      UUID.fromString(loanPolicy.getId())), extractHeaders());
+      UUID.fromString(loanPolicy.getId())));
     log.info("checkOut:: item checked out");
 
     return checkOutResponse;
@@ -68,17 +67,15 @@ public class CheckOutServiceImpl implements CheckOutService {
 
   private Map<String, String> extractHeaders() {
     Map<String, String> headers = new HashMap<>();
-    ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-    if (attrs != null) {
-      HttpServletRequest request = attrs.getRequest();
-      if (request != null) {
-        java.util.Enumeration<String> headerNames = request.getHeaderNames();
-        while (headerNames.hasMoreElements()) {
-          String headerName = headerNames.nextElement();
-          String headerValue = request.getHeader(headerName);
-          if (headerValue != null) {
-            headers.put(headerName, headerValue);
-          }
+    var requestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+    if (requestAttributes != null) {
+      var request = requestAttributes.getRequest();
+      var headerNames = request.getHeaderNames();
+      while (headerNames.hasMoreElements()) {
+        var headerName = headerNames.nextElement();
+        var headerValue = request.getHeader(headerName);
+        if (headerValue != null) {
+          headers.put(headerName, headerValue);
         }
       }
     }

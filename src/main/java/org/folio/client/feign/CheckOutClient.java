@@ -18,7 +18,7 @@ import java.util.Map;
 public interface CheckOutClient {
 
   @PostMapping("/check-out-by-barcode")
-  CheckOutResponse checkOut(@RequestBody CheckOutRequest request, @RequestHeader Map<String, String> headers);
+  CheckOutResponse checkOut(@RequestBody CheckOutRequest request);
 
   @PostMapping("/check-out-by-barcode-dry-run")
   CheckOutDryRunResponse checkOutDryRun(@RequestBody CheckOutDryRunRequest request, @RequestHeader Map<String, String> headers);
