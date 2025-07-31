@@ -55,10 +55,9 @@ public class CheckOutServiceImpl implements CheckOutService {
 
   private LoanPolicy retrieveLoanPolicy(CheckOutRequest checkOutRequest) {
     log.info("retrieveLoanPolicy:: checkOutRequest: {}", checkOutRequest);
-    var dryRunRequest = checkOutDryRunRequestMapper.mapCheckOutRequestToCheckOutDryRunRequest(checkOutRequest);
-    log.info("retrieveLoanPolicy:: checkOutDryRunRequest{}", dryRunRequest);
-
-    var checkOutDryRunResponse = checkOutClient.checkOutDryRun(dryRunRequest, extractHeaders());
+    var checkOutDryRunResponse = checkOutClient.checkOutDryRun(
+      checkOutDryRunRequestMapper.mapCheckOutRequestToCheckOutDryRunRequest(checkOutRequest),
+      extractHeaders());
     log.info("retrieveLoanPolicy:: checkOutDryRunResponse: {}", checkOutDryRunResponse);
     var loanPolicy = loanPolicyClient.get(checkOutDryRunResponse.getLoanPolicyId());
     log.debug("retrieveLoanPolicy:: loanPolicy: {}", loanPolicy);
