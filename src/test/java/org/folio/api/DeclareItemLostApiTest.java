@@ -23,7 +23,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
-class DeclareItemLostApiTest extends LoanActionApiTest {
+class DeclareItemLostApiTest extends LoanActionBaseIT {
 
   private static final String DECLARE_ITEM_LOST_URL = "/tlr/loans/declare-item-lost";
   private static final String CIRCULATION_DECLARE_ITEM_LOST_URL_TEMPLATE =

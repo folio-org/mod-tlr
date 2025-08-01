@@ -24,7 +24,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
-class ClaimItemReturnedApiTest extends LoanActionApiTest {
+class ClaimItemReturnedApiTest extends LoanActionBaseIT {
 
   private static final String CLAIM_ITEM_RETURNED_URL = "/tlr/loans/claim-item-returned";
   private static final String CIRCULATION_CLAIM_ITEM_RETURNED_URL_TEMPLATE =

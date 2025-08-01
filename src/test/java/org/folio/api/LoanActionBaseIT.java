@@ -22,7 +22,7 @@ import org.folio.repository.EcsTlrRepository;
 import org.folio.support.MockDataUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class LoanActionApiTest extends BaseIT {
+public class LoanActionBaseIT extends BaseIT {
 
   static final UUID SERVICE_POINT_ID = UUID.randomUUID();
   static final UUID LOCAL_TENANT_LOAN_ID = UUID.randomUUID();
