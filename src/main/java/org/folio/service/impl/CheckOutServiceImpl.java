@@ -1,5 +1,7 @@
 package org.folio.service.impl;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import org.folio.client.feign.CheckOutClient;
@@ -14,6 +16,8 @@ import org.folio.service.CloningService;
 import org.folio.service.SearchService;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -50,13 +54,31 @@ public class CheckOutServiceImpl implements CheckOutService {
   }
 
   private LoanPolicy retrieveLoanPolicy(CheckOutRequest checkOutRequest) {
-    var checkOutDryRunResponse = checkOutClient.checkOutDryRun(checkOutDryRunRequestMapper
-      .mapCheckOutRequestToCheckOutDryRunRequest(checkOutRequest));
+    log.info("retrieveLoanPolicy:: checkOutRequest: {}", checkOutRequest);
+    var checkOutDryRunResponse = checkOutClient.checkOutDryRun(
+      checkOutDryRunRequestMapper.mapCheckOutRequestToCheckOutDryRunRequest(checkOutRequest),
+      extractHeaders());
     log.info("retrieveLoanPolicy:: checkOutDryRunResponse: {}", checkOutDryRunResponse);
     var loanPolicy = loanPolicyClient.get(checkOutDryRunResponse.getLoanPolicyId());
     log.debug("retrieveLoanPolicy:: loanPolicy: {}", loanPolicy);
-
     return loanPolicy;
+  }
+
+  private Map<String, String> extractHeaders() {
+    Map<String, String> headers = new HashMap<>();
+    var requestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+    if (requestAttributes != null) {
+      var request = requestAttributes.getRequest();
+      var headerNames = request.getHeaderNames();
+      while (headerNames.hasMoreElements()) {
+        var headerName = headerNames.nextElement();
+        var headerValue = request.getHeader(headerName);
+        if (headerValue != null) {
+          headers.put(headerName, headerValue);
+        }
+      }
+    }
+    return headers;
   }
 
   private String findItemTenant(String itemBarcode) {

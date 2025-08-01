@@ -9,6 +9,9 @@ import org.folio.spring.config.FeignClientConfiguration;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+
+import java.util.Map;
 
 @FeignClient(name = "check-out", url = "circulation",
   configuration = { FeignClientConfiguration.class, ErrorForwardingFeignClientConfiguration.class })
@@ -18,5 +21,5 @@ public interface CheckOutClient {
   CheckOutResponse checkOut(@RequestBody CheckOutRequest request);
 
   @PostMapping("/check-out-by-barcode-dry-run")
-  CheckOutDryRunResponse checkOutDryRun(@RequestBody CheckOutDryRunRequest request);
+  CheckOutDryRunResponse checkOutDryRun(@RequestBody CheckOutDryRunRequest request, @RequestHeader Map<String, String> headers);
 }
