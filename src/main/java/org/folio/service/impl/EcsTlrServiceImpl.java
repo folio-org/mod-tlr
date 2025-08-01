@@ -3,6 +3,7 @@ package org.folio.service.impl;
 import static java.util.Optional.of;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.INTERMEDIATE;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.PRIMARY;
+import static org.folio.domain.type.ErrorCode.ECS_REQUEST_CANNOT_BE_PLACED_FOR_INACTIVE_PATRON;
 
 import java.util.Collection;
 import java.util.List;
@@ -12,16 +13,19 @@ import java.util.stream.Collectors;
 
 import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.EcsTlr;
+import org.folio.domain.dto.Parameter;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.Request.EcsRequestPhaseEnum;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.domain.mapper.EcsTlrMapper;
 import org.folio.exception.TenantPickingException;
+import org.folio.exception.ValidationException;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.DcbService;
 import org.folio.service.EcsTlrService;
 import org.folio.service.RequestService;
 import org.folio.service.TenantService;
+import org.folio.service.UserService;
 import org.folio.service.UserTenantsService;
 import org.springframework.stereotype.Service;
 
@@ -39,6 +43,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   private final RequestService requestService;
   private final DcbService dcbService;
   private final UserTenantsService userTenantsService;
+  private final UserService userService;
 
   @Override
   public Optional<EcsTlr> get(UUID id) {
@@ -56,6 +61,9 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     ecsTlrDto.setId(null); // remove client-provided id, it will be generated when entity is persisted
     final EcsTlrEntity ecsTlr = requestsMapper.mapDtoToEntity(ecsTlrDto);
     String primaryRequestTenantId = getPrimaryRequestTenant(ecsTlr);
+
+    validateRequester(ecsTlrDto, primaryRequestTenantId);
+
     Collection<String> secondaryRequestsTenantIds = getSecondaryRequestTenants(ecsTlr).stream()
       .filter(tenantId -> !tenantId.equals(primaryRequestTenantId))
       .collect(Collectors.toList());
@@ -108,6 +116,21 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       return true;
     }
     return false;
+  }
+
+  private void validateRequester(EcsTlr ecsTlrDto, String primaryRequestTenantId) {
+    log.info("validateRequester:: validating requester {} in the primary request tenant  {}",
+      ecsTlrDto::getRequesterId, () -> primaryRequestTenantId);
+
+    // Checking if requester is active in the primary request's tenant
+    if (userService.isActiveInTenant(ecsTlrDto.getRequesterId(), primaryRequestTenantId)) {
+      String message = "ECS request cannot be placed for inactive requester %s"
+        .formatted(ecsTlrDto.getRequesterId());
+      log.warn("create:: {}", message);
+      throw new ValidationException(message, ECS_REQUEST_CANNOT_BE_PLACED_FOR_INACTIVE_PATRON,
+        List.of(new Parameter().key("requesterId").value(ecsTlrDto.getRequesterId()),
+          new Parameter().key("tenantId").value(primaryRequestTenantId)));
+    }
   }
 
   private String getPrimaryRequestTenant(EcsTlrEntity ecsTlr) {
