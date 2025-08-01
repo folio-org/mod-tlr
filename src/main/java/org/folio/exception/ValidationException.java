@@ -10,7 +10,7 @@ import lombok.Getter;
 @Getter
 public class ValidationException extends RuntimeException {
   private final ErrorCode code;
-  private final List<Parameter> parameters;
+  private transient final List<Parameter> parameters;
 
   public ValidationException(String message, ErrorCode code, List<Parameter> parameters) {
 
