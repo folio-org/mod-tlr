@@ -123,7 +123,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       ecsTlrDto::getRequesterId, () -> primaryRequestTenantId);
 
     // Checking if requester is active in the primary request's tenant
-    if (userService.isActiveInTenant(ecsTlrDto.getRequesterId(), primaryRequestTenantId)) {
+    if (userService.isInactiveInTenant(ecsTlrDto.getRequesterId(), primaryRequestTenantId)) {
       String message = "ECS request cannot be placed for inactive requester %s"
         .formatted(ecsTlrDto.getRequesterId());
       log.warn("create:: {}", message);

@@ -50,15 +50,15 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
-  public boolean isActiveInTenant(String userId, String tenantId) {
-    log.info("isActiveInTenant:: checking if user {} is active", userId);
+  public boolean isInactiveInTenant(String userId, String tenantId) {
+    log.info("isInactiveInTenant:: checking if user {} is active", userId);
 
     return systemUserScopedExecutionService.executeSystemUserScoped(tenantId,
       () -> ofNullable(userClient.getUser(userId))
         .map(User::getActive)
         .map(BooleanUtils::negate)
         .orElseGet(() -> {
-          log.warn("isActiveInTenant:: user {} not found", tenantId);
+          log.warn("isInactiveInTenant:: user {} not found", tenantId);
           return true;
         }));
   }
