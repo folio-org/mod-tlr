@@ -119,7 +119,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   }
 
   private void validateRequester(EcsTlr ecsTlrDto, String primaryRequestTenantId) {
-    log.info("validateRequester:: validating requester {} in the primary request tenant  {}",
+    log.info("validateRequester:: validating requester {} in the primary request tenant {}",
       ecsTlrDto::getRequesterId, () -> primaryRequestTenantId);
 
     // Checking if requester is active in the primary request's tenant
