@@ -64,7 +64,7 @@ public class CheckOutServiceImpl implements CheckOutService {
     return loanPolicy;
   }
 
-  private Map<String, String> extractHeaders() {
+  protected Map<String, String> extractHeaders() {
     Map<String, String> headers = new HashMap<>();
     var requestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
     if (requestAttributes != null) {
