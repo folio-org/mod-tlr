@@ -9,4 +9,5 @@ public interface UserService {
   User create(User user);
   User update(User user);
   Collection<User> find(Collection<String> userIds);
+  boolean isInactiveInTenant(String userId, String tenantId);
 }

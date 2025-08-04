@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 
 import java.util.Date;
 import java.util.List;
@@ -467,10 +468,8 @@ class EcsTlrApiTest extends BaseIT {
     doPost(TLR_URL, ecsTlr)
       .expectStatus().isEqualTo(INTERNAL_SERVER_ERROR);
 
-    wireMockServer.verify(getRequestedFor(urlMatching(SEARCH_INSTANCES_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
-
     wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(USERS_URL)));
+    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(SEARCH_INSTANCES_URL)));
   }
 
   @ParameterizedTest
@@ -497,14 +496,12 @@ class EcsTlrApiTest extends BaseIT {
     doPost(TLR_URL, ecsTlr)
       .expectStatus().isEqualTo(INTERNAL_SERVER_ERROR);
 
-    wireMockServer.verify(getRequestedFor(urlMatching(SEARCH_INSTANCES_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
-
     wireMockServer.verify(getRequestedFor(urlMatching(USERS_URL + "/" + requesterId))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
 
     wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(INSTANCE_REQUESTS_URL)));
     wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(REQUESTS_URL)));
+    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(SEARCH_INSTANCES_URL)));
   }
 
   @ParameterizedTest
@@ -543,6 +540,41 @@ class EcsTlrApiTest extends BaseIT {
     wireMockServer.verify(getRequestedFor(urlMatching(SERVICE_POINTS_URL + "/" + pickupServicePointId))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
 
+    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(INSTANCE_REQUESTS_URL)));
+    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(REQUESTS_URL)));
+  }
+
+  @ParameterizedTest
+  @EnumSource(EcsTlr.RequestLevelEnum.class)
+  void canNotPlaceEcsTlrForInactivePatron(EcsTlr.RequestLevelEnum requestLevel) {
+
+    EcsTlr ecsTlr = buildEcsTlr(PAGE, REQUESTER_ID, randomId(), requestLevel);
+    SearchInstancesResponse mockSearchInstancesResponse = new SearchInstancesResponse()
+      .totalRecords(2)
+      .instances(List.of(
+        new SearchInstance().id(INSTANCE_ID)
+          .tenantId(TENANT_ID_CONSORTIUM)
+          .items(List.of(buildItem(randomId(), TENANT_ID_UNIVERSITY, "Available")))
+      ));
+
+    wireMockServer.stubFor(get(urlMatching(SEARCH_INSTANCES_URL))
+      .willReturn(jsonResponse(mockSearchInstancesResponse, HttpStatus.SC_OK)));
+
+    User primaryRequestRequester = buildPrimaryRequestRequester(REQUESTER_ID, false);
+
+    wireMockServer.stubFor(get(urlMatching(USERS_URL + "/" + REQUESTER_ID))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(jsonResponse(primaryRequestRequester, HttpStatus.SC_OK)));
+
+    doPost(TLR_URL, ecsTlr)
+      .expectStatus().isEqualTo(UNPROCESSABLE_ENTITY)
+      .expectBody()
+      .jsonPath("$.errors[0].code").isEqualTo("ECS_REQUEST_CANNOT_BE_PLACED_FOR_INACTIVE_PATRON");
+
+    wireMockServer.verify(getRequestedFor(urlMatching(USERS_URL + "/" + REQUESTER_ID))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
+
+    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(SEARCH_INSTANCES_URL)));
     wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(INSTANCE_REQUESTS_URL)));
     wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(REQUESTS_URL)));
   }
@@ -608,12 +640,16 @@ class EcsTlrApiTest extends BaseIT {
   }
 
   private static User buildPrimaryRequestRequester(String userId) {
+    return buildPrimaryRequestRequester(userId, true);
+  }
+
+  private static User buildPrimaryRequestRequester(String userId, boolean active) {
     return new User()
       .id(userId)
       .username("test_user")
       .patronGroup(PATRON_GROUP_ID_PRIMARY)
       .type("patron")
-      .active(true)
+      .active(active)
       .barcode(REQUESTER_BARCODE)
       .personal(new UserPersonal()
         .firstName("First")
