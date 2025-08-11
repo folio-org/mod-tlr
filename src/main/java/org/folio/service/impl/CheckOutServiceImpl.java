@@ -46,8 +46,9 @@ public class CheckOutServiceImpl implements CheckOutService {
     var itemTenant = findItemTenant(checkOutRequest.getItemBarcode());
     log.info("checkOut:: itemTenant: {} ", itemTenant);
 
+    Map<String, String> permissions = getHeadersFromContext();
     var loanPolicy = executionService.executeSystemUserScoped(itemTenant,
-      () -> retrieveLoanPolicy(checkOutRequest));
+      () -> retrieveLoanPolicy(checkOutRequest, permissions));
     loanPolicyCloningService.clone(loanPolicy);
 
     var checkOutResponse = checkOutClient.checkOut(checkOutRequest.forceLoanPolicyId(
@@ -57,18 +58,18 @@ public class CheckOutServiceImpl implements CheckOutService {
     return checkOutResponse;
   }
 
-  private LoanPolicy retrieveLoanPolicy(CheckOutRequest checkOutRequest) {
+  private LoanPolicy retrieveLoanPolicy(CheckOutRequest checkOutRequest, Map<String, String> permissions) {
     log.info("retrieveLoanPolicy:: checkOutRequest: {}", checkOutRequest);
     var checkOutDryRunResponse = checkOutClient.checkOutDryRun(
       checkOutDryRunRequestMapper.mapCheckOutRequestToCheckOutDryRunRequest(checkOutRequest),
-      getPermissionsFromContext());
+      permissions);
     log.info("retrieveLoanPolicy:: checkOutDryRunResponse: {}", checkOutDryRunResponse);
     var loanPolicy = loanPolicyClient.get(checkOutDryRunResponse.getLoanPolicyId());
     log.debug("retrieveLoanPolicy:: loanPolicy: {}", loanPolicy);
     return loanPolicy;
   }
 
-  protected Map<String, String> getPermissionsFromContext() {
+  protected Map<String, String> getHeadersFromContext() {
     return folioExecutionContext.getOkapiHeaders()
       .entrySet()
       .stream()

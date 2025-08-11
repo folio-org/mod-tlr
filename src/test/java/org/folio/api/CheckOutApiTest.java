@@ -25,6 +25,7 @@ import org.folio.domain.dto.CheckOutResponse;
 import org.folio.domain.dto.ConsortiumItem;
 import org.folio.domain.dto.ConsortiumItems;
 import org.folio.domain.dto.LoanPolicy;
+import org.folio.spring.integration.XOkapiHeaders;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -52,6 +53,10 @@ class CheckOutApiTest extends BaseIT {
     CheckOutResponse checkOutResponse = buildCheckOutResponse();
     CheckOutDryRunResponse checkOutDryRunResponse = buildCheckoutDryRunResponse(loanPolicyId);
 
+    // Custom headers to check
+    String permissionsHeader = "perm-value";
+    String requestIdHeader = "req-id-value";
+
     BatchIds itemsSearchRequest = new BatchIds()
       .identifierType(BatchIds.IdentifierTypeEnum.BARCODE)
         .identifierValues(List.of(checkOutRequest.getItemBarcode()));
@@ -64,6 +69,8 @@ class CheckOutApiTest extends BaseIT {
 
     wireMockServer.stubFor(post(urlEqualTo(CIRCULATION_CHECK_OUT_URL))
       .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .withHeader(XOkapiHeaders.PERMISSIONS, equalTo(permissionsHeader))
+      .withHeader(XOkapiHeaders.REQUEST_ID, equalTo(requestIdHeader))
       .withRequestBody(equalToJson(asJsonString(checkOutRequest)))
       .willReturn(jsonResponse(asJsonString(checkOutResponse), HttpStatus.SC_OK)));
 
@@ -74,6 +81,8 @@ class CheckOutApiTest extends BaseIT {
 
     wireMockServer.stubFor(post(urlEqualTo(CIRCULATION_CHECK_OUT_DRY_RUN_URL))
       .withHeader(TENANT, equalTo(TENANT_ID_COLLEGE))
+      .withHeader(XOkapiHeaders.PERMISSIONS, equalTo(permissionsHeader))
+      .withHeader(XOkapiHeaders.REQUEST_ID, equalTo(requestIdHeader))
       .withRequestBody(equalToJson(asJsonString(checkOutDryRunRequest)))
       .willReturn(jsonResponse(asJsonString(checkOutDryRunResponse), HttpStatus.SC_CREATED)));
 
@@ -88,12 +97,17 @@ class CheckOutApiTest extends BaseIT {
       .withRequestBody(equalToJson(asJsonString(loanPolicy.name(clonedLoanPolicy.getName()))))
       .willReturn(jsonResponse(asJsonString(clonedLoanPolicy), HttpStatus.SC_OK)));
 
-    checkOut(checkOutRequest).expectStatus().isOk();
+    // Send checkOut request with custom headers
+    checkOutWithHeaders(checkOutRequest, permissionsHeader, requestIdHeader).expectStatus().isOk();
 
     wireMockServer.verify(postRequestedFor(urlEqualTo(CIRCULATION_CHECK_OUT_URL))
-      .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM)));
+      .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .withHeader(XOkapiHeaders.PERMISSIONS, equalTo(permissionsHeader))
+      .withHeader(XOkapiHeaders.REQUEST_ID, equalTo(requestIdHeader)));
     wireMockServer.verify(postRequestedFor(urlEqualTo(CIRCULATION_CHECK_OUT_DRY_RUN_URL))
-      .withHeader(TENANT, equalTo(TENANT_ID_COLLEGE)));
+      .withHeader(TENANT, equalTo(TENANT_ID_COLLEGE))
+      .withHeader(XOkapiHeaders.PERMISSIONS, equalTo(permissionsHeader))
+      .withHeader(XOkapiHeaders.REQUEST_ID, equalTo(requestIdHeader)));
     wireMockServer.verify(getRequestedFor(urlEqualTo(LOAN_POLICY_STORAGE_URL + "/" + loanPolicyId))
       .withHeader(TENANT, equalTo(TENANT_ID_COLLEGE)));
     wireMockServer.verify(postRequestedFor(urlEqualTo(LOAN_POLICY_STORAGE_URL))
@@ -197,5 +211,9 @@ class CheckOutApiTest extends BaseIT {
 
   private WebTestClient.ResponseSpec checkOut(CheckOutRequest request) {
     return doPost(CHECK_OUT_URL, request);
+  }
+
+  protected WebTestClient.ResponseSpec checkOutWithHeaders(CheckOutRequest request, String permissions, String requestId) {
+    return toPostWithHeaders(CHECK_OUT_URL, request, requestId, permissions, TENANT_ID_CONSORTIUM);
   }
 }

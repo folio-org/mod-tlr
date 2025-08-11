@@ -28,7 +28,7 @@ class CheckOutServiceImplTest {
     when(context.getOkapiHeaders()).thenReturn(okapiHeaders);
 
     CheckOutServiceImpl service = new CheckOutServiceImpl(null, null, null, null, null, null, context);
-    Map<String, String> headers = service.getPermissionsFromContext();
+    Map<String, String> headers = service.getHeadersFromContext();
 
     assertThat(headers.get(XOkapiHeaders.PERMISSIONS), is(permissionValue));
     assertThat(headers.get(XOkapiHeaders.REQUEST_ID), is(requestIdValue));
@@ -39,7 +39,7 @@ class CheckOutServiceImplTest {
     FolioExecutionContext context = Mockito.mock(FolioExecutionContext.class);
     when(context.getOkapiHeaders()).thenReturn(new HashMap<>());
     CheckOutServiceImpl service = new CheckOutServiceImpl(null, null, null, null, null, null, context);
-    Map<String, String> headers = service.getPermissionsFromContext();
+    Map<String, String> headers = service.getHeadersFromContext();
     assertThat(headers.isEmpty(), is(true));
   }
 
@@ -52,7 +52,7 @@ class CheckOutServiceImplTest {
     okapiHeaders.put(XOkapiHeaders.REQUEST_ID, singletonList("reqid"));
     when(context.getOkapiHeaders()).thenReturn(okapiHeaders);
     CheckOutServiceImpl service = new CheckOutServiceImpl(null, null, null, null, null, null, context);
-    Map<String, String> headers = service.getPermissionsFromContext();
+    Map<String, String> headers = service.getHeadersFromContext();
     assertThat(headers.size(), is(2));
     assertThat(headers.get(XOkapiHeaders.PERMISSIONS), is("perm"));
     assertThat(headers.get(XOkapiHeaders.REQUEST_ID), is("reqid"));

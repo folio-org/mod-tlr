@@ -255,6 +255,23 @@ public class BaseIT {
       .exchange();
   }
 
+  protected WebTestClient.ResponseSpec toPostWithHeaders(String url, Object payload,
+    String requestId, String permissions, String tenantId) {
+
+    return webClient.method(HttpMethod.POST)
+      .uri(url)
+      .accept(APPLICATION_JSON)
+      .contentType(APPLICATION_JSON)
+      .header(XOkapiHeaders.TENANT, tenantId)
+      .header(XOkapiHeaders.PERMISSIONS, permissions)
+      .header(XOkapiHeaders.REQUEST_ID, requestId)
+      .header(XOkapiHeaders.URL, wireMockServer.baseUrl())
+      .header(XOkapiHeaders.USER_ID, randomId())
+      .cookie("folioAccessToken", TestUtils.buildToken(tenantId))
+      .body(BodyInserters.fromValue(payload))
+      .exchange();
+  }
+
   protected static String randomId() {
     return UUID.randomUUID().toString();
   }
