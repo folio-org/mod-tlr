@@ -44,9 +44,8 @@ public class CheckOutServiceImpl implements CheckOutService {
     var itemTenant = findItemTenant(checkOutRequest.getItemBarcode());
     log.info("checkOut:: itemTenant: {} ", itemTenant);
 
-    Map<String, String> permissions = getHeadersFromContext();
     var loanPolicy = executionService.executeSystemUserScoped(itemTenant,
-      () -> retrieveLoanPolicy(checkOutRequest, permissions));
+      () -> retrieveLoanPolicy(checkOutRequest, getHeadersFromContext()));
     loanPolicyCloningService.clone(loanPolicy);
 
     var checkOutResponse = checkOutClient.checkOut(checkOutRequest.forceLoanPolicyId(
@@ -68,8 +67,10 @@ public class CheckOutServiceImpl implements CheckOutService {
   }
 
   protected Map<String, String> getHeadersFromContext() {
+    log.info("getHeadersFromContext:: extracting headers from servlet request context");
     ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
     if (attrs == null) {
+      log.warn("getHeadersFromContext:: no request context available");
       return Map.of();
     }
     var request = attrs.getRequest();
@@ -77,11 +78,14 @@ public class CheckOutServiceImpl implements CheckOutService {
     var permissionsHeader = request.getHeader(PERMISSIONS);
     if (permissionsHeader != null) {
       headers.put(PERMISSIONS, permissionsHeader);
+      log.info("getHeadersFromContext:: found {} header", PERMISSIONS);
     }
     var requestIdHeader = request.getHeader(REQUEST_ID);
     if (requestIdHeader != null) {
       headers.put(REQUEST_ID, requestIdHeader);
+      log.info("getHeadersFromContext:: found {} header", REQUEST_ID);
     }
+    log.info("getHeadersFromContext:: extracted headers: {}", headers.keySet());
     return headers;
   }
 
