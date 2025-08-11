@@ -27,6 +27,8 @@ import lombok.extern.log4j.Log4j2;
 @RequiredArgsConstructor
 public class CheckOutServiceImpl implements CheckOutService {
 
+  private static final String PERMISSIONS_HEADER = "X-Okapi-Permissions";
+  private static final String REQUEST_ID_HEADER = "RequestId";
   private final SearchService searchService;
   private final CloningService<LoanPolicy> loanPolicyCloningService;
   private final CheckOutClient checkOutClient;
@@ -72,9 +74,13 @@ public class CheckOutServiceImpl implements CheckOutService {
       var headerNames = request.getHeaderNames();
       while (headerNames.hasMoreElements()) {
         var headerName = headerNames.nextElement();
-        var headerValue = request.getHeader(headerName);
-        if (headerValue != null) {
-          headers.put(headerName, headerValue);
+        if (PERMISSIONS_HEADER.equalsIgnoreCase(headerName) ||
+          REQUEST_ID_HEADER.equalsIgnoreCase(headerName)) {
+
+          var headerValue = request.getHeader(headerName);
+          if (headerValue != null) {
+            headers.put(headerName, headerValue);
+          }
         }
       }
     }
