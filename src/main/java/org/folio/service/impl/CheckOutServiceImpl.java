@@ -3,6 +3,8 @@ package org.folio.service.impl;
 import static org.folio.spring.integration.XOkapiHeaders.PERMISSIONS;
 import static org.folio.spring.integration.XOkapiHeaders.REQUEST_ID;
 
+import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -18,10 +20,12 @@ import org.folio.service.CheckOutService;
 import org.folio.service.CloningService;
 import org.folio.service.SearchService;
 import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.spring.utils.LoggingUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import liquibase.util.LogUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
@@ -74,6 +78,19 @@ public class CheckOutServiceImpl implements CheckOutService {
       return Map.of();
     }
     var request = attrs.getRequest();
+    log.info("getHeadersFromContext:: headerNames: {}", Collections.list(request.getHeaderNames()));
+
+
+    Enumeration<String> headerNames = request.getHeaderNames();
+    while (headerNames.hasMoreElements()) {
+      String headerName = headerNames.nextElement();
+      String headerValue = request.getHeader(headerName);
+      if (headerValue != null) {
+        log.info("getHeadersFromContext:: found header: {} with value: {}", headerName, headerValue);
+      }
+    }
+
+
     Map<String, String> headers = new HashMap<>();
     var permissionsHeader = request.getHeader(PERMISSIONS);
     if (permissionsHeader != null) {
