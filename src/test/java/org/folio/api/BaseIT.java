@@ -256,7 +256,7 @@ public class BaseIT {
   }
 
   protected WebTestClient.ResponseSpec doPostWithHeaders(String url, Object payload,
-                                                         String requestId, String permissions, String tenantId) {
+    String requestId, String permissions, String tenantId) {
 
     return webClient.method(HttpMethod.POST)
       .uri(url)
