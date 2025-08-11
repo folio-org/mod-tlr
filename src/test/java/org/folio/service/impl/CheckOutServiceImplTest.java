@@ -18,7 +18,7 @@ class CheckOutServiceImplTest {
     var attrs = new org.springframework.web.context.request.ServletRequestAttributes(request);
     org.springframework.web.context.request.RequestContextHolder.setRequestAttributes(attrs);
 
-    CheckOutServiceImpl service = new CheckOutServiceImpl(null, null, null, null, null, null);
+    CheckOutServiceImpl service = new CheckOutServiceImpl(null, null, null, null, null, null, null);
     Map<String, String> headers = service.getHeadersFromContext();
 
     assertThat(headers.get(XOkapiHeaders.PERMISSIONS), is("test-permission"));
@@ -30,7 +30,7 @@ class CheckOutServiceImplTest {
     var request = new org.springframework.mock.web.MockHttpServletRequest();
     var attrs = new org.springframework.web.context.request.ServletRequestAttributes(request);
     org.springframework.web.context.request.RequestContextHolder.setRequestAttributes(attrs);
-    CheckOutServiceImpl service = new CheckOutServiceImpl(null, null, null, null, null, null);
+    CheckOutServiceImpl service = new CheckOutServiceImpl(null, null, null, null, null, null, null);
     Map<String, String> headers = service.getHeadersFromContext();
     assertThat(headers.isEmpty(), is(true));
   }
@@ -43,7 +43,7 @@ class CheckOutServiceImplTest {
     request.addHeader(XOkapiHeaders.REQUEST_ID, "reqid");
     var attrs = new org.springframework.web.context.request.ServletRequestAttributes(request);
     org.springframework.web.context.request.RequestContextHolder.setRequestAttributes(attrs);
-    CheckOutServiceImpl service = new CheckOutServiceImpl(null, null, null, null, null, null);
+    CheckOutServiceImpl service = new CheckOutServiceImpl(null, null, null, null, null, null, null);
     Map<String, String> headers = service.getHeadersFromContext();
     assertThat(headers.size(), is(2));
     assertThat(headers.get(XOkapiHeaders.PERMISSIONS), is("perm"));

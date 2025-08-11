@@ -19,13 +19,12 @@ import org.folio.domain.mapper.CheckOutDryRunRequestMapper;
 import org.folio.service.CheckOutService;
 import org.folio.service.CloningService;
 import org.folio.service.SearchService;
+import org.folio.spring.FolioExecutionContext;
 import org.folio.spring.service.SystemUserScopedExecutionService;
-import org.folio.spring.utils.LoggingUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import liquibase.util.LogUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
@@ -40,6 +39,7 @@ public class CheckOutServiceImpl implements CheckOutService {
   private final LoanPolicyClient loanPolicyClient;
   private final CheckOutDryRunRequestMapper checkOutDryRunRequestMapper;
   private final SystemUserScopedExecutionService executionService;
+  private final FolioExecutionContext folioExecutionContext;
 
   @Override
   public CheckOutResponse checkOut(CheckOutRequest checkOutRequest) {
@@ -47,6 +47,9 @@ public class CheckOutServiceImpl implements CheckOutService {
       checkOutRequest.getUserBarcode());
     var itemTenant = findItemTenant(checkOutRequest.getItemBarcode());
     log.info("checkOut:: itemTenant: {} ", itemTenant);
+
+    log.info("checkOut:: okapi headers from context:");
+    folioExecutionContext.getOkapiHeaders().forEach((k, v) -> log.info("checkOut:: header: {} = {}", k, v));
 
     Map<String, String> headersFromContext = getHeadersFromContext();
     var loanPolicy = executionService.executeSystemUserScoped(itemTenant,
@@ -90,7 +93,6 @@ public class CheckOutServiceImpl implements CheckOutService {
         log.info("getHeadersFromContext:: found header: {} with value: {}", headerName, headerValue);
       }
     }
-
 
     Map<String, String> headers = new HashMap<>();
     var permissionsHeader = request.getHeader(PERMISSIONS);
