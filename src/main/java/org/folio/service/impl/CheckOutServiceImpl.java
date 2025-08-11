@@ -1,6 +1,10 @@
 package org.folio.service.impl;
 
-import java.util.HashMap;
+import static java.util.stream.Collectors.toMap;
+import static org.apache.logging.log4j.util.Strings.EMPTY;
+import static org.folio.spring.integration.XOkapiHeaders.PERMISSIONS;
+import static org.folio.spring.integration.XOkapiHeaders.REQUEST_ID;
+
 import java.util.Map;
 import java.util.UUID;
 
@@ -14,10 +18,9 @@ import org.folio.domain.mapper.CheckOutDryRunRequestMapper;
 import org.folio.service.CheckOutService;
 import org.folio.service.CloningService;
 import org.folio.service.SearchService;
+import org.folio.spring.FolioExecutionContext;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.springframework.stereotype.Service;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -27,14 +30,13 @@ import lombok.extern.log4j.Log4j2;
 @RequiredArgsConstructor
 public class CheckOutServiceImpl implements CheckOutService {
 
-  private static final String PERMISSIONS_HEADER = "X-Okapi-Permissions";
-  private static final String REQUEST_ID_HEADER = "RequestId";
   private final SearchService searchService;
   private final CloningService<LoanPolicy> loanPolicyCloningService;
   private final CheckOutClient checkOutClient;
   private final LoanPolicyClient loanPolicyClient;
   private final CheckOutDryRunRequestMapper checkOutDryRunRequestMapper;
   private final SystemUserScopedExecutionService executionService;
+  private final FolioExecutionContext folioExecutionContext;
 
 
   @Override
@@ -59,32 +61,20 @@ public class CheckOutServiceImpl implements CheckOutService {
     log.info("retrieveLoanPolicy:: checkOutRequest: {}", checkOutRequest);
     var checkOutDryRunResponse = checkOutClient.checkOutDryRun(
       checkOutDryRunRequestMapper.mapCheckOutRequestToCheckOutDryRunRequest(checkOutRequest),
-      extractHeaders());
+      getPermissionsFromContext());
     log.info("retrieveLoanPolicy:: checkOutDryRunResponse: {}", checkOutDryRunResponse);
     var loanPolicy = loanPolicyClient.get(checkOutDryRunResponse.getLoanPolicyId());
     log.debug("retrieveLoanPolicy:: loanPolicy: {}", loanPolicy);
     return loanPolicy;
   }
 
-  protected Map<String, String> extractHeaders() {
-    Map<String, String> headers = new HashMap<>();
-    var requestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-    if (requestAttributes != null) {
-      var request = requestAttributes.getRequest();
-      var headerNames = request.getHeaderNames();
-      while (headerNames.hasMoreElements()) {
-        var headerName = headerNames.nextElement();
-        if (PERMISSIONS_HEADER.equalsIgnoreCase(headerName) ||
-          REQUEST_ID_HEADER.equalsIgnoreCase(headerName)) {
-
-          var headerValue = request.getHeader(headerName);
-          if (headerValue != null) {
-            headers.put(headerName, headerValue);
-          }
-        }
-      }
-    }
-    return headers;
+  protected Map<String, String> getPermissionsFromContext() {
+    return folioExecutionContext.getOkapiHeaders()
+      .entrySet()
+      .stream()
+      .filter(entry -> PERMISSIONS.equalsIgnoreCase(entry.getKey()) ||
+        REQUEST_ID.equalsIgnoreCase(entry.getKey()))
+      .collect(toMap(Map.Entry::getKey, entry -> entry.getValue().stream().findFirst().orElse(EMPTY)));
   }
 
   private String findItemTenant(String itemBarcode) {
