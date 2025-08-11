@@ -48,8 +48,9 @@ public class CheckOutServiceImpl implements CheckOutService {
     var itemTenant = findItemTenant(checkOutRequest.getItemBarcode());
     log.info("checkOut:: itemTenant: {} ", itemTenant);
 
+    Map<String, String> headersFromContext = getHeadersFromContext();
     var loanPolicy = executionService.executeSystemUserScoped(itemTenant,
-      () -> retrieveLoanPolicy(checkOutRequest, getHeadersFromContext()));
+      () -> retrieveLoanPolicy(checkOutRequest, headersFromContext));
     loanPolicyCloningService.clone(loanPolicy);
 
     var checkOutResponse = checkOutClient.checkOut(checkOutRequest.forceLoanPolicyId(
