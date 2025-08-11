@@ -214,6 +214,6 @@ class CheckOutApiTest extends BaseIT {
   }
 
   protected WebTestClient.ResponseSpec checkOutWithHeaders(CheckOutRequest request, String permissions, String requestId) {
-    return toPostWithHeaders(CHECK_OUT_URL, request, requestId, permissions, TENANT_ID_CONSORTIUM);
+    return doPostWithHeaders(CHECK_OUT_URL, request, requestId, permissions, TENANT_ID_CONSORTIUM);
   }
 }

@@ -1,10 +1,9 @@
 package org.folio.service.impl;
 
-import static java.util.stream.Collectors.toMap;
-import static org.apache.logging.log4j.util.Strings.EMPTY;
 import static org.folio.spring.integration.XOkapiHeaders.PERMISSIONS;
 import static org.folio.spring.integration.XOkapiHeaders.REQUEST_ID;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -18,9 +17,10 @@ import org.folio.domain.mapper.CheckOutDryRunRequestMapper;
 import org.folio.service.CheckOutService;
 import org.folio.service.CloningService;
 import org.folio.service.SearchService;
-import org.folio.spring.FolioExecutionContext;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -36,8 +36,6 @@ public class CheckOutServiceImpl implements CheckOutService {
   private final LoanPolicyClient loanPolicyClient;
   private final CheckOutDryRunRequestMapper checkOutDryRunRequestMapper;
   private final SystemUserScopedExecutionService executionService;
-  private final FolioExecutionContext folioExecutionContext;
-
 
   @Override
   public CheckOutResponse checkOut(CheckOutRequest checkOutRequest) {
@@ -58,11 +56,11 @@ public class CheckOutServiceImpl implements CheckOutService {
     return checkOutResponse;
   }
 
-  private LoanPolicy retrieveLoanPolicy(CheckOutRequest checkOutRequest, Map<String, String> permissions) {
+  private LoanPolicy retrieveLoanPolicy(CheckOutRequest checkOutRequest, Map<String, String> headers) {
     log.info("retrieveLoanPolicy:: checkOutRequest: {}", checkOutRequest);
     var checkOutDryRunResponse = checkOutClient.checkOutDryRun(
       checkOutDryRunRequestMapper.mapCheckOutRequestToCheckOutDryRunRequest(checkOutRequest),
-      permissions);
+      headers);
     log.info("retrieveLoanPolicy:: checkOutDryRunResponse: {}", checkOutDryRunResponse);
     var loanPolicy = loanPolicyClient.get(checkOutDryRunResponse.getLoanPolicyId());
     log.debug("retrieveLoanPolicy:: loanPolicy: {}", loanPolicy);
@@ -70,12 +68,21 @@ public class CheckOutServiceImpl implements CheckOutService {
   }
 
   protected Map<String, String> getHeadersFromContext() {
-    return folioExecutionContext.getOkapiHeaders()
-      .entrySet()
-      .stream()
-      .filter(entry -> PERMISSIONS.equalsIgnoreCase(entry.getKey()) ||
-        REQUEST_ID.equalsIgnoreCase(entry.getKey()))
-      .collect(toMap(Map.Entry::getKey, entry -> entry.getValue().stream().findFirst().orElse(EMPTY)));
+    ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+    if (attrs == null) {
+      return Map.of();
+    }
+    var request = attrs.getRequest();
+    Map<String, String> headers = new HashMap<>();
+    var permissionsHeader = request.getHeader(PERMISSIONS);
+    if (permissionsHeader != null) {
+      headers.put(PERMISSIONS, permissionsHeader);
+    }
+    var requestIdHeader = request.getHeader(REQUEST_ID);
+    if (requestIdHeader != null) {
+      headers.put(REQUEST_ID, requestIdHeader);
+    }
+    return headers;
   }
 
   private String findItemTenant(String itemBarcode) {
