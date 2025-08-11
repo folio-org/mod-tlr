@@ -1,3 +1,6 @@
+## 1.0.20 2025-08-11
+* Reject ECS request placed for inactive patron (MODTLR-230)
+
 ## 1.0.19 2025-07-28
 * Declare item lost by user and item ID (MODTLR-217)
 
