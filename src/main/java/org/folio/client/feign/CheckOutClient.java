@@ -22,4 +22,7 @@ public interface CheckOutClient {
 
   @PostMapping("/check-out-by-barcode-dry-run")
   CheckOutDryRunResponse checkOutDryRun(@RequestBody CheckOutDryRunRequest request, @RequestHeader Map<String, String> headers);
+
+  @PostMapping("/check-out-by-barcode-dry-run")
+  CheckOutDryRunResponse checkOutDryRun(@RequestBody CheckOutDryRunRequest request);
 }

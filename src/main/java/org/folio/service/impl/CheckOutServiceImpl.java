@@ -53,10 +53,8 @@ public class CheckOutServiceImpl implements CheckOutService {
     log.info("checkOut:: okapi headers from context:");
     folioExecutionContext.getOkapiHeaders().forEach((k, v) -> log.info("checkOut:: header: {} = {}", k, v));
 
-    Map<String, String> headersFromContext = getHeadersFromContext();
     var loanPolicy = executionService.executeSystemUserScoped(itemTenant,
-      () -> retrieveLoanPolicy(checkOutRequest, headersFromContext));
-//      () -> retrieveLoanPolicy(checkOutRequest, extractHeaders()));
+      () -> retrieveLoanPolicy(checkOutRequest, getHeadersFromContext()));
     loanPolicyCloningService.clone(loanPolicy);
 
     var checkOutResponse = checkOutClient.checkOut(checkOutRequest.forceLoanPolicyId(
@@ -68,9 +66,11 @@ public class CheckOutServiceImpl implements CheckOutService {
 
   private LoanPolicy retrieveLoanPolicy(CheckOutRequest checkOutRequest, Map<String, String> headers) {
     log.info("retrieveLoanPolicy:: checkOutRequest: {}", checkOutRequest);
+//    var checkOutDryRunResponse = checkOutClient.checkOutDryRun(
+//      checkOutDryRunRequestMapper.mapCheckOutRequestToCheckOutDryRunRequest(checkOutRequest),
+//      headers);
     var checkOutDryRunResponse = checkOutClient.checkOutDryRun(
-      checkOutDryRunRequestMapper.mapCheckOutRequestToCheckOutDryRunRequest(checkOutRequest),
-      headers);
+      checkOutDryRunRequestMapper.mapCheckOutRequestToCheckOutDryRunRequest(checkOutRequest));
     log.info("retrieveLoanPolicy:: checkOutDryRunResponse: {}", checkOutDryRunResponse);
     var loanPolicy = loanPolicyClient.get(checkOutDryRunResponse.getLoanPolicyId());
     log.debug("retrieveLoanPolicy:: loanPolicy: {}", loanPolicy);
