@@ -2,6 +2,7 @@ package org.folio.service.impl;
 
 import static org.folio.spring.integration.XOkapiHeaders.PERMISSIONS;
 import static org.folio.spring.integration.XOkapiHeaders.REQUEST_ID;
+import static org.folio.spring.integration.XOkapiHeaders.TOKEN;
 
 import java.util.Collections;
 import java.util.Enumeration;
@@ -106,6 +107,11 @@ public class CheckOutServiceImpl implements CheckOutService {
     if (requestIdHeader != null) {
       headers.put(REQUEST_ID, requestIdHeader);
       log.info("getHeadersFromContext:: found {} header", REQUEST_ID);
+    }
+    var token = request.getHeader(TOKEN);
+    if (token != null) {
+      headers.put(TOKEN, token);
+      log.info("getHeadersFromContext:: found {} header", TOKEN);
     }
     log.info("getHeadersFromContext:: extracted headers: {}", headers.keySet());
     return headers;
