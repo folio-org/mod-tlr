@@ -1,9 +1,12 @@
 package org.folio.service.impl;
 
+import static java.util.stream.Collectors.toMap;
+import static org.apache.logging.log4j.util.Strings.EMPTY;
 import static org.folio.spring.integration.XOkapiHeaders.PERMISSIONS;
 import static org.folio.spring.integration.XOkapiHeaders.REQUEST_ID;
 import static org.folio.spring.integration.XOkapiHeaders.TOKEN;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -50,11 +53,10 @@ public class CheckOutServiceImpl implements CheckOutService {
     var itemTenant = findItemTenant(checkOutRequest.getItemBarcode());
     log.info("checkOut:: itemTenant: {} ", itemTenant);
 
-    log.info("checkOut:: okapi headers from context:");
-    folioExecutionContext.getOkapiHeaders().forEach((k, v) -> log.info("checkOut:: header: {} = {}", k, v));
-
+    Map<String, String> headersFromContext = getHeadersFromContext();
+    log.info("checkOut:: headers from context: {}", headersFromContext);
     var loanPolicy = executionService.executeSystemUserScoped(itemTenant,
-      () -> retrieveLoanPolicy(checkOutRequest, getHeadersFromContext()));
+      () -> retrieveLoanPolicy(checkOutRequest, headersFromContext));
     loanPolicyCloningService.clone(loanPolicy);
 
     var checkOutResponse = checkOutClient.checkOut(checkOutRequest.forceLoanPolicyId(
@@ -66,11 +68,9 @@ public class CheckOutServiceImpl implements CheckOutService {
 
   private LoanPolicy retrieveLoanPolicy(CheckOutRequest checkOutRequest, Map<String, String> headers) {
     log.info("retrieveLoanPolicy:: checkOutRequest: {}", checkOutRequest);
-//    var checkOutDryRunResponse = checkOutClient.checkOutDryRun(
-//      checkOutDryRunRequestMapper.mapCheckOutRequestToCheckOutDryRunRequest(checkOutRequest),
-//      headers);
     var checkOutDryRunResponse = checkOutClient.checkOutDryRun(
-      checkOutDryRunRequestMapper.mapCheckOutRequestToCheckOutDryRunRequest(checkOutRequest));
+      checkOutDryRunRequestMapper.mapCheckOutRequestToCheckOutDryRunRequest(checkOutRequest),
+      headers);
     log.info("retrieveLoanPolicy:: checkOutDryRunResponse: {}", checkOutDryRunResponse);
     var loanPolicy = loanPolicyClient.get(checkOutDryRunResponse.getLoanPolicyId());
     log.debug("retrieveLoanPolicy:: loanPolicy: {}", loanPolicy);
@@ -78,63 +78,13 @@ public class CheckOutServiceImpl implements CheckOutService {
   }
 
   protected Map<String, String> getHeadersFromContext() {
-    log.info("getHeadersFromContext:: extracting headers from servlet request context");
-    ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-    if (attrs == null) {
-      log.warn("getHeadersFromContext:: no request context available");
-      return Map.of();
-    }
-    var request = attrs.getRequest();
-    log.info("getHeadersFromContext:: headerNames: {}", Collections.list(request.getHeaderNames()));
-
-
-    Enumeration<String> headerNames = request.getHeaderNames();
-    while (headerNames.hasMoreElements()) {
-      String headerName = headerNames.nextElement();
-      String headerValue = request.getHeader(headerName);
-      if (headerValue != null) {
-        log.info("getHeadersFromContext:: found header: {} with value: {}", headerName, headerValue);
-      }
-    }
-
-    Map<String, String> headers = new HashMap<>();
-    var permissionsHeader = request.getHeader(PERMISSIONS);
-    if (permissionsHeader != null) {
-      headers.put(PERMISSIONS, permissionsHeader);
-      log.info("getHeadersFromContext:: found {} header", PERMISSIONS);
-    }
-    var requestIdHeader = request.getHeader(REQUEST_ID);
-    if (requestIdHeader != null) {
-      headers.put(REQUEST_ID, requestIdHeader);
-      log.info("getHeadersFromContext:: found {} header", REQUEST_ID);
-    }
-    var token = request.getHeader(TOKEN);
-    if (token != null) {
-      headers.put(TOKEN, token);
-      log.info("getHeadersFromContext:: found {} header", TOKEN);
-    }
-    log.info("getHeadersFromContext:: extracted headers: {}", headers.keySet());
-    return headers;
+    return folioExecutionContext.getOkapiHeaders()
+      .entrySet()
+      .stream()
+      .filter(entry -> PERMISSIONS.equalsIgnoreCase(entry.getKey()) ||
+        REQUEST_ID.equalsIgnoreCase(entry.getKey()))
+      .collect(toMap(Map.Entry::getKey, entry -> entry.getValue().stream().findFirst().orElse(EMPTY)));
   }
-
-//  private Map<String, String> extractHeaders() {
-//    Map<String, String> headers = new HashMap<>();
-//    ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-//    if (attrs != null) {
-//      HttpServletRequest request = attrs.getRequest();
-//      if (request != null) {
-//        java.util.Enumeration<String> headerNames = request.getHeaderNames();
-//        while (headerNames.hasMoreElements()) {
-//          String headerName = headerNames.nextElement();
-//          String headerValue = request.getHeader(headerName);
-//          if (headerValue != null) {
-//            headers.put(headerName, headerValue);
-//          }
-//        }
-//      }
-//    }
-//    return headers;
-//  }
 
   private String findItemTenant(String itemBarcode) {
     if (itemBarcode == null) {
