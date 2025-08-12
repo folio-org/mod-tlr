@@ -59,7 +59,7 @@ class CheckOutApiTest extends BaseIT {
 
     BatchIds itemsSearchRequest = new BatchIds()
       .identifierType(BatchIds.IdentifierTypeEnum.BARCODE)
-        .identifierValues(List.of(checkOutRequest.getItemBarcode()));
+      .identifierValues(List.of(checkOutRequest.getItemBarcode()));
     ConsortiumItems itemsSearchResponse = new ConsortiumItems()
       .totalRecords(1)
       .items(List.of(new ConsortiumItem()
@@ -98,7 +98,8 @@ class CheckOutApiTest extends BaseIT {
       .willReturn(jsonResponse(asJsonString(clonedLoanPolicy), HttpStatus.SC_OK)));
 
     // Send checkOut request with custom headers
-    checkOutWithHeaders(checkOutRequest, permissionsHeader, requestIdHeader).expectStatus().isOk();
+    doPostWithHeaders(CHECK_OUT_URL, checkOutRequest, requestIdHeader, permissionsHeader, TENANT_ID_CONSORTIUM)
+      .expectStatus().isOk();
 
     wireMockServer.verify(postRequestedFor(urlEqualTo(CIRCULATION_CHECK_OUT_URL))
       .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM))
