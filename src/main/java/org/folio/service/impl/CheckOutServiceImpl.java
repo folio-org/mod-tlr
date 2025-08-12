@@ -54,8 +54,8 @@ public class CheckOutServiceImpl implements CheckOutService {
 
     Map<String, String> headersFromContext = getHeadersFromContext();
     var loanPolicy = executionService.executeSystemUserScoped(itemTenant,
-//      () -> retrieveLoanPolicy(checkOutRequest, headersFromContext));
-      () -> retrieveLoanPolicy(checkOutRequest, extractHeaders()));
+      () -> retrieveLoanPolicy(checkOutRequest, headersFromContext));
+//      () -> retrieveLoanPolicy(checkOutRequest, extractHeaders()));
     loanPolicyCloningService.clone(loanPolicy);
 
     var checkOutResponse = checkOutClient.checkOut(checkOutRequest.forceLoanPolicyId(
@@ -111,24 +111,24 @@ public class CheckOutServiceImpl implements CheckOutService {
     return headers;
   }
 
-  private Map<String, String> extractHeaders() {
-    Map<String, String> headers = new HashMap<>();
-    ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-    if (attrs != null) {
-      HttpServletRequest request = attrs.getRequest();
-      if (request != null) {
-        java.util.Enumeration<String> headerNames = request.getHeaderNames();
-        while (headerNames.hasMoreElements()) {
-          String headerName = headerNames.nextElement();
-          String headerValue = request.getHeader(headerName);
-          if (headerValue != null) {
-            headers.put(headerName, headerValue);
-          }
-        }
-      }
-    }
-    return headers;
-  }
+//  private Map<String, String> extractHeaders() {
+//    Map<String, String> headers = new HashMap<>();
+//    ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+//    if (attrs != null) {
+//      HttpServletRequest request = attrs.getRequest();
+//      if (request != null) {
+//        java.util.Enumeration<String> headerNames = request.getHeaderNames();
+//        while (headerNames.hasMoreElements()) {
+//          String headerName = headerNames.nextElement();
+//          String headerValue = request.getHeader(headerName);
+//          if (headerValue != null) {
+//            headers.put(headerName, headerValue);
+//          }
+//        }
+//      }
+//    }
+//    return headers;
+//  }
 
   private String findItemTenant(String itemBarcode) {
     if (itemBarcode == null) {
