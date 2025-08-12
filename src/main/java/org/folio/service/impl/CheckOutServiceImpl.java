@@ -4,12 +4,7 @@ import static java.util.stream.Collectors.toMap;
 import static org.apache.logging.log4j.util.Strings.EMPTY;
 import static org.folio.spring.integration.XOkapiHeaders.PERMISSIONS;
 import static org.folio.spring.integration.XOkapiHeaders.REQUEST_ID;
-import static org.folio.spring.integration.XOkapiHeaders.TOKEN;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -26,10 +21,7 @@ import org.folio.service.SearchService;
 import org.folio.spring.FolioExecutionContext;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.springframework.stereotype.Service;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
