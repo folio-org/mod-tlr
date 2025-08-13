@@ -341,7 +341,22 @@
       "permissionName": "tlr.loans.claim-item-returned.execute",
       "displayName": "ecs-loans - claim item returned",
       "description": "Claim item returned"
-    }ere
+    },
+    {
+      "permissionName": "circulation.override-patron-block.post",
+      "displayName": "ecs-loans - override patron block",
+      "description": "Override patron block during check out by barcode"
+    },
+    {
+      "permissionName": "circulation.override-item-limit-block.post",
+      "displayName": "ecs-loans - override item limit block",
+      "description": "Override item limit block during check out by barcode"
+    },
+    {
+      "permissionName": "circulation.override-item-not-loanable-block.post",
+      "displayName": "ecs-loans - override item not loanable block",
+      "description": "Override item not loanable block during check out by barcode"
+    }
   ],
   "requires": [
     {
