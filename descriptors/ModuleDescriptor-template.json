@@ -210,6 +210,20 @@
             "circulation-storage.requests.item.get",
             "circulation-storage.requests.collection.get"
           ]
+        },
+        {
+          "methods": ["POST"],
+          "pathPattern": "/tlr/loans/declare-claimed-returned-item-as-missing",
+          "permissionsRequired": [
+            "tlr.loans.declare-claimed-returned-item-as-missing.execute"
+          ],
+          "modulePermissions": [
+            "circulation.loans.claim-item-returned.post",
+            "circulation-storage.loans.collection.get",
+            "circulation-storage.loans.item.get",
+            "circulation-storage.requests.item.get",
+            "circulation-storage.requests.collection.get"
+          ]
         }
       ]
     },
@@ -341,6 +355,11 @@
       "permissionName": "tlr.loans.claim-item-returned.execute",
       "displayName": "ecs-loans - claim item returned",
       "description": "Claim item returned"
+    },
+    {
+      "permissionName": "tlr.loans.declare-claimed-returned-item-as-missing.execute",
+      "displayName": "ecs-loans - declare claimed returned item as missing",
+      "description": "Declare claimed returned item as missing"
     }
   ],
   "requires": [

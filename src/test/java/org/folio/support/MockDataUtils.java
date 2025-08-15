@@ -1,18 +1,5 @@
 package org.folio.support;
 
-import lombok.SneakyThrows;
-import org.folio.EcsTlrApplication;
-import org.folio.domain.entity.EcsTlrEntity;
-import org.folio.domain.dto.Loan;
-import org.folio.domain.dto.Metadata;
-import org.folio.domain.dto.Request;
-import org.folio.domain.dto.Request.EcsRequestPhaseEnum;
-import org.folio.domain.dto.Request.StatusEnum;
-import org.folio.domain.dto.CirculationClaimItemReturnedRequest;
-import org.folio.domain.dto.ClaimItemReturnedRequest;
-import org.folio.domain.dto.CirculationDeclareItemLostRequest;
-import org.folio.domain.dto.DeclareItemLostRequest;
-import org.testcontainers.shaded.org.apache.commons.io.IOUtils;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -20,6 +7,22 @@ import java.nio.file.Paths;
 import java.util.Date;
 import java.util.UUID;
 import java.util.stream.Stream;
+
+import org.folio.EcsTlrApplication;
+import org.folio.domain.dto.CirculationClaimItemReturnedRequest;
+import org.folio.domain.dto.CirculationDeclareItemLostRequest;
+import org.folio.domain.dto.ClaimItemReturnedRequest;
+import org.folio.domain.dto.DeclareClaimedReturnedItemAsMissingRequest;
+import org.folio.domain.dto.DeclareItemLostRequest;
+import org.folio.domain.dto.Loan;
+import org.folio.domain.dto.Metadata;
+import org.folio.domain.dto.Request;
+import org.folio.domain.dto.Request.EcsRequestPhaseEnum;
+import org.folio.domain.dto.Request.StatusEnum;
+import org.folio.domain.entity.EcsTlrEntity;
+import org.testcontainers.shaded.org.apache.commons.io.IOUtils;
+
+import lombok.SneakyThrows;
 
 public class MockDataUtils {
 
@@ -124,6 +127,23 @@ public class MockDataUtils {
       .itemId(itemId)
       .servicePointId(servicePointId)
       .declaredLostDateTime(declaredLostDate)
+      .comment(comment);
+  }
+
+  public static DeclareClaimedReturnedItemAsMissingRequest buildDeclareItemMissingRequest(
+    UUID loanId, String comment) {
+
+    return new DeclareClaimedReturnedItemAsMissingRequest()
+      .loanId(loanId)
+      .comment(comment);
+  }
+
+  public static DeclareClaimedReturnedItemAsMissingRequest buildDeclareItemMissingRequest(
+    UUID userId, UUID itemId, String comment) {
+
+    return new DeclareClaimedReturnedItemAsMissingRequest()
+      .userId(userId)
+      .itemId(itemId)
       .comment(comment);
   }
 

@@ -1,4 +1,4 @@
-package org.folio.service;
+package org.folio.service.impl;
 
 import static org.folio.support.CqlQuery.exactMatch;
 
@@ -8,6 +8,7 @@ import java.util.Optional;
 
 import org.folio.client.feign.LoanStorageClient;
 import org.folio.domain.dto.Loan;
+import org.folio.service.LoanService;
 import org.folio.support.CqlQuery;
 import org.springframework.stereotype.Service;
 

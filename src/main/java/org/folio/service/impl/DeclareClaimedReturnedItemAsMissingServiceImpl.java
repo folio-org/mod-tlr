@@ -1,11 +1,11 @@
 package org.folio.service.impl;
 
 import org.folio.client.feign.CirculationErrorForwardingClient;
-import org.folio.domain.dto.DeclareItemLostRequest;
+import org.folio.domain.dto.DeclareClaimedReturnedItemAsMissingRequest;
 import org.folio.domain.dto.Loan;
 import org.folio.domain.mapper.CirculationMapper;
 import org.folio.repository.EcsTlrRepository;
-import org.folio.service.DeclareItemLostService;
+import org.folio.service.DeclareClaimedReturnedItemAsMissingService;
 import org.folio.service.LoanService;
 import org.folio.service.RequestService;
 import org.folio.service.wrapper.LoanActionRequest;
@@ -16,10 +16,11 @@ import lombok.extern.log4j.Log4j2;
 
 @Service
 @Log4j2
-public class DeclareItemLostServiceImpl extends AbstractLoanActionService<DeclareItemLostRequest>
-implements DeclareItemLostService {
+public class DeclareClaimedReturnedItemAsMissingServiceImpl
+  extends AbstractLoanActionService<DeclareClaimedReturnedItemAsMissingRequest>
+  implements DeclareClaimedReturnedItemAsMissingService {
 
-  public DeclareItemLostServiceImpl(
+  public DeclareClaimedReturnedItemAsMissingServiceImpl(
     CirculationErrorForwardingClient circulationClient,
     CirculationMapper circulationMapper,
     LoanService loanService,
@@ -31,16 +32,18 @@ implements DeclareItemLostService {
       systemUserService);
   }
 
-  public void declareItemLost(DeclareItemLostRequest request) {
+  public void declareMissing(DeclareClaimedReturnedItemAsMissingRequest request) {
     process(LoanActionRequest.from(request));
   }
 
   @Override
   protected void performActionInCirculation(Loan loan,
-    LoanActionRequest<DeclareItemLostRequest> actionRequest) {
+    LoanActionRequest<DeclareClaimedReturnedItemAsMissingRequest> actionRequest) {
 
     log.info("declareItemLostInCirculation:: declaring item lost for loan {}", loan::getId);
-    circulationClient.declareItemLost(loan.getId(),
-      circulationMapper.toCirculationDeclareItemLostRequest(actionRequest.originalRequest()));
+    circulationClient.declareClaimedReturnedItemAsMissing(loan.getId(),
+      circulationMapper.toCirculationDeclareClaimedReturnedItemsAsMissingRequest(
+        actionRequest.originalRequest()));
   }
+
 }
