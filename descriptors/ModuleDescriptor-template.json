@@ -218,7 +218,7 @@
             "tlr.loans.declare-claimed-returned-item-as-missing.execute"
           ],
           "modulePermissions": [
-            "circulation.loans.claim-item-returned.post",
+            "circulation.loans.declare-claimed-returned-item-as-missing.post",
             "circulation-storage.loans.collection.get",
             "circulation-storage.loans.item.get",
             "circulation-storage.requests.item.get",
@@ -470,6 +470,7 @@
         "circulation.requests.queue.instance-reorder.collection.post",
         "circulation.loans.declare-item-lost.post",
         "circulation.loans.claim-item-returned.post",
+        "circulation.loans.declare-claimed-returned-item-as-missing.post",
         "circulation-storage.requests.item.get",
         "circulation-storage.requests.collection.get",
         "circulation-storage.requests.item.put",
