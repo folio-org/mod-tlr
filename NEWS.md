@@ -1,3 +1,6 @@
+## 1.0.21 2025-08-18
+* Declare item lost by user and item ID (MODTLR-217) (re-releasing due to incorrect cherry-pick in v1.0.18)
+
 ## 1.0.20 2025-08-11
 * Reject ECS request placed for inactive patron (MODTLR-230)
 
