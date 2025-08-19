@@ -27,5 +27,4 @@ public interface CirculationErrorForwardingClient {
   ResponseEntity<Void> declareClaimedReturnedItemAsMissing(@PathVariable String loanId,
     @RequestBody CirculationDeclareClaimedReturnedItemAsMissingRequest request);
 
-
 }

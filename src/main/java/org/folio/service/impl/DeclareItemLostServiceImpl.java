@@ -40,8 +40,7 @@ implements DeclareItemLostService {
 
   @Override
   protected void performActionInCirculation(Loan loan, DeclareItemLostRequest request) {
-
-    log.info("declareItemLostInCirculation:: declaring item lost for loan {}", loan::getId);
+    log.info("performActionInCirculation:: declaring item lost for loan {}", loan::getId);
     circulationClient.declareItemLost(loan.getId(),
       circulationMapper.toCirculationDeclareItemLostRequest(request));
   }

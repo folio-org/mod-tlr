@@ -40,7 +40,7 @@ implements ClaimItemReturnedService {
 
   @Override
   protected void performActionInCirculation(Loan loan, ClaimItemReturnedRequest request) {
-    log.info("claimItemReturnedInCirculation:: claiming item returned for loan {}", loan::getId);
+    log.info("performActionInCirculation:: claiming item returned for loan {}", loan::getId);
     circulationClient.claimItemReturned(loan.getId(),
       circulationMapper.toCirculationClaimItemReturnedRequest(request));
   }

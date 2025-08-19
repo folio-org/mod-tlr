@@ -43,7 +43,8 @@ public class DeclareClaimedReturnedItemAsMissingServiceImpl
   protected void performActionInCirculation(Loan loan,
     DeclareClaimedReturnedItemAsMissingRequest request) {
 
-    log.info("declareItemLostInCirculation:: declaring item lost for loan {}", loan::getId);
+    log.info("performActionInCirculation:: declaring claimed returned item as missing for loan {}",
+      loan::getId);
     circulationClient.declareClaimedReturnedItemAsMissing(loan.getId(),
       circulationMapper.toCirculationDeclareClaimedReturnedItemsAsMissingRequest(request));
   }
