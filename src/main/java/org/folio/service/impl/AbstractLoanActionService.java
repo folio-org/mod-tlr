@@ -11,7 +11,6 @@ import org.folio.domain.mapper.CirculationMapper;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.LoanService;
 import org.folio.service.RequestService;
-import org.folio.service.wrapper.LoanActionRequest;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 
 import lombok.RequiredArgsConstructor;
@@ -28,19 +27,19 @@ public abstract class AbstractLoanActionService<T> {
   protected final EcsTlrRepository ecsTlrRepository;
   protected final SystemUserScopedExecutionService systemUserService;
 
-  public void process(LoanActionRequest<T> actionRequest) {
-    log.info("process:: processing loan action request: {}", actionRequest);
+  protected void execute(T actionRequest) {
+    log.info("execute:: processing loan action request: {}", actionRequest);
     validateRequest(actionRequest);
     Loan localLoan = findLoan(actionRequest);
     performActionInCirculation(localLoan, actionRequest);
     performActionInLendingTenant(localLoan, actionRequest);
-    log.info("process:: loan action request processed successfully");
+    log.info("execute:: loan action request processed successfully");
   }
 
-  private void validateRequest(LoanActionRequest<T> actionRequest) {
-    boolean hasLoanId = actionRequest.loanId() != null;
-    boolean hasItemId = actionRequest.itemId() != null;
-    boolean hasUserId = actionRequest.userId() != null;
+  private void validateRequest(T actionRequest) {
+    boolean hasLoanId = getLoanId(actionRequest) != null;
+    boolean hasItemId = getItemId(actionRequest) != null;
+    boolean hasUserId = getUserId(actionRequest) != null;
 
     if ((hasLoanId && !hasItemId && !hasUserId) || (!hasLoanId && hasItemId && hasUserId)) {
       log.info("validateRequest:: request is valid");
@@ -53,11 +52,11 @@ public abstract class AbstractLoanActionService<T> {
     throw new IllegalArgumentException(errorMessage);
   }
 
-  private Loan findLoan(LoanActionRequest<T> actionRequest) {
-    return Optional.ofNullable(actionRequest.loanId())
+  private Loan findLoan(T actionRequest) {
+    return Optional.ofNullable(getLoanId(actionRequest))
       .map(UUID::toString)
       .map(loanService::fetchLoan)
-      .or(() -> loanService.findOpenLoan(actionRequest.userId().toString(), actionRequest.itemId().toString()))
+      .or(() -> loanService.findOpenLoan(getUserId(actionRequest).toString(), getItemId(actionRequest).toString()))
       .orElseThrow();
   }
 
@@ -67,16 +66,14 @@ public abstract class AbstractLoanActionService<T> {
     return ecsTlrRepository.findByPrimaryRequestId(UUID.fromString(requestId));
   }
 
-  private void performActionInLendingTenant(Loan localLoan, LoanActionRequest<T> actionRequest) {
+  private void performActionInLendingTenant(Loan localLoan, T actionRequest) {
     log.info("performActionInLendingTenant:: performing loan action in lending tenant");
     requestService.findEcsRequestForLoan(localLoan).ifPresentOrElse(
       ecsRequest -> performActionInLendingTenant(localLoan, ecsRequest, actionRequest),
       () -> log.info("performActionInLendingTenant:: no ECS request found for loan {}", localLoan::getId));
   }
 
-  private void performActionInLendingTenant(Loan loan, Request ecsRequest,
-    LoanActionRequest<T> actionRequest) {
-
+  private void performActionInLendingTenant(Loan loan, Request ecsRequest, T actionRequest) {
     findEcsTlr(ecsRequest)
       .map(EcsTlrEntity::getSecondaryRequestTenantId)
       .ifPresentOrElse(
@@ -84,7 +81,7 @@ public abstract class AbstractLoanActionService<T> {
         () -> log.info("performActionInLendingTenant:: no ECS TLR found for request {}", ecsRequest::getId));
   }
 
-  private void performAction(Loan loan, String tenantId, LoanActionRequest<T> actionRequest) {
+  private void performAction(Loan loan, String tenantId, T actionRequest) {
     log.info("performAction:: tenant={}", tenantId);
     systemUserService.executeSystemUserScoped(tenantId, () -> {
       Loan openLoan = loanService.findOpenLoan(loan.getUserId(), loan.getItemId()).orElseThrow();
@@ -93,7 +90,8 @@ public abstract class AbstractLoanActionService<T> {
     });
   }
 
-  protected abstract void performActionInCirculation(Loan loan,
-    LoanActionRequest<T> actionRequest);
-
+  protected abstract void performActionInCirculation(Loan loan, T actionRequest);
+  protected abstract UUID getLoanId(T actionRequest);
+  protected abstract UUID getUserId(T actionRequest);
+  protected abstract UUID getItemId(T actionRequest);
 }

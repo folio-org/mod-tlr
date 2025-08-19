@@ -1,5 +1,7 @@
 package org.folio.service.impl;
 
+import java.util.UUID;
+
 import org.folio.client.feign.CirculationErrorForwardingClient;
 import org.folio.domain.dto.DeclareClaimedReturnedItemAsMissingRequest;
 import org.folio.domain.dto.Loan;
@@ -8,7 +10,6 @@ import org.folio.repository.EcsTlrRepository;
 import org.folio.service.DeclareClaimedReturnedItemAsMissingService;
 import org.folio.service.LoanService;
 import org.folio.service.RequestService;
-import org.folio.service.wrapper.LoanActionRequest;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.springframework.stereotype.Service;
 
@@ -32,18 +33,34 @@ public class DeclareClaimedReturnedItemAsMissingServiceImpl
       systemUserService);
   }
 
+  @Override
   public void declareMissing(DeclareClaimedReturnedItemAsMissingRequest request) {
-    process(LoanActionRequest.from(request));
+    log.info("declareMissing:: declaring claimed returned item as missing");
+    execute(request);
   }
 
   @Override
   protected void performActionInCirculation(Loan loan,
-    LoanActionRequest<DeclareClaimedReturnedItemAsMissingRequest> actionRequest) {
+    DeclareClaimedReturnedItemAsMissingRequest request) {
 
     log.info("declareItemLostInCirculation:: declaring item lost for loan {}", loan::getId);
     circulationClient.declareClaimedReturnedItemAsMissing(loan.getId(),
-      circulationMapper.toCirculationDeclareClaimedReturnedItemsAsMissingRequest(
-        actionRequest.originalRequest()));
+      circulationMapper.toCirculationDeclareClaimedReturnedItemsAsMissingRequest(request));
+  }
+
+  @Override
+  protected UUID getLoanId(DeclareClaimedReturnedItemAsMissingRequest actionRequest) {
+    return actionRequest.getLoanId();
+  }
+
+  @Override
+  protected UUID getUserId(DeclareClaimedReturnedItemAsMissingRequest actionRequest) {
+    return actionRequest.getUserId();
+  }
+
+  @Override
+  protected UUID getItemId(DeclareClaimedReturnedItemAsMissingRequest actionRequest) {
+    return actionRequest.getItemId();
   }
 
 }

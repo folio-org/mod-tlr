@@ -1,5 +1,7 @@
 package org.folio.service.impl;
 
+import java.util.UUID;
+
 import org.folio.client.feign.CirculationErrorForwardingClient;
 import org.folio.domain.dto.DeclareItemLostRequest;
 import org.folio.domain.dto.Loan;
@@ -8,7 +10,6 @@ import org.folio.repository.EcsTlrRepository;
 import org.folio.service.DeclareItemLostService;
 import org.folio.service.LoanService;
 import org.folio.service.RequestService;
-import org.folio.service.wrapper.LoanActionRequest;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.springframework.stereotype.Service;
 
@@ -31,16 +32,32 @@ implements DeclareItemLostService {
       systemUserService);
   }
 
+  @Override
   public void declareItemLost(DeclareItemLostRequest request) {
-    process(LoanActionRequest.from(request));
+    log.info("declareItemLost:: declaring item lost");
+    execute(request);
   }
 
   @Override
-  protected void performActionInCirculation(Loan loan,
-    LoanActionRequest<DeclareItemLostRequest> actionRequest) {
+  protected void performActionInCirculation(Loan loan, DeclareItemLostRequest request) {
 
     log.info("declareItemLostInCirculation:: declaring item lost for loan {}", loan::getId);
     circulationClient.declareItemLost(loan.getId(),
-      circulationMapper.toCirculationDeclareItemLostRequest(actionRequest.originalRequest()));
+      circulationMapper.toCirculationDeclareItemLostRequest(request));
+  }
+
+  @Override
+  protected UUID getLoanId(DeclareItemLostRequest actionRequest) {
+    return actionRequest.getLoanId();
+  }
+
+  @Override
+  protected UUID getUserId(DeclareItemLostRequest actionRequest) {
+    return actionRequest.getUserId();
+  }
+
+  @Override
+  protected UUID getItemId(DeclareItemLostRequest actionRequest) {
+    return actionRequest.getItemId();
   }
 }

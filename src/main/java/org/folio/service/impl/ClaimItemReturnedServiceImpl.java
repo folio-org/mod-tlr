@@ -1,5 +1,7 @@
 package org.folio.service.impl;
 
+import java.util.UUID;
+
 import org.folio.client.feign.CirculationErrorForwardingClient;
 import org.folio.domain.dto.ClaimItemReturnedRequest;
 import org.folio.domain.dto.Loan;
@@ -8,7 +10,6 @@ import org.folio.repository.EcsTlrRepository;
 import org.folio.service.ClaimItemReturnedService;
 import org.folio.service.LoanService;
 import org.folio.service.RequestService;
-import org.folio.service.wrapper.LoanActionRequest;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.springframework.stereotype.Service;
 
@@ -31,17 +32,31 @@ implements ClaimItemReturnedService {
       systemUserService);
   }
 
-  public void claimItemReturned(ClaimItemReturnedRequest  request) {
-    process(LoanActionRequest.from(request));
+  @Override
+  public void claimItemReturned(ClaimItemReturnedRequest request) {
+    log.info("claimItemReturned:: claiming item returned");
+    execute(request);
   }
 
   @Override
-  protected void performActionInCirculation(Loan loan,
-    LoanActionRequest<ClaimItemReturnedRequest> actionRequest) {
-
+  protected void performActionInCirculation(Loan loan, ClaimItemReturnedRequest request) {
     log.info("claimItemReturnedInCirculation:: claiming item returned for loan {}", loan::getId);
     circulationClient.claimItemReturned(loan.getId(),
-      circulationMapper.toCirculationClaimItemReturnedRequest(actionRequest.originalRequest()));
+      circulationMapper.toCirculationClaimItemReturnedRequest(request));
   }
 
+  @Override
+  protected UUID getLoanId(ClaimItemReturnedRequest actionRequest) {
+    return actionRequest.getLoanId();
+  }
+
+  @Override
+  protected UUID getUserId(ClaimItemReturnedRequest actionRequest) {
+    return actionRequest.getUserId();
+  }
+
+  @Override
+  protected UUID getItemId(ClaimItemReturnedRequest actionRequest) {
+    return actionRequest.getItemId();
+  }
 }
