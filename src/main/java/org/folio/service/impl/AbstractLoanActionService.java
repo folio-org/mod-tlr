@@ -29,12 +29,12 @@ public abstract class AbstractLoanActionService<T> {
   protected final SystemUserScopedExecutionService systemUserService;
 
   public void process(LoanActionRequest<T> actionRequest) {
-    log.info("performAction:: processing loan action request: {}", actionRequest);
+    log.info("process:: processing loan action request: {}", actionRequest);
     validateRequest(actionRequest);
     Loan localLoan = findLoan(actionRequest);
     performActionInCirculation(localLoan, actionRequest);
     performActionInLendingTenant(localLoan, actionRequest);
-    log.info("performAction:: loan action request processed successfully");
+    log.info("process:: loan action request processed successfully");
   }
 
   private void validateRequest(LoanActionRequest<T> actionRequest) {
@@ -81,7 +81,7 @@ public abstract class AbstractLoanActionService<T> {
       .map(EcsTlrEntity::getSecondaryRequestTenantId)
       .ifPresentOrElse(
         lendingTenantId -> performAction(loan, lendingTenantId, actionRequest),
-        () -> log.info("processInLendingTenant:: no ECS TLR found for request {}", ecsRequest::getId));
+        () -> log.info("performActionInLendingTenant:: no ECS TLR found for request {}", ecsRequest::getId));
   }
 
   private void performAction(Loan loan, String tenantId, LoanActionRequest<T> actionRequest) {
