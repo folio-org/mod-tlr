@@ -2,15 +2,13 @@ package org.folio.controller;
 
 import org.folio.domain.dto.CheckOutRequest;
 import org.folio.domain.dto.CheckOutResponse;
+import org.folio.domain.dto.ClaimItemReturnedRequest;
 import org.folio.domain.dto.DeclareClaimedReturnedItemAsMissingRequest;
 import org.folio.domain.dto.DeclareItemLostRequest;
-import org.folio.domain.dto.ClaimItemReturnedRequest;
 import org.folio.exception.HttpFailureFeignException;
 import org.folio.rest.resource.EcsLoansApi;
 import org.folio.service.CheckOutService;
-import org.folio.service.DeclareClaimedReturnedItemAsMissingService;
-import org.folio.service.DeclareItemLostService;
-import org.folio.service.ClaimItemReturnedService;
+import org.folio.service.LoanActionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,9 +22,7 @@ import lombok.extern.log4j.Log4j2;
 public class EcsLoansController implements EcsLoansApi {
 
   private final CheckOutService checkOutService;
-  private final DeclareItemLostService declareItemLostService;
-  private final ClaimItemReturnedService claimItemReturnedService;
-  private final DeclareClaimedReturnedItemAsMissingService declareClaimedReturnedItemAsMissingService;
+  private final LoanActionService loanActionService;
 
   @Override
   public ResponseEntity<CheckOutResponse> checkOutByBarcode(CheckOutRequest checkOutRequest) {
@@ -35,13 +31,13 @@ public class EcsLoansController implements EcsLoansApi {
 
   @Override
   public ResponseEntity<Void> declareItemLost(DeclareItemLostRequest declareItemLostRequest) {
-    declareItemLostService.declareItemLost(declareItemLostRequest);
+    loanActionService.declareItemLost(declareItemLostRequest);
     return ResponseEntity.noContent().build();
   }
 
   @Override
   public ResponseEntity<Void> claimItemReturned(ClaimItemReturnedRequest claimItemReturnedRequest) {
-    claimItemReturnedService.claimItemReturned(claimItemReturnedRequest);
+    loanActionService.claimItemReturned(claimItemReturnedRequest);
     return ResponseEntity.noContent().build();
   }
 
@@ -49,7 +45,7 @@ public class EcsLoansController implements EcsLoansApi {
   public ResponseEntity<Void> declareClaimedReturnedItemAsMissing(
     DeclareClaimedReturnedItemAsMissingRequest request) {
 
-    declareClaimedReturnedItemAsMissingService.declareMissing(request);
+    loanActionService.declareClaimedReturnedItemMissing(request);
     return ResponseEntity.noContent().build();
   }
 
