@@ -35,10 +35,10 @@ public class ApiErrorHandler {
     return handleApiException(e, HttpStatus.UNPROCESSABLE_ENTITY);
   }
 
-  // handles request schema validation errors
+  // Catches validation errors from @Valid annotations
   @ExceptionHandler(MethodArgumentNotValidException.class)
-  public ResponseEntity<Errors> handleRequestValidationException(MethodArgumentNotValidException e) {
-    return buildSingleErrorResponseEntity(HttpStatus.BAD_REQUEST, e.getMessage());
+  public ResponseEntity<Errors> handleValidationError(MethodArgumentNotValidException e) {
+    return buildSingleErrorResponseEntity(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
   }
 
   @ExceptionHandler(Exception.class)

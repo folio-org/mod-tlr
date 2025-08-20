@@ -144,7 +144,7 @@ class DeclareItemLostApiTest extends LoanActionBaseIT {
   @Test
   void declareItemLostFailsWhenRequestDoesNotHaveServicePointId() {
     declareItemLost(new DeclareItemLostRequest().loanId(LOCAL_TENANT_LOAN_ID).servicePointId(null))
-      .expectStatus().isBadRequest();
+      .expectStatus().isEqualTo(422);
   }
 
   private WebTestClient.ResponseSpec declareItemLost(DeclareItemLostRequest declareItemLostRequest) {

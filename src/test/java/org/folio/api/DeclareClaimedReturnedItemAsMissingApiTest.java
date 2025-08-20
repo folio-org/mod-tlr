@@ -92,7 +92,7 @@ class DeclareClaimedReturnedItemAsMissingApiTest extends LoanActionBaseIT {
     declareItemMissing(new DeclareClaimedReturnedItemAsMissingRequest()
       .loanId(LOCAL_TENANT_LOAN_ID)
       .comment(null))
-      .expectStatus().isBadRequest();
+      .expectStatus().isEqualTo(422);
   }
 
   @Test

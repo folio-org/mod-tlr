@@ -103,7 +103,7 @@ class ClaimItemReturnedApiTest extends LoanActionBaseIT {
   @Test
   void claimItemReturnedFailsWhenRequestDoesNotHaveItemClaimedReturnedDateTime() {
     claimItemReturned(new ClaimItemReturnedRequest().loanId(LOCAL_TENANT_LOAN_ID)
-      .itemClaimedReturnedDateTime(null)).expectStatus().isBadRequest();
+      .itemClaimedReturnedDateTime(null)).expectStatus().isEqualTo(422);
   }
 
   private WebTestClient.ResponseSpec claimItemReturned(
