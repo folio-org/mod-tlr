@@ -2,16 +2,17 @@ package org.folio.service;
 
 import static java.util.UUID.randomUUID;
 import static org.folio.util.TestUtils.mockSystemUserService;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Date;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -25,6 +26,9 @@ import org.folio.domain.dto.Request;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.domain.mapper.CirculationMapper;
 import org.folio.domain.mapper.CirculationMapperImpl;
+import org.folio.domain.type.ErrorCode;
+import org.folio.exception.BadRequestException;
+import org.folio.exception.ValidationException;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.impl.ClaimItemReturnedServiceImpl;
 import org.folio.spring.service.SystemUserScopedExecutionService;
@@ -71,7 +75,7 @@ class ClaimItemReturnedServiceTest {
     when(circulationClient.claimItemReturned(anyString(), eq(buildCirculationClaimItemReturnedRequest())))
       .thenReturn(ResponseEntity.noContent().build());
     when(loanService.fetchLoan(LOCAL_TENANT_LOAN_ID.toString()))
-      .thenReturn(buildLoan(LOCAL_TENANT_LOAN_ID));
+      .thenReturn(Optional.of(buildLoan(LOCAL_TENANT_LOAN_ID)));
     when(loanService.findOpenLoan(USER_ID.toString(), ITEM_ID.toString()))
       .thenReturn(Optional.of(buildLoan(LENDING_TENANT_LOAN_ID)));
     when(requestService.findEcsRequestForLoan(buildLoan(LOCAL_TENANT_LOAN_ID)))
@@ -116,7 +120,7 @@ class ClaimItemReturnedServiceTest {
     when(circulationClient.claimItemReturned(anyString(), eq(buildCirculationClaimItemReturnedRequest())))
       .thenReturn(ResponseEntity.noContent().build());
     when(loanService.fetchLoan(LOCAL_TENANT_LOAN_ID.toString()))
-      .thenReturn(buildLoan(LOCAL_TENANT_LOAN_ID));
+      .thenReturn(Optional.of(buildLoan(LOCAL_TENANT_LOAN_ID)));
     when(requestService.findEcsRequestForLoan(buildLoan(LOCAL_TENANT_LOAN_ID)))
       .thenReturn(Optional.empty());
 
@@ -132,7 +136,7 @@ class ClaimItemReturnedServiceTest {
     when(circulationClient.claimItemReturned(anyString(), eq(buildCirculationClaimItemReturnedRequest())))
       .thenReturn(ResponseEntity.noContent().build());
     when(loanService.fetchLoan(LOCAL_TENANT_LOAN_ID.toString()))
-      .thenReturn(buildLoan(LOCAL_TENANT_LOAN_ID));
+      .thenReturn(Optional.of(buildLoan(LOCAL_TENANT_LOAN_ID)));
     when(requestService.findEcsRequestForLoan(buildLoan(LOCAL_TENANT_LOAN_ID)))
       .thenReturn(Optional.of(buildEcsRequest()));
     when(ecsTlrRepository.findByPrimaryRequestId(ECS_REQUEST_ID))
@@ -146,12 +150,60 @@ class ClaimItemReturnedServiceTest {
   }
 
   @Test
+  void claimItemReturnedFailsWhenLoanIsNotFoundByIdInLocalTenant() {
+    when(loanService.fetchLoan(LOCAL_TENANT_LOAN_ID.toString()))
+      .thenReturn(Optional.empty());
+
+    ClaimItemReturnedRequest request = buildClaimItemReturnedByLoanIdRequest();
+    ValidationException exception = assertThrows(ValidationException.class,
+      () -> claimItemReturnedService.claimItemReturned(request));
+
+    assertEquals(ErrorCode.LOAN_NOT_FOUND, exception.getCode());
+    assertEquals("Loan not found", exception.getMessage());
+    assertEquals(1, exception.getParameters().size());
+    assertEquals("id", exception.getParameters().get(0).getKey());
+    assertEquals(LOCAL_TENANT_LOAN_ID.toString(), exception.getParameters().get(0).getValue());
+
+    verify(loanService, times(1)).fetchLoan(LOCAL_TENANT_LOAN_ID.toString());
+    verifyNoMoreInteractions(loanService);
+    verifyNoInteractions(circulationClient);
+    verifyNoInteractions(requestService);
+    verifyNoInteractions(ecsTlrRepository);
+    verifyNoInteractions(systemUserService);
+  }
+
+  @Test
+  void claimItemReturnedFailsWhenLoanIsNotFoundByUserIdAndItemIdInLocalTenant() {
+    when(loanService.findOpenLoan(USER_ID.toString(), ITEM_ID.toString()))
+      .thenReturn(Optional.empty());
+
+    ClaimItemReturnedRequest request = buildClaimItemReturnedByItemAndUserIdRequest();
+    ValidationException exception = assertThrows(ValidationException.class,
+      () -> claimItemReturnedService.claimItemReturned(request));
+
+    assertEquals(ErrorCode.LOAN_NOT_FOUND, exception.getCode());
+    assertEquals("Open loan not found", exception.getMessage());
+    assertEquals(2, exception.getParameters().size());
+    assertEquals("userId", exception.getParameters().get(0).getKey());
+    assertEquals(USER_ID.toString(), exception.getParameters().get(0).getValue());
+    assertEquals("itemId", exception.getParameters().get(1).getKey());
+    assertEquals(ITEM_ID.toString(), exception.getParameters().get(1).getValue());
+
+    verify(loanService, times(1)).findOpenLoan(USER_ID.toString(), ITEM_ID.toString());
+    verifyNoMoreInteractions(loanService);
+    verifyNoInteractions(circulationClient);
+    verifyNoInteractions(requestService);
+    verifyNoInteractions(ecsTlrRepository);
+    verifyNoInteractions(systemUserService);
+  }
+
+  @Test
   void claimItemReturnedFailsWhenLoanIsNotFoundInLendingTenant() {
     mockSystemUserService(systemUserService);
     when(circulationClient.claimItemReturned(anyString(), eq(buildCirculationClaimItemReturnedRequest())))
       .thenReturn(ResponseEntity.noContent().build());
     when(loanService.fetchLoan(LOCAL_TENANT_LOAN_ID.toString()))
-      .thenReturn(buildLoan(LOCAL_TENANT_LOAN_ID));
+      .thenReturn(Optional.of(buildLoan(LOCAL_TENANT_LOAN_ID)));
     when(requestService.findEcsRequestForLoan(buildLoan(LOCAL_TENANT_LOAN_ID)))
       .thenReturn(Optional.of(buildEcsRequest()));
     when(ecsTlrRepository.findByPrimaryRequestId(ECS_REQUEST_ID))
@@ -160,18 +212,25 @@ class ClaimItemReturnedServiceTest {
       .thenReturn(Optional.empty());
 
     ClaimItemReturnedRequest request = buildClaimItemReturnedByLoanIdRequest();
-    assertThrows(NoSuchElementException.class,
+    ValidationException exception = assertThrows(ValidationException.class,
       () -> claimItemReturnedService.claimItemReturned(request));
+
+    assertEquals(ErrorCode.LOAN_NOT_FOUND, exception.getCode());
+    assertEquals("Open loan not found", exception.getMessage());
+    assertEquals(2, exception.getParameters().size());
+    assertEquals("userId", exception.getParameters().get(0).getKey());
+    assertEquals(USER_ID.toString(), exception.getParameters().get(0).getValue());
+    assertEquals("itemId", exception.getParameters().get(1).getKey());
+    assertEquals(ITEM_ID.toString(), exception.getParameters().get(1).getValue());
 
     verify(circulationClient, times(1)).claimItemReturned(
       LOCAL_TENANT_LOAN_ID.toString(), buildCirculationClaimItemReturnedRequest());
     verifyNoMoreInteractions(circulationClient);
   }
-
   @ParameterizedTest
   @MethodSource("invalidClaimItemReturnedRequests")
   void claimItemReturnedFailsWhenRequestHasInvalidCombinationOfParameters(ClaimItemReturnedRequest request) {
-    assertThrows(IllegalArgumentException.class,
+    assertThrows(BadRequestException.class,
       () -> claimItemReturnedService.claimItemReturned(request));
   }
 

@@ -1,7 +1,5 @@
 package org.folio.service.impl;
 
-import java.util.UUID;
-
 import org.folio.client.feign.CirculationErrorForwardingClient;
 import org.folio.domain.dto.DeclareClaimedReturnedItemAsMissingRequest;
 import org.folio.domain.dto.Loan;
@@ -50,18 +48,18 @@ public class DeclareClaimedReturnedItemAsMissingServiceImpl
   }
 
   @Override
-  protected UUID getLoanId(DeclareClaimedReturnedItemAsMissingRequest actionRequest) {
-    return actionRequest.getLoanId();
+  protected String getLoanId(DeclareClaimedReturnedItemAsMissingRequest actionRequest) {
+    return toString(actionRequest.getLoanId());
   }
 
   @Override
-  protected UUID getUserId(DeclareClaimedReturnedItemAsMissingRequest actionRequest) {
-    return actionRequest.getUserId();
+  protected String getUserId(DeclareClaimedReturnedItemAsMissingRequest actionRequest) {
+    return toString(actionRequest.getUserId());
   }
 
   @Override
-  protected UUID getItemId(DeclareClaimedReturnedItemAsMissingRequest actionRequest) {
-    return actionRequest.getItemId();
+  protected String getItemId(DeclareClaimedReturnedItemAsMissingRequest actionRequest) {
+    return toString(actionRequest.getItemId());
   }
 
 }

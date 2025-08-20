@@ -6,6 +6,8 @@ import org.folio.domain.dto.Error;
 import org.folio.domain.dto.Errors;
 import org.folio.domain.dto.Parameter;
 import org.folio.domain.type.ErrorCode;
+import org.folio.exception.ApiException;
+import org.folio.exception.BadRequestException;
 import org.folio.exception.ValidationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -16,9 +18,18 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class ApiErrorHandler {
 
+  @ExceptionHandler(BadRequestException.class)
+  public ResponseEntity<Errors> handleBadRequestException(BadRequestException e) {
+    return handleApiException(e, HttpStatus.BAD_REQUEST);
+  }
+
   @ExceptionHandler(ValidationException.class)
-  public ResponseEntity<Errors> handleValidationExceptions(ValidationException e) {
-    return buildSingleErrorResponseEntity(HttpStatus.UNPROCESSABLE_ENTITY,
+  public ResponseEntity<Errors> handleValidationException(ValidationException e) {
+    return handleApiException(e, HttpStatus.UNPROCESSABLE_ENTITY);
+  }
+
+  private ResponseEntity<Errors> handleApiException(ApiException e, HttpStatus httpStatus) {
+    return buildSingleErrorResponseEntity(httpStatus,
       buildError(e, e.getCode(), e.getParameters()));
   }
 

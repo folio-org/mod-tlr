@@ -4,6 +4,7 @@ import static java.util.Optional.of;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.INTERMEDIATE;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.PRIMARY;
 import static org.folio.domain.type.ErrorCode.ECS_REQUEST_CANNOT_BE_PLACED_FOR_INACTIVE_PATRON;
+import static org.folio.exception.ExceptionFactory.validationError;
 
 import java.util.Collection;
 import java.util.List;
@@ -19,7 +20,6 @@ import org.folio.domain.dto.Request.EcsRequestPhaseEnum;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.domain.mapper.EcsTlrMapper;
 import org.folio.exception.TenantPickingException;
-import org.folio.exception.ValidationException;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.DcbService;
 import org.folio.service.EcsTlrService;
@@ -126,7 +126,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       String message = "ECS request cannot be placed for inactive requester %s"
         .formatted(ecsTlrDto.getRequesterId());
       log.warn("create:: {}", message);
-      throw new ValidationException(message, ECS_REQUEST_CANNOT_BE_PLACED_FOR_INACTIVE_PATRON,
+      throw validationError(message, ECS_REQUEST_CANNOT_BE_PLACED_FOR_INACTIVE_PATRON,
         List.of(new Parameter().key("requesterId").value(ecsTlrDto.getRequesterId()),
           new Parameter().key("tenantId").value(primaryRequestTenantId)));
     }

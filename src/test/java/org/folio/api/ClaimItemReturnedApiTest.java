@@ -8,6 +8,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.folio.spring.integration.XOkapiHeaders.TENANT;
 import static org.folio.support.MockDataUtils.buildCirculationClaimItemReturnedRequest;
+import static org.folio.support.MockDataUtils.buildClaimItemReturnedRequest;
+import static org.hamcrest.Matchers.hasSize;
 
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -108,6 +110,46 @@ class ClaimItemReturnedApiTest extends LoanActionBaseIT {
     ClaimItemReturnedRequest claimItemReturnedRequest) {
 
     return doPost(CLAIM_ITEM_RETURNED_URL, claimItemReturnedRequest);
+  }
+
+  @Test
+  void claimItemReturnedFailsWhenLocalLoanIsNotFound() {
+    mockErrorCode(LOAN_STORAGE_URL + "/" + LOCAL_TENANT_LOAN_ID, 404);
+    ClaimItemReturnedRequest request = buildClaimItemReturnedRequest(LOCAL_TENANT_LOAN_ID,
+      new Date(), ACTION_COMMENT);
+
+    claimItemReturned(request)
+      .expectStatus().isEqualTo(422)
+      .expectBody()
+      .jsonPath("$.errors").value(hasSize(1))
+      .jsonPath("$.errors[0].code").isEqualTo("LOAN_NOT_FOUND")
+      .jsonPath("$.errors[0].message").isEqualTo("Loan not found")
+      .jsonPath("$.errors[0].parameters").value(hasSize(1))
+      .jsonPath("$.errors[0].parameters[0].key").isEqualTo("id")
+      .jsonPath("$.errors[0].parameters[0].value").isEqualTo(LOCAL_TENANT_LOAN_ID.toString());
+  }
+
+  @Test
+  void claimItemReturnedFailsWhenRequestIsInvalid() {
+    ClaimItemReturnedRequest invalidRequest = new ClaimItemReturnedRequest()
+      .loanId(LOCAL_TENANT_LOAN_ID)
+      .itemId(ITEM_ID)
+      .userId(USER_ID)
+      .itemClaimedReturnedDateTime(new Date());
+
+    claimItemReturned(invalidRequest)
+      .expectStatus().isBadRequest()
+      .expectBody()
+      .jsonPath("$.errors").value(hasSize(1))
+      .jsonPath("$.errors[0].code").isEqualTo("INVALID_LOAN_ACTION_REQUEST")
+      .jsonPath("$.errors[0].message").isEqualTo(INVALID_REQUEST_ERROR_MESSAGE)
+      .jsonPath("$.errors[0].parameters").value(hasSize(3))
+      .jsonPath("$.errors[0].parameters[0].key").isEqualTo("loanId")
+      .jsonPath("$.errors[0].parameters[0].value").isEqualTo(LOCAL_TENANT_LOAN_ID.toString())
+      .jsonPath("$.errors[0].parameters[1].key").isEqualTo("userId")
+      .jsonPath("$.errors[0].parameters[1].value").isEqualTo(USER_ID.toString())
+      .jsonPath("$.errors[0].parameters[2].key").isEqualTo("itemId")
+      .jsonPath("$.errors[0].parameters[2].value").isEqualTo(ITEM_ID.toString());
   }
 
   private void setupCirculationMocks(Date claimItemReturnedDate) {
