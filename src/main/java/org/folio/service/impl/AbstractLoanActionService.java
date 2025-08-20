@@ -27,13 +27,13 @@ public abstract class AbstractLoanActionService<T> {
   protected final EcsTlrRepository ecsTlrRepository;
   protected final SystemUserScopedExecutionService systemUserService;
 
-  protected void execute(T actionRequest) {
-    log.info("execute:: processing loan action request: {}", actionRequest);
+  protected void perform(T actionRequest) {
+    log.info("perform:: processing loan action request: {}", toLogString(actionRequest));
     validateRequest(actionRequest);
     Loan localLoan = findLoan(actionRequest);
     performActionInCirculation(localLoan, actionRequest);
     performActionInLendingTenant(localLoan, actionRequest);
-    log.info("execute:: loan action request processed successfully");
+    log.info("perform:: loan action request processed successfully");
   }
 
   private void validateRequest(T actionRequest) {
@@ -88,6 +88,14 @@ public abstract class AbstractLoanActionService<T> {
       performActionInCirculation(openLoan, actionRequest);
       return null;
     });
+  }
+
+  private String toLogString(T actionRequest) {
+    return String.format("%s(loanId=%s, userId=%s, itemId=%s)",
+      actionRequest.getClass().getSimpleName(),
+      getLoanId(actionRequest),
+      getUserId(actionRequest),
+      getItemId(actionRequest));
   }
 
   protected abstract void performActionInCirculation(Loan loan, T actionRequest);

@@ -35,7 +35,7 @@ implements ClaimItemReturnedService {
   @Override
   public void claimItemReturned(ClaimItemReturnedRequest request) {
     log.info("claimItemReturned:: claiming item returned");
-    execute(request);
+    perform(request);
   }
 
   @Override

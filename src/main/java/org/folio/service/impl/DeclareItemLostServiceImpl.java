@@ -35,7 +35,7 @@ implements DeclareItemLostService {
   @Override
   public void declareItemLost(DeclareItemLostRequest request) {
     log.info("declareItemLost:: declaring item lost");
-    execute(request);
+    perform(request);
   }
 
   @Override

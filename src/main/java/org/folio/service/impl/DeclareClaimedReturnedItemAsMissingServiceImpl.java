@@ -36,7 +36,7 @@ public class DeclareClaimedReturnedItemAsMissingServiceImpl
   @Override
   public void declareMissing(DeclareClaimedReturnedItemAsMissingRequest request) {
     log.info("declareMissing:: declaring claimed returned item as missing");
-    execute(request);
+    perform(request);
   }
 
   @Override
