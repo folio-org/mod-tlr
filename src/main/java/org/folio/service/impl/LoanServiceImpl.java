@@ -23,7 +23,7 @@ public class LoanServiceImpl implements LoanService {
   private final LoanStorageClient loanStorageClient;
 
   @Override
-  public Loan fetchLoan(String loanId) {
+  public Optional<Loan> fetchLoan(String loanId) {
     log.info("fetchLoan:: fetching loan {}", loanId);
     return loanStorageClient.getLoan(loanId);
   }

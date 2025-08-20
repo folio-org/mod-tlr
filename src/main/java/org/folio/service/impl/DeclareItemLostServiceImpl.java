@@ -1,7 +1,5 @@
 package org.folio.service.impl;
 
-import java.util.UUID;
-
 import org.folio.client.feign.CirculationErrorForwardingClient;
 import org.folio.domain.dto.DeclareItemLostRequest;
 import org.folio.domain.dto.Loan;
@@ -46,17 +44,17 @@ implements DeclareItemLostService {
   }
 
   @Override
-  protected UUID getLoanId(DeclareItemLostRequest actionRequest) {
-    return actionRequest.getLoanId();
+  protected String getLoanId(DeclareItemLostRequest actionRequest) {
+    return toString(actionRequest.getLoanId());
   }
 
   @Override
-  protected UUID getUserId(DeclareItemLostRequest actionRequest) {
-    return actionRequest.getUserId();
+  protected String getUserId(DeclareItemLostRequest actionRequest) {
+    return toString(actionRequest.getUserId());
   }
 
   @Override
-  protected UUID getItemId(DeclareItemLostRequest actionRequest) {
-    return actionRequest.getItemId();
+  protected String getItemId(DeclareItemLostRequest actionRequest) {
+    return toString(actionRequest.getItemId());
   }
 }

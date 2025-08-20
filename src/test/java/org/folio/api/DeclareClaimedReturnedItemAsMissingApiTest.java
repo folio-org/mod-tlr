@@ -8,6 +8,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.folio.spring.integration.XOkapiHeaders.TENANT;
 import static org.folio.support.MockDataUtils.buildDeclareItemMissingRequest;
+import static org.hamcrest.Matchers.hasSize;
 
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -22,7 +23,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
-class DeclareClaimedReturnedItemAsMissingTest extends LoanActionBaseIT {
+class DeclareClaimedReturnedItemAsMissingApiTest extends LoanActionBaseIT {
 
   private static final String DECLARE_ITEM_MISSING_URL =
     "/tlr/loans/declare-claimed-returned-item-as-missing";
@@ -92,6 +93,46 @@ class DeclareClaimedReturnedItemAsMissingTest extends LoanActionBaseIT {
       .loanId(LOCAL_TENANT_LOAN_ID)
       .comment(null))
       .expectStatus().isBadRequest();
+  }
+
+  @Test
+  void declareItemMissingFailsWhenLocalLoanIsNotFound() {
+    mockErrorCode(LOAN_STORAGE_URL + "/" + LOCAL_TENANT_LOAN_ID, 404);
+    DeclareClaimedReturnedItemAsMissingRequest request = buildDeclareItemMissingRequest(
+      LOCAL_TENANT_LOAN_ID, ACTION_COMMENT);
+
+    declareItemMissing(request)
+      .expectStatus().isEqualTo(422)
+      .expectBody()
+      .jsonPath("$.errors").value(hasSize(1))
+      .jsonPath("$.errors[0].code").isEqualTo("LOAN_NOT_FOUND")
+      .jsonPath("$.errors[0].message").isEqualTo("Loan not found")
+      .jsonPath("$.errors[0].parameters").value(hasSize(1))
+      .jsonPath("$.errors[0].parameters[0].key").isEqualTo("id")
+      .jsonPath("$.errors[0].parameters[0].value").isEqualTo(LOCAL_TENANT_LOAN_ID.toString());
+  }
+
+  @Test
+  void declareItemMissingFailsWhenRequestIsInvalid() {
+    DeclareClaimedReturnedItemAsMissingRequest request = new DeclareClaimedReturnedItemAsMissingRequest()
+      .loanId(LOCAL_TENANT_LOAN_ID)
+      .itemId(ITEM_ID)
+      .userId(USER_ID)
+      .comment(ACTION_COMMENT);
+
+    declareItemMissing(request)
+      .expectStatus().isBadRequest()
+      .expectBody()
+      .jsonPath("$.errors").value(hasSize(1))
+      .jsonPath("$.errors[0].code").isEqualTo("INVALID_LOAN_ACTION_REQUEST")
+      .jsonPath("$.errors[0].message").isEqualTo(INVALID_REQUEST_ERROR_MESSAGE)
+      .jsonPath("$.errors[0].parameters").value(hasSize(3))
+      .jsonPath("$.errors[0].parameters[0].key").isEqualTo("loanId")
+      .jsonPath("$.errors[0].parameters[0].value").isEqualTo(LOCAL_TENANT_LOAN_ID.toString())
+      .jsonPath("$.errors[0].parameters[1].key").isEqualTo("userId")
+      .jsonPath("$.errors[0].parameters[1].value").isEqualTo(USER_ID.toString())
+      .jsonPath("$.errors[0].parameters[2].key").isEqualTo("itemId")
+      .jsonPath("$.errors[0].parameters[2].value").isEqualTo(ITEM_ID.toString());
   }
 
   private WebTestClient.ResponseSpec declareItemMissing(

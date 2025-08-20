@@ -5,9 +5,9 @@ import java.util.List;
 import org.folio.domain.dto.Parameter;
 import org.folio.domain.type.ErrorCode;
 
-public class ValidationException extends ApiException {
+public class BadRequestException extends ApiException {
 
-  public ValidationException(String message, ErrorCode code, List<Parameter> parameters) {
+  public BadRequestException(String message, ErrorCode code, List<Parameter> parameters) {
     super(message, code, parameters);
   }
 }

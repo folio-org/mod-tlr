@@ -1,7 +1,5 @@
 package org.folio.service.impl;
 
-import java.util.UUID;
-
 import org.folio.client.feign.CirculationErrorForwardingClient;
 import org.folio.domain.dto.ClaimItemReturnedRequest;
 import org.folio.domain.dto.Loan;
@@ -46,17 +44,17 @@ implements ClaimItemReturnedService {
   }
 
   @Override
-  protected UUID getLoanId(ClaimItemReturnedRequest actionRequest) {
-    return actionRequest.getLoanId();
+  protected String getLoanId(ClaimItemReturnedRequest actionRequest) {
+    return toString(actionRequest.getLoanId());
   }
 
   @Override
-  protected UUID getUserId(ClaimItemReturnedRequest actionRequest) {
-    return actionRequest.getUserId();
+  protected String getUserId(ClaimItemReturnedRequest actionRequest) {
+    return toString(actionRequest.getUserId());
   }
 
   @Override
-  protected UUID getItemId(ClaimItemReturnedRequest actionRequest) {
-    return actionRequest.getItemId();
+  protected String getItemId(ClaimItemReturnedRequest actionRequest) {
+    return toString(actionRequest.getItemId());
   }
 }
