@@ -2,12 +2,21 @@ package org.folio.api;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.noContent;
+import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.folio.spring.integration.XOkapiHeaders.TENANT;
 import static org.folio.support.MockDataUtils.buildCirculationClaimItemReturnedRequest;
+import static org.folio.support.MockDataUtils.buildClaimItemReturnedRequest;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.startsWith;
+import static org.hamcrest.Matchers.stringContainsInOrder;
 
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -22,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 class ClaimItemReturnedApiTest extends LoanActionBaseIT {
@@ -99,9 +109,75 @@ class ClaimItemReturnedApiTest extends LoanActionBaseIT {
   }
 
   @Test
+  void claimItemReturnedFailsWhenLocalLoanIsNotFound() {
+    mockErrorCode(LOAN_STORAGE_URL + "/" + LOCAL_TENANT_LOAN_ID, 404);
+    ClaimItemReturnedRequest request = buildClaimItemReturnedRequest(LOCAL_TENANT_LOAN_ID,
+      new Date(), ACTION_COMMENT);
+
+    claimItemReturned(request)
+      .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY)
+      .expectBody()
+      .jsonPath("$.errors").value(hasSize(1))
+      .jsonPath("$.errors[0].code").isEqualTo("LOAN_NOT_FOUND")
+      .jsonPath("$.errors[0].message").isEqualTo("Loan not found")
+      .jsonPath("$.errors[0].type").isEqualTo("ValidationException")
+      .jsonPath("$.errors[0].parameters").value(hasSize(1))
+      .jsonPath("$.errors[0].parameters").value(containsInAnyOrder(
+        allOf(hasEntry("key", "id"), hasEntry("value", LOCAL_TENANT_LOAN_ID.toString()))
+      ));
+  }
+
+  @Test
+  void claimItemReturnedFailsWhenRequestIsInvalid() {
+    ClaimItemReturnedRequest invalidRequest = new ClaimItemReturnedRequest()
+      .loanId(LOCAL_TENANT_LOAN_ID)
+      .itemId(ITEM_ID)
+      .userId(USER_ID)
+      .itemClaimedReturnedDateTime(new Date());
+
+    claimItemReturned(invalidRequest)
+      .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY)
+      .expectBody()
+      .jsonPath("$.errors").value(hasSize(1))
+      .jsonPath("$.errors[0].code").isEqualTo("INVALID_LOAN_ACTION_REQUEST")
+      .jsonPath("$.errors[0].message").isEqualTo(INVALID_REQUEST_ERROR_MESSAGE)
+      .jsonPath("$.errors[0].type").isEqualTo("ValidationException")
+      .jsonPath("$.errors[0].parameters").value(hasSize(3))
+      .jsonPath("$.errors[0].parameters").value(containsInAnyOrder(
+        allOf(hasEntry("key", "loanId"), hasEntry("value", LOCAL_TENANT_LOAN_ID.toString())),
+        allOf(hasEntry("key", "userId"), hasEntry("value", USER_ID.toString())),
+        allOf(hasEntry("key", "itemId"), hasEntry("value", ITEM_ID.toString()))
+      ));
+  }
+
+  @Test
   void claimItemReturnedFailsWhenRequestDoesNotHaveItemClaimedReturnedDateTime() {
-    claimItemReturned(new ClaimItemReturnedRequest().loanId(LOCAL_TENANT_LOAN_ID)
-      .itemClaimedReturnedDateTime(null)).expectStatus().isBadRequest();
+    claimItemReturned(new ClaimItemReturnedRequest().itemClaimedReturnedDateTime(null))
+      .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY)
+      .expectBody()
+      .jsonPath("$.errors").value(hasSize(1))
+      .jsonPath("$.errors[0].type").isEqualTo("MethodArgumentNotValidException")
+      .jsonPath("$.errors[0].message").value(stringContainsInOrder(
+        "Validation failed for argument", "must not be null"));
+  }
+
+  @Test
+  void unexpectedErrorIsHandledCorrectly() {
+    wireMockServer.stubFor(get(urlEqualTo(LOAN_STORAGE_URL + "/" + LOCAL_TENANT_LOAN_ID))
+      .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(okJson("not a json")));
+
+    ClaimItemReturnedRequest request = new ClaimItemReturnedRequest()
+      .loanId(LOCAL_TENANT_LOAN_ID)
+      .itemClaimedReturnedDateTime(new Date());
+
+    claimItemReturned(request)
+      .expectStatus().isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
+      .expectBody()
+      .jsonPath("$.errors").value(hasSize(1))
+      .jsonPath("$.errors[0].type").isEqualTo("DecodeException")
+      .jsonPath("$.errors[0].code").isEqualTo("INTERNAL_SERVER_ERROR")
+      .jsonPath("$.errors[0].message").value(startsWith("Error while extracting response"));
   }
 
   private WebTestClient.ResponseSpec claimItemReturned(

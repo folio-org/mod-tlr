@@ -9,7 +9,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.folio.spring.integration.XOkapiHeaders.TENANT;
-import static org.folio.support.MockDataUtils.buildDeclareItemLostRequest;
+import static org.folio.support.MockDataUtils.buildDeclareItemMissingRequest;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasEntry;
@@ -21,10 +21,8 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.Date;
 
-import org.folio.domain.dto.CirculationDeclareItemLostRequest;
-import org.folio.domain.dto.DeclareItemLostRequest;
+import org.folio.domain.dto.DeclareClaimedReturnedItemAsMissingRequest;
 import org.folio.repository.EcsTlrRepository;
-import org.folio.support.MockDataUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -33,11 +31,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
-class DeclareItemLostApiTest extends LoanActionBaseIT {
+class DeclareClaimedReturnedItemAsMissingApiTest extends LoanActionBaseIT {
 
-  private static final String DECLARE_ITEM_LOST_URL = "/tlr/loans/declare-item-lost";
-  private static final String CIRCULATION_DECLARE_ITEM_LOST_URL_TEMPLATE =
-    "/circulation/loans/%s/declare-item-lost";
+  private static final String DECLARE_ITEM_MISSING_URL =
+    "/tlr/loans/declare-claimed-returned-item-as-missing";
+  private static final String CIRCULATION_DECLARE_ITEM_MISSING_URL_TEMPLATE =
+    "/circulation/loans/%s/declare-claimed-returned-item-as-missing";
 
   @Autowired
   private EcsTlrRepository ecsTlrRepository;
@@ -49,45 +48,37 @@ class DeclareItemLostApiTest extends LoanActionBaseIT {
   }
 
   @Test
-  void declareItemLostByLoanId() {
+  void declareItemMissingByLoanId() {
     ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
     Date loanCreationDate = Date.from(now.toInstant());
-    Date declareItemLostDate = new Date();
 
     setupLocalLoanMock(loanCreationDate, LOCAL_TENANT_LOAN_ID.toString());
     setupLendingTenantLoanMock(loanCreationDate);
     setupEcsRequestMock(Date.from(now.minusSeconds(30).toInstant()));
     mockEcsTlrEntity();
-    setupCirculationMocks(declareItemLostDate);
+    setupCirculationMocks();
 
-    DeclareItemLostRequest declareItemLostRequest = buildDeclareItemLostRequest(
-      LOCAL_TENANT_LOAN_ID, SERVICE_POINT_ID, declareItemLostDate, ACTION_COMMENT);
-
-    declareItemLost(declareItemLostRequest)
+    declareItemMissing(buildDeclareItemMissingRequest(LOCAL_TENANT_LOAN_ID, ACTION_COMMENT))
       .expectStatus().isNoContent();
 
-    verifyCirculationCalls(declareItemLostDate);
+    verifyCirculationCalls();
   }
 
   @Test
-  void declareItemLostByUserIdAndItemId() {
+  void declareItemMissingByUserIdAndItemId() {
     ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
     Date loanCreationDate = Date.from(now.toInstant());
-    Date declareItemLostDate = new Date();
 
     setupLocalLoanMockWithQuery(loanCreationDate);
     setupLendingTenantLoanMock(loanCreationDate);
     setupEcsRequestMock(Date.from(now.minusSeconds(30).toInstant()));
     mockEcsTlrEntity();
-    setupCirculationMocks(declareItemLostDate);
+    setupCirculationMocks();
 
-    DeclareItemLostRequest declareItemLostRequest = buildDeclareItemLostRequest(
-      USER_ID, ITEM_ID, SERVICE_POINT_ID, declareItemLostDate, ACTION_COMMENT);
-
-    declareItemLost(declareItemLostRequest)
+    declareItemMissing(buildDeclareItemMissingRequest(USER_ID, ITEM_ID, ACTION_COMMENT))
       .expectStatus().isNoContent();
 
-    verifyCirculationCalls(declareItemLostDate);
+    verifyCirculationCalls();
   }
 
   @ParameterizedTest
@@ -96,26 +87,32 @@ class DeclareItemLostApiTest extends LoanActionBaseIT {
     setupLocalLoanMock(new Date(), LOCAL_TENANT_LOAN_ID.toString());
 
     mockErrorCode(
-      CIRCULATION_DECLARE_ITEM_LOST_URL_TEMPLATE.formatted(LOCAL_TENANT_LOAN_ID.toString()),
+      CIRCULATION_DECLARE_ITEM_MISSING_URL_TEMPLATE.formatted(LOCAL_TENANT_LOAN_ID.toString()),
       circulationStatusCode);
 
-    DeclareItemLostRequest request = new DeclareItemLostRequest()
-      .loanId(LOCAL_TENANT_LOAN_ID)
-      .servicePointId(SERVICE_POINT_ID)
-      .declaredLostDateTime(new Date())
-      .comment(ACTION_COMMENT);
 
-    declareItemLost(request)
+    declareItemMissing(buildDeclareItemMissingRequest(LOCAL_TENANT_LOAN_ID, ACTION_COMMENT))
       .expectStatus().isEqualTo(circulationStatusCode);
   }
 
   @Test
-  void declareItemLostFailsWhenLocalLoanIsNotFound() {
-    mockErrorCode(LOAN_STORAGE_URL + "/" + LOCAL_TENANT_LOAN_ID, 404);
-    DeclareItemLostRequest request = buildDeclareItemLostRequest(
-      LOCAL_TENANT_LOAN_ID, SERVICE_POINT_ID, new Date(), ACTION_COMMENT);
+  void declareItemMissingFailsWhenRequestDoesNotHaveComment() {
+    declareItemMissing(new DeclareClaimedReturnedItemAsMissingRequest().comment(null))
+      .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY)
+      .expectBody()
+      .jsonPath("$.errors").value(hasSize(1))
+      .jsonPath("$.errors[0].type").isEqualTo("MethodArgumentNotValidException")
+      .jsonPath("$.errors[0].message").value(stringContainsInOrder(
+        "Validation failed for argument", "must not be null"));
+  }
 
-    declareItemLost(request)
+  @Test
+  void declareItemMissingFailsWhenLocalLoanIsNotFound() {
+    mockErrorCode(LOAN_STORAGE_URL + "/" + LOCAL_TENANT_LOAN_ID, 404);
+    DeclareClaimedReturnedItemAsMissingRequest request = buildDeclareItemMissingRequest(
+      LOCAL_TENANT_LOAN_ID, ACTION_COMMENT);
+
+    declareItemMissing(request)
       .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY)
       .expectBody()
       .jsonPath("$.errors").value(hasSize(1))
@@ -129,14 +126,14 @@ class DeclareItemLostApiTest extends LoanActionBaseIT {
   }
 
   @Test
-  void declareItemLostFailsWhenRequestIsInvalid() {
-    DeclareItemLostRequest invalidRequest = new DeclareItemLostRequest()
+  void declareItemMissingFailsWhenRequestIsInvalid() {
+    DeclareClaimedReturnedItemAsMissingRequest request = new DeclareClaimedReturnedItemAsMissingRequest()
       .loanId(LOCAL_TENANT_LOAN_ID)
       .itemId(ITEM_ID)
       .userId(USER_ID)
-      .servicePointId(SERVICE_POINT_ID);
+      .comment(ACTION_COMMENT);
 
-    declareItemLost(invalidRequest)
+    declareItemMissing(request)
       .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY)
       .expectBody()
       .jsonPath("$.errors").value(hasSize(1))
@@ -152,27 +149,16 @@ class DeclareItemLostApiTest extends LoanActionBaseIT {
   }
 
   @Test
-  void declareItemLostFailsWhenRequestDoesNotHaveServicePointId() {
-    declareItemLost(new DeclareItemLostRequest().servicePointId(null))
-      .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY)
-      .expectBody()
-      .jsonPath("$.errors").value(hasSize(1))
-      .jsonPath("$.errors[0].type").isEqualTo("MethodArgumentNotValidException")
-      .jsonPath("$.errors[0].message").value(stringContainsInOrder(
-        "Validation failed for argument", "must not be null"));
-  }
-
-  @Test
   void unexpectedErrorIsHandledCorrectly() {
     wireMockServer.stubFor(get(urlEqualTo(LOAN_STORAGE_URL + "/" + LOCAL_TENANT_LOAN_ID))
       .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM))
       .willReturn(okJson("not a json")));
 
-    DeclareItemLostRequest request = new DeclareItemLostRequest()
+    DeclareClaimedReturnedItemAsMissingRequest request = new DeclareClaimedReturnedItemAsMissingRequest()
       .loanId(LOCAL_TENANT_LOAN_ID)
-      .servicePointId(SERVICE_POINT_ID);
+      .comment(ACTION_COMMENT);
 
-    declareItemLost(request)
+    declareItemMissing(request)
       .expectStatus().isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
       .expectBody()
       .jsonPath("$.errors").value(hasSize(1))
@@ -181,49 +167,40 @@ class DeclareItemLostApiTest extends LoanActionBaseIT {
       .jsonPath("$.errors[0].message").value(startsWith("Error while extracting response"));
   }
 
-  private WebTestClient.ResponseSpec declareItemLost(DeclareItemLostRequest declareItemLostRequest) {
-    return doPost(DECLARE_ITEM_LOST_URL, declareItemLostRequest);
+  private WebTestClient.ResponseSpec declareItemMissing(
+    DeclareClaimedReturnedItemAsMissingRequest request) {
+
+    return doPost(DECLARE_ITEM_MISSING_URL, request);
   }
 
-  private void setupCirculationMocks(Date declareItemLostDate) {
-    CirculationDeclareItemLostRequest expectedCirculationRequestInLocalTenant =
-      MockDataUtils.buildCirculationDeclareItemLostRequest(SERVICE_POINT_ID, declareItemLostDate,
-        ACTION_COMMENT);
+  private void setupCirculationMocks() {
+    var expectedCirculationRequest = new DeclareClaimedReturnedItemAsMissingRequest(ACTION_COMMENT);
 
     wireMockServer.stubFor(post(urlEqualTo(
-      CIRCULATION_DECLARE_ITEM_LOST_URL_TEMPLATE.formatted(LOCAL_TENANT_LOAN_ID.toString())))
+      CIRCULATION_DECLARE_ITEM_MISSING_URL_TEMPLATE.formatted(LOCAL_TENANT_LOAN_ID.toString())))
       .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM))
-      .withRequestBody(equalToJson(asJsonString(expectedCirculationRequestInLocalTenant)))
+      .withRequestBody(equalToJson(asJsonString(expectedCirculationRequest)))
       .willReturn(noContent()));
 
-    CirculationDeclareItemLostRequest expectedCirculationRequestInLendingTenant =
-      MockDataUtils.buildCirculationDeclareItemLostRequest(SERVICE_POINT_ID, declareItemLostDate,
-        ACTION_COMMENT);
-
     wireMockServer.stubFor(post(urlEqualTo(
-      CIRCULATION_DECLARE_ITEM_LOST_URL_TEMPLATE.formatted(LENDING_TENANT_LOAN_ID.toString())))
+      CIRCULATION_DECLARE_ITEM_MISSING_URL_TEMPLATE.formatted(LENDING_TENANT_LOAN_ID.toString())))
       .withHeader(TENANT, equalTo(TENANT_ID_COLLEGE))
-      .withRequestBody(equalToJson(asJsonString(expectedCirculationRequestInLendingTenant)))
+      .withRequestBody(equalToJson(asJsonString(expectedCirculationRequest)))
       .willReturn(noContent()));
   }
 
-  private void verifyCirculationCalls(Date declareItemLostDate) {
-    CirculationDeclareItemLostRequest expectedLocalRequest =
-      MockDataUtils.buildCirculationDeclareItemLostRequest(SERVICE_POINT_ID, declareItemLostDate,
-        ACTION_COMMENT);
-    CirculationDeclareItemLostRequest expectedLendingRequest =
-      MockDataUtils.buildCirculationDeclareItemLostRequest(SERVICE_POINT_ID, declareItemLostDate,
-        ACTION_COMMENT);
+  private void verifyCirculationCalls() {
+    var expectedCirculationRequest = new DeclareClaimedReturnedItemAsMissingRequest(ACTION_COMMENT);
 
     wireMockServer.verify(1, postRequestedFor(urlEqualTo(
-      CIRCULATION_DECLARE_ITEM_LOST_URL_TEMPLATE.formatted(LOCAL_TENANT_LOAN_ID.toString())))
+      CIRCULATION_DECLARE_ITEM_MISSING_URL_TEMPLATE.formatted(LOCAL_TENANT_LOAN_ID.toString())))
       .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM))
-      .withRequestBody(equalToJson(asJsonString(expectedLocalRequest))));
+      .withRequestBody(equalToJson(asJsonString(expectedCirculationRequest))));
 
     wireMockServer.verify(1, postRequestedFor(urlEqualTo(
-      CIRCULATION_DECLARE_ITEM_LOST_URL_TEMPLATE.formatted(LENDING_TENANT_LOAN_ID.toString())))
+      CIRCULATION_DECLARE_ITEM_MISSING_URL_TEMPLATE.formatted(LENDING_TENANT_LOAN_ID.toString())))
       .withHeader(TENANT, equalTo(TENANT_ID_COLLEGE))
-      .withRequestBody(equalToJson(asJsonString(expectedLendingRequest))));
+      .withRequestBody(equalToJson(asJsonString(expectedCirculationRequest))));
   }
 
 }
