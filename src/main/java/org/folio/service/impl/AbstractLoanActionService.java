@@ -4,13 +4,13 @@ import static org.folio.domain.type.ErrorCode.INVALID_LOAN_ACTION_REQUEST;
 import static org.folio.domain.type.ErrorCode.LOAN_NOT_FOUND;
 import static org.folio.exception.ExceptionFactory.validationError;
 
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.folio.client.feign.CirculationErrorForwardingClient;
 import org.folio.domain.dto.Loan;
-import org.folio.domain.dto.Parameter;
 import org.folio.domain.dto.Request;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.domain.mapper.CirculationMapper;
@@ -57,12 +57,13 @@ public abstract class AbstractLoanActionService<T> {
     }
 
     log.error("validateRequest:: {}: {}", INVALID_REQUEST_ERROR_MESSAGE, toString(actionRequest));
-    throw ExceptionFactory.validationError(INVALID_REQUEST_ERROR_MESSAGE, INVALID_LOAN_ACTION_REQUEST,
-      List.of(
-        new Parameter().key("loanId").value(getLoanId(actionRequest)),
-        new Parameter().key("userId").value(getUserId(actionRequest)),
-        new Parameter().key("itemId").value(getItemId(actionRequest))
-      ));
+    Map<String, String> exceptionParameters = new HashMap<>();
+    exceptionParameters.put("loanId", getLoanId(actionRequest));
+    exceptionParameters.put("userId", getUserId(actionRequest));
+    exceptionParameters.put("itemId", getItemId(actionRequest));
+
+    throw ExceptionFactory.validationError(INVALID_REQUEST_ERROR_MESSAGE,
+      INVALID_LOAN_ACTION_REQUEST, exceptionParameters);
   }
 
   private Loan findLoan(T actionRequest) {
@@ -103,15 +104,13 @@ public abstract class AbstractLoanActionService<T> {
 
   private Loan fetchLoan(String loanId) {
     return loanService.fetchLoan(loanId)
-      .orElseThrow(() -> validationError("Loan not found", LOAN_NOT_FOUND, List.of(
-        new Parameter().key("id").value(loanId))));
+      .orElseThrow(() -> validationError("Loan not found", LOAN_NOT_FOUND, Map.of("id", loanId)));
   }
 
   private Loan findOpenLoan(String userId, String itemId) {
     return loanService.findOpenLoan(userId, itemId)
-      .orElseThrow(() -> validationError("Open loan not found", LOAN_NOT_FOUND, List.of(
-        new Parameter().key("userId").value(userId),
-        new Parameter().key("itemId").value(itemId))));
+      .orElseThrow(() -> validationError("Open loan not found", LOAN_NOT_FOUND,
+        Map.of("userId", userId, "itemId", itemId)));
   }
 
   private String toString(T actionRequest) {

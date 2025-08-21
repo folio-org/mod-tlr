@@ -1,6 +1,7 @@
 package org.folio.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.folio.domain.dto.Error;
 import org.folio.domain.dto.Errors;
@@ -68,10 +69,18 @@ public class ApiErrorHandler {
     return buildError(e, code, null);
   }
 
-  private static Error buildError(Exception e, ErrorCode code, List<Parameter> parameters) {
+  private static Error buildError(Exception e, ErrorCode code, Map<String, String> parameters) {
+    List<Parameter> params = null;
+    if (parameters != null) {
+      params = parameters.entrySet()
+        .stream()
+        .map(entry -> new Parameter().key(entry.getKey()).value(entry.getValue()))
+        .toList();
+    }
+
     return new Error(e.getMessage())
       .code(code.getValue())
       .type(e.getClass().getSimpleName())
-      .parameters(parameters);
+      .parameters(params);
   }
 }

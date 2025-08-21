@@ -8,13 +8,13 @@ import static org.folio.exception.ExceptionFactory.validationError;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.EcsTlr;
-import org.folio.domain.dto.Parameter;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.Request.EcsRequestPhaseEnum;
 import org.folio.domain.entity.EcsTlrEntity;
@@ -127,8 +127,10 @@ public class EcsTlrServiceImpl implements EcsTlrService {
         .formatted(ecsTlrDto.getRequesterId());
       log.warn("create:: {}", message);
       throw validationError(message, ECS_REQUEST_CANNOT_BE_PLACED_FOR_INACTIVE_PATRON,
-        List.of(new Parameter().key("requesterId").value(ecsTlrDto.getRequesterId()),
-          new Parameter().key("tenantId").value(primaryRequestTenantId)));
+        Map.of(
+          "requesterId", ecsTlrDto.getRequesterId(),
+          "tenantId", primaryRequestTenantId
+        ));
     }
   }
 

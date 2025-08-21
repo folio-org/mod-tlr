@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Date;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -145,12 +146,11 @@ public abstract class AbstractLoanActionServiceTest<ActionRequest, CirculationAc
     ValidationException exception = assertThrows(ValidationException.class,
       () -> performLoanAction(buildRequestByLoanId()));
 
+    Map<String, String> expectedErrorParameters = Map.of("id", LOCAL_TENANT_LOAN_ID.toString());
+    assertEquals(expectedErrorParameters, exception.getParameters());
     assertEquals(ErrorCode.LOAN_NOT_FOUND, exception.getCode());
     assertEquals("Loan not found", exception.getMessage());
     assertEquals("ValidationException", exception.getType());
-    assertEquals(1, exception.getParameters().size());
-    assertEquals("id", exception.getParameters().get(0).getKey());
-    assertEquals(LOCAL_TENANT_LOAN_ID.toString(), exception.getParameters().get(0).getValue());
 
     verify(loanService, times(1)).fetchLoan(LOCAL_TENANT_LOAN_ID.toString());
     verifyNoMoreInteractions(loanService);
@@ -169,14 +169,14 @@ public abstract class AbstractLoanActionServiceTest<ActionRequest, CirculationAc
     ValidationException exception = assertThrows(ValidationException.class,
       () -> performLoanAction(request));
 
+    Map<String, String> expectedErrorParameters = Map.of(
+      "userId", USER_ID.toString(),
+      "itemId", ITEM_ID.toString());
+
+    assertEquals(expectedErrorParameters, exception.getParameters());
     assertEquals(ErrorCode.LOAN_NOT_FOUND, exception.getCode());
     assertEquals("Open loan not found", exception.getMessage());
     assertEquals("ValidationException", exception.getType());
-    assertEquals(2, exception.getParameters().size());
-    assertEquals("userId", exception.getParameters().get(0).getKey());
-    assertEquals(USER_ID.toString(), exception.getParameters().get(0).getValue());
-    assertEquals("itemId", exception.getParameters().get(1).getKey());
-    assertEquals(ITEM_ID.toString(), exception.getParameters().get(1).getValue());
 
     verify(loanService, times(1)).findOpenLoan(USER_ID.toString(), ITEM_ID.toString());
     verifyNoMoreInteractions(loanService);
@@ -203,14 +203,14 @@ public abstract class AbstractLoanActionServiceTest<ActionRequest, CirculationAc
     ValidationException exception = assertThrows(ValidationException.class,
       () -> performLoanAction(buildRequestByLoanId()));
 
+    Map<String, String> expectedErrorParameters = Map.of(
+      "userId", USER_ID.toString(),
+      "itemId", ITEM_ID.toString());
+
+    assertEquals(expectedErrorParameters, exception.getParameters());
     assertEquals(ErrorCode.LOAN_NOT_FOUND, exception.getCode());
     assertEquals("Open loan not found", exception.getMessage());
     assertEquals("ValidationException", exception.getType());
-    assertEquals(2, exception.getParameters().size());
-    assertEquals("userId", exception.getParameters().get(0).getKey());
-    assertEquals(USER_ID.toString(), exception.getParameters().get(0).getValue());
-    assertEquals("itemId", exception.getParameters().get(1).getKey());
-    assertEquals(ITEM_ID.toString(), exception.getParameters().get(1).getValue());
 
     verifyClientAction(LOCAL_TENANT_LOAN_ID.toString(), circulationRequest);
     verifyNoMoreInteractions(circulationClient);

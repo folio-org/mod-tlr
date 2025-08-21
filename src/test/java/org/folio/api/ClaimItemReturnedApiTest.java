@@ -9,6 +9,9 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.folio.spring.integration.XOkapiHeaders.TENANT;
 import static org.folio.support.MockDataUtils.buildCirculationClaimItemReturnedRequest;
 import static org.folio.support.MockDataUtils.buildClaimItemReturnedRequest;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.stringContainsInOrder;
 
@@ -103,17 +106,6 @@ class ClaimItemReturnedApiTest extends LoanActionBaseIT {
   }
 
   @Test
-  void claimItemReturnedFailsWhenRequestDoesNotHaveItemClaimedReturnedDateTime() {
-    claimItemReturned(new ClaimItemReturnedRequest().itemClaimedReturnedDateTime(null))
-      .expectStatus().isEqualTo(422)
-      .expectBody()
-      .jsonPath("$.errors").value(hasSize(1))
-      .jsonPath("$.errors[0].type").isEqualTo("MethodArgumentNotValidException")
-      .jsonPath("$.errors[0].message").value(stringContainsInOrder(
-        "Validation failed for argument", "must not be null"));
-  }
-
-  @Test
   void claimItemReturnedFailsWhenLocalLoanIsNotFound() {
     mockErrorCode(LOAN_STORAGE_URL + "/" + LOCAL_TENANT_LOAN_ID, 404);
     ClaimItemReturnedRequest request = buildClaimItemReturnedRequest(LOCAL_TENANT_LOAN_ID,
@@ -127,8 +119,9 @@ class ClaimItemReturnedApiTest extends LoanActionBaseIT {
       .jsonPath("$.errors[0].message").isEqualTo("Loan not found")
       .jsonPath("$.errors[0].type").isEqualTo("ValidationException")
       .jsonPath("$.errors[0].parameters").value(hasSize(1))
-      .jsonPath("$.errors[0].parameters[0].key").isEqualTo("id")
-      .jsonPath("$.errors[0].parameters[0].value").isEqualTo(LOCAL_TENANT_LOAN_ID.toString());
+      .jsonPath("$.errors[0].parameters").value(containsInAnyOrder(
+        allOf(hasEntry("key", "id"), hasEntry("value", LOCAL_TENANT_LOAN_ID.toString()))
+      ));
   }
 
   @Test
@@ -147,12 +140,22 @@ class ClaimItemReturnedApiTest extends LoanActionBaseIT {
       .jsonPath("$.errors[0].message").isEqualTo(INVALID_REQUEST_ERROR_MESSAGE)
       .jsonPath("$.errors[0].type").isEqualTo("ValidationException")
       .jsonPath("$.errors[0].parameters").value(hasSize(3))
-      .jsonPath("$.errors[0].parameters[0].key").isEqualTo("loanId")
-      .jsonPath("$.errors[0].parameters[0].value").isEqualTo(LOCAL_TENANT_LOAN_ID.toString())
-      .jsonPath("$.errors[0].parameters[1].key").isEqualTo("userId")
-      .jsonPath("$.errors[0].parameters[1].value").isEqualTo(USER_ID.toString())
-      .jsonPath("$.errors[0].parameters[2].key").isEqualTo("itemId")
-      .jsonPath("$.errors[0].parameters[2].value").isEqualTo(ITEM_ID.toString());
+      .jsonPath("$.errors[0].parameters").value(containsInAnyOrder(
+        allOf(hasEntry("key", "loanId"), hasEntry("value", LOCAL_TENANT_LOAN_ID.toString())),
+        allOf(hasEntry("key", "userId"), hasEntry("value", USER_ID.toString())),
+        allOf(hasEntry("key", "itemId"), hasEntry("value", ITEM_ID.toString()))
+      ));
+  }
+
+  @Test
+  void claimItemReturnedFailsWhenRequestDoesNotHaveItemClaimedReturnedDateTime() {
+    claimItemReturned(new ClaimItemReturnedRequest().itemClaimedReturnedDateTime(null))
+      .expectStatus().isEqualTo(422)
+      .expectBody()
+      .jsonPath("$.errors").value(hasSize(1))
+      .jsonPath("$.errors[0].type").isEqualTo("MethodArgumentNotValidException")
+      .jsonPath("$.errors[0].message").value(stringContainsInOrder(
+        "Validation failed for argument", "must not be null"));
   }
 
   private WebTestClient.ResponseSpec claimItemReturned(

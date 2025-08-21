@@ -1,13 +1,12 @@
 package org.folio.exception;
 
-import java.util.List;
+import java.util.Map;
 
-import org.folio.domain.dto.Parameter;
 import org.folio.domain.type.ErrorCode;
 
 public class ValidationException extends ApiException {
 
-  public ValidationException(String message, ErrorCode code, List<Parameter> parameters) {
+  public ValidationException(String message, ErrorCode code, Map<String, String> parameters) {
     super(message, code, parameters);
   }
 }

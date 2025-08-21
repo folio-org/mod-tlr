@@ -1,8 +1,7 @@
 package org.folio.exception;
 
-import java.util.List;
+import java.util.Map;
 
-import org.folio.domain.dto.Parameter;
 import org.folio.domain.type.ErrorCode;
 
 import lombok.Getter;
@@ -10,9 +9,9 @@ import lombok.Getter;
 @Getter
 public abstract class ApiException extends RuntimeException {
   private final ErrorCode code;
-  private final transient List<Parameter> parameters;
+  private final transient Map<String, String> parameters;
 
-  public ApiException(String message, ErrorCode code, List<Parameter> parameters) {
+  public ApiException(String message, ErrorCode code, Map<String, String> parameters) {
     super(message);
     this.code = code;
     this.parameters = parameters;

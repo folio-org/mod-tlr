@@ -8,6 +8,9 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.folio.spring.integration.XOkapiHeaders.TENANT;
 import static org.folio.support.MockDataUtils.buildDeclareItemLostRequest;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.stringContainsInOrder;
 
@@ -117,8 +120,9 @@ class DeclareItemLostApiTest extends LoanActionBaseIT {
       .jsonPath("$.errors[0].message").isEqualTo("Loan not found")
       .jsonPath("$.errors[0].type").isEqualTo("ValidationException")
       .jsonPath("$.errors[0].parameters").value(hasSize(1))
-      .jsonPath("$.errors[0].parameters[0].key").isEqualTo("id")
-      .jsonPath("$.errors[0].parameters[0].value").isEqualTo(LOCAL_TENANT_LOAN_ID.toString());
+      .jsonPath("$.errors[0].parameters").value(containsInAnyOrder(
+        allOf(hasEntry("key", "id"), hasEntry("value", LOCAL_TENANT_LOAN_ID.toString()))
+      ));
   }
 
   @Test
@@ -137,12 +141,11 @@ class DeclareItemLostApiTest extends LoanActionBaseIT {
       .jsonPath("$.errors[0].message").isEqualTo(INVALID_REQUEST_ERROR_MESSAGE)
       .jsonPath("$.errors[0].type").isEqualTo("ValidationException")
       .jsonPath("$.errors[0].parameters").value(hasSize(3))
-      .jsonPath("$.errors[0].parameters[0].key").isEqualTo("loanId")
-      .jsonPath("$.errors[0].parameters[0].value").isEqualTo(LOCAL_TENANT_LOAN_ID.toString())
-      .jsonPath("$.errors[0].parameters[1].key").isEqualTo("userId")
-      .jsonPath("$.errors[0].parameters[1].value").isEqualTo(USER_ID.toString())
-      .jsonPath("$.errors[0].parameters[2].key").isEqualTo("itemId")
-      .jsonPath("$.errors[0].parameters[2].value").isEqualTo(ITEM_ID.toString());
+      .jsonPath("$.errors[0].parameters").value(containsInAnyOrder(
+        allOf(hasEntry("key", "loanId"), hasEntry("value", LOCAL_TENANT_LOAN_ID.toString())),
+        allOf(hasEntry("key", "userId"), hasEntry("value", USER_ID.toString())),
+        allOf(hasEntry("key", "itemId"), hasEntry("value", ITEM_ID.toString()))
+      ));
   }
 
   @Test
