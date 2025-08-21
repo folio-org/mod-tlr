@@ -24,7 +24,6 @@ import java.util.Date;
 
 import org.folio.domain.dto.CirculationClaimItemReturnedRequest;
 import org.folio.domain.dto.ClaimItemReturnedRequest;
-import org.folio.domain.dto.DeclareItemLostRequest;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.support.MockDataUtils;
 import org.junit.jupiter.api.BeforeEach;
