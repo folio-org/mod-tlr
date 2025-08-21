@@ -33,7 +33,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.Spy;
 
-public abstract class AbstractLoanActionServiceTest<R, CR> {
+public abstract class AbstractLoanActionServiceTest<R, C> {
 
   protected static final UUID LOCAL_TENANT_LOAN_ID = randomUUID();
   protected static final UUID LENDING_TENANT_LOAN_ID = randomUUID();
@@ -60,13 +60,13 @@ public abstract class AbstractLoanActionServiceTest<R, CR> {
   protected abstract void performLoanAction(R request);
   protected abstract R buildRequestByLoanId();
   protected abstract R buildRequestByItemAndUserId();
-  protected abstract CR buildCirculationRequest();
-  protected abstract void mockClientAction(String loanId, CR circulationRequest);
-  protected abstract void verifyClientAction(String loanId, CR circulationRequest);
+  protected abstract C buildCirculationRequest();
+  protected abstract void mockClientAction(String loanId, C circulationRequest);
+  protected abstract void verifyClientAction(String loanId, C circulationRequest);
 
   @Test
   void loanActionByLoanIdInLocalAndLendingTenant() {
-    CR circulationRequest = buildCirculationRequest();
+    C circulationRequest = buildCirculationRequest();
     mockSystemUserService(systemUserService);
     mockClientAction(LOCAL_TENANT_LOAN_ID.toString(), circulationRequest);
     when(loanService.fetchLoan(LOCAL_TENANT_LOAN_ID.toString()))
@@ -87,7 +87,7 @@ public abstract class AbstractLoanActionServiceTest<R, CR> {
 
   @Test
   void loanActionByUserAndItemIdInLocalAndLendingTenant() {
-    CR circulationRequest = buildCirculationRequest();
+    C circulationRequest = buildCirculationRequest();
     mockSystemUserService(systemUserService);
     mockClientAction(LOCAL_TENANT_LOAN_ID.toString(), circulationRequest);
     when(loanService.findOpenLoan(USER_ID.toString(), ITEM_ID.toString()))
@@ -108,7 +108,7 @@ public abstract class AbstractLoanActionServiceTest<R, CR> {
 
   @Test
   void loanActionOnlyInLocalTenantWhenNoEcsRequestIsFound() {
-    CR circulationRequest = buildCirculationRequest();
+    C circulationRequest = buildCirculationRequest();
     mockClientAction(LOCAL_TENANT_LOAN_ID.toString(), circulationRequest);
     when(loanService.fetchLoan(LOCAL_TENANT_LOAN_ID.toString()))
       .thenReturn(Optional.of(buildLoan(LOCAL_TENANT_LOAN_ID)));
@@ -123,7 +123,7 @@ public abstract class AbstractLoanActionServiceTest<R, CR> {
 
   @Test
   void loanActionOnlyInLocalTenantWhenNoEcsTlrIsFound() {
-    CR circulationRequest = buildCirculationRequest();
+    C circulationRequest = buildCirculationRequest();
     mockClientAction(LOCAL_TENANT_LOAN_ID.toString(), circulationRequest);
     when(loanService.fetchLoan(LOCAL_TENANT_LOAN_ID.toString()))
       .thenReturn(Optional.of(buildLoan(LOCAL_TENANT_LOAN_ID)));
@@ -189,7 +189,7 @@ public abstract class AbstractLoanActionServiceTest<R, CR> {
 
   @Test
   void loanActionFailsWhenLoanIsNotFoundInLendingTenant() {
-    CR circulationRequest = buildCirculationRequest();
+    C circulationRequest = buildCirculationRequest();
     mockSystemUserService(systemUserService);
     mockClientAction(LOCAL_TENANT_LOAN_ID.toString(), circulationRequest);
     when(loanService.fetchLoan(LOCAL_TENANT_LOAN_ID.toString()))
