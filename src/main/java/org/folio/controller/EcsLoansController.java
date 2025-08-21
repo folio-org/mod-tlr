@@ -2,11 +2,13 @@ package org.folio.controller;
 
 import org.folio.domain.dto.CheckOutRequest;
 import org.folio.domain.dto.CheckOutResponse;
+import org.folio.domain.dto.DeclareClaimedReturnedItemAsMissingRequest;
 import org.folio.domain.dto.DeclareItemLostRequest;
 import org.folio.domain.dto.ClaimItemReturnedRequest;
 import org.folio.exception.HttpFailureFeignException;
 import org.folio.rest.resource.EcsLoansApi;
 import org.folio.service.CheckOutService;
+import org.folio.service.DeclareClaimedReturnedItemAsMissingService;
 import org.folio.service.DeclareItemLostService;
 import org.folio.service.ClaimItemReturnedService;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +26,7 @@ public class EcsLoansController implements EcsLoansApi {
   private final CheckOutService checkOutService;
   private final DeclareItemLostService declareItemLostService;
   private final ClaimItemReturnedService claimItemReturnedService;
+  private final DeclareClaimedReturnedItemAsMissingService declareClaimedReturnedItemAsMissingService;
 
   @Override
   public ResponseEntity<CheckOutResponse> checkOutByBarcode(CheckOutRequest checkOutRequest) {
@@ -39,6 +42,14 @@ public class EcsLoansController implements EcsLoansApi {
   @Override
   public ResponseEntity<Void> claimItemReturned(ClaimItemReturnedRequest claimItemReturnedRequest) {
     claimItemReturnedService.claimItemReturned(claimItemReturnedRequest);
+    return ResponseEntity.noContent().build();
+  }
+
+  @Override
+  public ResponseEntity<Void> declareClaimedReturnedItemAsMissing(
+    DeclareClaimedReturnedItemAsMissingRequest request) {
+
+    declareClaimedReturnedItemAsMissingService.declareMissing(request);
     return ResponseEntity.noContent().build();
   }
 
