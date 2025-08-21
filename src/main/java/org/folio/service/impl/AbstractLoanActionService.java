@@ -57,17 +57,18 @@ public abstract class AbstractLoanActionService<T> {
     }
 
     log.error("validateRequest:: {}: {}", INVALID_REQUEST_ERROR_MESSAGE, toString(actionRequest));
-    throw ExceptionFactory.badRequest(INVALID_REQUEST_ERROR_MESSAGE, INVALID_LOAN_ACTION_REQUEST, List.of(
-      new Parameter().key("loanId").value(getLoanId(actionRequest)),
-      new Parameter().key("userId").value(getUserId(actionRequest)),
-      new Parameter().key("itemId").value(getItemId(actionRequest))
-    ));
+    throw ExceptionFactory.validationError(INVALID_REQUEST_ERROR_MESSAGE, INVALID_LOAN_ACTION_REQUEST,
+      List.of(
+        new Parameter().key("loanId").value(getLoanId(actionRequest)),
+        new Parameter().key("userId").value(getUserId(actionRequest)),
+        new Parameter().key("itemId").value(getItemId(actionRequest))
+      ));
   }
 
   private Loan findLoan(T actionRequest) {
     return Optional.ofNullable(getLoanId(actionRequest))
       .map(this::fetchLoan)
-      .orElseGet(() -> findOpenLoan(getUserId(actionRequest).toString(), getItemId(actionRequest).toString()));
+      .orElseGet(() -> findOpenLoan(getUserId(actionRequest), getItemId(actionRequest)));
   }
 
   private Optional<EcsTlrEntity> findEcsTlr(Request request) {

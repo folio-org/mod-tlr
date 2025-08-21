@@ -38,12 +38,14 @@ public class ApiErrorHandler {
   // Catches validation errors from @Valid annotations
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<Errors> handleValidationError(MethodArgumentNotValidException e) {
-    return buildSingleErrorResponseEntity(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+    return buildSingleErrorResponseEntity(HttpStatus.UNPROCESSABLE_ENTITY,
+      buildError(e, ErrorCode.METHOD_ARGUMENT_NOT_VALID));
   }
 
   @ExceptionHandler(Exception.class)
   public ResponseEntity<Errors> handleAnyException(Exception e) {
-    return buildSingleErrorResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+    return buildSingleErrorResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR,
+      buildError(e, ErrorCode.INTERNAL_SERVER_ERROR));
   }
 
   private ResponseEntity<Errors> handleApiException(ApiException e, HttpStatus httpStatus) {
@@ -52,28 +54,24 @@ public class ApiErrorHandler {
   }
 
   private static ResponseEntity<Errors> buildSingleErrorResponseEntity(
-    HttpStatusCode httpStatusCode, String message) {
-
-    return buildSingleErrorResponseEntity(httpStatusCode, new Error(message));
-  }
-
-  private static ResponseEntity<Errors> buildSingleErrorResponseEntity(
     HttpStatusCode httpStatusCode, Error error) {
 
-    return buildResponseEntity(httpStatusCode, new Errors()
+    Errors errorResponse = new Errors()
       .errors(List.of(error))
-      .totalRecords(1));
+      .totalRecords(1);
+
+    return ResponseEntity.status(httpStatusCode)
+      .body(errorResponse);
   }
 
-  private static ResponseEntity<Errors> buildResponseEntity(HttpStatusCode status,
-    Errors errorResponse) {
-
-    return ResponseEntity.status(status).body(errorResponse);
+  private static Error buildError(Exception e, ErrorCode code) {
+    return buildError(e, code, null);
   }
 
   private static Error buildError(Exception e, ErrorCode code, List<Parameter> parameters) {
     return new Error(e.getMessage())
       .code(code.getValue())
+      .type(e.getClass().getSimpleName())
       .parameters(parameters);
   }
 }

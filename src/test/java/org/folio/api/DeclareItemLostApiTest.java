@@ -9,6 +9,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.folio.spring.integration.XOkapiHeaders.TENANT;
 import static org.folio.support.MockDataUtils.buildDeclareItemLostRequest;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.stringContainsInOrder;
 
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 class DeclareItemLostApiTest extends LoanActionBaseIT {
@@ -113,6 +115,7 @@ class DeclareItemLostApiTest extends LoanActionBaseIT {
       .jsonPath("$.errors").value(hasSize(1))
       .jsonPath("$.errors[0].code").isEqualTo("LOAN_NOT_FOUND")
       .jsonPath("$.errors[0].message").isEqualTo("Loan not found")
+      .jsonPath("$.errors[0].type").isEqualTo("ValidationException")
       .jsonPath("$.errors[0].parameters").value(hasSize(1))
       .jsonPath("$.errors[0].parameters[0].key").isEqualTo("id")
       .jsonPath("$.errors[0].parameters[0].value").isEqualTo(LOCAL_TENANT_LOAN_ID.toString());
@@ -127,11 +130,12 @@ class DeclareItemLostApiTest extends LoanActionBaseIT {
       .servicePointId(SERVICE_POINT_ID);
 
     declareItemLost(invalidRequest)
-      .expectStatus().isBadRequest()
+      .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY)
       .expectBody()
       .jsonPath("$.errors").value(hasSize(1))
       .jsonPath("$.errors[0].code").isEqualTo("INVALID_LOAN_ACTION_REQUEST")
       .jsonPath("$.errors[0].message").isEqualTo(INVALID_REQUEST_ERROR_MESSAGE)
+      .jsonPath("$.errors[0].type").isEqualTo("ValidationException")
       .jsonPath("$.errors[0].parameters").value(hasSize(3))
       .jsonPath("$.errors[0].parameters[0].key").isEqualTo("loanId")
       .jsonPath("$.errors[0].parameters[0].value").isEqualTo(LOCAL_TENANT_LOAN_ID.toString())
@@ -143,8 +147,13 @@ class DeclareItemLostApiTest extends LoanActionBaseIT {
 
   @Test
   void declareItemLostFailsWhenRequestDoesNotHaveServicePointId() {
-    declareItemLost(new DeclareItemLostRequest().loanId(LOCAL_TENANT_LOAN_ID).servicePointId(null))
-      .expectStatus().isEqualTo(422);
+    declareItemLost(new DeclareItemLostRequest().servicePointId(null))
+      .expectStatus().isEqualTo(422)
+      .expectBody()
+      .jsonPath("$.errors").value(hasSize(1))
+      .jsonPath("$.errors[0].type").isEqualTo("MethodArgumentNotValidException")
+      .jsonPath("$.errors[0].message").value(stringContainsInOrder(
+        "Validation failed for argument", "must not be null"));
   }
 
   private WebTestClient.ResponseSpec declareItemLost(DeclareItemLostRequest declareItemLostRequest) {

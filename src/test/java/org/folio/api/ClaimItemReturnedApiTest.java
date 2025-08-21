@@ -10,6 +10,7 @@ import static org.folio.spring.integration.XOkapiHeaders.TENANT;
 import static org.folio.support.MockDataUtils.buildCirculationClaimItemReturnedRequest;
 import static org.folio.support.MockDataUtils.buildClaimItemReturnedRequest;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.stringContainsInOrder;
 
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 class ClaimItemReturnedApiTest extends LoanActionBaseIT {
@@ -102,14 +104,13 @@ class ClaimItemReturnedApiTest extends LoanActionBaseIT {
 
   @Test
   void claimItemReturnedFailsWhenRequestDoesNotHaveItemClaimedReturnedDateTime() {
-    claimItemReturned(new ClaimItemReturnedRequest().loanId(LOCAL_TENANT_LOAN_ID)
-      .itemClaimedReturnedDateTime(null)).expectStatus().isEqualTo(422);
-  }
-
-  private WebTestClient.ResponseSpec claimItemReturned(
-    ClaimItemReturnedRequest claimItemReturnedRequest) {
-
-    return doPost(CLAIM_ITEM_RETURNED_URL, claimItemReturnedRequest);
+    claimItemReturned(new ClaimItemReturnedRequest().itemClaimedReturnedDateTime(null))
+      .expectStatus().isEqualTo(422)
+      .expectBody()
+      .jsonPath("$.errors").value(hasSize(1))
+      .jsonPath("$.errors[0].type").isEqualTo("MethodArgumentNotValidException")
+      .jsonPath("$.errors[0].message").value(stringContainsInOrder(
+        "Validation failed for argument", "must not be null"));
   }
 
   @Test
@@ -124,6 +125,7 @@ class ClaimItemReturnedApiTest extends LoanActionBaseIT {
       .jsonPath("$.errors").value(hasSize(1))
       .jsonPath("$.errors[0].code").isEqualTo("LOAN_NOT_FOUND")
       .jsonPath("$.errors[0].message").isEqualTo("Loan not found")
+      .jsonPath("$.errors[0].type").isEqualTo("ValidationException")
       .jsonPath("$.errors[0].parameters").value(hasSize(1))
       .jsonPath("$.errors[0].parameters[0].key").isEqualTo("id")
       .jsonPath("$.errors[0].parameters[0].value").isEqualTo(LOCAL_TENANT_LOAN_ID.toString());
@@ -138,11 +140,12 @@ class ClaimItemReturnedApiTest extends LoanActionBaseIT {
       .itemClaimedReturnedDateTime(new Date());
 
     claimItemReturned(invalidRequest)
-      .expectStatus().isBadRequest()
+      .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY)
       .expectBody()
       .jsonPath("$.errors").value(hasSize(1))
       .jsonPath("$.errors[0].code").isEqualTo("INVALID_LOAN_ACTION_REQUEST")
       .jsonPath("$.errors[0].message").isEqualTo(INVALID_REQUEST_ERROR_MESSAGE)
+      .jsonPath("$.errors[0].type").isEqualTo("ValidationException")
       .jsonPath("$.errors[0].parameters").value(hasSize(3))
       .jsonPath("$.errors[0].parameters[0].key").isEqualTo("loanId")
       .jsonPath("$.errors[0].parameters[0].value").isEqualTo(LOCAL_TENANT_LOAN_ID.toString())
@@ -150,6 +153,12 @@ class ClaimItemReturnedApiTest extends LoanActionBaseIT {
       .jsonPath("$.errors[0].parameters[1].value").isEqualTo(USER_ID.toString())
       .jsonPath("$.errors[0].parameters[2].key").isEqualTo("itemId")
       .jsonPath("$.errors[0].parameters[2].value").isEqualTo(ITEM_ID.toString());
+  }
+
+  private WebTestClient.ResponseSpec claimItemReturned(
+    ClaimItemReturnedRequest claimItemReturnedRequest) {
+
+    return doPost(CLAIM_ITEM_RETURNED_URL, claimItemReturnedRequest);
   }
 
   private void setupCirculationMocks(Date claimItemReturnedDate) {

@@ -17,4 +17,8 @@ public abstract class ApiException extends RuntimeException {
     this.code = code;
     this.parameters = parameters;
   }
+
+  public String getType() {
+    return getClass().getSimpleName();
+  }
 }
