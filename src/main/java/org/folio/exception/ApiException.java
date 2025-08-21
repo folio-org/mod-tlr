@@ -11,7 +11,7 @@ public abstract class ApiException extends RuntimeException {
   private final ErrorCode code;
   private final transient Map<String, String> parameters;
 
-  public ApiException(String message, ErrorCode code, Map<String, String> parameters) {
+  protected ApiException(String message, ErrorCode code, Map<String, String> parameters) {
     super(message);
     this.code = code;
     this.parameters = parameters;

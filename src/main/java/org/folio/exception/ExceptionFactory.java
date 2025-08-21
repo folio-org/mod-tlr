@@ -6,6 +6,10 @@ import org.folio.domain.type.ErrorCode;
 
 public class ExceptionFactory {
 
+  private ExceptionFactory() {
+    // Prevent instantiation
+  }
+
   public static BadRequestException badRequest(String message, ErrorCode code,
     Map<String, String> parameters) {
 
