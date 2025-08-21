@@ -2,7 +2,9 @@ package org.folio.api;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.noContent;
+import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
@@ -12,6 +14,7 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.Matchers.stringContainsInOrder;
 
 import java.time.ZoneOffset;
@@ -22,6 +25,7 @@ import org.folio.domain.dto.CirculationDeclareItemLostRequest;
 import org.folio.domain.dto.DeclareItemLostRequest;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.support.MockDataUtils;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -113,7 +117,7 @@ class DeclareItemLostApiTest extends LoanActionBaseIT {
       LOCAL_TENANT_LOAN_ID, SERVICE_POINT_ID, new Date(), ACTION_COMMENT);
 
     declareItemLost(request)
-      .expectStatus().isEqualTo(422)
+      .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY)
       .expectBody()
       .jsonPath("$.errors").value(hasSize(1))
       .jsonPath("$.errors[0].code").isEqualTo("LOAN_NOT_FOUND")
@@ -151,12 +155,31 @@ class DeclareItemLostApiTest extends LoanActionBaseIT {
   @Test
   void declareItemLostFailsWhenRequestDoesNotHaveServicePointId() {
     declareItemLost(new DeclareItemLostRequest().servicePointId(null))
-      .expectStatus().isEqualTo(422)
+      .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY)
       .expectBody()
       .jsonPath("$.errors").value(hasSize(1))
       .jsonPath("$.errors[0].type").isEqualTo("MethodArgumentNotValidException")
       .jsonPath("$.errors[0].message").value(stringContainsInOrder(
         "Validation failed for argument", "must not be null"));
+  }
+
+  @Test
+  void unexpectedErrorIsHandledCorrectly() {
+    wireMockServer.stubFor(get(urlEqualTo(LOAN_STORAGE_URL + "/" + LOCAL_TENANT_LOAN_ID))
+      .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(okJson("not a json")));
+
+    DeclareItemLostRequest request = new DeclareItemLostRequest()
+      .loanId(LOCAL_TENANT_LOAN_ID)
+      .servicePointId(SERVICE_POINT_ID);
+
+    declareItemLost(request)
+      .expectStatus().isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
+      .expectBody()
+      .jsonPath("$.errors").value(hasSize(1))
+      .jsonPath("$.errors[0].type").isEqualTo("DecodeException")
+      .jsonPath("$.errors[0].code").isEqualTo("INTERNAL_SERVER_ERROR")
+      .jsonPath("$.errors[0].message").value(startsWith("Error while extracting response"));
   }
 
   private WebTestClient.ResponseSpec declareItemLost(DeclareItemLostRequest declareItemLostRequest) {

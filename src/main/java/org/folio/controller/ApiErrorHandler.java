@@ -18,7 +18,10 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import lombok.extern.log4j.Log4j2;
+
 @RestControllerAdvice
+@Log4j2
 public class ApiErrorHandler {
 
   @ExceptionHandler(BadRequestException.class)
@@ -39,17 +42,20 @@ public class ApiErrorHandler {
   // Catches validation errors from @Valid annotations
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<Errors> handleValidationError(MethodArgumentNotValidException e) {
+    logException(e);
     return buildSingleErrorResponseEntity(HttpStatus.UNPROCESSABLE_ENTITY,
       buildError(e, ErrorCode.METHOD_ARGUMENT_NOT_VALID));
   }
 
   @ExceptionHandler(Exception.class)
   public ResponseEntity<Errors> handleAnyException(Exception e) {
+    logException(e);
     return buildSingleErrorResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR,
       buildError(e, ErrorCode.INTERNAL_SERVER_ERROR));
   }
 
   private ResponseEntity<Errors> handleApiException(ApiException e, HttpStatus httpStatus) {
+    logException(e);
     return buildSingleErrorResponseEntity(httpStatus,
       buildError(e, e.getCode(), e.getParameters()));
   }
@@ -83,4 +89,9 @@ public class ApiErrorHandler {
       .type(e.getClass().getSimpleName())
       .parameters(params);
   }
+
+  private static void logException(Exception e) {
+    log.error("logException:: handling {}", e.getClass().getSimpleName(), e);
+  }
+
 }

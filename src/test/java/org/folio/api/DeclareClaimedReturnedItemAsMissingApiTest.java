@@ -2,7 +2,9 @@ package org.folio.api;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.noContent;
+import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
@@ -12,6 +14,7 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.Matchers.stringContainsInOrder;
 
 import java.time.ZoneOffset;
@@ -19,6 +22,7 @@ import java.time.ZonedDateTime;
 import java.util.Date;
 
 import org.folio.domain.dto.DeclareClaimedReturnedItemAsMissingRequest;
+import org.folio.domain.dto.DeclareItemLostRequest;
 import org.folio.repository.EcsTlrRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -95,7 +99,7 @@ class DeclareClaimedReturnedItemAsMissingApiTest extends LoanActionBaseIT {
   @Test
   void declareItemMissingFailsWhenRequestDoesNotHaveComment() {
     declareItemMissing(new DeclareClaimedReturnedItemAsMissingRequest().comment(null))
-      .expectStatus().isEqualTo(422)
+      .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY)
       .expectBody()
       .jsonPath("$.errors").value(hasSize(1))
       .jsonPath("$.errors[0].type").isEqualTo("MethodArgumentNotValidException")
@@ -110,7 +114,7 @@ class DeclareClaimedReturnedItemAsMissingApiTest extends LoanActionBaseIT {
       LOCAL_TENANT_LOAN_ID, ACTION_COMMENT);
 
     declareItemMissing(request)
-      .expectStatus().isEqualTo(422)
+      .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY)
       .expectBody()
       .jsonPath("$.errors").value(hasSize(1))
       .jsonPath("$.errors[0].code").isEqualTo("LOAN_NOT_FOUND")
@@ -143,6 +147,25 @@ class DeclareClaimedReturnedItemAsMissingApiTest extends LoanActionBaseIT {
         allOf(hasEntry("key", "userId"), hasEntry("value", USER_ID.toString())),
         allOf(hasEntry("key", "itemId"), hasEntry("value", ITEM_ID.toString()))
       ));
+  }
+
+  @Test
+  void unexpectedErrorIsHandledCorrectly() {
+    wireMockServer.stubFor(get(urlEqualTo(LOAN_STORAGE_URL + "/" + LOCAL_TENANT_LOAN_ID))
+      .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(okJson("not a json")));
+
+    DeclareClaimedReturnedItemAsMissingRequest request = new DeclareClaimedReturnedItemAsMissingRequest()
+      .loanId(LOCAL_TENANT_LOAN_ID)
+      .comment(ACTION_COMMENT);
+
+    declareItemMissing(request)
+      .expectStatus().isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
+      .expectBody()
+      .jsonPath("$.errors").value(hasSize(1))
+      .jsonPath("$.errors[0].type").isEqualTo("DecodeException")
+      .jsonPath("$.errors[0].code").isEqualTo("INTERNAL_SERVER_ERROR")
+      .jsonPath("$.errors[0].message").value(startsWith("Error while extracting response"));
   }
 
   private WebTestClient.ResponseSpec declareItemMissing(
