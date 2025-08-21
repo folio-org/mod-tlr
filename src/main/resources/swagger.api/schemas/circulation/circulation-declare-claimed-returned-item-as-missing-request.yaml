@@ -1,0 +1,9 @@
+type: object
+description: Request body schema for for resolving claim as missing API
+properties:
+  comment:
+    description: Comment explaining why the item is claimed missing
+    type: string
+additionalProperties: false
+required:
+- comment
