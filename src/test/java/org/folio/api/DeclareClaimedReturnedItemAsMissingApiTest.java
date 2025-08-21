@@ -22,7 +22,6 @@ import java.time.ZonedDateTime;
 import java.util.Date;
 
 import org.folio.domain.dto.DeclareClaimedReturnedItemAsMissingRequest;
-import org.folio.domain.dto.DeclareItemLostRequest;
 import org.folio.repository.EcsTlrRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

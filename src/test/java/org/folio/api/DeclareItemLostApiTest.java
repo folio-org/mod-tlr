@@ -25,7 +25,6 @@ import org.folio.domain.dto.CirculationDeclareItemLostRequest;
 import org.folio.domain.dto.DeclareItemLostRequest;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.support.MockDataUtils;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
