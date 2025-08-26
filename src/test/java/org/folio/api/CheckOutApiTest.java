@@ -15,7 +15,6 @@ import static org.folio.spring.integration.XOkapiHeaders.TENANT;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import org.apache.http.HttpStatus;
