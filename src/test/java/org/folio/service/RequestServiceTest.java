@@ -42,6 +42,7 @@ class RequestServiceTest {
   private static final String LENDER_ID = UUID.randomUUID().toString();
   private static final String HOLDINGS_RECORD_ID = "10cd3a5a-d36f-4c7a-bc4f-e1ae3cf820c9";
   private static final String LENDING_LIBRARY_CODE = "TEST_CODE";
+  private static final String DCB_LOCATION_ID = "9d1b77e8-f02e-4b7f-b296-3f2042ddac54";
 
   @BeforeEach
   void setUp() {
@@ -116,6 +117,7 @@ class RequestServiceTest {
       .holdingsRecordId(UUID.fromString(HOLDINGS_RECORD_ID))
       .dcbItem(true)
       .instanceTitle(instanceTitle)
+      .effectiveLocationId(DCB_LOCATION_ID)
       .lendingLibraryCode(LENDING_LIBRARY_CODE);
     requestService.createCirculationItem(secondaryRequest, LENDER_ID);
     verify(circulationItemClient).createCirculationItem(ITEM_ID, expectedCirculationItem);
