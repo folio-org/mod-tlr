@@ -1,6 +1,7 @@
 package org.folio.service.impl;
 
 import static java.lang.String.format;
+import static org.folio.domain.dto.DCBConstants.LOCATION_ID;
 import static org.folio.support.BarcodeUtil.buildNonEmptyBarcode;
 import static org.folio.support.CqlQuery.exactMatch;
 import static org.folio.support.CqlQuery.greaterThen;
@@ -273,7 +274,7 @@ public class RequestServiceImpl implements RequestService {
       .instanceTitle(instance.getTitle())
       .barcode(buildNonEmptyBarcode(item.getBarcode(), item.getId()))
       .pickupLocation(pickupLocation)
-      .effectiveLocationId(item.getEffectiveLocationId())
+      .effectiveLocationId(LOCATION_ID)
       .lendingLibraryCode("TEST_CODE");
 
     log.info("createCirculationItem:: creating circulation item {}", itemId);
