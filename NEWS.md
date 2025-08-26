@@ -1,3 +1,8 @@
+## 1.1.4 2025-08-26
+* Claim item returned API (MODTLR-219, MODTLR-220)
+* Extend CheckOutDryRunRequest schema with CheckOutRequestOverrideBlocks (MODTLR-227)
+* Reject ECS request placed for inactive patron (MODTLR-232)
+
 ## 1.1.3 2025-07-24
 * Declare item lost by user and item ID (MODTLR-226)
 * Declare item lost API (MODTLR-225)

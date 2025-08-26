@@ -167,7 +167,7 @@
     },
     {
       "id": "ecs-loans",
-      "version": "1.1",
+      "version": "1.2",
       "handlers": [
         {
           "methods": ["POST"],
@@ -180,6 +180,11 @@
             "circulation-storage.loan-policies.collection.get",
             "circulation-storage.loan-policies.item.get",
             "circulation-storage.loan-policies.item.post"
+          ],
+          "permissionsDesired": [
+            "circulation.override-patron-block.post",
+            "circulation.override-item-limit-block.post",
+            "circulation.override-item-not-loanable-block.post"
           ]
         },
         {
@@ -188,6 +193,18 @@
           "permissionsRequired": ["tlr.loans.declare-item-lost.execute"],
           "modulePermissions": [
             "circulation.loans.declare-item-lost.post",
+            "circulation-storage.loans.collection.get",
+            "circulation-storage.loans.item.get",
+            "circulation-storage.requests.item.get",
+            "circulation-storage.requests.collection.get"
+          ]
+        },
+        {
+          "methods": ["POST"],
+          "pathPattern": "/tlr/loans/claim-item-returned",
+          "permissionsRequired": ["tlr.loans.claim-item-returned.execute"],
+          "modulePermissions": [
+            "circulation.loans.claim-item-returned.post",
             "circulation-storage.loans.collection.get",
             "circulation-storage.loans.item.get",
             "circulation-storage.requests.item.get",
@@ -319,6 +336,11 @@
       "permissionName": "tlr.loans.declare-item-lost.execute",
       "displayName": "ecs-loans - declare item lost",
       "description": "Declare item lost"
+    },
+    {
+      "permissionName": "tlr.loans.claim-item-returned.execute",
+      "displayName": "ecs-loans - claim item returned",
+      "description": "Claim item returned"
     }
   ],
   "requires": [
@@ -428,6 +450,7 @@
         "circulation.requests.queue.item-reorder.collection.post",
         "circulation.requests.queue.instance-reorder.collection.post",
         "circulation.loans.declare-item-lost.post",
+        "circulation.loans.claim-item-returned.post",
         "circulation-storage.requests.item.get",
         "circulation-storage.requests.collection.get",
         "circulation-storage.requests.item.put",

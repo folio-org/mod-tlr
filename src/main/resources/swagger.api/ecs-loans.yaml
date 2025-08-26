@@ -19,13 +19,13 @@ paths:
         required: true
       responses:
         '200':
-          $ref: "#/components/responses/check-out-response"
+          $ref: "#/components/responses/checkOutResponse"
         '400':
-          $ref: '#/components/responses/bad-request-response'
+          $ref: '#/components/responses/badRequestResponse'
         '422':
-          $ref: '#/components/responses/unprocessable-entity-response'
+          $ref: '#/components/responses/unprocessableEntityResponse'
         '500':
-          $ref: '#/components/responses/internal-server-error-response'
+          $ref: '#/components/responses/internalServerErrorResponse'
   /tlr/loans/declare-item-lost:
     post:
       operationId: declareItemLost
@@ -42,11 +42,34 @@ paths:
         '204':
           description: Item successfully declared lost
         '400':
-          $ref: '#/components/responses/bad-request-response'
+          $ref: '#/components/responses/badRequestResponse'
         '422':
-          $ref: '#/components/responses/unprocessable-entity-response'
+          $ref: '#/components/responses/unprocessableEntityResponse'
         '500':
-          $ref: '#/components/responses/internal-server-error-response'
+          $ref: '#/components/responses/internalServerErrorResponse'
+  /tlr/loans/claim-item-returned:
+    post:
+      operationId: claimItemReturned
+      description: Claim item returned
+      tags:
+        - ecsLoans
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/claimItemReturnedRequest"
+        required: true
+      responses:
+        '204':
+          description: Item successfully claimed returned
+        '400':
+          $ref: '#/components/responses/badRequestResponse'
+        '404':
+          $ref: '#/components/responses/notFoundResponse'
+        '422':
+          $ref: '#/components/responses/unprocessableEntityResponse'
+        '500':
+          $ref: '#/components/responses/internalServerErrorResponse'
 components:
   schemas:
     check-out-request:
@@ -65,14 +88,16 @@ components:
       $ref: 'schemas/search/batchIds.yaml'
     declareItemLostRequest:
       $ref: 'schemas/circulation/declare-item-lost-request.yaml'
+    claimItemReturnedRequest:
+      $ref: 'schemas/circulation/claim-item-returned-request.yaml'
   responses:
-    check-out-response:
+    checkOutResponse:
       description: Check out response
       content:
         application/json:
           schema:
             $ref: 'schemas/circulation/check-out-response.yaml'
-    bad-request-response:
+    badRequestResponse:
       description: Validation errors
       content:
         application/json:
@@ -82,7 +107,17 @@ components:
             total_records: 1
           schema:
             $ref: "#/components/schemas/errorResponse"
-    unprocessable-entity-response:
+    notFoundResponse:
+      description: Not found
+      content:
+        application/json:
+          example:
+            errors:
+              - message: Request not found
+            total_records: 1
+          schema:
+            $ref: "#/components/schemas/errorResponse"
+    unprocessableEntityResponse:
       description: Validation errors
       content:
         application/json:
@@ -92,7 +127,7 @@ components:
             total_records: 1
           schema:
             $ref: "#/components/schemas/errorResponse"
-    internal-server-error-response:
+    internalServerErrorResponse:
       description: When unhandled exception occurred during code execution, e.g. NullPointerException
       content:
         application/json:
