@@ -273,6 +273,42 @@ class AllowedServicePointsApiTest extends BaseIT {
       .withHeader(HEADER_TENANT, equalTo(BORROWING_TENANT_ID)));
   }
 
+  @Test
+  void allowedServicePointsPagePresentHoldRecallNull() {
+    User requester = new User().patronGroup(PATRON_GROUP_ID);
+    wireMockServer.stubFor(get(urlMatching(USER_URL))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(jsonResponse(asJsonString(requester), SC_OK)));
+
+    var item = new SearchItem().tenantId(TENANT_ID_COLLEGE);
+    var holding = new SearchHolding().tenantId(TENANT_ID_COLLEGE);
+    var searchInstancesResponse = new SearchInstancesResponse();
+    searchInstancesResponse.setTotalRecords(1);
+    searchInstancesResponse.setInstances(List.of(new SearchInstance()
+      .items(List.of(item))
+      .holdings(List.of(holding))));
+    wireMockServer.stubFor(get(urlMatching(SEARCH_INSTANCES_URL))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(jsonResponse(asJsonString(searchInstancesResponse), SC_OK)));
+
+    var allowedSpResponse = new AllowedServicePointsResponse();
+    allowedSpResponse.setPage(Set.of(buildAllowedServicePoint("page_sp")));
+    allowedSpResponse.setHold(null);
+    allowedSpResponse.setRecall(null);
+
+    wireMockServer.stubFor(get(urlMatching(ALLOWED_SPS_MOD_CIRCULATION_URL_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
+      .willReturn(jsonResponse(asJsonString(allowedSpResponse), SC_OK)));
+
+    // when - then
+    doGet(ALLOWED_SERVICE_POINTS_URL + format("?operation=create&requesterId=%s&instanceId=%s",
+      REQUESTER_ID, INSTANCE_ID))
+      .expectStatus().isEqualTo(200)
+      .expectBody().jsonPath("$.Page").isNotEmpty()
+      .jsonPath("$.Hold").doesNotExist()
+      .jsonPath("$.Recall").doesNotExist();
+  }
+
   private AllowedServicePointsInner buildAllowedServicePoint(String name) {
     return new AllowedServicePointsInner()
       .id(randomId())
