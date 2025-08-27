@@ -274,7 +274,7 @@ class AllowedServicePointsApiTest extends BaseIT {
   }
 
   @Test
-  void allowedServicePointsPagePresentHoldRecallNull() {
+  void allowedServicePointsReturnsOnlyPageWhenHoldAndRecallAreNull() {
     User requester = new User().patronGroup(PATRON_GROUP_ID);
     wireMockServer.stubFor(get(urlMatching(USER_URL))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
