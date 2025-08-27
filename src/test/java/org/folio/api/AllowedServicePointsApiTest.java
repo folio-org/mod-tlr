@@ -300,7 +300,6 @@ class AllowedServicePointsApiTest extends BaseIT {
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
       .willReturn(jsonResponse(asJsonString(allowedSpResponse), SC_OK)));
 
-    // when - then
     doGet(ALLOWED_SERVICE_POINTS_URL + format("?operation=create&requesterId=%s&instanceId=%s",
       REQUESTER_ID, INSTANCE_ID))
       .expectStatus().isEqualTo(200)
