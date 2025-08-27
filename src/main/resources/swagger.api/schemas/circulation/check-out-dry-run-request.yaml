@@ -11,6 +11,7 @@ properties:
     description: Barcode of the user representing a proxy for the patron
     type: string
   overrideBlocks:
+    x-class-extra-annotation: '@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.ALWAYS)'
     description: Blocks to override
     type: object
     properties:

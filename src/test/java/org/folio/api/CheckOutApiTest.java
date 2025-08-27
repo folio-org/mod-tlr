@@ -6,6 +6,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.jsonResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
@@ -13,6 +14,7 @@ import static java.util.Collections.emptyList;
 import static java.util.UUID.randomUUID;
 import static org.folio.spring.integration.XOkapiHeaders.TENANT;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
@@ -21,6 +23,7 @@ import org.folio.domain.dto.BatchIds;
 import org.folio.domain.dto.CheckOutDryRunRequest;
 import org.folio.domain.dto.CheckOutDryRunResponse;
 import org.folio.domain.dto.CheckOutRequest;
+import org.folio.domain.dto.CheckOutRequestOverrideBlocks;
 import org.folio.domain.dto.CheckOutResponse;
 import org.folio.domain.dto.ConsortiumItem;
 import org.folio.domain.dto.ConsortiumItems;
@@ -179,6 +182,77 @@ class CheckOutApiTest extends BaseIT {
 
     wireMockServer.verify(postRequestedFor(urlEqualTo(CIRCULATION_CHECK_OUT_DRY_RUN_URL))
       .withHeader(TENANT, equalTo(TENANT_ID_COLLEGE)));
+  }
+
+  @Test
+  void checkOutWithOverrideBlock() {
+    String loanPolicyId = randomId();
+    // Build CheckOutRequest with overrideBlocks
+    String overrideComment = "override comment";
+    CheckOutRequest checkOutRequest = buildCheckoutRequest(loanPolicyId);
+    CheckOutRequestOverrideBlocks overrideBlocks = new CheckOutRequestOverrideBlocks()
+      .patronBlock(new HashMap<>())
+      .comment(overrideComment);
+    checkOutRequest.setOverrideBlocks(overrideBlocks);
+
+    // The dry run request should also contain overrideBlocks
+    CheckOutDryRunRequest expectedDryRunRequest = buildCheckoutDryRunRequest();
+    expectedDryRunRequest.setOverrideBlocks(overrideBlocks);
+
+    CheckOutResponse checkOutResponse = buildCheckOutResponse();
+    CheckOutDryRunResponse checkOutDryRunResponse = buildCheckoutDryRunResponse(loanPolicyId);
+
+    String permissionsHeader = "perm-value";
+    String requestIdHeader = "req-id-value";
+
+    BatchIds itemsSearchRequest = new BatchIds()
+      .identifierType(BatchIds.IdentifierTypeEnum.BARCODE)
+      .identifierValues(List.of(checkOutRequest.getItemBarcode()));
+    ConsortiumItems itemsSearchResponse = new ConsortiumItems()
+      .totalRecords(1)
+      .items(List.of(new ConsortiumItem()
+        .id(ITEM_ID)
+        .barcode(ITEM_BARCODE)
+        .tenantId(TENANT_ID_COLLEGE)));
+
+    wireMockServer.stubFor(post(urlEqualTo(CIRCULATION_CHECK_OUT_URL))
+      .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .withHeader(XOkapiHeaders.PERMISSIONS, equalTo(permissionsHeader))
+      .withHeader(XOkapiHeaders.REQUEST_ID, equalTo(requestIdHeader))
+      .withRequestBody(equalToJson(asJsonString(checkOutRequest)))
+      .willReturn(jsonResponse(asJsonString(checkOutResponse), HttpStatus.SC_OK)));
+
+    wireMockServer.stubFor(post(urlEqualTo(SEARCH_ITEMS_URL))
+      .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .withRequestBody(equalToJson(asJsonString(itemsSearchRequest)))
+      .willReturn(jsonResponse(asJsonString(itemsSearchResponse), HttpStatus.SC_OK)));
+
+    wireMockServer.stubFor(post(urlEqualTo(CIRCULATION_CHECK_OUT_DRY_RUN_URL))
+      .withHeader(TENANT, equalTo(TENANT_ID_COLLEGE))
+      .withHeader(XOkapiHeaders.PERMISSIONS, equalTo(permissionsHeader))
+      .withHeader(XOkapiHeaders.REQUEST_ID, equalTo(requestIdHeader))
+      .withRequestBody(equalToJson(asJsonString(expectedDryRunRequest)))
+      .willReturn(jsonResponse(asJsonString(checkOutDryRunResponse), HttpStatus.SC_CREATED)));
+
+    LoanPolicy loanPolicy = new LoanPolicy().id(loanPolicyId).name("test loanPolicy");
+    wireMockServer.stubFor(get(urlEqualTo(LOAN_POLICY_STORAGE_URL + "/" + loanPolicyId))
+      .withHeader(TENANT, equalTo(TENANT_ID_COLLEGE))
+      .willReturn(jsonResponse(asJsonString(loanPolicy), HttpStatus.SC_OK)));
+
+    LoanPolicy clonedLoanPolicy = loanPolicy.name("COPY_OF_" + loanPolicy.getName());
+    wireMockServer.stubFor(post(urlEqualTo(LOAN_POLICY_STORAGE_URL))
+      .withHeader(TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .withRequestBody(equalToJson(asJsonString(loanPolicy.name(clonedLoanPolicy.getName()))) )
+      .willReturn(jsonResponse(asJsonString(clonedLoanPolicy), HttpStatus.SC_OK)));
+
+    // Send checkOut request with custom headers
+    doPostWithHeaders(CHECK_OUT_URL, checkOutRequest, requestIdHeader, permissionsHeader, TENANT_ID_CONSORTIUM)
+      .expectStatus().isOk();
+
+    // Verify dry run endpoint received overrideBlocks fields (robust for empty object)
+    wireMockServer.verify(postRequestedFor(urlEqualTo(CIRCULATION_CHECK_OUT_DRY_RUN_URL))
+      .withRequestBody(matchingJsonPath("$.overrideBlocks.patronBlock", equalToJson("{}")))
+      .withRequestBody(matchingJsonPath("$.overrideBlocks.comment", equalTo(overrideComment))));
   }
 
   private static CheckOutRequest buildCheckoutRequest(String loanPolicyId) {
