@@ -34,8 +34,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
-import com.github.tomakehurst.wiremock.client.WireMock;
-
 class CheckOutApiTest extends BaseIT {
 
   private static final String CHECK_OUT_URL = "/tlr/loans/check-out-by-barcode";
