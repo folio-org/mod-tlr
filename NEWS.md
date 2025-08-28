@@ -1,3 +1,6 @@
+## 1.1.5 2025-08-28
+* Remove empty arrays from Allowed service points endpoint response (MODTLR-247)
+
 ## 1.1.4 2025-08-26
 * Claim item returned API (MODTLR-219, MODTLR-220)
 * Extend CheckOutDryRunRequest schema with CheckOutRequestOverrideBlocks (MODTLR-227)
