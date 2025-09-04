@@ -4,7 +4,7 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
     http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-2.0.xsd">
 
-    <changeSet id="addExcludeFromEcsRequestLendingTenantSearchColumnToTlrSettingsTable" author="GitHub Copilot">
+    <changeSet id="addExcludeFromEcsRequestLendingTenantSearchColumnToTlrSettingsTable" author="Roman Barannyk">
         <validCheckSum>ANY</validCheckSum>
         <addColumn tableName="tlr_settings">
             <column name="exclude_from_ecs_request_lending_tenant_search" type="text"/>
