@@ -73,22 +73,6 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       .filter(tenantId -> !tenantId.equals(primaryRequestTenantId))
       .collect(Collectors.toList());
 
-    // Exclude tenants from tlr_settings.exclude_from_ecs_request_lending_tenant_search
-    var tlrSettingsOptional = tlrSettingsService.getTlrSettings();
-    log.info("create:: TLR Settings retrieved: {}", tlrSettingsOptional);
-    var excludedTenants = tlrSettingsOptional
-      .map(settings -> requireNonNullElse(settings.getExcludeFromEcsRequestLendingTenantSearch(), ""))
-      .map(str -> str.split(","))
-      .map(arr -> Arrays.stream(arr)
-        .map(String::trim)
-        .filter(s -> !s.isEmpty())
-        .collect(Collectors.toSet()))
-      .orElse(emptySet());
-    log.info("create:: final excluded tenants set {}: ", excludedTenants);
-    secondaryRequestsTenantIds = secondaryRequestsTenantIds.stream()
-      .filter(tenantId -> !excludedTenants.contains(tenantId))
-      .toList();
-
     log.info("create:: Creating secondary request for ECS TLR (ILR), instance {}, item {}, requester {}",
       ecsTlrDto.getInstanceId(), ecsTlrDto.getItemId(), ecsTlrDto.getRequesterId());
     RequestWrapper secondaryRequestWrapper = requestService.createSecondaryRequest(
@@ -175,9 +159,23 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       log.error("getSecondaryRequestTenants:: failed to find lending tenants for instance: {}", instanceId);
       throw new TenantPickingException("Failed to find secondary request tenants for instance " + instanceId);
     }
-
     log.info("getSecondaryRequestTenants:: secondary request tenants found: {}", tenantIds);
-    return tenantIds;
+    // Exclude tenants from tlr_settings.exclude_from_ecs_request_lending_tenant_search
+    var tlrSettingsOptional = tlrSettingsService.getTlrSettings();
+    log.info("getSecondaryRequestTenants:: TLR Settings retrieved: {}", tlrSettingsOptional);
+    var excludedTenants = tlrSettingsOptional
+      .map(settings -> requireNonNullElse(settings.getExcludeFromEcsRequestLendingTenantSearch(), ""))
+      .map(str -> str.split(","))
+      .map(arr -> Arrays.stream(arr)
+        .map(String::trim)
+        .filter(s -> !s.isEmpty())
+        .collect(Collectors.toSet()))
+      .orElse(emptySet());
+    log.info("getSecondaryRequestTenants:: final excluded tenants set {}: ", excludedTenants);
+
+    return tenantIds.stream()
+      .filter(tenantId -> !excludedTenants.contains(tenantId))
+      .toList();
   }
 
   private EcsTlrEntity save(EcsTlrEntity ecsTlr) {
