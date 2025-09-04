@@ -50,12 +50,15 @@ import org.folio.domain.dto.TransactionStatusResponse;
 import org.folio.domain.dto.User;
 import org.folio.domain.dto.UserPersonal;
 import org.folio.domain.dto.UserType;
+import org.folio.domain.entity.TlrSettingsEntity;
+import org.folio.repository.TlrSettingsRepository;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
@@ -93,41 +96,63 @@ class EcsTlrApiTest extends BaseIT {
   private static final String ITEM_BARCODE = "test_item_barcode";
   private static final Date REQUEST_DATE = new Date();
   private static final Date REQUEST_EXPIRATION_DATE = new Date();
+  private static final String TLR_SETTINGS_ID = "b937cf15-da8b-4480-aa87-4bc32f17219b";
+
+  @Autowired
+  private TlrSettingsRepository tlrSettingsRepository;
 
   @BeforeEach
   public void beforeEach() {
     wireMockServer.resetAll();
+    tlrSettingsRepository.deleteAll();
+  }
+
+  private void setupTlrSettings(String excludeTenants) {
+    TlrSettingsEntity tlrSettings = TlrSettingsEntity.builder()
+      .id(UUID.fromString(TLR_SETTINGS_ID))
+      .ecsTlrFeatureEnabled(true)
+      .excludeFromEcsRequestLendingTenantSearch("null".equals(excludeTenants)
+        ? null
+        : excludeTenants)
+      .build();
+    tlrSettingsRepository.save(tlrSettings);
   }
 
   @ParameterizedTest
   @CsvSource(value = {
-    "PAGE, true,  true, TITLE",
-    "PAGE, true,  false, TITLE",
-    "PAGE, false, true, TITLE",
-    "PAGE, false, false, TITLE",
-    "HOLD, true,  true, TITLE",
-    "HOLD, true,  false, TITLE",
-    "HOLD, false, true, TITLE",
-    "HOLD, false, false, TITLE",
-    "RECALL, true,  true, TITLE",
-    "RECALL, true,  false, TITLE",
-    "RECALL, false, true, TITLE",
-    "RECALL, false, false, TITLE",
-    "PAGE, true,  true, ITEM",
-    "PAGE, true,  false, ITEM",
-    "PAGE, false, true, ITEM",
-    "PAGE, false, false, ITEM",
-    "HOLD, true,  true, ITEM",
-    "HOLD, true,  false, ITEM",
-    "HOLD, false, true, ITEM",
-    "HOLD, false, false, ITEM",
-    "RECALL, true,  true, ITEM",
-    "RECALL, true,  false, ITEM",
-    "RECALL, false, true, ITEM",
-    "RECALL, false, false, ITEM"
+    "PAGE, true,  true, TITLE,",
+    "PAGE, true,  false, TITLE,",
+    "PAGE, false, true, TITLE,",
+    "PAGE, false, false, TITLE,",
+    "HOLD, true,  true, TITLE,",
+    "HOLD, true,  false, TITLE,",
+    "HOLD, false, true, TITLE,",
+    "HOLD, false, false, TITLE,",
+    "RECALL, true,  true, TITLE,",
+    "RECALL, true,  false, TITLE,",
+    "RECALL, false, true, TITLE,",
+    "RECALL, false, false, TITLE,",
+    "PAGE, true,  true, ITEM,",
+    "PAGE, true,  false, ITEM,",
+    "PAGE, false, true, ITEM,",
+    "PAGE, false, false, ITEM,",
+    "HOLD, true,  true, ITEM,",
+    "HOLD, true,  false, ITEM,",
+    "HOLD, false, true, ITEM,",
+    "HOLD, false, false, ITEM,",
+    "RECALL, true,  true, ITEM,",
+    "RECALL, true,  false, ITEM,",
+    "RECALL, false, true, ITEM,",
+    "RECALL, false, false, ITEM,",
+    "PAGE, true, true, TITLE, ''",
+    "PAGE, true, true, TITLE, null",
+    "PAGE, true, true, TITLE, university"
   })
   void ecsTlrIsCreated(RequestTypeEnum requestType, boolean requesterClonesExist,
-    boolean pickupServicePointClonesExist, EcsTlr.RequestLevelEnum requestLevel) {
+    boolean pickupServicePointClonesExist, EcsTlr.RequestLevelEnum requestLevel,
+    String excludeTenants) {
+
+    setupTlrSettings(excludeTenants);
 
     EcsTlr ecsTlr = buildEcsTlr(requestType, requestLevel)
       .id(randomId())
@@ -577,6 +602,57 @@ class EcsTlrApiTest extends BaseIT {
     wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(SEARCH_INSTANCES_URL)));
     wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(INSTANCE_REQUESTS_URL)));
     wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(REQUESTS_URL)));
+  }
+
+  @Test
+  void ecsTlrExcludesAllLendingTenantsFromSecondaryRequests() {
+    // Exclude two lending tenants using real database
+    String excludedTenants = TENANT_ID_COLLEGE + "," + TENANT_ID_UNIVERSITY;
+    setupTlrSettings(excludedTenants);
+
+    // Build ECS TLR
+    EcsTlr ecsTlr = buildEcsTlr(PAGE, REQUESTER_ID, PICKUP_SERVICE_POINT_ID, EcsTlr.RequestLevelEnum.TITLE)
+      .id(randomId())
+      .primaryRequestTenantId(TENANT_ID_CONSORTIUM);
+
+    wireMockServer.stubFor(get(urlMatching(USERS_URL + "/" + REQUESTER_ID))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(jsonResponse(buildPrimaryRequestRequester(REQUESTER_ID), HttpStatus.SC_OK)));
+
+    List<SearchItem> items = List.of(
+      buildItem(randomId(), TENANT_ID_UNIVERSITY, "Available"),
+      buildItem(randomId(), TENANT_ID_COLLEGE, "Available"));
+    SearchInstancesResponse mockSearchInstancesResponse = new SearchInstancesResponse()
+      .totalRecords(2)
+      .instances(List.of(new SearchInstance()
+        .id(INSTANCE_ID)
+        .tenantId(TENANT_ID_CONSORTIUM)
+        .items(items)
+      ));
+    wireMockServer.stubFor(get(urlMatching(SEARCH_INSTANCES_URL))
+      .willReturn(jsonResponse(mockSearchInstancesResponse, HttpStatus.SC_OK)));
+
+    ServicePoint primaryRequestPickupServicePoint = buildPrimaryRequestPickupServicePoint(PICKUP_SERVICE_POINT_ID);
+    ServicePoint secondaryRequestServicePoint = buildPickupServicePointClone(primaryRequestPickupServicePoint);
+
+    wireMockServer.stubFor(get(urlMatching(SERVICE_POINTS_URL + "/" + PICKUP_SERVICE_POINT_ID))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
+      .willReturn(jsonResponse(asJsonString(secondaryRequestServicePoint), HttpStatus.SC_OK)));
+    wireMockServer.stubFor(get(urlMatching(SERVICE_POINTS_URL + "/" + PICKUP_SERVICE_POINT_ID))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(jsonResponse(asJsonString(primaryRequestPickupServicePoint), HttpStatus.SC_OK)));
+
+    // Post ECS TLR
+    doPostWithTenant(TLR_URL, ecsTlr, TENANT_ID_CONSORTIUM)
+      .expectStatus().is5xxServerError();
+
+    // Assert excluded tenants do NOT receive secondary requests
+    wireMockServer.verify(0, postRequestedFor(urlMatching(REQUESTS_URL))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)));
+    wireMockServer.verify(0, postRequestedFor(urlMatching(REQUESTS_URL))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY)));
+    // Since all lending tenants are excluded, no secondary requests should be made at all
+    wireMockServer.verify(0, postRequestedFor(urlMatching(REQUESTS_URL)));
   }
 
   private static EcsTlr buildEcsTlr(RequestTypeEnum requestType, EcsTlr.RequestLevelEnum requestLevel) {

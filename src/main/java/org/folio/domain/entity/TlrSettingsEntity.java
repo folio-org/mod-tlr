@@ -21,4 +21,5 @@ public class TlrSettingsEntity {
   @Id
   private UUID id;
   private boolean ecsTlrFeatureEnabled;
+  private String excludeFromEcsRequestLendingTenantSearch;
 }

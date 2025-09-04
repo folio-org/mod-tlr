@@ -48,6 +48,8 @@ class EcsTlrServiceTest {
   private DcbService dcbService;
   @Mock
   private UserTenantsService userTenantsService;
+  @Mock
+  private TlrSettingsService tlrSettingsService;
   @Spy
   private final EcsTlrMapper ecsTlrMapper = new EcsTlrMapperImpl();
 
