@@ -606,7 +606,6 @@ class EcsTlrApiTest extends BaseIT {
 
   @Test
   void ecsTlrExcludesAllLendingTenantsFromSecondaryRequests() {
-    // Exclude two lending tenants using real database
     String excludedTenants = TENANT_ID_COLLEGE + "," + TENANT_ID_UNIVERSITY;
     setupTlrSettings(excludedTenants);
 

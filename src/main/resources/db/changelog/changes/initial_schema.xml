@@ -43,12 +43,10 @@
         <constraints primaryKey="true"/>
       </column>
       <column name="ecs_tlr_feature_enabled" type="boolean"/>
-      <column name="exclude_from_ecs_request_lending_tenant_search" type="text"/>
     </createTable>
     <insert tableName="tlr_settings">
       <column name="id" value="b937cf15-da8b-4480-aa87-4bc32f17219b"/>
       <column name="ecs_tlr_feature_enabled" valueBoolean="false"/>
-      <column name="exclude_from_ecs_request_lending_tenant_search" value=""/>
     </insert>
   </changeSet>
 </databaseChangeLog>
