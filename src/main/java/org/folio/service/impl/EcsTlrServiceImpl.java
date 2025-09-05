@@ -8,7 +8,6 @@ import static org.folio.domain.type.ErrorCode.ECS_REQUEST_CANNOT_BE_PLACED_FOR_I
 import static org.folio.exception.ExceptionFactory.validationError;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -71,13 +70,6 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     Collection<String> secondaryRequestsTenantIds = getSecondaryRequestTenants(ecsTlr).stream()
       .filter(tenantId -> !tenantId.equals(primaryRequestTenantId))
       .collect(Collectors.toList());
-
-    if (secondaryRequestsTenantIds.isEmpty()) {
-      String message = "No eligible secondary request tenants found after exclusions for instance %s".formatted(ecsTlrDto.getInstanceId());
-      log.warn("create:: {}", message);
-      throw new TenantPickingException(message);
-    }
-
     log.info("create:: Creating secondary request for ECS TLR (ILR), instance {}, item {}, requester {}",
       ecsTlrDto.getInstanceId(), ecsTlrDto.getItemId(), ecsTlrDto.getRequesterId());
     RequestWrapper secondaryRequestWrapper = requestService.createSecondaryRequest(
@@ -178,11 +170,19 @@ public class EcsTlrServiceImpl implements EcsTlrService {
 
     log.info("getSecondaryRequestTenants:: final excluded tenants set {}: ", excludedTenants);
 
-    return tenantIds.stream()
+    var secondaryRequestsTenantIds = tenantIds.stream()
       .filter(tenantId -> excludedTenants.stream()
         .map(excluded -> excluded != null ? excluded.trim() : null)
         .noneMatch(excluded -> excluded != null && excluded.equalsIgnoreCase(tenantId)))
       .toList();
+
+    if (secondaryRequestsTenantIds.isEmpty()) {
+      log.warn("getSecondaryRequestTenants:: No eligible tenants found after exclusions: {}", excludedTenants);
+      throw new TenantPickingException("No eligible tenants found after exclusions");
+    }
+    log.info("getSecondaryRequestTenants:: secondaryRequestsTenantIds: {}", secondaryRequestsTenantIds);
+
+    return secondaryRequestsTenantIds;
   }
 
   private EcsTlrEntity save(EcsTlrEntity ecsTlr) {
