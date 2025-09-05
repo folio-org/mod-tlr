@@ -1,15 +1,14 @@
 package org.folio.service.impl;
 
-import static java.util.Collections.emptySet;
-import static java.util.Objects.requireNonNullElse;
+import static java.util.Collections.emptyList;
 import static java.util.Optional.of;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.INTERMEDIATE;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.PRIMARY;
 import static org.folio.domain.type.ErrorCode.ECS_REQUEST_CANNOT_BE_PLACED_FOR_INACTIVE_PATRON;
 import static org.folio.exception.ExceptionFactory.validationError;
 
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -72,6 +71,12 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     Collection<String> secondaryRequestsTenantIds = getSecondaryRequestTenants(ecsTlr).stream()
       .filter(tenantId -> !tenantId.equals(primaryRequestTenantId))
       .collect(Collectors.toList());
+
+    if (secondaryRequestsTenantIds.isEmpty()) {
+      String message = "No eligible secondary request tenants found after exclusions for instance %s".formatted(ecsTlrDto.getInstanceId());
+      log.warn("create:: {}", message);
+      throw new TenantPickingException(message);
+    }
 
     log.info("create:: Creating secondary request for ECS TLR (ILR), instance {}, item {}, requester {}",
       ecsTlrDto.getInstanceId(), ecsTlrDto.getItemId(), ecsTlrDto.getRequesterId());
@@ -163,18 +168,20 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     // Exclude tenants from tlr_settings.exclude_from_ecs_request_lending_tenant_search
     var tlrSettingsOptional = tlrSettingsService.getTlrSettings();
     log.info("getSecondaryRequestTenants:: TLR Settings retrieved: {}", tlrSettingsOptional);
-    var excludedTenants = tlrSettingsOptional
-      .map(settings -> requireNonNullElse(settings.getExcludeFromEcsRequestLendingTenantSearch(), ""))
-      .map(str -> str.split(","))
-      .map(arr -> Arrays.stream(arr)
-        .map(String::trim)
-        .filter(s -> !s.isEmpty())
-        .collect(Collectors.toSet()))
-      .orElse(emptySet());
+
+    List<String> excludedTenants;
+    if (tlrSettingsOptional.isPresent() && tlrSettingsOptional.get().getExcludeFromEcsRequestLendingTenantSearch() != null) {
+      excludedTenants = tlrSettingsOptional.get().getExcludeFromEcsRequestLendingTenantSearch();
+    } else {
+      excludedTenants = emptyList();
+    }
+
     log.info("getSecondaryRequestTenants:: final excluded tenants set {}: ", excludedTenants);
 
     return tenantIds.stream()
-      .filter(tenantId -> !excludedTenants.contains(tenantId))
+      .filter(tenantId -> excludedTenants.stream()
+        .map(excluded -> excluded != null ? excluded.trim() : null)
+        .noneMatch(excluded -> excluded != null && excluded.equalsIgnoreCase(tenantId)))
       .toList();
   }
 

@@ -60,7 +60,7 @@ public class TlrSettingsPublishCoordinatorTest extends BaseIT {
   @SneakyThrows
   @Test
   void shouldPublishUpdatedTlrSettings() {
-    TlrSettingsEntity tlrSettingsEntity = new TlrSettingsEntity(UUID.randomUUID(), true, "");
+    TlrSettingsEntity tlrSettingsEntity = new TlrSettingsEntity(UUID.randomUUID(), true, List.of());
     wireMockServer.stubFor(post(urlMatching(String.format(PUBLICATIONS_URL_PATTERN, CONSORTIUM_ID)))
       .willReturn(okJson( "{\"id\": \"" + UUID.randomUUID() + "\",\"status\": \"IN_PROGRESS\"}")));
     when(tlrSettingsRepository.findAll(any(PageRequest.class)))
@@ -88,7 +88,7 @@ public class TlrSettingsPublishCoordinatorTest extends BaseIT {
   @SneakyThrows
   @Test
   void shouldNotPublishUpdatedTlrSettingsIfNoUserTenantsFound() {
-    TlrSettingsEntity tlrSettingsEntity = new TlrSettingsEntity(UUID.randomUUID(), true, "");
+    TlrSettingsEntity tlrSettingsEntity = new TlrSettingsEntity(UUID.randomUUID(), true, List.of());
     wireMockServer.stubFor(post(urlMatching(String.format(PUBLICATIONS_URL_PATTERN, CONSORTIUM_ID)))
       .willReturn(okJson( "{\"id\": \"" + UUID.randomUUID() + "\",\"status\": \"IN_PROGRESS\"}")));
     when(tlrSettingsRepository.findAll(any(PageRequest.class)))

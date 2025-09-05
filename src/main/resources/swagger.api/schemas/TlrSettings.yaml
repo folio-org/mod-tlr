@@ -9,7 +9,9 @@ TlrSettings:
       description: "Indicates if TLR feature is enabled"
       type: boolean
     excludeFromEcsRequestLendingTenantSearch:
-      description: "Comma-separated list of tenants to exclude from ECS request lending tenant search"
-      type: string
+      description: "Array of tenant IDs to exclude from ECS request lending tenant search"
+      type: array
+      items:
+        type: string
   required:
     - ecsTlrFeatureEnabled

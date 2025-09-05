@@ -107,13 +107,11 @@ class EcsTlrApiTest extends BaseIT {
     tlrSettingsRepository.deleteAll();
   }
 
-  private void setupTlrSettings(String excludeTenants) {
+  private void setupTlrSettings(List<String> excludeTenants) {
     TlrSettingsEntity tlrSettings = TlrSettingsEntity.builder()
       .id(UUID.fromString(TLR_SETTINGS_ID))
       .ecsTlrFeatureEnabled(true)
-      .excludeFromEcsRequestLendingTenantSearch("null".equals(excludeTenants)
-        ? null
-        : excludeTenants)
+      .excludeFromEcsRequestLendingTenantSearch(excludeTenants)
       .build();
     tlrSettingsRepository.save(tlrSettings);
   }
@@ -152,7 +150,9 @@ class EcsTlrApiTest extends BaseIT {
     boolean pickupServicePointClonesExist, EcsTlr.RequestLevelEnum requestLevel,
     String excludeTenants) {
 
-    setupTlrSettings(excludeTenants);
+    setupTlrSettings(excludeTenants == null || excludeTenants.isEmpty() || "null".equals(excludeTenants)
+      ? null
+      : List.of(excludeTenants.split(",?\s*")));
 
     EcsTlr ecsTlr = buildEcsTlr(requestType, requestLevel)
       .id(randomId())
@@ -607,7 +607,7 @@ class EcsTlrApiTest extends BaseIT {
   @Test
   void ecsTlrExcludesAllLendingTenantsFromSecondaryRequests() {
     String excludedTenants = TENANT_ID_COLLEGE + "," + TENANT_ID_UNIVERSITY;
-    setupTlrSettings(excludedTenants);
+    setupTlrSettings(List.of(TENANT_ID_COLLEGE, TENANT_ID_UNIVERSITY));
 
     // Build ECS TLR
     EcsTlr ecsTlr = buildEcsTlr(PAGE, REQUESTER_ID, PICKUP_SERVICE_POINT_ID, EcsTlr.RequestLevelEnum.TITLE)

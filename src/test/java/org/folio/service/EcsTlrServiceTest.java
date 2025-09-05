@@ -8,12 +8,15 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.EcsTlr;
@@ -29,7 +32,9 @@ import org.joda.time.DateTime;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -167,8 +172,11 @@ class EcsTlrServiceTest {
     assertEquals("Failed to find secondary request tenants for instance " + instanceId, exception.getMessage());
   }
 
-  @Test
-  void shouldExcludeTenantsBasedOnTlrSettings() {
+  @ParameterizedTest
+  @MethodSource("excludeTenantsCases")
+  void shouldExcludeTenantsBasedOnTlrSettings(List<String> excludeSetting, List<String> allTenants,
+    List<String> expectedIncludedTenants) {
+
     var id = UUID.randomUUID();
     var instanceId = UUID.randomUUID();
     var requesterId = UUID.randomUUID();
@@ -179,8 +187,6 @@ class EcsTlrServiceTest {
     var requestDate = DateTime.now().toDate();
     var patronComments = "Test comment";
     var consortiumTenant = "consortium";
-    var collegeTenant = "college";
-    var universityTenant = "university";
 
     var mockEcsTlrEntity = new EcsTlrEntity();
     mockEcsTlrEntity.setId(id);
@@ -209,23 +215,47 @@ class EcsTlrServiceTest {
     Request primaryRequest = new Request().id(randomId());
     Request secondaryRequest = new Request().id(randomId()).itemId(randomId());
 
-    when(tlrSettingsService.getTlrSettings()).thenReturn(Optional.of(new TlrSettings()
-      .excludeFromEcsRequestLendingTenantSearch(collegeTenant)));
+    if (excludeSetting != null) {
+      when(tlrSettingsService.getTlrSettings()).thenReturn(Optional.of(new TlrSettings().excludeFromEcsRequestLendingTenantSearch(excludeSetting)));
+    } else {
+      when(tlrSettingsService.getTlrSettings()).thenReturn(Optional.empty());
+    }
 
-    when(userTenantsService.getCentralTenantId()).thenReturn(consortiumTenant);
-    when(ecsTlrRepository.save(any(EcsTlrEntity.class))).thenReturn(mockEcsTlrEntity);
+    lenient().when(userTenantsService.getCentralTenantId()).thenReturn(consortiumTenant);
+    lenient().when(ecsTlrRepository.save(any(EcsTlrEntity.class))).thenReturn(mockEcsTlrEntity);
     when(tenantService.getPrimaryRequestTenantId(any(EcsTlrEntity.class))).thenReturn(consortiumTenant);
-    when(tenantService.getSecondaryRequestTenants(any(EcsTlrEntity.class))).thenReturn(List.of(collegeTenant, universityTenant));
-    when(requestService.createPrimaryRequest(any(Request.class), any(String.class), any(String.class)))
-      .thenReturn(new RequestWrapper(primaryRequest, consortiumTenant));
-    when(requestService.createSecondaryRequest(any(Request.class), any(String.class), any()))
-      .thenReturn(new RequestWrapper(secondaryRequest, consortiumTenant));
+    when(tenantService.getSecondaryRequestTenants(any(EcsTlrEntity.class))).thenReturn(allTenants);
 
-    ecsTlrService.create(ecsTlr);
+    if (!expectedIncludedTenants.isEmpty()) {
+      when(requestService.createPrimaryRequest(any(Request.class), any(String.class), any(String.class)))
+        .thenReturn(new RequestWrapper(primaryRequest, consortiumTenant));
+      when(requestService.createSecondaryRequest(any(Request.class), any(String.class), any()))
+        .thenReturn(new RequestWrapper(secondaryRequest, consortiumTenant));
+      ecsTlrService.create(ecsTlr);
+      verify(requestService).createSecondaryRequest(any(Request.class), any(String.class),
+        argThat(tenants -> tenants.containsAll(expectedIncludedTenants) &&
+          tenants.size() == expectedIncludedTenants.size()));
+    } else {
+      assertThrows(TenantPickingException.class, () -> ecsTlrService.create(ecsTlr));
+      verify(requestService, never()).createSecondaryRequest(any(Request.class), any(String.class), any());
+    }
+  }
 
-    verify(requestService).createSecondaryRequest(any(Request.class), any(String.class),
-      argThat(tenants -> !tenants.contains(collegeTenant)));
-    verify(requestService).createSecondaryRequest(any(Request.class), any(String.class),
-      argThat(tenants -> tenants.contains(universityTenant)));
+  private static Stream<Arguments> excludeTenantsCases() {
+    return Stream.of(
+      // Exclude one
+      Arguments.of(List.of("college"), List.of("college", "university"), List.of("university")),
+      Arguments.of(List.of("university"), List.of("college", "university"), List.of("college")),
+      // Exclude both
+      Arguments.of(List.of("college", "university"), List.of("college", "university"), List.of()),
+      Arguments.of(List.of("university", "college"), List.of("college", "university"), List.of()),
+      // Exclude none
+      Arguments.of(null, List.of("college", "university"), List.of("college", "university")),
+      Arguments.of(List.of(), List.of("college", "university"), List.of("college", "university")),
+      // Exclude non-existent
+      Arguments.of(List.of("other"), List.of("college", "university"), List.of("college", "university")),
+      // Exclude with spaces and case
+      Arguments.of(List.of(" College ", "UNIVERSITY"), List.of("college", "university"), List.of())
+    );
   }
 }
