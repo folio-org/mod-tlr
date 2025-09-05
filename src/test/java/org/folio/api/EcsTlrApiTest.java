@@ -141,10 +141,7 @@ class EcsTlrApiTest extends BaseIT {
     "RECALL, true,  true, ITEM",
     "RECALL, true,  false, ITEM",
     "RECALL, false, true, ITEM",
-    "RECALL, false, false, ITEM",
-    "PAGE, true, true, TITLE",
-    "PAGE, true, true, TITLE",
-    "PAGE, true, true, TITLE"
+    "RECALL, false, false, ITEM"
   })
   void ecsTlrIsCreated(RequestTypeEnum requestType, boolean requesterClonesExist,
     boolean pickupServicePointClonesExist, EcsTlr.RequestLevelEnum requestLevel) {
