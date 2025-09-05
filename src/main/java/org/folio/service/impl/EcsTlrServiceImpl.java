@@ -1,13 +1,14 @@
 package org.folio.service.impl;
 
-import static java.util.Collections.emptyList;
 import static java.util.Optional.of;
+import static java.util.function.Predicate.not;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.INTERMEDIATE;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.PRIMARY;
 import static org.folio.domain.type.ErrorCode.ECS_REQUEST_CANNOT_BE_PLACED_FOR_INACTIVE_PATRON;
 import static org.folio.exception.ExceptionFactory.validationError;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -15,6 +16,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.Request;
@@ -150,10 +152,6 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     return primaryRequestTenantId;
   }
 
-  /**
-   * Returns a collection of secondary request tenant IDs, excluding those specified in TLR settings.
-   * Throws TenantPickingException if no eligible tenants are found.
-   */
   private Collection<String> getSecondaryRequestTenants(EcsTlrEntity ecsTlr) {
     final String instanceId = ecsTlr.getInstanceId().toString();
     log.info("getSecondaryRequestTenants:: looking for secondary request tenants for instance {}", instanceId);
@@ -169,8 +167,8 @@ public class EcsTlrServiceImpl implements EcsTlrService {
 
     List<String> eligibleTenants = filterExcludedTenants(tenantIds, excludedTenants);
     if (eligibleTenants.isEmpty()) {
-      log.warn("getSecondaryRequestTenants:: No eligible tenants found after exclusions");
-      throw new TenantPickingException("No eligible tenants found after exclusions");
+      log.warn("getSecondaryRequestTenants:: No eligible tenants found");
+      throw new TenantPickingException("No eligible tenants found");
     }
     log.info("getSecondaryRequestTenants:: eligible tenants: {}", eligibleTenants);
     return eligibleTenants;
@@ -180,18 +178,16 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     return tlrSettingsService.getTlrSettings()
       .map(TlrSettings::getExcludeFromEcsRequestLendingTenantSearch)
       .map(list -> list.stream()
-        .filter(Objects::nonNull)
+        .filter(StringUtils::isNotBlank)
         .map(String::trim)
-        .filter(s -> !s.isEmpty())
         .toList())
-      .orElse(emptyList());
+      .orElseGet(Collections::emptyList);
   }
 
   private List<String> filterExcludedTenants(List<String> tenantIds, List<String> excludedTenants) {
     return tenantIds.stream()
       .filter(Objects::nonNull)
       .filter(tenantId -> excludedTenants.stream()
-        .map(String::trim)
         .noneMatch(excluded -> excluded.equalsIgnoreCase(tenantId)))
       .toList();
   }

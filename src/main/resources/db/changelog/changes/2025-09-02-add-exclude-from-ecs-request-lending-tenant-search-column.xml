@@ -6,14 +6,10 @@
 
     <changeSet id="addExcludeFromEcsRequestLendingTenantSearchColumnToTlrSettingsTable" author="Roman Barannyk">
         <addColumn tableName="tlr_settings">
-            <column name="exclude_from_ecs_request_lending_tenant_search" type="text[]">
+            <column name="exclude_from_ecs_request_lending_tenant_search" type="text[]" defaultValueComputed="ARRAY[]::text[]">
                 <constraints nullable="true"/>
             </column>
         </addColumn>
-        <addDefaultValue
-            tableName="tlr_settings"
-            columnName="exclude_from_ecs_request_lending_tenant_search"
-            defaultValueComputed="ARRAY[]::text[]"/>
     </changeSet>
 
 </databaseChangeLog>
