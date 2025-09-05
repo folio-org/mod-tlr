@@ -41,7 +41,7 @@ class TlrSettingsServiceTest {
   @Test
   void getTlrSettings() {
     when(tlrSettingsRepository.findAll(any(PageRequest.class)))
-      .thenReturn(new PageImpl<>(List.of(new TlrSettingsEntity(UUID.randomUUID(), true))));
+      .thenReturn(new PageImpl<>(List.of(new TlrSettingsEntity(UUID.randomUUID(), true, List.of()))));
 
     Optional<TlrSettings> tlrSettings = tlrSettingsService.getTlrSettings();
     verify(tlrSettingsRepository).findAll(any(PageRequest.class));
@@ -61,7 +61,7 @@ class TlrSettingsServiceTest {
 
   @Test
   void updateTlrSettings() {
-    var tlrSettingsEntity = new TlrSettingsEntity(UUID.randomUUID(), true);
+    var tlrSettingsEntity = new TlrSettingsEntity(UUID.randomUUID(), true, List.of());
     when(tlrSettingsRepository.findAll(any(PageRequest.class)))
       .thenReturn(new PageImpl<>(List.of(tlrSettingsEntity)));
     when(tlrSettingsRepository.save(any(TlrSettingsEntity.class)))
