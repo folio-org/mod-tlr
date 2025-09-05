@@ -118,41 +118,36 @@ class EcsTlrApiTest extends BaseIT {
 
   @ParameterizedTest
   @CsvSource(value = {
-    "PAGE, true,  true, TITLE,",
-    "PAGE, true,  false, TITLE,",
-    "PAGE, false, true, TITLE,",
-    "PAGE, false, false, TITLE,",
-    "HOLD, true,  true, TITLE,",
-    "HOLD, true,  false, TITLE,",
-    "HOLD, false, true, TITLE,",
-    "HOLD, false, false, TITLE,",
-    "RECALL, true,  true, TITLE,",
-    "RECALL, true,  false, TITLE,",
-    "RECALL, false, true, TITLE,",
-    "RECALL, false, false, TITLE,",
-    "PAGE, true,  true, ITEM,",
-    "PAGE, true,  false, ITEM,",
-    "PAGE, false, true, ITEM,",
-    "PAGE, false, false, ITEM,",
-    "HOLD, true,  true, ITEM,",
-    "HOLD, true,  false, ITEM,",
-    "HOLD, false, true, ITEM,",
-    "HOLD, false, false, ITEM,",
-    "RECALL, true,  true, ITEM,",
-    "RECALL, true,  false, ITEM,",
-    "RECALL, false, true, ITEM,",
-    "RECALL, false, false, ITEM,",
-    "PAGE, true, true, TITLE, ''",
-    "PAGE, true, true, TITLE, null",
-    "PAGE, true, true, TITLE, university"
+    "PAGE, true,  true, TITLE",
+    "PAGE, true,  false, TITLE",
+    "PAGE, false, true, TITLE",
+    "PAGE, false, false, TITLE",
+    "HOLD, true,  true, TITLE",
+    "HOLD, true,  false, TITLE",
+    "HOLD, false, true, TITLE",
+    "HOLD, false, false, TITLE",
+    "RECALL, true,  true, TITLE",
+    "RECALL, true,  false, TITLE",
+    "RECALL, false, true, TITLE",
+    "RECALL, false, false, TITLE",
+    "PAGE, true,  true, ITEM",
+    "PAGE, true,  false, ITEM",
+    "PAGE, false, true, ITEM",
+    "PAGE, false, false, ITEM",
+    "HOLD, true,  true, ITEM",
+    "HOLD, true,  false, ITEM",
+    "HOLD, false, true, ITEM",
+    "HOLD, false, false, ITEM",
+    "RECALL, true,  true, ITEM",
+    "RECALL, true,  false, ITEM",
+    "RECALL, false, true, ITEM",
+    "RECALL, false, false, ITEM",
+    "PAGE, true, true, TITLE",
+    "PAGE, true, true, TITLE",
+    "PAGE, true, true, TITLE"
   })
   void ecsTlrIsCreated(RequestTypeEnum requestType, boolean requesterClonesExist,
-    boolean pickupServicePointClonesExist, EcsTlr.RequestLevelEnum requestLevel,
-    String excludeTenants) {
-
-    setupTlrSettings(excludeTenants == null || excludeTenants.isEmpty() || "null".equals(excludeTenants)
-      ? null
-      : List.of(excludeTenants.split(",?\s*")));
+    boolean pickupServicePointClonesExist, EcsTlr.RequestLevelEnum requestLevel) {
 
     EcsTlr ecsTlr = buildEcsTlr(requestType, requestLevel)
       .id(randomId())
@@ -606,7 +601,6 @@ class EcsTlrApiTest extends BaseIT {
 
   @Test
   void ecsTlrExcludesAllLendingTenantsFromSecondaryRequests() {
-    String excludedTenants = TENANT_ID_COLLEGE + "," + TENANT_ID_UNIVERSITY;
     setupTlrSettings(List.of(TENANT_ID_COLLEGE, TENANT_ID_UNIVERSITY));
 
     // Build ECS TLR
