@@ -10,6 +10,7 @@ import static org.folio.exception.ExceptionFactory.validationError;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -18,6 +19,7 @@ import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.Request.EcsRequestPhaseEnum;
+import org.folio.domain.dto.TlrSettings;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.domain.mapper.EcsTlrMapper;
 import org.folio.exception.TenantPickingException;
@@ -148,6 +150,10 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     return primaryRequestTenantId;
   }
 
+  /**
+   * Returns a collection of secondary request tenant IDs, excluding those specified in TLR settings.
+   * Throws TenantPickingException if no eligible tenants are found.
+   */
   private Collection<String> getSecondaryRequestTenants(EcsTlrEntity ecsTlr) {
     final String instanceId = ecsTlr.getInstanceId().toString();
     log.info("getSecondaryRequestTenants:: looking for secondary request tenants for instance {}", instanceId);
@@ -157,32 +163,37 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       throw new TenantPickingException("Failed to find secondary request tenants for instance " + instanceId);
     }
     log.info("getSecondaryRequestTenants:: secondary request tenants found: {}", tenantIds);
-    // Exclude tenants from tlr_settings.exclude_from_ecs_request_lending_tenant_search
-    var tlrSettingsOptional = tlrSettingsService.getTlrSettings();
-    log.info("getSecondaryRequestTenants:: TLR Settings retrieved: {}", tlrSettingsOptional);
 
-    List<String> excludedTenants;
-    if (tlrSettingsOptional.isPresent() && tlrSettingsOptional.get().getExcludeFromEcsRequestLendingTenantSearch() != null) {
-      excludedTenants = tlrSettingsOptional.get().getExcludeFromEcsRequestLendingTenantSearch();
-    } else {
-      excludedTenants = emptyList();
-    }
+    List<String> excludedTenants = getExcludedTenants();
+    log.info("getSecondaryRequestTenants:: excluded tenants: {}", excludedTenants);
 
-    log.info("getSecondaryRequestTenants:: final excluded tenants set {}: ", excludedTenants);
-
-    var secondaryRequestsTenantIds = tenantIds.stream()
-      .filter(tenantId -> excludedTenants.stream()
-        .map(excluded -> excluded != null ? excluded.trim() : null)
-        .noneMatch(excluded -> excluded != null && excluded.equalsIgnoreCase(tenantId)))
-      .toList();
-
-    if (secondaryRequestsTenantIds.isEmpty()) {
-      log.warn("getSecondaryRequestTenants:: No eligible tenants found after exclusions: {}", excludedTenants);
+    List<String> eligibleTenants = filterExcludedTenants(tenantIds, excludedTenants);
+    if (eligibleTenants.isEmpty()) {
+      log.warn("getSecondaryRequestTenants:: No eligible tenants found after exclusions");
       throw new TenantPickingException("No eligible tenants found after exclusions");
     }
-    log.info("getSecondaryRequestTenants:: secondaryRequestsTenantIds: {}", secondaryRequestsTenantIds);
+    log.info("getSecondaryRequestTenants:: eligible tenants: {}", eligibleTenants);
+    return eligibleTenants;
+  }
 
-    return secondaryRequestsTenantIds;
+  private List<String> getExcludedTenants() {
+    return tlrSettingsService.getTlrSettings()
+      .map(TlrSettings::getExcludeFromEcsRequestLendingTenantSearch)
+      .map(list -> list.stream()
+        .filter(Objects::nonNull)
+        .map(String::trim)
+        .filter(s -> !s.isEmpty())
+        .toList())
+      .orElse(emptyList());
+  }
+
+  private List<String> filterExcludedTenants(List<String> tenantIds, List<String> excludedTenants) {
+    return tenantIds.stream()
+      .filter(Objects::nonNull)
+      .filter(tenantId -> excludedTenants.stream()
+        .map(String::trim)
+        .noneMatch(excluded -> excluded.equalsIgnoreCase(tenantId)))
+      .toList();
   }
 
   private EcsTlrEntity save(EcsTlrEntity ecsTlr) {
