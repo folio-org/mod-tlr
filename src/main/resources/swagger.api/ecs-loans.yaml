@@ -70,6 +70,29 @@ paths:
           $ref: '#/components/responses/unprocessableEntityResponse'
         '500':
           $ref: '#/components/responses/internalServerErrorResponse'
+  /tlr/loans/declare-claimed-returned-item-as-missing:
+    post:
+      operationId: declareClaimedReturnedItemAsMissing
+      description: Declare claimed returned item as missing
+      tags:
+        - ecsLoans
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/declareClaimedReturnedItemAsMissingRequest"
+        required: true
+      responses:
+        '204':
+          description: Item successfully claimed missing
+        '400':
+          $ref: '#/components/responses/badRequestResponse'
+        '404':
+          $ref: '#/components/responses/notFoundResponse'
+        '422':
+          $ref: '#/components/responses/unprocessableEntityResponse'
+        '500':
+          $ref: '#/components/responses/internalServerErrorResponse'
 components:
   schemas:
     check-out-request:
@@ -90,6 +113,8 @@ components:
       $ref: 'schemas/circulation/declare-item-lost-request.yaml'
     claimItemReturnedRequest:
       $ref: 'schemas/circulation/claim-item-returned-request.yaml'
+    declareClaimedReturnedItemAsMissingRequest:
+      $ref: 'schemas/circulation/declare-claimed-returned-item-as-missing-request.yaml'
   responses:
     checkOutResponse:
       description: Check out response

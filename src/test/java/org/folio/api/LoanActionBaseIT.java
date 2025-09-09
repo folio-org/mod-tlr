@@ -36,6 +36,8 @@ public class LoanActionBaseIT extends BaseIT {
   static final String LOAN_QUERY_TEMPLATE =
     "userId==\"%s\" and (itemId==\"%s\") and (status.name==\"Open\")";
   static final String ACTION_COMMENT = "Test comment";
+  static final String INVALID_REQUEST_ERROR_MESSAGE =
+    "Invalid request: must have either loanId or (itemId and userId)";
 
   @Autowired
   private EcsTlrRepository ecsTlrRepository;

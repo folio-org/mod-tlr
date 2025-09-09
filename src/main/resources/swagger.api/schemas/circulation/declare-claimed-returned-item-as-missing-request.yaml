@@ -1,0 +1,16 @@
+allOf:
+  - $ref: circulation-declare-claimed-returned-item-as-missing-request.yaml
+  - type: object
+    properties:
+      loanId:
+        description: ID of the loan created for the missing item
+        type: string
+        format: uuid
+      itemId:
+        description: ID of the missing item
+        type: string
+        format: uuid
+      userId:
+        description: ID of the user who claimed the item missing
+        type: string
+        format: uuid

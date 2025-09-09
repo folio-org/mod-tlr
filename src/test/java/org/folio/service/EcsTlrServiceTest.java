@@ -1,20 +1,27 @@
 package org.folio.service;
 
 import static java.util.Collections.emptyList;
+import static org.folio.util.TestUtils.randomId;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.EcsTlr;
 import org.folio.domain.dto.Request;
+import org.folio.domain.dto.TlrSettings;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.domain.mapper.EcsTlrMapper;
 import org.folio.domain.mapper.EcsTlrMapperImpl;
@@ -25,7 +32,9 @@ import org.joda.time.DateTime;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -48,6 +57,8 @@ class EcsTlrServiceTest {
   private DcbService dcbService;
   @Mock
   private UserTenantsService userTenantsService;
+  @Mock
+  private TlrSettingsService tlrSettingsService;
   @Spy
   private final EcsTlrMapper ecsTlrMapper = new EcsTlrMapperImpl();
 
@@ -96,10 +107,10 @@ class EcsTlrServiceTest {
     ecsTlr.setFulfillmentPreference(fulfillmentPreference);
     ecsTlr.setPickupServicePointId(pickupServicePointId.toString());
 
-    Request primaryRequest = new Request().id(UUID.randomUUID().toString());
+    Request primaryRequest = new Request().id(randomId());
     Request secondaryRequest = new Request()
-      .id(UUID.randomUUID().toString())
-      .itemId(UUID.randomUUID().toString());
+      .id(randomId())
+      .itemId(randomId());
 
     when(userTenantsService.getCentralTenantId()).thenReturn(borrowingTenant);
     when(ecsTlrRepository.save(any(EcsTlrEntity.class))).thenReturn(mockEcsTlrEntity);
@@ -135,7 +146,7 @@ class EcsTlrServiceTest {
 
   @Test
   void canNotCreateEcsTlrWhenFailedToGetBorrowingTenantId() {
-    String instanceId = UUID.randomUUID().toString();
+    String instanceId = randomId();
     EcsTlr ecsTlr = new EcsTlr().instanceId(instanceId);
     when(tenantService.getPrimaryRequestTenantId(any(EcsTlrEntity.class)))
       .thenReturn(null);
@@ -148,7 +159,7 @@ class EcsTlrServiceTest {
 
   @Test
   void canNotCreateEcsTlrWhenFailedToGetLendingTenants() {
-    String instanceId = UUID.randomUUID().toString();
+    String instanceId = randomId();
     EcsTlr ecsTlr = new EcsTlr().instanceId(instanceId);
     when(tenantService.getPrimaryRequestTenantId(any(EcsTlrEntity.class)))
       .thenReturn("borrowing_tenant");
@@ -159,5 +170,92 @@ class EcsTlrServiceTest {
       () -> ecsTlrService.create(ecsTlr));
 
     assertEquals("Failed to find secondary request tenants for instance " + instanceId, exception.getMessage());
+  }
+
+  @ParameterizedTest
+  @MethodSource("excludeTenantsCases")
+  void shouldExcludeTenantsBasedOnTlrSettings(List<String> excludeSetting, List<String> allTenants,
+    List<String> expectedIncludedTenants) {
+
+    var id = UUID.randomUUID();
+    var instanceId = UUID.randomUUID();
+    var requesterId = UUID.randomUUID();
+    var pickupServicePointId = UUID.randomUUID();
+    var requestType = EcsTlr.RequestTypeEnum.PAGE;
+    var fulfillmentPreference = EcsTlr.FulfillmentPreferenceEnum.HOLD_SHELF;
+    var requestExpirationDate = DateTime.now().plusDays(7).toDate();
+    var requestDate = DateTime.now().toDate();
+    var patronComments = "Test comment";
+    var consortiumTenant = "consortium";
+
+    var mockEcsTlrEntity = new EcsTlrEntity();
+    mockEcsTlrEntity.setId(id);
+    mockEcsTlrEntity.setInstanceId(instanceId);
+    mockEcsTlrEntity.setRequesterId(requesterId);
+    mockEcsTlrEntity.setRequestType(requestType.toString());
+    mockEcsTlrEntity.setRequestLevel(EcsTlr.RequestLevelEnum.TITLE.getValue());
+    mockEcsTlrEntity.setRequestExpirationDate(requestExpirationDate);
+    mockEcsTlrEntity.setRequestDate(requestDate);
+    mockEcsTlrEntity.setPatronComments(patronComments);
+    mockEcsTlrEntity.setFulfillmentPreference(fulfillmentPreference.getValue());
+    mockEcsTlrEntity.setPickupServicePointId(pickupServicePointId);
+
+    var ecsTlr = new EcsTlr()
+      .id(id.toString())
+      .instanceId(instanceId.toString())
+      .requesterId(requesterId.toString())
+      .requestType(requestType)
+      .requestLevel(EcsTlr.RequestLevelEnum.TITLE)
+      .requestExpirationDate(requestExpirationDate)
+      .requestDate(requestDate)
+      .patronComments(patronComments)
+      .fulfillmentPreference(fulfillmentPreference)
+      .pickupServicePointId(pickupServicePointId.toString());
+
+    Request primaryRequest = new Request().id(randomId());
+    Request secondaryRequest = new Request().id(randomId()).itemId(randomId());
+
+    if (excludeSetting != null) {
+      when(tlrSettingsService.getTlrSettings()).thenReturn(Optional.of(new TlrSettings().excludeFromEcsRequestLendingTenantSearch(excludeSetting)));
+    } else {
+      when(tlrSettingsService.getTlrSettings()).thenReturn(Optional.empty());
+    }
+
+    lenient().when(userTenantsService.getCentralTenantId()).thenReturn(consortiumTenant);
+    lenient().when(ecsTlrRepository.save(any(EcsTlrEntity.class))).thenReturn(mockEcsTlrEntity);
+    when(tenantService.getPrimaryRequestTenantId(any(EcsTlrEntity.class))).thenReturn(consortiumTenant);
+    when(tenantService.getSecondaryRequestTenants(any(EcsTlrEntity.class))).thenReturn(allTenants);
+
+    if (!expectedIncludedTenants.isEmpty()) {
+      when(requestService.createPrimaryRequest(any(Request.class), any(String.class), any(String.class)))
+        .thenReturn(new RequestWrapper(primaryRequest, consortiumTenant));
+      when(requestService.createSecondaryRequest(any(Request.class), any(String.class), any()))
+        .thenReturn(new RequestWrapper(secondaryRequest, consortiumTenant));
+      ecsTlrService.create(ecsTlr);
+      verify(requestService).createSecondaryRequest(any(Request.class), any(String.class),
+        argThat(tenants -> tenants.containsAll(expectedIncludedTenants) &&
+          tenants.size() == expectedIncludedTenants.size()));
+    } else {
+      assertThrows(TenantPickingException.class, () -> ecsTlrService.create(ecsTlr));
+      verify(requestService, never()).createSecondaryRequest(any(Request.class), any(String.class), any());
+    }
+  }
+
+  private static Stream<Arguments> excludeTenantsCases() {
+    return Stream.of(
+      // Exclude one
+      Arguments.of(List.of("college"), List.of("college", "university"), List.of("university")),
+      Arguments.of(List.of("university"), List.of("college", "university"), List.of("college")),
+      // Exclude both
+      Arguments.of(List.of("college", "university"), List.of("college", "university"), List.of()),
+      Arguments.of(List.of("university", "college"), List.of("college", "university"), List.of()),
+      // Exclude none
+      Arguments.of(null, List.of("college", "university"), List.of("college", "university")),
+      Arguments.of(List.of(), List.of("college", "university"), List.of("college", "university")),
+      // Exclude non-existent
+      Arguments.of(List.of("other"), List.of("college", "university"), List.of("college", "university")),
+      // Exclude with spaces and case
+      Arguments.of(List.of(" College ", "UNIVERSITY"), List.of("college", "university"), List.of())
+    );
   }
 }

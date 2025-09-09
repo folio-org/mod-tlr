@@ -1,30 +1,36 @@
 package org.folio.service.impl;
 
 import static java.util.Optional.of;
+import static java.util.function.Predicate.not;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.INTERMEDIATE;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.PRIMARY;
 import static org.folio.domain.type.ErrorCode.ECS_REQUEST_CANNOT_BE_PLACED_FOR_INACTIVE_PATRON;
+import static org.folio.exception.ExceptionFactory.validationError;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.EcsTlr;
-import org.folio.domain.dto.Parameter;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.Request.EcsRequestPhaseEnum;
+import org.folio.domain.dto.TlrSettings;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.domain.mapper.EcsTlrMapper;
 import org.folio.exception.TenantPickingException;
-import org.folio.exception.ValidationException;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.DcbService;
 import org.folio.service.EcsTlrService;
 import org.folio.service.RequestService;
 import org.folio.service.TenantService;
+import org.folio.service.TlrSettingsService;
 import org.folio.service.UserService;
 import org.folio.service.UserTenantsService;
 import org.springframework.stereotype.Service;
@@ -44,6 +50,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   private final DcbService dcbService;
   private final UserTenantsService userTenantsService;
   private final UserService userService;
+  private final TlrSettingsService tlrSettingsService;
 
   @Override
   public Optional<EcsTlr> get(UUID id) {
@@ -67,7 +74,6 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     Collection<String> secondaryRequestsTenantIds = getSecondaryRequestTenants(ecsTlr).stream()
       .filter(tenantId -> !tenantId.equals(primaryRequestTenantId))
       .collect(Collectors.toList());
-
     log.info("create:: Creating secondary request for ECS TLR (ILR), instance {}, item {}, requester {}",
       ecsTlrDto.getInstanceId(), ecsTlrDto.getItemId(), ecsTlrDto.getRequesterId());
     RequestWrapper secondaryRequestWrapper = requestService.createSecondaryRequest(
@@ -126,9 +132,11 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       String message = "ECS request cannot be placed for inactive requester %s"
         .formatted(ecsTlrDto.getRequesterId());
       log.warn("create:: {}", message);
-      throw new ValidationException(message, ECS_REQUEST_CANNOT_BE_PLACED_FOR_INACTIVE_PATRON,
-        List.of(new Parameter().key("requesterId").value(ecsTlrDto.getRequesterId()),
-          new Parameter().key("tenantId").value(primaryRequestTenantId)));
+      throw validationError(message, ECS_REQUEST_CANNOT_BE_PLACED_FOR_INACTIVE_PATRON,
+        Map.of(
+          "requesterId", ecsTlrDto.getRequesterId(),
+          "tenantId", primaryRequestTenantId
+        ));
     }
   }
 
@@ -152,9 +160,36 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       log.error("getSecondaryRequestTenants:: failed to find lending tenants for instance: {}", instanceId);
       throw new TenantPickingException("Failed to find secondary request tenants for instance " + instanceId);
     }
-
     log.info("getSecondaryRequestTenants:: secondary request tenants found: {}", tenantIds);
-    return tenantIds;
+
+    List<String> excludedTenants = getExcludedTenants();
+    log.info("getSecondaryRequestTenants:: excluded tenants: {}", excludedTenants);
+
+    List<String> eligibleTenants = filterExcludedTenants(tenantIds, excludedTenants);
+    if (eligibleTenants.isEmpty()) {
+      log.warn("getSecondaryRequestTenants:: No eligible tenants found");
+      throw new TenantPickingException("No eligible tenants found");
+    }
+    log.info("getSecondaryRequestTenants:: eligible tenants: {}", eligibleTenants);
+    return eligibleTenants;
+  }
+
+  private List<String> getExcludedTenants() {
+    return tlrSettingsService.getTlrSettings()
+      .map(TlrSettings::getExcludeFromEcsRequestLendingTenantSearch)
+      .map(list -> list.stream()
+        .filter(StringUtils::isNotBlank)
+        .map(String::trim)
+        .toList())
+      .orElseGet(Collections::emptyList);
+  }
+
+  private List<String> filterExcludedTenants(List<String> tenantIds, List<String> excludedTenants) {
+    return tenantIds.stream()
+      .filter(Objects::nonNull)
+      .filter(tenantId -> excludedTenants.stream()
+        .noneMatch(excluded -> excluded.equalsIgnoreCase(tenantId)))
+      .toList();
   }
 
   private EcsTlrEntity save(EcsTlrEntity ecsTlr) {
