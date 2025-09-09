@@ -1,3 +1,6 @@
+## 1.1.6 2025-09-09
+* Declare claimed returned item as missing API (MODTLR-235)
+
 ## 1.1.5 2025-08-28
 * Remove empty arrays from Allowed service points endpoint response (MODTLR-247)
 
