@@ -5,6 +5,7 @@ import static java.util.function.Predicate.not;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.INTERMEDIATE;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.PRIMARY;
 import static org.folio.domain.type.ErrorCode.ECS_REQUEST_CANNOT_BE_PLACED_FOR_INACTIVE_PATRON;
+import static org.folio.domain.type.ErrorCode.PATRON_HAS_OPEN_ECS_TLR_FOR_THE_SAME_TITLE;
 import static org.folio.exception.ExceptionFactory.validationError;
 
 import java.util.Collection;
@@ -70,6 +71,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     String primaryRequestTenantId = getPrimaryRequestTenant(ecsTlr);
 
     validateRequester(ecsTlrDto, primaryRequestTenantId);
+    validateIfNoOpenEcsTlrForTheSameTitleExist(ecsTlr);
 
     Collection<String> secondaryRequestsTenantIds = getSecondaryRequestTenants(ecsTlr).stream()
       .filter(tenantId -> !tenantId.equals(primaryRequestTenantId))
@@ -137,6 +139,32 @@ public class EcsTlrServiceImpl implements EcsTlrService {
           "requesterId", ecsTlrDto.getRequesterId(),
           "tenantId", primaryRequestTenantId
         ));
+    }
+  }
+
+  private void validateIfNoOpenEcsTlrForTheSameTitleExist(EcsTlrEntity ecsTlrEntity) {
+    log.info("validateIfNotAlreadyRequested:: level: {}, instanceId: {}, requesterId: {}",
+      ecsTlrEntity::getRequestLevel, ecsTlrEntity::getInstanceId, ecsTlrEntity::getRequesterId);
+
+    if (!ecsTlrEntity.getRequestLevel().equals(EcsTlr.RequestLevelEnum.TITLE.getValue())
+      || ecsTlrEntity.getInstanceId() == null || ecsTlrEntity.getRequesterId() == null) {
+
+      log.info("validateIfNotAlreadyRequested:: Skipping validation");
+      return;
+    }
+
+    boolean noOpenRequestsExist = ecsTlrRepository.findOpenRequests(ecsTlrEntity.getRequesterId(),
+      ecsTlrEntity.getInstanceId())
+      .map(List::isEmpty)
+      .orElse(true);
+
+    if (!noOpenRequestsExist) {
+      String message = "Patron %s has an open ECS TLR for the same title %s"
+        .formatted(ecsTlrEntity.getRequesterId(), ecsTlrEntity.getInstanceId());
+      log.warn("validateIfNotAlreadyRequested:: {}", message);
+      throw validationError(message, PATRON_HAS_OPEN_ECS_TLR_FOR_THE_SAME_TITLE,
+        Map.of("requesterId", ecsTlrEntity.getRequesterId().toString(),
+          "instanceId", ecsTlrEntity.getInstanceId().toString()));
     }
   }
 

@@ -121,6 +121,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
   }
 
   private void handlePrimaryRequestUpdate(EcsTlrEntity ecsTlr, KafkaEvent<Request> event) {
+    processPrimaryRequestStatusIdUpdate(ecsTlr, event.getNewVersion());
     propagatePrimaryRequestChanges(ecsTlr, event);
     updateTransactionStatuses(event, ecsTlr);
   }
@@ -128,6 +129,30 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
   private void handleSecondaryRequestUpdate(EcsTlrEntity ecsTlr, KafkaEvent<Request> event) {
     processItemIdUpdate(ecsTlr, event.getNewVersion());
     updateTransactionStatuses(event, ecsTlr);
+  }
+
+  private void processPrimaryRequestStatusIdUpdate(EcsTlrEntity ecsTlr, Request updatedRequest) {
+    if (updatedRequest.getStatus() == null) {
+      log.info("processPrimaryRequestStatusIdUpdate:: updated primary request status is null, " +
+        "doing nothing");
+      return;
+    }
+
+    if (updatedRequest.getStatus().getValue().equals(ecsTlr.getPrimaryRequestStatus())) {
+      log.info("processPrimaryRequestStatusIdUpdate:: primary request status hasn't changed, " +
+        "doing nothing");
+      return;
+    }
+
+    log.info("processPrimaryRequestStatusIdUpdate:: updating ECS request {} " +
+        "primary request status from {} to {}", ecsTlr::getId, ecsTlr::getPrimaryRequestStatus,
+      () -> updatedRequest.getStatus().getValue());
+
+    ecsTlr.setPrimaryRequestStatus(updatedRequest.getStatus().getValue());
+    ecsTlrRepository.save(ecsTlr);
+
+    log.info("processPrimaryRequestStatusIdUpdate:: primary request status for ECS request {} " +
+      "updated", ecsTlr::getId);
   }
 
   private void processItemIdUpdate(EcsTlrEntity ecsTlr, Request updatedRequest) {

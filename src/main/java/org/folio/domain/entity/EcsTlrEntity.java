@@ -43,5 +43,6 @@ public class EcsTlrEntity {
   private UUID intermediateRequestId;
   private String intermediateRequestTenantId;
   private UUID intermediateRequestDcbTransactionId;
+  private String primaryRequestStatus;
 
 }
