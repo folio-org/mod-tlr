@@ -121,7 +121,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
   }
 
   private void handlePrimaryRequestUpdate(EcsTlrEntity ecsTlr, KafkaEvent<Request> event) {
-    processPrimaryRequestStatusIdUpdate(ecsTlr, event.getNewVersion());
+    processPrimaryRequestStatusUpdate(ecsTlr, event.getNewVersion());
     propagatePrimaryRequestChanges(ecsTlr, event);
     updateTransactionStatuses(event, ecsTlr);
   }
@@ -131,7 +131,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
     updateTransactionStatuses(event, ecsTlr);
   }
 
-  private void processPrimaryRequestStatusIdUpdate(EcsTlrEntity ecsTlr, Request updatedRequest) {
+  private void processPrimaryRequestStatusUpdate(EcsTlrEntity ecsTlr, Request updatedRequest) {
     if (updatedRequest.getStatus() == null) {
       log.info("processPrimaryRequestStatusIdUpdate:: updated primary request status is null, " +
         "doing nothing");

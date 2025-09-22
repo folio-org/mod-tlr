@@ -154,12 +154,15 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       return;
     }
 
-    boolean noOpenRequestsExist = ecsTlrRepository.findOpenRequests(ecsTlrEntity.getRequesterId(),
-      ecsTlrEntity.getInstanceId())
-      .map(List::isEmpty)
-      .orElse(true);
+    var openRequests = ecsTlrRepository.findOpenRequests(ecsTlrEntity.getRequesterId(),
+      ecsTlrEntity.getInstanceId());
 
-    if (!noOpenRequestsExist) {
+    if (openRequests == null) {
+      log.info("validateIfNoOpenEcsTlrForTheSameTitleExist:: Failed to find open requests");
+      return;
+    }
+
+    if (!openRequests.isEmpty()) {
       String message = "Patron %s has an open ECS TLR for the same title %s"
         .formatted(ecsTlrEntity.getRequesterId(), ecsTlrEntity.getInstanceId());
       log.warn("validateIfNoOpenEcsTlrForTheSameTitleExist:: {}", message);

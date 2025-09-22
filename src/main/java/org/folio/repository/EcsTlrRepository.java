@@ -25,5 +25,5 @@ public interface EcsTlrRepository extends JpaRepository<EcsTlrEntity, UUID> {
     AND ecsr.primaryRequestStatus IN ('Open - Not yet filled', 'Open - Awaiting pickup',
         'Open - In transit', 'Open - Awaiting delivery')
     """)
-  Optional<List<EcsTlrEntity>> findOpenRequests(UUID requesterId, UUID instanceId);
+  List<EcsTlrEntity> findOpenRequests(UUID requesterId, UUID instanceId);
 }
