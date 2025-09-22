@@ -67,6 +67,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
 
     ecsTlrDto.setId(null); // remove client-provided id, it will be generated when entity is persisted
     final EcsTlrEntity ecsTlr = requestsMapper.mapDtoToEntity(ecsTlrDto);
+    ecsTlr.setPrimaryRequestStatus(Request.StatusEnum.OPEN_NOT_YET_FILLED.getValue());
     String primaryRequestTenantId = getPrimaryRequestTenant(ecsTlr);
 
     validateRequester(ecsTlrDto, primaryRequestTenantId);
