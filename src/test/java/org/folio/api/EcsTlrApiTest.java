@@ -14,6 +14,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.put;
 import static com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
+import static org.folio.domain.dto.EcsTlr.RequestLevelEnum.ITEM;
+import static org.folio.domain.dto.EcsTlr.RequestLevelEnum.TITLE;
 import static org.folio.domain.dto.EcsTlr.RequestTypeEnum.HOLD;
 import static org.folio.domain.dto.EcsTlr.RequestTypeEnum.PAGE;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.INTERMEDIATE;
@@ -51,6 +53,7 @@ import org.folio.domain.dto.User;
 import org.folio.domain.dto.UserPersonal;
 import org.folio.domain.dto.UserType;
 import org.folio.domain.entity.TlrSettingsEntity;
+import org.folio.repository.EcsTlrRepository;
 import org.folio.repository.TlrSettingsRepository;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -65,6 +68,7 @@ import com.github.tomakehurst.wiremock.stubbing.Scenario;
 
 class EcsTlrApiTest extends BaseIT {
   private static final String ITEM_ID = randomId();
+  private static final String ITEM_ID_2 = randomId();
   private static final String HOLDINGS_RECORD_ID = randomId();
   private static final String INSTANCE_ID = randomId();
   private static final String REQUESTER_ID = randomId();
@@ -101,10 +105,14 @@ class EcsTlrApiTest extends BaseIT {
   @Autowired
   private TlrSettingsRepository tlrSettingsRepository;
 
+  @Autowired
+  private EcsTlrRepository ecsTlrRepository;
+
   @BeforeEach
   public void beforeEach() {
     wireMockServer.resetAll();
     tlrSettingsRepository.deleteAll();
+    ecsTlrRepository.deleteAll();
   }
 
   private void setupTlrSettings(List<String> excludeTenants) {
@@ -150,6 +158,372 @@ class EcsTlrApiTest extends BaseIT {
       .id(randomId())
       .primaryRequestTenantId(TENANT_ID_UNIVERSITY);
 
+    // 1. Mock all required endpoints
+
+    var mocks = mockAllEcsRequestRequirements(requestType, requesterClonesExist,
+      pickupServicePointClonesExist, ecsTlr);
+
+    // 2. Create ECS TLR
+
+    EcsTlr expectedPostEcsTlrResponse = buildEcsTlr(requestType, requestLevel)
+      .primaryRequestId(PRIMARY_REQUEST_ID)
+      .primaryRequestTenantId(TENANT_ID_UNIVERSITY)
+      .secondaryRequestId(SECONDARY_REQUEST_ID)
+      .secondaryRequestTenantId(TENANT_ID_COLLEGE)
+      .intermediateRequestId(INTERMEDIATE_REQUEST_ID)
+      .intermediateRequestTenantId(TENANT_ID_CONSORTIUM)
+      .itemId(requestType == HOLD ? null : ITEM_ID);
+
+    assertEquals(TENANT_ID_CONSORTIUM, getCurrentTenantId());
+    var response = doPostWithTenant(TLR_URL, ecsTlr, TENANT_ID_CONSORTIUM)
+      .expectStatus().isCreated()
+      .expectBody()
+      .jsonPath("$.id").exists()
+      .jsonPath("$.id").value(not(Matchers.equalTo(ecsTlr.getId())))
+      .json(asJsonString(expectedPostEcsTlrResponse));
+    assertEquals(TENANT_ID_CONSORTIUM, getCurrentTenantId());
+
+    if (requestType != HOLD) {
+      response.jsonPath("$.primaryRequestDcbTransactionId").exists()
+        .jsonPath("$.secondaryRequestDcbTransactionId").exists();
+    }
+
+    // 3. Verify calls to other modules
+
+    wireMockServer.verify(getRequestedFor(urlMatching(SEARCH_INSTANCES_URL))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
+
+    wireMockServer.verify(getRequestedFor(urlMatching(USERS_URL + "/" + REQUESTER_ID))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
+
+    wireMockServer.verify(getRequestedFor(urlMatching(USERS_URL + "/" + REQUESTER_ID))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)));
+
+    wireMockServer.verify(getRequestedFor(urlMatching(SERVICE_POINTS_URL + "/" + PICKUP_SERVICE_POINT_ID))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
+
+    wireMockServer.verify(getRequestedFor(urlMatching(SERVICE_POINTS_URL + "/" + PICKUP_SERVICE_POINT_ID))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)));
+
+    wireMockServer.verify(postRequestedFor(urlMatching(REQUESTS_URL))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
+      .withRequestBody(equalToJson(asJsonString(mocks.secondaryRequestPostRequest))));
+
+    wireMockServer.verify(postRequestedFor(urlMatching(REQUESTS_URL))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .withRequestBody(equalToJson(asJsonString(mocks.intermediateRequestPostRequest))));
+
+    wireMockServer.verify(postRequestedFor(urlMatching(REQUESTS_URL))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
+      .withRequestBody(equalToJson(asJsonString(mocks.primaryRequestPostRequest))));
+
+    if (requesterClonesExist) {
+      wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(USERS_URL)));
+      wireMockServer.verify(exactly(2), putRequestedFor(urlMatching(USERS_URL + "/" + REQUESTER_ID)));
+    } else {
+      wireMockServer.verify(postRequestedFor(urlMatching(USERS_URL))
+        .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
+        .withRequestBody(equalToJson(asJsonString(mocks.requesterClone))));
+    }
+
+    if (pickupServicePointClonesExist) {
+      wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(SERVICE_POINTS_URL)));
+    } else {
+      wireMockServer.verify(postRequestedFor(urlMatching(SERVICE_POINTS_URL))
+        .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
+        .withRequestBody(equalToJson(asJsonString(mocks.servicePointClone))));
+      wireMockServer.verify(postRequestedFor(urlMatching(SERVICE_POINTS_URL))
+        .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+        .withRequestBody(equalToJson(asJsonString(mocks.servicePointClone))));
+    }
+
+    wireMockServer.verify(postRequestedFor(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .withRequestBody(equalToJson(asJsonString(mocks.borrowerTransactionPostRequest))));
+
+    wireMockServer.verify(postRequestedFor(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
+      .withRequestBody(equalToJson(asJsonString(mocks.lenderTransactionPostRequest))));
+
+    wireMockServer.verify(postRequestedFor(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
+      .withRequestBody(equalToJson(asJsonString(mocks.pickupTransactionPostRequest))));
+
+    wireMockServer.verify(getRequestedFor(urlMatching(INSTANCES_URL + "/" + INSTANCE_ID))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY)));
+
+    wireMockServer.verify(postRequestedFor(urlMatching(SHARE_INSTANCE_URL))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
+      .withRequestBody(equalToJson(asJsonString(
+        new SharingInstance()
+          .instanceIdentifier(UUID.fromString(INSTANCE_ID))
+          .sourceTenantId(TENANT_ID_CONSORTIUM)
+          .targetTenantId(TENANT_ID_UNIVERSITY)
+      ))));
+  }
+
+  @ParameterizedTest
+  @CsvSource(value = {
+    "PAGE, Open - Not yet filled, 422",
+    "HOLD, Open - Not yet filled, 422",
+    "RECALL, Open - Not yet filled, 422",
+    "PAGE, Closed - Filled, 201",
+    "HOLD, Closed - Filled, 201",
+    "RECALL, Closed - Filled, 201",
+  })
+  void secondEcsTlrForTheSameTitleShouldFail(RequestTypeEnum requestType,
+    String firstRequestStatus, int secondRequestExpectedHttpStatus) {
+
+    EcsTlr ecsTlr1 = buildEcsTlr(requestType, TITLE)
+      .id(randomId())
+      .primaryRequestTenantId(TENANT_ID_UNIVERSITY);
+
+    // 1. Mock all required endpoints
+    mockAllEcsRequestRequirements(requestType, false, true, ecsTlr1);
+
+    // 2. Create first ECS request
+    doPostWithTenant(TLR_URL, ecsTlr1, TENANT_ID_CONSORTIUM)
+      .expectStatus().isCreated();
+
+    ecsTlrRepository.findAll().stream()
+      .peek(e -> e.setPrimaryRequestStatus(firstRequestStatus))
+      .forEach(ecsTlrRepository::save);
+
+    // 3. Create second ECS request
+    EcsTlr ecsTlr2 = buildEcsTlr(requestType, TITLE)
+      .id(randomId())
+      .primaryRequestTenantId(TENANT_ID_UNIVERSITY);
+
+    doPostWithTenant(TLR_URL, ecsTlr2, TENANT_ID_CONSORTIUM)
+      .expectStatus().isEqualTo(secondRequestExpectedHttpStatus);
+  }
+
+  @ParameterizedTest
+  @CsvSource(value = {
+    "PAGE",
+    "HOLD",
+    "RECALL"
+  })
+  void ecsIlrForTheItemOfTheSameTitleAsExistingEcsTlrShouldSucceed(RequestTypeEnum requestType) {
+    EcsTlr ecsTlr1 = buildEcsTlr(requestType, TITLE)
+      .id(randomId())
+      .primaryRequestTenantId(TENANT_ID_UNIVERSITY);
+
+    // 1. Mock all required endpoints
+    mockAllEcsRequestRequirements(requestType, false, true, ecsTlr1);
+
+    // 2. Create first ECS request
+    doPostWithTenant(TLR_URL, ecsTlr1, TENANT_ID_CONSORTIUM)
+      .expectStatus().isCreated();
+
+    ecsTlrRepository.findAll().stream()
+      .peek(e -> e.setPrimaryRequestStatus("Open - Not yet filled"))
+      .forEach(ecsTlrRepository::save);
+
+    // 3. Create second ECS request
+    EcsTlr ecsTlr2 = buildEcsTlr(HOLD, ITEM)
+      .id(randomId())
+      .itemId(ITEM_ID_2)
+      .primaryRequestTenantId(TENANT_ID_UNIVERSITY);
+    mockAllEcsRequestRequirements(HOLD, false, true, ecsTlr2);
+
+    doPostWithTenant(TLR_URL, ecsTlr2, TENANT_ID_CONSORTIUM)
+      .expectStatus().isCreated();
+  }
+
+  @Test
+  void getByIdNotFound() {
+    doGet(TLR_URL + "/" + UUID.randomUUID())
+      .expectStatus().isEqualTo(NOT_FOUND);
+  }
+
+  @ParameterizedTest
+  @EnumSource(EcsTlr.RequestLevelEnum.class)
+  void canNotCreateEcsTlrWhenFailedToPickLendingTenant(EcsTlr.RequestLevelEnum requestLevel) {
+    EcsTlr ecsTlr = buildEcsTlr(PAGE, randomId(), randomId(), requestLevel);
+    SearchInstancesResponse mockSearchInstancesResponse = new SearchInstancesResponse()
+      .totalRecords(0)
+      .instances(List.of());
+
+    wireMockServer.stubFor(get(urlMatching(SEARCH_INSTANCES_URL))
+      .willReturn(jsonResponse(mockSearchInstancesResponse, HttpStatus.SC_OK)));
+
+    doPost(TLR_URL, ecsTlr)
+      .expectStatus().isEqualTo(INTERNAL_SERVER_ERROR);
+
+    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(USERS_URL)));
+    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(SEARCH_INSTANCES_URL)));
+  }
+
+  @ParameterizedTest
+  @EnumSource(EcsTlr.RequestLevelEnum.class)
+  void canNotCreateEcsTlrWhenFailedToFindRequesterInBorrowingTenant(
+    EcsTlr.RequestLevelEnum requestLevel) {
+
+    String requesterId = randomId();
+    EcsTlr ecsTlr = buildEcsTlr(PAGE, requesterId, randomId(), requestLevel);
+    SearchInstancesResponse mockSearchInstancesResponse = new SearchInstancesResponse()
+      .totalRecords(2)
+      .instances(List.of(
+        new SearchInstance().id(INSTANCE_ID)
+          .tenantId(TENANT_ID_CONSORTIUM)
+          .items(List.of(buildItem(randomId(), TENANT_ID_UNIVERSITY, "Available")))
+      ));
+
+    wireMockServer.stubFor(get(urlMatching(SEARCH_INSTANCES_URL))
+      .willReturn(jsonResponse(mockSearchInstancesResponse, HttpStatus.SC_OK)));
+
+    wireMockServer.stubFor(get(urlMatching(USERS_URL + "/" + requesterId))
+      .willReturn(notFound()));
+
+    doPost(TLR_URL, ecsTlr)
+      .expectStatus().isEqualTo(INTERNAL_SERVER_ERROR);
+
+    wireMockServer.verify(getRequestedFor(urlMatching(USERS_URL + "/" + requesterId))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
+
+    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(INSTANCE_REQUESTS_URL)));
+    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(REQUESTS_URL)));
+    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(SEARCH_INSTANCES_URL)));
+  }
+
+  @ParameterizedTest
+  @EnumSource(EcsTlr.RequestLevelEnum.class)
+  void canNotCreateEcsTlrWhenFailedToFindPickupServicePointInBorrowingTenant(
+    EcsTlr.RequestLevelEnum requestLevel) {
+
+    String pickupServicePointId = randomId();
+    EcsTlr ecsTlr = buildEcsTlr(PAGE, REQUESTER_ID, pickupServicePointId, requestLevel);
+    SearchInstancesResponse mockSearchInstancesResponse = new SearchInstancesResponse()
+      .totalRecords(2)
+      .instances(List.of(
+        new SearchInstance().id(INSTANCE_ID)
+          .tenantId(TENANT_ID_CONSORTIUM)
+          .items(List.of(buildItem(randomId(), TENANT_ID_UNIVERSITY, "Available")))
+      ));
+
+    wireMockServer.stubFor(get(urlMatching(SEARCH_INSTANCES_URL))
+      .willReturn(jsonResponse(mockSearchInstancesResponse, HttpStatus.SC_OK)));
+
+    wireMockServer.stubFor(get(urlMatching(USERS_URL + "/" + REQUESTER_ID))
+      .willReturn(jsonResponse(buildPrimaryRequestRequester(REQUESTER_ID), HttpStatus.SC_OK)));
+
+    wireMockServer.stubFor(get(urlMatching(SERVICE_POINTS_URL + "/" + pickupServicePointId))
+      .willReturn(notFound()));
+
+    doPost(TLR_URL, ecsTlr)
+      .expectStatus().isEqualTo(INTERNAL_SERVER_ERROR);
+
+    wireMockServer.verify(getRequestedFor(urlMatching(SEARCH_INSTANCES_URL))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
+
+    wireMockServer.verify(getRequestedFor(urlMatching(USERS_URL + "/" + REQUESTER_ID))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
+
+    wireMockServer.verify(getRequestedFor(urlMatching(SERVICE_POINTS_URL + "/" + pickupServicePointId))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
+
+    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(INSTANCE_REQUESTS_URL)));
+    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(REQUESTS_URL)));
+  }
+
+  @ParameterizedTest
+  @EnumSource(EcsTlr.RequestLevelEnum.class)
+  void canNotPlaceEcsTlrForInactivePatron(EcsTlr.RequestLevelEnum requestLevel) {
+
+    EcsTlr ecsTlr = buildEcsTlr(PAGE, REQUESTER_ID, randomId(), requestLevel);
+    SearchInstancesResponse mockSearchInstancesResponse = new SearchInstancesResponse()
+      .totalRecords(2)
+      .instances(List.of(
+        new SearchInstance().id(INSTANCE_ID)
+          .tenantId(TENANT_ID_CONSORTIUM)
+          .items(List.of(buildItem(randomId(), TENANT_ID_UNIVERSITY, "Available")))
+      ));
+
+    wireMockServer.stubFor(get(urlMatching(SEARCH_INSTANCES_URL))
+      .willReturn(jsonResponse(mockSearchInstancesResponse, HttpStatus.SC_OK)));
+
+    User primaryRequestRequester = buildPrimaryRequestRequester(REQUESTER_ID, false);
+
+    wireMockServer.stubFor(get(urlMatching(USERS_URL + "/" + REQUESTER_ID))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(jsonResponse(primaryRequestRequester, HttpStatus.SC_OK)));
+
+    doPost(TLR_URL, ecsTlr)
+      .expectStatus().isEqualTo(UNPROCESSABLE_ENTITY)
+      .expectBody()
+      .jsonPath("$.errors[0].code").isEqualTo("ECS_REQUEST_CANNOT_BE_PLACED_FOR_INACTIVE_PATRON");
+
+    wireMockServer.verify(getRequestedFor(urlMatching(USERS_URL + "/" + REQUESTER_ID))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
+
+    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(SEARCH_INSTANCES_URL)));
+    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(INSTANCE_REQUESTS_URL)));
+    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(REQUESTS_URL)));
+  }
+
+  @Test
+  void ecsTlrExcludesAllLendingTenantsFromSecondaryRequests() {
+    setupTlrSettings(List.of(TENANT_ID_COLLEGE, TENANT_ID_UNIVERSITY));
+
+    // Build ECS TLR
+    EcsTlr ecsTlr = buildEcsTlr(PAGE, REQUESTER_ID, PICKUP_SERVICE_POINT_ID, TITLE)
+      .id(randomId())
+      .primaryRequestTenantId(TENANT_ID_CONSORTIUM);
+
+    wireMockServer.stubFor(get(urlMatching(USERS_URL + "/" + REQUESTER_ID))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(jsonResponse(buildPrimaryRequestRequester(REQUESTER_ID), HttpStatus.SC_OK)));
+
+    List<SearchItem> items = List.of(
+      buildItem(randomId(), TENANT_ID_UNIVERSITY, "Available"),
+      buildItem(randomId(), TENANT_ID_COLLEGE, "Available"));
+    SearchInstancesResponse mockSearchInstancesResponse = new SearchInstancesResponse()
+      .totalRecords(2)
+      .instances(List.of(new SearchInstance()
+        .id(INSTANCE_ID)
+        .tenantId(TENANT_ID_CONSORTIUM)
+        .items(items)
+      ));
+    wireMockServer.stubFor(get(urlMatching(SEARCH_INSTANCES_URL))
+      .willReturn(jsonResponse(mockSearchInstancesResponse, HttpStatus.SC_OK)));
+
+    ServicePoint primaryRequestPickupServicePoint = buildPrimaryRequestPickupServicePoint(PICKUP_SERVICE_POINT_ID);
+    ServicePoint secondaryRequestServicePoint = buildPickupServicePointClone(primaryRequestPickupServicePoint);
+
+    wireMockServer.stubFor(get(urlMatching(SERVICE_POINTS_URL + "/" + PICKUP_SERVICE_POINT_ID))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
+      .willReturn(jsonResponse(asJsonString(secondaryRequestServicePoint), HttpStatus.SC_OK)));
+    wireMockServer.stubFor(get(urlMatching(SERVICE_POINTS_URL + "/" + PICKUP_SERVICE_POINT_ID))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
+      .willReturn(jsonResponse(asJsonString(primaryRequestPickupServicePoint), HttpStatus.SC_OK)));
+
+    // Post ECS TLR
+    doPostWithTenant(TLR_URL, ecsTlr, TENANT_ID_CONSORTIUM)
+      .expectStatus().is5xxServerError();
+
+    // Assert excluded tenants do NOT receive secondary requests
+    wireMockServer.verify(0, postRequestedFor(urlMatching(REQUESTS_URL))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)));
+    wireMockServer.verify(0, postRequestedFor(urlMatching(REQUESTS_URL))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY)));
+    // Since all lending tenants are excluded, no secondary requests should be made at all
+    wireMockServer.verify(0, postRequestedFor(urlMatching(REQUESTS_URL)));
+  }
+
+  private record EcsRequestRequiredMocks(
+    Request secondaryRequestPostRequest,
+    Request intermediateRequestPostRequest,
+    Request primaryRequestPostRequest,
+    User requesterClone,
+    ServicePoint servicePointClone,
+    DcbTransaction borrowerTransactionPostRequest,
+    DcbTransaction lenderTransactionPostRequest,
+    DcbTransaction pickupTransactionPostRequest
+  ) {}
+
+  EcsRequestRequiredMocks mockAllEcsRequestRequirements(RequestTypeEnum requestType, boolean requesterClonesExist,
+    boolean pickupServicePointClonesExist, EcsTlr ecsTlr) {
     // 1. Create stubs for other modules
     // 1.1 Mock search endpoint
 
@@ -158,12 +532,14 @@ class EcsTlrApiTest extends BaseIT {
       items = List.of(
         buildItem(randomId(), TENANT_ID_UNIVERSITY, "Paged"),
         buildItem(randomId(), TENANT_ID_UNIVERSITY, "Declared lost"),
-        buildItem(ITEM_ID, TENANT_ID_COLLEGE, "Checked out"));
+        buildItem(ITEM_ID, TENANT_ID_COLLEGE, "Checked out"),
+        buildItem(ITEM_ID_2, TENANT_ID_COLLEGE, "Paged"));
     } else {
       items = List.of(
         buildItem(randomId(), TENANT_ID_UNIVERSITY, "Checked out"),
         buildItem(randomId(), TENANT_ID_UNIVERSITY, "In transit"),
-        buildItem(ITEM_ID, TENANT_ID_COLLEGE, "Available"));
+        buildItem(ITEM_ID, TENANT_ID_COLLEGE, "Available"),
+        buildItem(ITEM_ID_2, TENANT_ID_COLLEGE, "Checked out"));
     }
 
     SearchInstancesResponse mockSearchInstancesResponse = new SearchInstancesResponse()
@@ -366,283 +742,15 @@ class EcsTlrApiTest extends BaseIT {
       .willSetStateTo("Shadow instance created")
       .willReturn(jsonResponse(asJsonString(mockShareInstanceResponse), HttpStatus.SC_CREATED)));
 
-    // 2. Create ECS TLR
-
-    EcsTlr expectedPostEcsTlrResponse = buildEcsTlr(requestType, requestLevel)
-      .primaryRequestId(PRIMARY_REQUEST_ID)
-      .primaryRequestTenantId(TENANT_ID_UNIVERSITY)
-      .secondaryRequestId(SECONDARY_REQUEST_ID)
-      .secondaryRequestTenantId(TENANT_ID_COLLEGE)
-      .intermediateRequestId(INTERMEDIATE_REQUEST_ID)
-      .intermediateRequestTenantId(TENANT_ID_CONSORTIUM)
-      .itemId(requestType == HOLD ? null : ITEM_ID);
-
-    assertEquals(TENANT_ID_CONSORTIUM, getCurrentTenantId());
-    var response = doPostWithTenant(TLR_URL, ecsTlr, TENANT_ID_CONSORTIUM)
-      .expectStatus().isCreated()
-      .expectBody()
-      .jsonPath("$.id").exists()
-      .jsonPath("$.id").value(not(Matchers.equalTo(ecsTlr.getId())))
-      .json(asJsonString(expectedPostEcsTlrResponse));
-    assertEquals(TENANT_ID_CONSORTIUM, getCurrentTenantId());
-
-    if (requestType != HOLD) {
-      response.jsonPath("$.primaryRequestDcbTransactionId").exists()
-        .jsonPath("$.secondaryRequestDcbTransactionId").exists();
-    }
-
-    // 3. Verify calls to other modules
-
-    wireMockServer.verify(getRequestedFor(urlMatching(SEARCH_INSTANCES_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
-
-    wireMockServer.verify(getRequestedFor(urlMatching(USERS_URL + "/" + REQUESTER_ID))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
-
-    wireMockServer.verify(getRequestedFor(urlMatching(USERS_URL + "/" + REQUESTER_ID))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)));
-
-    wireMockServer.verify(getRequestedFor(urlMatching(SERVICE_POINTS_URL + "/" + PICKUP_SERVICE_POINT_ID))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
-
-    wireMockServer.verify(getRequestedFor(urlMatching(SERVICE_POINTS_URL + "/" + PICKUP_SERVICE_POINT_ID))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)));
-
-    wireMockServer.verify(postRequestedFor(urlMatching(REQUESTS_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
-      .withRequestBody(equalToJson(asJsonString(secondaryRequestPostRequest))));
-
-    wireMockServer.verify(postRequestedFor(urlMatching(REQUESTS_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
-      .withRequestBody(equalToJson(asJsonString(intermediateRequestPostRequest))));
-
-    wireMockServer.verify(postRequestedFor(urlMatching(REQUESTS_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
-      .withRequestBody(equalToJson(asJsonString(primaryRequestPostRequest))));
-
-    if (requesterClonesExist) {
-      wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(USERS_URL)));
-      wireMockServer.verify(exactly(2), putRequestedFor(urlMatching(USERS_URL + "/" + REQUESTER_ID)));
-    } else {
-      wireMockServer.verify(postRequestedFor(urlMatching(USERS_URL))
-        .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
-        .withRequestBody(equalToJson(asJsonString(requesterClone))));
-    }
-
-    if (pickupServicePointClonesExist) {
-      wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(SERVICE_POINTS_URL)));
-    } else {
-      wireMockServer.verify(postRequestedFor(urlMatching(SERVICE_POINTS_URL))
-        .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
-        .withRequestBody(equalToJson(asJsonString(servicePointClone))));
-      wireMockServer.verify(postRequestedFor(urlMatching(SERVICE_POINTS_URL))
-        .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
-        .withRequestBody(equalToJson(asJsonString(servicePointClone))));
-    }
-
-    wireMockServer.verify(postRequestedFor(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
-      .withRequestBody(equalToJson(asJsonString(borrowerTransactionPostRequest))));
-
-    wireMockServer.verify(postRequestedFor(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
-      .withRequestBody(equalToJson(asJsonString(lenderTransactionPostRequest))));
-
-    wireMockServer.verify(postRequestedFor(urlMatching(POST_ECS_REQUEST_TRANSACTION_URL_PATTERN))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
-      .withRequestBody(equalToJson(asJsonString(pickupTransactionPostRequest))));
-
-    wireMockServer.verify(getRequestedFor(urlMatching(INSTANCES_URL + "/" + INSTANCE_ID))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY)));
-
-    wireMockServer.verify(postRequestedFor(urlMatching(SHARE_INSTANCE_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY))
-      .withRequestBody(equalToJson(asJsonString(
-        new SharingInstance()
-          .instanceIdentifier(UUID.fromString(INSTANCE_ID))
-          .sourceTenantId(TENANT_ID_CONSORTIUM)
-          .targetTenantId(TENANT_ID_UNIVERSITY)
-      ))));
-  }
-
-  @Test
-  void getByIdNotFound() {
-    doGet(TLR_URL + "/" + UUID.randomUUID())
-      .expectStatus().isEqualTo(NOT_FOUND);
-  }
-
-  @ParameterizedTest
-  @EnumSource(EcsTlr.RequestLevelEnum.class)
-  void canNotCreateEcsTlrWhenFailedToPickLendingTenant(EcsTlr.RequestLevelEnum requestLevel) {
-    EcsTlr ecsTlr = buildEcsTlr(PAGE, randomId(), randomId(), requestLevel);
-    SearchInstancesResponse mockSearchInstancesResponse = new SearchInstancesResponse()
-      .totalRecords(0)
-      .instances(List.of());
-
-    wireMockServer.stubFor(get(urlMatching(SEARCH_INSTANCES_URL))
-      .willReturn(jsonResponse(mockSearchInstancesResponse, HttpStatus.SC_OK)));
-
-    doPost(TLR_URL, ecsTlr)
-      .expectStatus().isEqualTo(INTERNAL_SERVER_ERROR);
-
-    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(USERS_URL)));
-    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(SEARCH_INSTANCES_URL)));
-  }
-
-  @ParameterizedTest
-  @EnumSource(EcsTlr.RequestLevelEnum.class)
-  void canNotCreateEcsTlrWhenFailedToFindRequesterInBorrowingTenant(
-    EcsTlr.RequestLevelEnum requestLevel) {
-
-    String requesterId = randomId();
-    EcsTlr ecsTlr = buildEcsTlr(PAGE, requesterId, randomId(), requestLevel);
-    SearchInstancesResponse mockSearchInstancesResponse = new SearchInstancesResponse()
-      .totalRecords(2)
-      .instances(List.of(
-        new SearchInstance().id(INSTANCE_ID)
-          .tenantId(TENANT_ID_CONSORTIUM)
-          .items(List.of(buildItem(randomId(), TENANT_ID_UNIVERSITY, "Available")))
-      ));
-
-    wireMockServer.stubFor(get(urlMatching(SEARCH_INSTANCES_URL))
-      .willReturn(jsonResponse(mockSearchInstancesResponse, HttpStatus.SC_OK)));
-
-    wireMockServer.stubFor(get(urlMatching(USERS_URL + "/" + requesterId))
-      .willReturn(notFound()));
-
-    doPost(TLR_URL, ecsTlr)
-      .expectStatus().isEqualTo(INTERNAL_SERVER_ERROR);
-
-    wireMockServer.verify(getRequestedFor(urlMatching(USERS_URL + "/" + requesterId))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
-
-    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(INSTANCE_REQUESTS_URL)));
-    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(REQUESTS_URL)));
-    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(SEARCH_INSTANCES_URL)));
-  }
-
-  @ParameterizedTest
-  @EnumSource(EcsTlr.RequestLevelEnum.class)
-  void canNotCreateEcsTlrWhenFailedToFindPickupServicePointInBorrowingTenant(
-    EcsTlr.RequestLevelEnum requestLevel) {
-
-    String pickupServicePointId = randomId();
-    EcsTlr ecsTlr = buildEcsTlr(PAGE, REQUESTER_ID, pickupServicePointId, requestLevel);
-    SearchInstancesResponse mockSearchInstancesResponse = new SearchInstancesResponse()
-      .totalRecords(2)
-      .instances(List.of(
-        new SearchInstance().id(INSTANCE_ID)
-          .tenantId(TENANT_ID_CONSORTIUM)
-          .items(List.of(buildItem(randomId(), TENANT_ID_UNIVERSITY, "Available")))
-      ));
-
-    wireMockServer.stubFor(get(urlMatching(SEARCH_INSTANCES_URL))
-      .willReturn(jsonResponse(mockSearchInstancesResponse, HttpStatus.SC_OK)));
-
-    wireMockServer.stubFor(get(urlMatching(USERS_URL + "/" + REQUESTER_ID))
-      .willReturn(jsonResponse(buildPrimaryRequestRequester(REQUESTER_ID), HttpStatus.SC_OK)));
-
-    wireMockServer.stubFor(get(urlMatching(SERVICE_POINTS_URL + "/" + pickupServicePointId))
-      .willReturn(notFound()));
-
-    doPost(TLR_URL, ecsTlr)
-      .expectStatus().isEqualTo(INTERNAL_SERVER_ERROR);
-
-    wireMockServer.verify(getRequestedFor(urlMatching(SEARCH_INSTANCES_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
-
-    wireMockServer.verify(getRequestedFor(urlMatching(USERS_URL + "/" + REQUESTER_ID))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
-
-    wireMockServer.verify(getRequestedFor(urlMatching(SERVICE_POINTS_URL + "/" + pickupServicePointId))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
-
-    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(INSTANCE_REQUESTS_URL)));
-    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(REQUESTS_URL)));
-  }
-
-  @ParameterizedTest
-  @EnumSource(EcsTlr.RequestLevelEnum.class)
-  void canNotPlaceEcsTlrForInactivePatron(EcsTlr.RequestLevelEnum requestLevel) {
-
-    EcsTlr ecsTlr = buildEcsTlr(PAGE, REQUESTER_ID, randomId(), requestLevel);
-    SearchInstancesResponse mockSearchInstancesResponse = new SearchInstancesResponse()
-      .totalRecords(2)
-      .instances(List.of(
-        new SearchInstance().id(INSTANCE_ID)
-          .tenantId(TENANT_ID_CONSORTIUM)
-          .items(List.of(buildItem(randomId(), TENANT_ID_UNIVERSITY, "Available")))
-      ));
-
-    wireMockServer.stubFor(get(urlMatching(SEARCH_INSTANCES_URL))
-      .willReturn(jsonResponse(mockSearchInstancesResponse, HttpStatus.SC_OK)));
-
-    User primaryRequestRequester = buildPrimaryRequestRequester(REQUESTER_ID, false);
-
-    wireMockServer.stubFor(get(urlMatching(USERS_URL + "/" + REQUESTER_ID))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
-      .willReturn(jsonResponse(primaryRequestRequester, HttpStatus.SC_OK)));
-
-    doPost(TLR_URL, ecsTlr)
-      .expectStatus().isEqualTo(UNPROCESSABLE_ENTITY)
-      .expectBody()
-      .jsonPath("$.errors[0].code").isEqualTo("ECS_REQUEST_CANNOT_BE_PLACED_FOR_INACTIVE_PATRON");
-
-    wireMockServer.verify(getRequestedFor(urlMatching(USERS_URL + "/" + REQUESTER_ID))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
-
-    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(SEARCH_INSTANCES_URL)));
-    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(INSTANCE_REQUESTS_URL)));
-    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(REQUESTS_URL)));
-  }
-
-  @Test
-  void ecsTlrExcludesAllLendingTenantsFromSecondaryRequests() {
-    setupTlrSettings(List.of(TENANT_ID_COLLEGE, TENANT_ID_UNIVERSITY));
-
-    // Build ECS TLR
-    EcsTlr ecsTlr = buildEcsTlr(PAGE, REQUESTER_ID, PICKUP_SERVICE_POINT_ID, EcsTlr.RequestLevelEnum.TITLE)
-      .id(randomId())
-      .primaryRequestTenantId(TENANT_ID_CONSORTIUM);
-
-    wireMockServer.stubFor(get(urlMatching(USERS_URL + "/" + REQUESTER_ID))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
-      .willReturn(jsonResponse(buildPrimaryRequestRequester(REQUESTER_ID), HttpStatus.SC_OK)));
-
-    List<SearchItem> items = List.of(
-      buildItem(randomId(), TENANT_ID_UNIVERSITY, "Available"),
-      buildItem(randomId(), TENANT_ID_COLLEGE, "Available"));
-    SearchInstancesResponse mockSearchInstancesResponse = new SearchInstancesResponse()
-      .totalRecords(2)
-      .instances(List.of(new SearchInstance()
-        .id(INSTANCE_ID)
-        .tenantId(TENANT_ID_CONSORTIUM)
-        .items(items)
-      ));
-    wireMockServer.stubFor(get(urlMatching(SEARCH_INSTANCES_URL))
-      .willReturn(jsonResponse(mockSearchInstancesResponse, HttpStatus.SC_OK)));
-
-    ServicePoint primaryRequestPickupServicePoint = buildPrimaryRequestPickupServicePoint(PICKUP_SERVICE_POINT_ID);
-    ServicePoint secondaryRequestServicePoint = buildPickupServicePointClone(primaryRequestPickupServicePoint);
-
-    wireMockServer.stubFor(get(urlMatching(SERVICE_POINTS_URL + "/" + PICKUP_SERVICE_POINT_ID))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
-      .willReturn(jsonResponse(asJsonString(secondaryRequestServicePoint), HttpStatus.SC_OK)));
-    wireMockServer.stubFor(get(urlMatching(SERVICE_POINTS_URL + "/" + PICKUP_SERVICE_POINT_ID))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM))
-      .willReturn(jsonResponse(asJsonString(primaryRequestPickupServicePoint), HttpStatus.SC_OK)));
-
-    // Post ECS TLR
-    doPostWithTenant(TLR_URL, ecsTlr, TENANT_ID_CONSORTIUM)
-      .expectStatus().is5xxServerError();
-
-    // Assert excluded tenants do NOT receive secondary requests
-    wireMockServer.verify(0, postRequestedFor(urlMatching(REQUESTS_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE)));
-    wireMockServer.verify(0, postRequestedFor(urlMatching(REQUESTS_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_UNIVERSITY)));
-    // Since all lending tenants are excluded, no secondary requests should be made at all
-    wireMockServer.verify(0, postRequestedFor(urlMatching(REQUESTS_URL)));
+    return new EcsRequestRequiredMocks(
+      secondaryRequestPostRequest,
+      intermediateRequestPostRequest,
+      primaryRequestPostRequest,
+      requesterClone,
+      servicePointClone,
+      borrowerTransactionPostRequest,
+      lenderTransactionPostRequest,
+      pickupTransactionPostRequest);
   }
 
   private static EcsTlr buildEcsTlr(RequestTypeEnum requestType, EcsTlr.RequestLevelEnum requestLevel) {
@@ -671,6 +779,7 @@ class EcsTlrApiTest extends BaseIT {
       .requestType(Request.RequestTypeEnum.fromValue(ecsTlr.getRequestType().getValue()))
       .ecsRequestPhase(Request.EcsRequestPhaseEnum.SECONDARY)
       .instanceId(ecsTlr.getInstanceId())
+      .itemId(ecsTlr.getItemId())
       .pickupServicePointId(ecsTlr.getPickupServicePointId())
       .requestDate(ecsTlr.getRequestDate())
       .requestExpirationDate(ecsTlr.getRequestExpirationDate())

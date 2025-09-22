@@ -1,0 +1,17 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
+
+    <changeSet id="addPrimaryRequestStatusColumn" author="AlexanderKurash">
+        <preConditions onFail="WARN" onError="WARN">
+            <not>
+                <columnExists tableName="ecs_tlr" columnName="primary_request_status"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="ecs_tlr">
+            <column name="primary_request_status" type="varchar(255)"/>
+        </addColumn>
+    </changeSet>
+</databaseChangeLog>

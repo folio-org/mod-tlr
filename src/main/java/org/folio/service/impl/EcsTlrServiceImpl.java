@@ -1,10 +1,10 @@
 package org.folio.service.impl;
 
 import static java.util.Optional.of;
-import static java.util.function.Predicate.not;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.INTERMEDIATE;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.PRIMARY;
 import static org.folio.domain.type.ErrorCode.ECS_REQUEST_CANNOT_BE_PLACED_FOR_INACTIVE_PATRON;
+import static org.folio.domain.type.ErrorCode.PATRON_HAS_OPEN_ECS_TLR_FOR_THE_SAME_TITLE;
 import static org.folio.exception.ExceptionFactory.validationError;
 
 import java.util.Collection;
@@ -67,9 +67,11 @@ public class EcsTlrServiceImpl implements EcsTlrService {
 
     ecsTlrDto.setId(null); // remove client-provided id, it will be generated when entity is persisted
     final EcsTlrEntity ecsTlr = requestsMapper.mapDtoToEntity(ecsTlrDto);
+    ecsTlr.setPrimaryRequestStatus(Request.StatusEnum.OPEN_NOT_YET_FILLED.getValue());
     String primaryRequestTenantId = getPrimaryRequestTenant(ecsTlr);
 
     validateRequester(ecsTlrDto, primaryRequestTenantId);
+    validateIfNoOpenEcsTlrForTheSameTitleExist(ecsTlr);
 
     Collection<String> secondaryRequestsTenantIds = getSecondaryRequestTenants(ecsTlr).stream()
       .filter(tenantId -> !tenantId.equals(primaryRequestTenantId))
@@ -137,6 +139,37 @@ public class EcsTlrServiceImpl implements EcsTlrService {
           "requesterId", ecsTlrDto.getRequesterId(),
           "tenantId", primaryRequestTenantId
         ));
+    }
+  }
+
+  private void validateIfNoOpenEcsTlrForTheSameTitleExist(EcsTlrEntity ecsTlrEntity) {
+    log.info("validateIfNoOpenEcsTlrForTheSameTitleExist:: " +
+        "level: {}, instanceId: {}, requesterId: {}", ecsTlrEntity::getRequestLevel,
+      ecsTlrEntity::getInstanceId, ecsTlrEntity::getRequesterId);
+
+    if (ecsTlrEntity.getRequestLevel() == null
+      || !ecsTlrEntity.getRequestLevel().equals(EcsTlr.RequestLevelEnum.TITLE.getValue())
+      || ecsTlrEntity.getInstanceId() == null || ecsTlrEntity.getRequesterId() == null) {
+
+      log.info("validateIfNoOpenEcsTlrForTheSameTitleExist:: Skipping validation");
+      return;
+    }
+
+    var openRequests = ecsTlrRepository.findOpenRequests(ecsTlrEntity.getRequesterId(),
+      ecsTlrEntity.getInstanceId());
+
+    if (openRequests == null) {
+      log.info("validateIfNoOpenEcsTlrForTheSameTitleExist:: Failed to find open requests");
+      return;
+    }
+
+    if (!openRequests.isEmpty()) {
+      String message = "Patron %s has an open ECS TLR for the same title %s"
+        .formatted(ecsTlrEntity.getRequesterId(), ecsTlrEntity.getInstanceId());
+      log.warn("validateIfNoOpenEcsTlrForTheSameTitleExist:: {}", message);
+      throw validationError(message, PATRON_HAS_OPEN_ECS_TLR_FOR_THE_SAME_TITLE,
+        Map.of("requesterId", ecsTlrEntity.getRequesterId().toString(),
+          "instanceId", ecsTlrEntity.getInstanceId().toString()));
     }
   }
 
