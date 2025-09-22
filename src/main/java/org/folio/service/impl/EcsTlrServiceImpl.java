@@ -1,7 +1,6 @@
 package org.folio.service.impl;
 
 import static java.util.Optional.of;
-import static java.util.function.Predicate.not;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.INTERMEDIATE;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.PRIMARY;
 import static org.folio.domain.type.ErrorCode.ECS_REQUEST_CANNOT_BE_PLACED_FOR_INACTIVE_PATRON;
@@ -143,13 +142,15 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   }
 
   private void validateIfNoOpenEcsTlrForTheSameTitleExist(EcsTlrEntity ecsTlrEntity) {
-    log.info("validateIfNotAlreadyRequested:: level: {}, instanceId: {}, requesterId: {}",
-      ecsTlrEntity::getRequestLevel, ecsTlrEntity::getInstanceId, ecsTlrEntity::getRequesterId);
+    log.info("validateIfNoOpenEcsTlrForTheSameTitleExist:: " +
+        "level: {}, instanceId: {}, requesterId: {}", ecsTlrEntity::getRequestLevel,
+      ecsTlrEntity::getInstanceId, ecsTlrEntity::getRequesterId);
 
-    if (!ecsTlrEntity.getRequestLevel().equals(EcsTlr.RequestLevelEnum.TITLE.getValue())
+    if (ecsTlrEntity.getRequestLevel() == null
+      || !ecsTlrEntity.getRequestLevel().equals(EcsTlr.RequestLevelEnum.TITLE.getValue())
       || ecsTlrEntity.getInstanceId() == null || ecsTlrEntity.getRequesterId() == null) {
 
-      log.info("validateIfNotAlreadyRequested:: Skipping validation");
+      log.info("validateIfNoOpenEcsTlrForTheSameTitleExist:: Skipping validation");
       return;
     }
 
@@ -161,7 +162,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     if (!noOpenRequestsExist) {
       String message = "Patron %s has an open ECS TLR for the same title %s"
         .formatted(ecsTlrEntity.getRequesterId(), ecsTlrEntity.getInstanceId());
-      log.warn("validateIfNotAlreadyRequested:: {}", message);
+      log.warn("validateIfNoOpenEcsTlrForTheSameTitleExist:: {}", message);
       throw validationError(message, PATRON_HAS_OPEN_ECS_TLR_FOR_THE_SAME_TITLE,
         Map.of("requesterId", ecsTlrEntity.getRequesterId().toString(),
           "instanceId", ecsTlrEntity.getInstanceId().toString()));
