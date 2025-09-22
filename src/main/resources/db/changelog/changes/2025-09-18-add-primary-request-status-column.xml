@@ -5,7 +5,7 @@
                    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
 
     <changeSet id="addPrimaryRequestStatusColumn" author="AlexanderKurash">
-        <preConditions onFail="WARN">
+        <preConditions onFail="WARN" onError="WARN">
             <not>
                 <columnExists tableName="ecs_tlr" columnName="primary_request_status"/>
             </not>

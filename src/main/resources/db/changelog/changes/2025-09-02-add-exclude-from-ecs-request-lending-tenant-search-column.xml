@@ -5,7 +5,7 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-2.0.xsd">
 
     <changeSet id="addExcludeFromEcsRequestLendingTenantSearchColumnToTlrSettingsTable" author="Roman Barannyk">
-        <preConditions onFail="WARN">
+        <preConditions onFail="WARN" onError="WARN">
             <not>
                 <columnExists tableName="tlr_settings" columnName="exclude_from_ecs_request_lending_tenant_search"/>
             </not>
