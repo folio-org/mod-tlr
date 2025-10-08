@@ -1,3 +1,6 @@
+## 1.1.7 2025-10-08
+* Prevent patron from creating more than one cross-tenant TLR (MODTLR-255)
+
 ## 1.1.6 2025-09-09
 * Exclude tenants from lending tenant search algorithm (MODTLR-251)
 * Declare claimed returned item as missing API (MODTLR-235)
