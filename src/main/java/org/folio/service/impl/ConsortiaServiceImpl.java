@@ -17,7 +17,6 @@ import org.folio.domain.dto.UserTenant;
 import org.folio.service.ConsortiaService;
 import org.folio.service.ConsortiumService;
 import org.folio.service.UserTenantsService;
-import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -31,7 +30,6 @@ public class ConsortiaServiceImpl implements ConsortiaService {
   private final ConsortiaConfigurationClient consortiaConfigurationClient;
   private final UserTenantsService userTenantsService;
   private final ConsortiumService consortiumService;
-  private final SystemUserScopedExecutionService systemUserService;
 
   @Override
   public TenantCollection getAllConsortiumTenants(String consortiumId) {

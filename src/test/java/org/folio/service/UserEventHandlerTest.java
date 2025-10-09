@@ -23,7 +23,6 @@ class UserEventHandlerTest extends BaseEventHandlerTest {
     when(userTenantsService.findFirstUserTenant()).thenReturn(mockUserTenant());
     when(consortiaService.getAllConsortiumTenants(anyString())).thenReturn(mockTenantCollection());
     when(userService.update(any(User.class))).thenReturn(new User());
-    when(consortiaService.getCentralTenantId()).thenReturn(CENTRAL_TENANT_ID);
 
     doAnswer(invocation -> {
       ((Runnable) invocation.getArguments()[1]).run();

@@ -10,7 +10,7 @@ import org.folio.domain.dto.RequestsBatchUpdate;
 import org.folio.domain.dto.User;
 import org.folio.domain.dto.UserGroup;
 import org.folio.exception.KafkaEventDeserializationException;
-import org.folio.service.ConsortiaService;
+import org.folio.service.ConsortiumService;
 import org.folio.service.KafkaEventHandler;
 import org.folio.service.impl.ItemEventHandler;
 import org.folio.service.impl.LoanEventHandler;
@@ -50,9 +50,9 @@ public class KafkaEventListener {
   private final ItemEventHandler itemEventHandler;
   private final UserGroupEventHandler userGroupEventHandler;
   private final UserEventHandler userEventHandler;
+  private final ConsortiumService consortiumService;
   private final SystemUserScopedExecutionService systemUserScopedExecutionService;
   private final RequestBatchUpdateEventHandler requestBatchEventHandler;
-  private final ConsortiaService consortiaService;
   private final FolioModuleMetadata folioModuleMetadata;
 
   @KafkaListener(
@@ -114,9 +114,12 @@ public class KafkaEventListener {
       folioModuleMetadata, messageHeaders);
 
     try (FolioExecutionContextSetter ignored = new FolioExecutionContextSetter(context)) {
-      String centralTenantId = consortiaService.getCentralTenantId();
-      systemUserScopedExecutionService.executeAsyncSystemUserScoped(centralTenantId,
-        () -> handler.handle(event));
+      if (!consortiumService.isCurrentTenantConsortiumMember()) {
+        log.info("handleEvent:: current tenant is not a consortium member, ignoring event {}", event::getId);
+        return;
+      }
+      systemUserScopedExecutionService.executeAsyncSystemUserScoped(
+        consortiumService.getCentralTenantId(), () -> handler.handle(event));
     } catch (Exception e) {
       log.error("handleEvent:: failed to handle event {}", event.getId(), e);
     }
@@ -127,27 +130,33 @@ public class KafkaEventListener {
     Class<E> kafkaEventClass, Class<T> dataType) {
 
     try {
-      JavaType eventType = objectMapper
-        .getTypeFactory()
+      JavaType eventType = objectMapper.getTypeFactory()
         .constructParametricType(kafkaEventClass, dataType);
       return objectMapper.<KafkaEvent<T>>readValue(eventString, eventType)
-        .withTenantIdHeaderValue(getHeaderValue(messageHeaders, XOkapiHeaders.TENANT))
-        .withUserIdHeaderValue(getHeaderValue(messageHeaders, XOkapiHeaders.USER_ID));
+        .withTenantIdHeaderValue(getHeaderValue(messageHeaders, XOkapiHeaders.TENANT, true))
+        .withUserIdHeaderValue(getHeaderValue(messageHeaders, XOkapiHeaders.USER_ID, false));
     } catch (JsonProcessingException e) {
       log.error("deserialize:: failed to deserialize event", e);
       throw new KafkaEventDeserializationException(e);
     }
   }
 
-  private static String getHeaderValue(Map<String, Object> headers, String headerName) {
-    log.debug("getHeaderValue:: headers: {}, headerName: {}", () -> headers, () -> headerName);
-    var headerValue = headers.get(headerName);
-    if (headerValue == null) {
-      throw new KafkaEventDeserializationException(
-        String.format("Failed to get [%s] from message headers", headerName));
+  private static String getHeaderValue(Map<String, Object> headers, String headerName,
+    boolean isRequired) {
+
+    log.debug("getHeaderValue:: headers: {}, headerName: {}", headers, headerName);
+    Object value = headers.get(headerName);
+    String stringValue = null;
+    if (value != null) {
+      stringValue = new String((byte[]) value, StandardCharsets.UTF_8);
+      log.info("getHeaderValue:: {}={}", headerName, stringValue);
+    } else {
+      log.warn("getHeaderValue:: failed to find header: {}", headerName);
+      if (isRequired) {
+        throw new KafkaEventDeserializationException(
+          String.format("Failed to get [%s] from message headers", headerName));
+      }
     }
-    var value = new String((byte[]) headerValue, StandardCharsets.UTF_8);
-    log.info("getHeaderValue:: header {} value is {}", headerName, value);
-    return value;
+    return stringValue;
   }
 }

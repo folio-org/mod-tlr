@@ -30,7 +30,6 @@ class UserGroupEventHandlerTest extends BaseEventHandlerTest {
     when(userTenantsService.findFirstUserTenant()).thenReturn(mockUserTenant());
     when(consortiaService.getAllConsortiumTenants(anyString())).thenReturn(mockTenantCollection());
     when(userGroupService.create(any(UserGroup.class))).thenReturn(new UserGroup());
-    when(consortiaService.getCentralTenantId()).thenReturn(CENTRAL_TENANT_ID);
 
     doAnswer(invocation -> {
       ((Runnable) invocation.getArguments()[1]).run();
@@ -51,7 +50,6 @@ class UserGroupEventHandlerTest extends BaseEventHandlerTest {
     when(userTenantsService.findFirstUserTenant()).thenReturn(mockUserTenant());
     when(consortiaService.getAllConsortiumTenants(anyString())).thenReturn(mockTenantCollection());
     when(userGroupService.update(any(UserGroup.class))).thenReturn(new UserGroup());
-    when(consortiaService.getCentralTenantId()).thenReturn(CENTRAL_TENANT_ID);
 
     doAnswer(invocation -> {
       ((Runnable) invocation.getArguments()[1]).run();

@@ -6,4 +6,5 @@ public interface ConsortiumService {
   String getCentralTenantId();
   boolean isCurrentTenantCentral();
   boolean isCentralTenant(String tenantId);
+  boolean isCurrentTenantConsortiumMember();
 }
