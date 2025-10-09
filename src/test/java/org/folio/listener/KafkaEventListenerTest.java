@@ -1,5 +1,6 @@
 package org.folio.listener;
 
+import static java.util.UUID.randomUUID;
 import static org.folio.spring.integration.XOkapiHeaders.TENANT;
 import static org.folio.spring.integration.XOkapiHeaders.USER_ID;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -75,9 +76,9 @@ class KafkaEventListenerTest {
 
   @Test
   void shouldThrowExceptionWhenHeaderTenantIsNotFound() {
+    MessageHeaders headers = new MessageHeaders(Map.of(USER_ID, randomUUID().toString().getBytes()));
     assertThrows(KafkaEventDeserializationException.class,
-      () -> kafkaEventListener.handleRequestEvent("{}",
-        new MessageHeaders(Map.of(USER_ID, UUID.randomUUID().toString().getBytes()))));
+      () -> kafkaEventListener.handleRequestEvent("{}", headers));
   }
 
 }
