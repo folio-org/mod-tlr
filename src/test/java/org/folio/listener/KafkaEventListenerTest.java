@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Map;
@@ -52,8 +53,7 @@ class KafkaEventListenerTest {
 
   @Test
   void shouldHandleExceptionInEventHandler() {
-    when(consortiumService.isCurrentTenantConsortiumMember())
-      .thenReturn(true);
+    when(consortiumService.isCurrentTenantConsortiumMember()).thenReturn(true);
     doThrow(new NullPointerException("NPE")).when(systemUserScopedExecutionService)
       .executeAsyncSystemUserScoped(any(), any());
     kafkaEventListener.handleRequestEvent("{}",
@@ -67,8 +67,7 @@ class KafkaEventListenerTest {
 
   @Test
   void shouldNotThrowExceptionWhenHeaderUserIdIsNotFound() {
-    when(consortiumService.isCurrentTenantConsortiumMember())
-      .thenReturn(false);
+    when(consortiumService.isCurrentTenantConsortiumMember()).thenReturn(false);
     assertDoesNotThrow(() -> kafkaEventListener.handleRequestEvent("{}",
       new MessageHeaders(Map.of(TENANT, "test".getBytes()))));
   }
@@ -78,6 +77,13 @@ class KafkaEventListenerTest {
     MessageHeaders headers = new MessageHeaders(Map.of(USER_ID, randomUUID().toString().getBytes()));
     assertThrows(KafkaEventDeserializationException.class,
       () -> kafkaEventListener.handleRequestEvent("{}", headers));
+  }
+
+  @Test
+  void shouldIgnoreEventIfTenantIsNotConsortiumMember() {
+    when(consortiumService.isCurrentTenantConsortiumMember()).thenReturn(false);
+    kafkaEventListener.handleRequestEvent("{}", new MessageHeaders(Map.of(TENANT, "test".getBytes())));
+    verifyNoInteractions(systemUserScopedExecutionService);
   }
 
 }
