@@ -148,7 +148,11 @@ public class KafkaEventListener {
     Object value = headers.get(headerName);
     String stringValue = null;
     if (value != null) {
-      stringValue = new String((byte[]) value, StandardCharsets.UTF_8);
+      if (value instanceof byte[]) {
+        stringValue = new String((byte[]) value, StandardCharsets.UTF_8);
+      } else {
+        stringValue = value.toString();
+      }
       log.info("getHeaderValue:: {}={}", headerName, stringValue);
     } else {
       log.warn("getHeaderValue:: failed to find header: {}", headerName);
