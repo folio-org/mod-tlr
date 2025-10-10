@@ -25,7 +25,7 @@ public class ConsortiumServiceImpl implements ConsortiumService {
   @Override
   public String getCurrentTenantId() {
     return Optional.ofNullable(folioContext.getTenantId())
-      .orElseThrow(() -> new IllegalStateException("Failed to determine current tenant ID"));
+      .orElseThrow(() -> new IllegalStateException("Failed to resolve current tenant ID"));
   }
 
   @Override

@@ -56,7 +56,7 @@ class EcsTlrServiceTest {
   @Mock
   private DcbService dcbService;
   @Mock
-  private UserTenantsService userTenantsService;
+  private ConsortiumService consortiumService;
   @Mock
   private TlrSettingsService tlrSettingsService;
   @Spy
@@ -112,7 +112,7 @@ class EcsTlrServiceTest {
       .id(randomId())
       .itemId(randomId());
 
-    when(userTenantsService.getCentralTenantId()).thenReturn(borrowingTenant);
+    when(consortiumService.getCentralTenantId()).thenReturn(borrowingTenant);
     when(ecsTlrRepository.save(any(EcsTlrEntity.class))).thenReturn(mockEcsTlrEntity);
     when(tenantService.getPrimaryRequestTenantId(any(EcsTlrEntity.class)))
       .thenReturn(borrowingTenant);
@@ -221,7 +221,7 @@ class EcsTlrServiceTest {
       when(tlrSettingsService.getTlrSettings()).thenReturn(Optional.empty());
     }
 
-    lenient().when(userTenantsService.getCentralTenantId()).thenReturn(consortiumTenant);
+    lenient().when(consortiumService.getCentralTenantId()).thenReturn(consortiumTenant);
     lenient().when(ecsTlrRepository.save(any(EcsTlrEntity.class))).thenReturn(mockEcsTlrEntity);
     when(tenantService.getPrimaryRequestTenantId(any(EcsTlrEntity.class))).thenReturn(consortiumTenant);
     when(tenantService.getSecondaryRequestTenants(any(EcsTlrEntity.class))).thenReturn(allTenants);

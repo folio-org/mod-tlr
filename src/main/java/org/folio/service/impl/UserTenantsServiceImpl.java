@@ -38,9 +38,5 @@ public class UserTenantsServiceImpl implements UserTenantsService {
     return firstUserTenant;
   }
 
-  @Override
-  public String getCentralTenantId() {
-    return findFirstUserTenant().getCentralTenantId();
-  }
 }
 

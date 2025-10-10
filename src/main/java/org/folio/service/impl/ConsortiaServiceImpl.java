@@ -13,7 +13,6 @@ import org.folio.domain.dto.SharingInstance;
 import org.folio.domain.dto.Status;
 import org.folio.domain.dto.Tenant;
 import org.folio.domain.dto.TenantCollection;
-import org.folio.domain.dto.UserTenant;
 import org.folio.service.ConsortiaService;
 import org.folio.service.ConsortiumService;
 import org.folio.service.UserTenantsService;
@@ -39,8 +38,7 @@ public class ConsortiaServiceImpl implements ConsortiaService {
   @Override
   public Collection<Tenant> getAllConsortiumTenants() {
     log.info("getAllConsortiumTenants:: fetching consortium tenants");
-    List<Tenant> tenants = Optional.ofNullable(userTenantsService.findFirstUserTenant())
-      .map(UserTenant::getConsortiumId)
+    List<Tenant> tenants = Optional.ofNullable(consortiumService.getCurrentConsortiumId())
       .map(consortiaClient::getConsortiaTenants)
       .map(TenantCollection::getTenants)
       .orElseGet(Collections::emptyList);
