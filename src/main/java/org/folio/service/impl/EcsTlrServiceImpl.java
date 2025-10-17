@@ -26,6 +26,7 @@ import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.domain.mapper.EcsTlrMapper;
 import org.folio.exception.TenantPickingException;
 import org.folio.repository.EcsTlrRepository;
+import org.folio.service.ConsortiumService;
 import org.folio.service.DcbService;
 import org.folio.service.EcsTlrService;
 import org.folio.service.RequestService;
@@ -51,6 +52,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   private final UserTenantsService userTenantsService;
   private final UserService userService;
   private final TlrSettingsService tlrSettingsService;
+  private final ConsortiumService consortiumService;
 
   @Override
   public Optional<EcsTlr> get(UUID id) {
@@ -90,7 +92,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
 
     updateEcsTlr(ecsTlr, primaryRequestWrapper, secondaryRequestWrapper);
 
-    var centralTenantId = userTenantsService.getCentralTenantId();
+    var centralTenantId = consortiumService.getCentralTenantId();
     if (!primaryRequestTenantId.equals(centralTenantId)) {
       log.info("create:: Primary request tenant is not central, creating intermediate request");
       RequestWrapper intermediateRequest = requestService.createIntermediateRequest(

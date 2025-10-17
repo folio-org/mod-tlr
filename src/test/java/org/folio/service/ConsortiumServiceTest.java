@@ -2,6 +2,7 @@ package org.folio.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.times;
@@ -50,6 +51,12 @@ class ConsortiumServiceTest {
   }
 
   @Test
+  void getCurrentTenantIdThrowsExceptionWhenTenantIdIsMissingInFolioContext() {
+    mockFolioExecutionContext(null);
+    assertThrows(IllegalStateException.class, () -> consortiumService.getCurrentTenantId());
+  }
+
+  @Test
   void tenantContextIsResolvedAndCached() {
     mockFolioExecutionContext("tenant1");
     mockUserTenant(MOCK_USER_TENANT);
@@ -78,10 +85,10 @@ class ConsortiumServiceTest {
   }
 
   @Test
-  void getCentralTenantIdThrowsExceptionIfUserTenantIsNotFound() {
+  void getCentralTenantIdReturnsNullIfUserTenantIsNotFound() {
     mockFolioExecutionContext(CENTRAL_TENANT_ID);
     mockUserTenant(null);
-    assertThrows(IllegalStateException.class, () -> consortiumService.getCentralTenantId());
+    assertNull(consortiumService.getCentralTenantId());
   }
 
   @Test
@@ -99,12 +106,12 @@ class ConsortiumServiceTest {
   }
 
   @Test
-  void isCurrentTenantCentralThrowsExceptionWhenCentralTenantIdIsNotFound() {
+  void isCurrentTenantCentralReturnsFalseWhenCentralTenantIdIsNotFound() {
     mockFolioExecutionContext(CENTRAL_TENANT_ID);
     mockUserTenant(null);
-    assertThrows(IllegalStateException.class, () -> consortiumService.isCurrentTenantCentral());
+    assertFalse(consortiumService.isCurrentTenantCentral());
   }
-  
+
   @Test
   void isCentralTenantReturnsTrue() {
     mockFolioExecutionContext("random_tenant");
@@ -120,10 +127,31 @@ class ConsortiumServiceTest {
   }
 
   @Test
-  void isCentralTenantThrowsExceptionIfCentralTenantIdIsNotFound() {
+  void isCentralTenantReturnsFalseIfCentralTenantIdIsNotFound() {
     mockFolioExecutionContext("random_tenant");
     mockUserTenant(null);
-    assertThrows(IllegalStateException.class, () -> consortiumService.isCentralTenant(CENTRAL_TENANT_ID));
+    assertFalse(consortiumService.isCentralTenant(CENTRAL_TENANT_ID));
+  }
+
+  @Test
+  void isCurrentTenantConsortiumMemberReturnsTrue() {
+    mockFolioExecutionContext("random_tenant");
+    mockUserTenant(MOCK_USER_TENANT);
+    assertTrue(consortiumService.isCurrentTenantConsortiumMember());
+  }
+
+  @Test
+  void isCurrentTenantConsortiumMemberReturnsFalseWhenUserTenantIsNotFound() {
+    mockFolioExecutionContext("random_tenant");
+    mockUserTenant(null);
+    assertFalse(consortiumService.isCurrentTenantConsortiumMember());
+  }
+
+  @Test
+  void isCurrentTenantConsortiumMemberReturnsFalseWhenTenantIdInUserTenantIsNull() {
+    mockFolioExecutionContext("random_tenant");
+    mockUserTenant(MOCK_USER_TENANT.consortiumId(null));
+    assertFalse(consortiumService.isCurrentTenantConsortiumMember());
   }
 
   private void mockUserTenant(UserTenant userTenant) {
@@ -135,5 +163,6 @@ class ConsortiumServiceTest {
     when(folioExecutionContext.getTenantId())
       .thenReturn(tenantId);
   }
+
 
 }

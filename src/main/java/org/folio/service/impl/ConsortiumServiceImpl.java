@@ -24,7 +24,8 @@ public class ConsortiumServiceImpl implements ConsortiumService {
 
   @Override
   public String getCurrentTenantId() {
-    return folioContext.getTenantId();
+    return Optional.ofNullable(folioContext.getTenantId())
+      .orElseThrow(() -> new IllegalStateException("Failed to resolve current tenant ID"));
   }
 
   @Override
@@ -46,7 +47,12 @@ public class ConsortiumServiceImpl implements ConsortiumService {
 
   @Override
   public boolean isCentralTenant(String tenantId) {
-    return getCentralTenantId().equals(tenantId);
+    return tenantId != null && tenantId.equals(getCentralTenantId());
+  }
+
+  @Override
+  public boolean isCurrentTenantConsortiumMember() {
+    return getCurrentConsortiumId() != null;
   }
 
   private TenantContext getTenantContext(String tenantId) {
@@ -66,7 +72,7 @@ public class ConsortiumServiceImpl implements ConsortiumService {
   private TenantContext buildTenantContext(String tenantId) {
     return Optional.ofNullable(userTenantsService.findFirstUserTenant())
       .map(ut -> new TenantContext(tenantId, ut.getConsortiumId(), ut.getCentralTenantId()))
-      .orElseThrow(() -> new IllegalStateException("Failed to fetch user tenant"));
+      .orElseGet(() -> new TenantContext(tenantId, null, null));
   }
 
   public static void clearCache() {

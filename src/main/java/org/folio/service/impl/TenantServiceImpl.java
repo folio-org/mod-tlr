@@ -31,8 +31,8 @@ import org.folio.domain.dto.SearchInstancesResponse;
 import org.folio.domain.dto.SearchItem;
 import org.folio.domain.dto.SearchItemStatus;
 import org.folio.domain.entity.EcsTlrEntity;
+import org.folio.service.ConsortiumService;
 import org.folio.service.TenantService;
-import org.folio.service.UserTenantsService;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
@@ -44,14 +44,14 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public class TenantServiceImpl implements TenantService {
   private final SearchInstanceClient searchClient;
-  private final UserTenantsService userTenantsService;
+  private final ConsortiumService consortiumService;
 
   @Override
   public String getPrimaryRequestTenantId(EcsTlrEntity ecsTlr) {
     log.info("getPrimaryRequestTenantId:: getting borrowing tenant");
     if (ecsTlr == null || ecsTlr.getPrimaryRequestTenantId() == null) {
       log.info("getPrimaryRequestTenantId:: central tenant by default");
-      return userTenantsService.getCentralTenantId();
+      return consortiumService.getCentralTenantId();
     }
 
     log.info("getPrimaryRequestTenantId:: returning primaryRequestTenantId");

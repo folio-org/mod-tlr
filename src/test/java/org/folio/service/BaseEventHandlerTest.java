@@ -1,9 +1,10 @@
 package org.folio.service;
 
+import static org.mockito.Mockito.when;
+
 import org.folio.api.BaseIT;
 import org.folio.domain.dto.Tenant;
 import org.folio.domain.dto.TenantCollection;
-import org.folio.domain.dto.UserTenant;
 import org.folio.listener.kafka.KafkaEventListener;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +18,7 @@ abstract class BaseEventHandlerTest extends BaseIT {
   protected static final String CENTRAL_TENANT_ID = "consortium";
 
   @MockitoBean
-  protected UserTenantsService userTenantsService;
+  protected ConsortiumService consortiumService;
   @MockitoBean
   protected ConsortiaService consortiaService;
   @MockitoSpyBean
@@ -25,10 +26,10 @@ abstract class BaseEventHandlerTest extends BaseIT {
   @Autowired
   protected KafkaEventListener eventListener;
 
-  protected UserTenant mockUserTenant() {
-    return new UserTenant()
-      .centralTenantId(CENTRAL_TENANT_ID)
-      .consortiumId(CONSORTIUM_ID);
+  protected void mockConsortiumService() {
+    when(consortiumService.getCurrentConsortiumId()).thenReturn(CONSORTIUM_ID);
+    when(consortiumService.getCentralTenantId()).thenReturn(CENTRAL_TENANT_ID);
+    when(consortiumService.isCurrentTenantConsortiumMember()).thenReturn(true);
   }
 
   protected TenantCollection mockTenantCollection() {

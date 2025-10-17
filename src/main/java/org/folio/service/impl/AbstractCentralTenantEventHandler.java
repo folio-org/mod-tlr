@@ -2,10 +2,9 @@ package org.folio.service.impl;
 
 import java.util.function.Consumer;
 
-import org.folio.domain.dto.UserTenant;
 import org.folio.service.ConsortiaService;
+import org.folio.service.ConsortiumService;
 import org.folio.service.KafkaEventHandler;
-import org.folio.service.UserTenantsService;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.folio.support.kafka.KafkaEvent;
 
@@ -16,19 +15,14 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public abstract class AbstractCentralTenantEventHandler<T> implements KafkaEventHandler<T> {
 
-  protected final UserTenantsService userTenantsService;
+  protected final ConsortiumService consortiumService;
   protected final ConsortiaService consortiaService;
   protected final SystemUserScopedExecutionService systemUserScopedExecutionService;
 
   protected void processEvent(KafkaEvent<T> event, Consumer<T> eventConsumer) {
     log.debug("processEvent:: params: event={}", () -> event);
-    UserTenant firstUserTenant = userTenantsService.findFirstUserTenant();
-    if (firstUserTenant == null) {
-      log.info("processEvent: Failed to get user-tenants info");
-      return;
-    }
-    String consortiumId = firstUserTenant.getConsortiumId();
-    String centralTenantId = firstUserTenant.getCentralTenantId();
+    String consortiumId = consortiumService.getCurrentConsortiumId();
+    String centralTenantId = consortiumService.getCentralTenantId();
     log.info("processEvent:: consortiumId: {}, centralTenantId: {}", consortiumId, centralTenantId);
 
     if (!centralTenantId.equals(event.getTenantIdHeaderValue())) {

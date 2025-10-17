@@ -11,9 +11,8 @@ import org.folio.domain.dto.PublicationRequest;
 import org.folio.domain.dto.PublicationResponse;
 import org.folio.domain.dto.Tenant;
 import org.folio.domain.dto.TlrSettings;
-import org.folio.domain.dto.UserTenant;
+import org.folio.service.ConsortiumService;
 import org.folio.service.PublishCoordinatorService;
-import org.folio.service.UserTenantsService;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 
@@ -28,18 +27,17 @@ import lombok.extern.log4j.Log4j2;
 public class TlrSettingsPublishCoordinatorServiceImpl implements PublishCoordinatorService<TlrSettings> {
   private static final String CIRCULATION_SETTINGS_URL = "/circulation/settings";
   private static final String ECS_TLR_FEATURE = "ecsTlrFeature";
-  private final UserTenantsService userTenantsService;
+  private final ConsortiumService consortiumService;
   private final ConsortiaClient consortiaClient;
 
   @Override
   public PublicationResponse updateForAllTenants(TlrSettings tlrSettings) {
     log.debug("updateForAllTenants:: parameters: tlrSettings: {} ", () -> tlrSettings);
-    UserTenant firstUserTenant = userTenantsService.findFirstUserTenant();
-    if (firstUserTenant == null) {
-      log.error("updateForAllTenants:: userTenant was not found");
+    String consortiumId = consortiumService.getCurrentConsortiumId();
+    if (consortiumId == null) {
+      log.error("updateForAllTenants:: failed to resolve consortium ID");
       return null;
     }
-    String consortiumId = firstUserTenant.getConsortiumId();
     log.info("updateForAllTenants:: found consortiumId: {}", consortiumId);
     Set<String> tenantIds = consortiaClient.getConsortiaTenants(consortiumId)
       .getTenants()
