@@ -1,12 +1,12 @@
 package org.folio.service.impl;
 
 import static org.apache.commons.lang3.ObjectUtils.requireNonEmpty;
+import static org.apache.commons.lang3.StringUtils.isAnyBlank;
 
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.commons.lang3.StringUtils;
 import org.folio.domain.dto.UserTenant;
 import org.folio.service.ConsortiumService;
 import org.folio.service.UserTenantsService;
@@ -68,31 +68,34 @@ public class ConsortiumServiceImpl implements ConsortiumService {
     }
 
     log.info("getTenantContext:: cache miss for tenant {}", tenantId);
-    TenantContext newContext;
     UserTenant userTenant = userTenantsService.findFirstUserTenant();
     if (isValid(userTenant)) {
-      newContext = new TenantContext(tenantId, userTenant.getConsortiumId(), userTenant.getCentralTenantId());
-      log.info("getTenantContext:: caching: {}", newContext);
-      CACHE.put(tenantId, newContext);
-    } else {
-      log.info("getTenantContext:: building temporary empty context for tenant {}", tenantId);
-      newContext = new TenantContext(tenantId, null, null);
+      TenantContext newContext = new TenantContext(tenantId, userTenant.getConsortiumId(),
+        userTenant.getCentralTenantId());
+      addToCache(newContext);
+      return newContext;
     }
 
-    log.debug("getTenantContext:: cache: {}", CACHE);
-    return newContext;
+    log.info("getTenantContext:: building temporary empty context for tenant {}", tenantId);
+    return new TenantContext(tenantId, null, null);
   }
 
   private static boolean isValid(UserTenant userTenant) {
     if (userTenant == null) {
-      log.info("isValid:: user-tenant is null");
+      log.warn("isValid:: user-tenant is null");
       return false;
     }
-    if (StringUtils.isAnyBlank(userTenant.getConsortiumId(), userTenant.getCentralTenantId())) {
+    if (isAnyBlank(userTenant.getConsortiumId(), userTenant.getCentralTenantId())) {
       log.warn("isValid:: user-tenant lacks one or more required properties: {}", userTenant);
       return false;
     }
     return true;
+  }
+
+  private static void addToCache(TenantContext context) {
+    log.info("addToCache:: caching: {}", context);
+    CACHE.put(context.tenantId(), context);
+    log.debug("addToCache:: cache: {}", CACHE);
   }
 
   public static void clearCache() {
