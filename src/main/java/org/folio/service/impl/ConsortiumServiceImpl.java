@@ -68,27 +68,31 @@ public class ConsortiumServiceImpl implements ConsortiumService {
     }
 
     log.info("getTenantContext:: cache miss for tenant {}", tenantId);
-    TenantContext newContext = null;
+    TenantContext newContext;
     UserTenant userTenant = userTenantsService.findFirstUserTenant();
-    if (userTenant != null) {
-      String consortiumId = userTenant.getConsortiumId();
-      String centralTenantId = userTenant.getCentralTenantId();
-      if (StringUtils.isNoneBlank(consortiumId, centralTenantId)) {
-        newContext = new TenantContext(tenantId, consortiumId, centralTenantId);
-        log.info("getTenantContext:: caching: {}", newContext);
-        CACHE.put(tenantId, newContext);
-      } else {
-        log.warn("getTenantContext:: user tenant lacks one or more required properties: {}", userTenant);
-      }
-    }
-
-    if (newContext == null) {
+    if (isValid(userTenant)) {
+      newContext = new TenantContext(tenantId, userTenant.getConsortiumId(), userTenant.getCentralTenantId());
+      log.info("getTenantContext:: caching: {}", newContext);
+      CACHE.put(tenantId, newContext);
+    } else {
       log.info("getTenantContext:: building temporary empty context for tenant {}", tenantId);
       newContext = new TenantContext(tenantId, null, null);
     }
 
     log.debug("getTenantContext:: cache: {}", CACHE);
     return newContext;
+  }
+
+  private static boolean isValid(UserTenant userTenant) {
+    if (userTenant == null) {
+      log.info("isValid:: user-tenant is null");
+      return false;
+    }
+    if (StringUtils.isAnyBlank(userTenant.getConsortiumId(), userTenant.getCentralTenantId())) {
+      log.warn("isValid:: user-tenant lacks one or more required properties: {}", userTenant);
+      return false;
+    }
+    return true;
   }
 
   public static void clearCache() {
