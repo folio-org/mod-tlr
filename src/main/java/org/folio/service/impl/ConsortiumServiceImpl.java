@@ -1,9 +1,13 @@
 package org.folio.service.impl;
 
+import static org.apache.commons.lang3.ObjectUtils.requireNonEmpty;
+
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.lang3.StringUtils;
+import org.folio.domain.dto.UserTenant;
 import org.folio.service.ConsortiumService;
 import org.folio.service.UserTenantsService;
 import org.folio.spring.FolioExecutionContext;
@@ -56,23 +60,35 @@ public class ConsortiumServiceImpl implements ConsortiumService {
   }
 
   private TenantContext getTenantContext(String tenantId) {
-    TenantContext tenantContext = CACHE.get(tenantId);
-    if (tenantContext != null) {
-      log.info("getTenantContext:: cache hit: {}", tenantContext);
-    } else {
-      log.info("getTenantContext:: cache miss for tenant {}", tenantId);
-      tenantContext = buildTenantContext(tenantId);
-      log.info("getTenantContext:: caching: {}", tenantContext);
-      CACHE.put(tenantId, tenantContext);
+    requireNonEmpty(tenantId, "tenantId can not be null or empty");
+    TenantContext cachedContext = CACHE.get(tenantId);
+    if (cachedContext != null) {
+      log.info("getTenantContext:: cache hit: {}", cachedContext);
+      return cachedContext;
     }
-    log.debug("getTenantContext:: cache: {}", CACHE);
-    return tenantContext;
-  }
 
-  private TenantContext buildTenantContext(String tenantId) {
-    return Optional.ofNullable(userTenantsService.findFirstUserTenant())
-      .map(ut -> new TenantContext(tenantId, ut.getConsortiumId(), ut.getCentralTenantId()))
-      .orElseGet(() -> new TenantContext(tenantId, null, null));
+    log.info("getTenantContext:: cache miss for tenant {}", tenantId);
+    TenantContext newContext = null;
+    UserTenant userTenant = userTenantsService.findFirstUserTenant();
+    if (userTenant != null) {
+      String consortiumId = userTenant.getConsortiumId();
+      String centralTenantId = userTenant.getCentralTenantId();
+      if (StringUtils.isNoneBlank(consortiumId, centralTenantId)) {
+        newContext = new TenantContext(tenantId, consortiumId, centralTenantId);
+        log.info("getTenantContext:: caching: {}", newContext);
+        CACHE.put(tenantId, newContext);
+      } else {
+        log.warn("getTenantContext:: user tenant lacks one or more required properties: {}", userTenant);
+      }
+    }
+
+    if (newContext == null) {
+      log.info("getTenantContext:: building temporary empty context for tenant {}", tenantId);
+      newContext = new TenantContext(tenantId, null, null);
+    }
+
+    log.debug("getTenantContext:: cache: {}", CACHE);
+    return newContext;
   }
 
   public static void clearCache() {

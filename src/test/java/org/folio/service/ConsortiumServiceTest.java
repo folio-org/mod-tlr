@@ -16,6 +16,9 @@ import org.folio.spring.FolioExecutionContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EmptySource;
+import org.junit.jupiter.params.provider.NullSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -82,6 +85,41 @@ class ConsortiumServiceTest {
     assertEquals(CENTRAL_TENANT_ID, consortiumService.getCentralTenantId());
     assertEquals(CONSORTIUM_ID, consortiumService.getCurrentConsortiumId());
     verifyNoMoreInteractions(userTenantsService);
+  }
+
+  @Test
+  void tenantContextIsNotCachedWhenUserTenantIsNotFound() {
+    mockFolioExecutionContext(CENTRAL_TENANT_ID);
+    mockUserTenant(null);
+    consortiumService.getCentralTenantId();
+    consortiumService.getCentralTenantId();
+    verify(userTenantsService, times(2)).findFirstUserTenant();
+  }
+
+  @ParameterizedTest
+  @EmptySource
+  @NullSource
+  void tenantContextIsNotCachedWhenConsortiumIdInUserTenantIsNullOrEmpty(String consortiumId) {
+    mockFolioExecutionContext(CENTRAL_TENANT_ID);
+    mockUserTenant(new UserTenant()
+      .centralTenantId(CENTRAL_TENANT_ID)
+      .consortiumId(consortiumId));
+    consortiumService.getCentralTenantId();
+    consortiumService.getCentralTenantId();
+    verify(userTenantsService, times(2)).findFirstUserTenant();
+  }
+
+  @ParameterizedTest
+  @EmptySource
+  @NullSource
+  void tenantContextIsNotCachedWhenCentralTenantIdInUserTenantIsNullOrEmpty(String centralTenantId) {
+    mockFolioExecutionContext(CENTRAL_TENANT_ID);
+    mockUserTenant(new UserTenant()
+      .centralTenantId(centralTenantId)
+      .consortiumId(CONSORTIUM_ID));
+    consortiumService.getCentralTenantId();
+    consortiumService.getCentralTenantId();
+    verify(userTenantsService, times(2)).findFirstUserTenant();
   }
 
   @Test
