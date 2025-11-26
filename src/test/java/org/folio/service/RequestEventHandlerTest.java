@@ -58,8 +58,8 @@ class RequestEventHandlerTest {
   private ServicePointService servicePointService;
   @Mock
   private SystemUserScopedExecutionService executionService;
-  @Mock
-  private CloningService<ServicePoint> servicePointCloningService;
+//  @Mock
+//  private CloningService<ServicePoint> servicePointCloningService;
 
   @InjectMocks
   private RequestEventHandler handler;
@@ -141,8 +141,8 @@ class RequestEventHandlerTest {
     ServicePoint mockServicePoint = new ServicePoint().id(primaryRequest.getPickupServicePointId());
     when(servicePointService.find(primaryRequest.getPickupServicePointId()))
       .thenReturn(mockServicePoint);
-    when(servicePointCloningService.clone(mockServicePoint))
-      .thenReturn(mockServicePoint);
+//    when(servicePointCloningService.clone(mockServicePoint))
+//      .thenReturn(mockServicePoint);
     when(executionService.executeSystemUserScoped(any(String.class), any(Callable.class)))
       .thenAnswer(invocation -> invocation.getArgument(1, Callable.class).call());
     when(ecsTlrRepository.findBySecondaryRequestId(PRIMARY_REQUEST_ID))

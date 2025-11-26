@@ -47,7 +47,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
   private final EcsTlrRepository ecsTlrRepository;
   private final SystemUserScopedExecutionService executionService;
   private final ServicePointService servicePointService;
-  private final CloningService<ServicePoint> servicePointCloningService;
+//  private final CloningService<ServicePoint> servicePointCloningService;
   private final RequestService requestService;
 
   @Override
@@ -244,8 +244,8 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
           pickupServicePointId);
         targetRequest.setPickupServicePointId(pickupServicePointId);
         shouldUpdateTargetRequest = true;
-        clonePickupServicePoint(ecsTlr.getPrimaryRequestTenantId(), targetRequestTenantId,
-          pickupServicePointId);
+//        clonePickupServicePoint(ecsTlr.getPrimaryRequestTenantId(), targetRequestTenantId,
+//          pickupServicePointId);
       }
     }
 
@@ -269,20 +269,20 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
     log.info("propagatePrimaryRequestChanges:: request {} updated", targetRequestId);
   }
 
-  private void clonePickupServicePoint(String primaryRequestTenantId, String targetRequestTenantId,
-    String pickupServicePointId) {
-
-    if (pickupServicePointId == null) {
-      log.info("clonePickupServicePoint:: pickupServicePointId is null, doing nothing");
-      return;
-    }
-    log.info("clonePickupServicePoint:: ensuring that service point {} exists in tenant {}",
-      pickupServicePointId, targetRequestTenantId);
-    ServicePoint pickupServicePoint = executionService.executeSystemUserScoped(
-      primaryRequestTenantId, () -> servicePointService.find(pickupServicePointId));
-    executionService.executeSystemUserScoped(targetRequestTenantId,
-      () -> servicePointCloningService.clone(pickupServicePoint));
-  }
+//  private void clonePickupServicePoint(String primaryRequestTenantId, String targetRequestTenantId,
+//    String pickupServicePointId) {
+//
+//    if (pickupServicePointId == null) {
+//      log.info("clonePickupServicePoint:: pickupServicePointId is null, doing nothing");
+//      return;
+//    }
+//    log.info("clonePickupServicePoint:: ensuring that service point {} exists in tenant {}",
+//      pickupServicePointId, targetRequestTenantId);
+//    ServicePoint pickupServicePoint = executionService.executeSystemUserScoped(
+//      primaryRequestTenantId, () -> servicePointService.find(pickupServicePointId));
+//    executionService.executeSystemUserScoped(targetRequestTenantId,
+//      () -> servicePointCloningService.clone(pickupServicePoint));
+//  }
 
   private boolean needToCancelHoldTlr(Request primaryRequest, Request targetRequest) {
     log.info("needToCancelHoldTlr:: primary request level: {}, type: {}, itemId: {}",

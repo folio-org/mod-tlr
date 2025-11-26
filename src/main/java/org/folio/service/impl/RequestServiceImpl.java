@@ -65,7 +65,7 @@ public class RequestServiceImpl implements RequestService {
   private final UserService userService;
   private final ServicePointService servicePointService;
   private final CloningService<User> userCloningService;
-  private final CloningService<ServicePoint> servicePointCloningService;
+//  private final CloningService<ServicePoint> servicePointCloningService;
   private final SystemUserScopedExecutionService systemUserScopedExecutionService;
   private final ConsortiaService consortiaService;
   private final ConsortiumService consortiumService;
@@ -135,9 +135,9 @@ public class RequestServiceImpl implements RequestService {
             requesterId, secondaryRequestTenantId);
           cloneRequester(primaryRequestRequester);
 
-          log.info("createSecondaryRequest:: creating pickup service point {} in tenant {}",
-            pickupServicePointId, secondaryRequestTenantId);
-          servicePointCloningService.clone(primaryRequestPickupServicePoint);
+//          log.info("createSecondaryRequest:: creating pickup service point {} in tenant {}",
+//            pickupServicePointId, secondaryRequestTenantId);
+//          servicePointCloningService.clone(primaryRequestPickupServicePoint);
 
           log.info("createSecondaryRequest:: creating secondary request {} in tenant {}",
             requestId, secondaryRequestTenantId);
@@ -184,9 +184,9 @@ public class RequestServiceImpl implements RequestService {
         requesterId, intermediateRequestTenantId);
       cloneRequester(primaryRequestRequester);
 
-      log.info("createIntermediateRequest:: creating pickup service point {} in tenant {}",
-        pickupServicePointId, intermediateRequestTenantId);
-      servicePointCloningService.clone(primaryRequestPickupServicePoint);
+//      log.info("createIntermediateRequest:: creating pickup service point {} in tenant {}",
+//        pickupServicePointId, intermediateRequestTenantId);
+//      servicePointCloningService.clone(primaryRequestPickupServicePoint);
 
       CirculationItem circItem = createCirculationItem(intermediateRequest, secondaryRequestTenantId);
 
