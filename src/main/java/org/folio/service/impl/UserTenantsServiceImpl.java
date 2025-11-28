@@ -30,15 +30,13 @@ public class UserTenantsServiceImpl implements UserTenantsService {
       if (!userTenants.isEmpty()) {
         firstUserTenant = userTenants.get(0);
         log.debug("findFirstUserTenant:: found userTenant: {}", firstUserTenant);
+      } else {
+        log.info("findFirstUserTenant:: no userTenants found");
       }
     }
     log.debug("findFirstUserTenant:: result: {}", firstUserTenant);
     return firstUserTenant;
   }
 
-  @Override
-  public String getCentralTenantId() {
-    return findFirstUserTenant().getCentralTenantId();
-  }
 }
 
