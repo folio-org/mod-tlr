@@ -437,11 +437,11 @@
     },
     {
       "id": "ecs-request-transactions",
-      "version": "1.0"
+      "version": "1.2"
     },
     {
       "id": "transactions",
-      "version": "1.0"
+      "version": "1.6"
     }
   ],
   "optional": [
