@@ -13,7 +13,6 @@ import org.folio.domain.dto.PublicationResponse;
 import org.folio.domain.dto.Tenant;
 import org.folio.domain.dto.TenantCollection;
 import org.folio.domain.dto.TlrSettings;
-import org.folio.domain.dto.UserTenant;
 import org.folio.service.impl.TlrSettingsPublishCoordinatorServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,7 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class TlrSettingsPublishCoordinatorServiceTest {
 
   @Mock
-  private UserTenantsService userTenantsService;
+  private ConsortiumService consortiumService;
   @Mock
   private ConsortiaClient consortiaClient;
 
@@ -34,8 +33,8 @@ class TlrSettingsPublishCoordinatorServiceTest {
   TlrSettingsPublishCoordinatorServiceImpl tlrSettingsService;
 
   @Test
-  void updateForAllTenantsShouldNotPublishWhenFirstUserTenantNotFound() {
-    when(userTenantsService.findFirstUserTenant()).thenReturn(null);
+  void updateForAllTenantsShouldNotPublishWhenFailedToResolveConsortiumId() {
+    when(consortiumService.getCurrentConsortiumId()).thenReturn(null);
     tlrSettingsService.updateForAllTenants(new TlrSettings());
 
     verify(consortiaClient, never()).postPublications(Mockito.anyString(),
@@ -44,17 +43,15 @@ class TlrSettingsPublishCoordinatorServiceTest {
 
   @Test
   void updateForAllTenantsShouldCallPublish() {
-    UserTenant userTenant = new UserTenant();
-    userTenant.setConsortiumId("TestConsortiumId");
-
     TenantCollection tenantCollection = new TenantCollection();
     Tenant tenant = new Tenant();
     tenant.setIsCentral(false);
     tenant.setId("TestTenant");
     tenantCollection.setTenants(Collections.singletonList(tenant));
 
-    when(userTenantsService.findFirstUserTenant()).thenReturn(userTenant);
-    when(consortiaClient.getConsortiaTenants(userTenant.getConsortiumId())).thenReturn(tenantCollection);
+    String consortiumId = "TestConsortiumId";
+    when(consortiumService.getCurrentConsortiumId()).thenReturn(consortiumId);
+    when(consortiaClient.getConsortiaTenants(consortiumId)).thenReturn(tenantCollection);
     when(consortiaClient.postPublications(Mockito.anyString(), Mockito.any(PublicationRequest.class)))
       .thenReturn(new PublicationResponse());
     tlrSettingsService.updateForAllTenants(new TlrSettings().ecsTlrFeatureEnabled(true));

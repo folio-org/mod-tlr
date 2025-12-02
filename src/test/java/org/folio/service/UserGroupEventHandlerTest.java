@@ -13,9 +13,9 @@ import org.folio.domain.dto.UserGroup;
 import org.folio.exception.KafkaEventDeserializationException;
 import org.junit.jupiter.api.Test;
 import org.springframework.messaging.MessageHeaders;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import lombok.SneakyThrows;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 class UserGroupEventHandlerTest extends BaseEventHandlerTest {
   private static final String USER_GROUP_CREATING_EVENT_SAMPLE = getMockDataAsString(
@@ -27,10 +27,9 @@ class UserGroupEventHandlerTest extends BaseEventHandlerTest {
 
   @Test
   void handleUserGroupCreatingEventShouldCreateUserGroupForAllDataTenants() {
-    when(userTenantsService.findFirstUserTenant()).thenReturn(mockUserTenant());
+    mockConsortiumService();
     when(consortiaService.getAllConsortiumTenants(anyString())).thenReturn(mockTenantCollection());
     when(userGroupService.create(any(UserGroup.class))).thenReturn(new UserGroup());
-    when(consortiaService.getCentralTenantId()).thenReturn(CENTRAL_TENANT_ID);
 
     doAnswer(invocation -> {
       ((Runnable) invocation.getArguments()[1]).run();
@@ -48,10 +47,9 @@ class UserGroupEventHandlerTest extends BaseEventHandlerTest {
 
   @Test
   void handleUserGroupUpdatingEventShouldUpdateUserGroupForAllDataTenants() {
-    when(userTenantsService.findFirstUserTenant()).thenReturn(mockUserTenant());
+    mockConsortiumService();
     when(consortiaService.getAllConsortiumTenants(anyString())).thenReturn(mockTenantCollection());
     when(userGroupService.update(any(UserGroup.class))).thenReturn(new UserGroup());
-    when(consortiaService.getCentralTenantId()).thenReturn(CENTRAL_TENANT_ID);
 
     doAnswer(invocation -> {
       ((Runnable) invocation.getArguments()[1]).run();
@@ -70,7 +68,7 @@ class UserGroupEventHandlerTest extends BaseEventHandlerTest {
   @Test
   @SneakyThrows
   void handleUserGroupCreatingEventShouldNotCreateUserGroupWithEmptyHeaders() {
-    when(userTenantsService.findFirstUserTenant()).thenReturn(mockUserTenant());
+    mockConsortiumService();
     when(consortiaService.getAllConsortiumTenants(anyString())).thenReturn(mockTenantCollection());
     when(userGroupService.create(any(UserGroup.class))).thenReturn(new UserGroup());
 

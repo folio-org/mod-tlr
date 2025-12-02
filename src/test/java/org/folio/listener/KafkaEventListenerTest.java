@@ -1,20 +1,27 @@
 package org.folio.listener;
 
+import static java.util.UUID.randomUUID;
 import static org.folio.spring.integration.XOkapiHeaders.TENANT;
 import static org.folio.spring.integration.XOkapiHeaders.USER_ID;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import java.util.Map;
 
+import org.folio.exception.KafkaEventDeserializationException;
 import org.folio.listener.kafka.KafkaEventListener;
-import org.folio.service.ConsortiaService;
+import org.folio.service.ConsortiumService;
 import org.folio.service.impl.LoanEventHandler;
 import org.folio.service.impl.RequestBatchUpdateEventHandler;
 import org.folio.service.impl.RequestEventHandler;
 import org.folio.service.impl.UserEventHandler;
 import org.folio.service.impl.UserGroupEventHandler;
+import org.folio.spring.FolioModuleMetadata;
 import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,12 +45,15 @@ class KafkaEventListenerTest {
   @Mock
   UserEventHandler userEventHandler;
   @Mock
-  ConsortiaService consortiaService;
+  ConsortiumService consortiumService;
+  @Mock
+  FolioModuleMetadata folioModuleMetadata;
   @InjectMocks
   KafkaEventListener kafkaEventListener;
 
   @Test
   void shouldHandleExceptionInEventHandler() {
+    when(consortiumService.isCurrentTenantConsortiumMember()).thenReturn(true);
     doThrow(new NullPointerException("NPE")).when(systemUserScopedExecutionService)
       .executeAsyncSystemUserScoped(any(), any());
     kafkaEventListener.handleRequestEvent("{}",
@@ -54,4 +64,26 @@ class KafkaEventListenerTest {
 
     verify(systemUserScopedExecutionService).executeAsyncSystemUserScoped(any(), any());
   }
+
+  @Test
+  void shouldNotThrowExceptionWhenHeaderUserIdIsNotFound() {
+    when(consortiumService.isCurrentTenantConsortiumMember()).thenReturn(false);
+    assertDoesNotThrow(() -> kafkaEventListener.handleRequestEvent("{}",
+      new MessageHeaders(Map.of(TENANT, "test".getBytes()))));
+  }
+
+  @Test
+  void shouldThrowExceptionWhenHeaderTenantIsNotFound() {
+    MessageHeaders headers = new MessageHeaders(Map.of(USER_ID, randomUUID().toString().getBytes()));
+    assertThrows(KafkaEventDeserializationException.class,
+      () -> kafkaEventListener.handleRequestEvent("{}", headers));
+  }
+
+  @Test
+  void shouldIgnoreEventIfTenantIsNotConsortiumMember() {
+    when(consortiumService.isCurrentTenantConsortiumMember()).thenReturn(false);
+    kafkaEventListener.handleRequestEvent("{}", new MessageHeaders(Map.of(TENANT, "test".getBytes())));
+    verifyNoInteractions(systemUserScopedExecutionService);
+  }
+
 }
