@@ -302,10 +302,7 @@
       "description": "Entire set of permissions needed to use Consortium title level requests settings view",
       "subPermissions": [
         "tlr.settings.get",
-        "settings.circulation.enabled",
-        "mod-settings.global.read.circulation",
-        "mod-settings.entries.collection.get",
-        "mod-settings.entries.item.get"
+        "settings.circulation.enabled"
       ],
       "visible": false
     },
@@ -315,10 +312,7 @@
       "description": "Entire set of permissions needed to use Consortium title level requests settings edit",
       "subPermissions": [
         "tlr.settings.put",
-        "tlr.consortium-tlr.view",
-        "mod-settings.global.write.circulation",
-        "mod-settings.entries.item.put",
-        "mod-settings.entries.item.post"
+        "tlr.consortium-tlr.view"
       ],
       "visible": true
     },
@@ -509,12 +503,8 @@
         "inventory-storage.location-units.institutions.item.get",
         "inventory-storage.location-units.institutions.collection.get",
         "circulation.rules.request-policy.get",
-        "mod-settings.entries.item.get",
-        "mod-settings.entries.collection.get",
-        "mod-settings.global.read.circulation",
         "consortia.sharing-instances.item.post",
         "circulation.check-out-by-barcode-dry-run.post",
-        "configuration.entries.collection.get",
         "dcb.ecs-request.transactions.put"
       ]
     }
