@@ -1,3 +1,6 @@
+## 1.1.8 2025-12-09
+* Handle DCB transaction with expired status (MODTLR-268)
+
 ## 1.1.7 2025-10-08
 * Prevent patron from creating more than one cross-tenant TLR (MODTLR-255)
 

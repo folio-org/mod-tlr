@@ -68,6 +68,7 @@ class DcbServiceTest {
     "LENDER, ITEM_CHECKED_OUT, ITEM_CHECKED_IN, true",
     "LENDER, ITEM_CHECKED_IN, CLOSED, false",
     "LENDER, OPEN, CANCELLED, true",
+    "LENDER, EXPIRED, EXPIRED, false",
   })
   void updateTransactionStatusesUpdatesAllTransactions(String role, String oldStatus,
     String newStatus, boolean transactionUpdateIsExpected) {
