@@ -33,7 +33,7 @@
 
     <!-- runtime dependencies -->
     <folio-spring-support.version>9.0.0</folio-spring-support.version>
-    <openapi-generator.version>7.17.0</openapi-generator.version>
+    <openapi-generator.version>7.4.0</openapi-generator.version>
     <mapstruct.version>1.6.3</mapstruct.version>
 
     <!-- test dependencies -->
@@ -474,7 +474,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-release-plugin</artifactId>
-        <version>3.3.0</version>
+        <version>3.3.1</version>
         <configuration>
           <preparationGoals>clean verify</preparationGoals>
           <tagNameFormat>v@{project.version}</tagNameFormat>
