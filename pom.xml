@@ -37,9 +37,9 @@
     <mapstruct.version>1.6.3</mapstruct.version>
 
     <!-- test dependencies -->
-    <wiremock.version>3.12.1</wiremock.version>
-    <testcontainers.version>1.20.6</testcontainers.version>
-    <awaitility.version>4.2.0</awaitility.version>
+    <wiremock.version>3.13.2</wiremock.version>
+    <testcontainers.version>1.21.3</testcontainers.version>
+    <awaitility.version>4.3.0</awaitility.version>
   </properties>
 
   <dependencyManagement>
