@@ -106,7 +106,6 @@ public class KafkaEventListener {
   private <E, T> void handleEvent(String eventString, KafkaEventHandler<T> handler,
     Map<String, Object> messageHeaders, Class<E> kafkaEventClass, Class<T> payloadType) {
 
-    log.debug("handleEvent:: event: {}", () -> eventString);
     KafkaEvent<T> event = deserialize(eventString, messageHeaders, kafkaEventClass, payloadType);
     log.info("handleEvent:: event received: {}", event::getId);
 
