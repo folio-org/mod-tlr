@@ -33,13 +33,13 @@
 
     <!-- runtime dependencies -->
     <folio-spring-support.version>9.0.0</folio-spring-support.version>
-    <openapi-generator.version>7.1.0</openapi-generator.version>
-    <mapstruct.version>1.5.3.Final</mapstruct.version>
+    <openapi-generator.version>7.4.0</openapi-generator.version>
+    <mapstruct.version>1.6.3</mapstruct.version>
 
     <!-- test dependencies -->
-    <wiremock.version>3.12.1</wiremock.version>
-    <testcontainers.version>1.20.6</testcontainers.version>
-    <awaitility.version>4.2.0</awaitility.version>
+    <wiremock.version>3.13.2</wiremock.version>
+    <testcontainers.version>1.21.3</testcontainers.version>
+    <awaitility.version>4.3.0</awaitility.version>
   </properties>
 
   <dependencyManagement>
@@ -227,7 +227,7 @@
       <plugin>
         <artifactId>maven-resources-plugin</artifactId>
         <groupId>org.apache.maven.plugins</groupId>
-        <version>3.3.0</version>
+        <version>3.4.0</version>
         <executions>
           <execution>
             <id>filter-descriptor-inputs</id>
@@ -464,7 +464,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.0.0-M7</version>
+        <version>3.5.4</version>
         <configuration>
           <useSystemClassLoader>false</useSystemClassLoader>
           <argLine>@{argLine} -Dfile.encoding=UTF-8</argLine>
@@ -474,7 +474,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-release-plugin</artifactId>
-        <version>3.0.0-M6</version>
+        <version>3.3.1</version>
         <configuration>
           <preparationGoals>clean verify</preparationGoals>
           <tagNameFormat>v@{project.version}</tagNameFormat>
@@ -486,7 +486,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
-        <version>3.1.0</version>
+        <version>3.6.2</version>
         <executions>
           <execution>
             <id>enforce-maven</id>
