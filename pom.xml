@@ -38,7 +38,7 @@
 
     <!-- test dependencies -->
     <wiremock.version>3.13.2</wiremock.version>
-    <testcontainers.version>1.21.3</testcontainers.version>
+    <testcontainers.version>1.21.4</testcontainers.version>
     <awaitility.version>4.3.0</awaitility.version>
   </properties>
 
