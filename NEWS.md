@@ -1,3 +1,6 @@
+## 1.1.9 2026-01-13
+* Create circulation items with null effective location ID (MODTLR-276)
+
 ## 1.1.8 2025-12-09
 * Handle DCB transaction with expired status (MODTLR-268)
 
