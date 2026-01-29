@@ -25,7 +25,6 @@ public class ErrorForwardingFeignClientConfiguration {
       String body = null;
       try {
         body = new String(response.body().asInputStream().readAllBytes(), StandardCharsets.UTF_8);
-        log.debug("errorDecoder:: body: {}", body);
       } catch (Exception e) {
         log.error("errorDecoder:: failed to decode response body", e);
       }
