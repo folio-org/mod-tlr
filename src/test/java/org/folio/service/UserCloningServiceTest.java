@@ -39,6 +39,9 @@ class UserCloningServiceTest {
   @InjectMocks
   UserServiceImpl userService;
 
+  @Mock
+  UserServiceImpl userServiceForSecurePatron;
+
   CloningService<User> userCloningService;
 
   @Captor
@@ -46,13 +49,13 @@ class UserCloningServiceTest {
 
   @Test
   void securePatronNameShouldBeCopied() {
-    userCloningService = new UserCloningServiceImpl(userService);
+    userCloningService = new UserCloningServiceImpl(userServiceForSecurePatron);
 
     doThrow(new FeignException.NotFound(null, Request.create(Request.HttpMethod.GET, "", Map.of(),
       Request.Body.create(""), null), null, null))
-      .when(userService)
+      .when(userServiceForSecurePatron)
       .find(any(String.class));
-    when(userService.create(any(User.class))).thenReturn(null);
+    when(userServiceForSecurePatron.create(any(User.class))).thenReturn(null);
 
     userCloningService.clone(new User()
       .id(UUID.randomUUID().toString())
@@ -60,7 +63,7 @@ class UserCloningServiceTest {
         .firstName("Secure")
         .lastName("Patron")));
 
-    verify(userService).create(userCaptor.capture());
+    verify(userServiceForSecurePatron).create(userCaptor.capture());
 
     assertEquals("Secure", userCaptor.getValue().getPersonal().getFirstName());
     assertEquals("Patron", userCaptor.getValue().getPersonal().getLastName());
