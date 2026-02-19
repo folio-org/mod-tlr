@@ -1,7 +1,10 @@
 package org.folio.service.impl;
 
 import static java.util.Optional.ofNullable;
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 
+import java.nio.CharBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 
 import org.apache.commons.lang3.BooleanUtils;
@@ -13,6 +16,7 @@ import org.folio.spring.service.SystemUserScopedExecutionService;
 import org.folio.support.BulkFetcher;
 import org.springframework.stereotype.Service;
 
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
@@ -33,7 +37,27 @@ public class UserServiceImpl implements UserService {
   @Override
   public User create(User user) {
     log.info("create:: creating user {}", user.getId());
-    return userClient.postUser(user);
+    try {
+      return userClient.postUser(user);
+    } catch (FeignException e) {
+      if (isUserAlreadyExistsError(e)) {
+        log.info("create:: user {} already exists, repeating find()", user.getId());
+        return find(user.getId());
+      }
+      throw e;
+    }
+  }
+
+  private boolean isUserAlreadyExistsError(FeignException e) {
+    if (e.status() != UNPROCESSABLE_ENTITY.value()) {
+      log.info("isUserAlreadyExistsError:: status: {}, not a duplicate user error", e.status());
+      return false;
+    }
+    return e.responseBody()
+      .map(StandardCharsets.UTF_8::decode)
+      .map(CharBuffer::toString)
+      .filter(body -> body.contains("User with this id already exists"))
+      .isPresent();
   }
 
   @Override

@@ -50,7 +50,7 @@ public class UserCloningServiceImpl extends CloningServiceImpl<User> {
         .lastName(lastName));
     }
 
-    log.debug("buildClone:: result: {}", () -> clone);
+    log.debug("buildClone:: result: {}", clone::getId);
     return clone;
   }
 }
