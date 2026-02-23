@@ -33,12 +33,12 @@
 
     <!-- runtime dependencies -->
     <folio-spring-support.version>9.0.0</folio-spring-support.version>
-    <openapi-generator.version>7.4.0</openapi-generator.version>
+    <openapi-generator.version>7.20.0</openapi-generator.version>
     <mapstruct.version>1.6.3</mapstruct.version>
 
     <!-- test dependencies -->
     <wiremock.version>3.13.2</wiremock.version>
-    <testcontainers.version>1.21.3</testcontainers.version>
+    <testcontainers.version>1.21.4</testcontainers.version>
     <awaitility.version>4.3.0</awaitility.version>
   </properties>
 
@@ -464,7 +464,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.5.4</version>
+        <version>3.5.5</version>
         <configuration>
           <useSystemClassLoader>false</useSystemClassLoader>
           <argLine>@{argLine} -Dfile.encoding=UTF-8</argLine>
