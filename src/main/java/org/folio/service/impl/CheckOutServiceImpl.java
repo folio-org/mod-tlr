@@ -8,8 +8,8 @@ import static org.folio.spring.integration.XOkapiHeaders.REQUEST_ID;
 import java.util.Map;
 import java.util.UUID;
 
-import org.folio.client.feign.CheckOutClient;
-import org.folio.client.feign.LoanPolicyClient;
+import org.folio.client.CheckOutClient;
+import org.folio.client.LoanPolicyClient;
 import org.folio.domain.dto.CheckOutRequest;
 import org.folio.domain.dto.CheckOutResponse;
 import org.folio.domain.dto.ConsortiumItem;
@@ -19,7 +19,7 @@ import org.folio.service.CheckOutService;
 import org.folio.service.CloningService;
 import org.folio.service.SearchService;
 import org.folio.spring.FolioExecutionContext;
-import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.spring.scope.FolioExecutionContextService;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -35,8 +35,8 @@ public class CheckOutServiceImpl implements CheckOutService {
   private final CheckOutClient checkOutClient;
   private final LoanPolicyClient loanPolicyClient;
   private final CheckOutDryRunRequestMapper checkOutDryRunRequestMapper;
-  private final SystemUserScopedExecutionService executionService;
-  private final FolioExecutionContext folioExecutionContext;
+  private final FolioExecutionContextService contextService;
+  private final FolioExecutionContext folioContext;
 
   @Override
   public CheckOutResponse checkOut(CheckOutRequest checkOutRequest) {
@@ -47,7 +47,7 @@ public class CheckOutServiceImpl implements CheckOutService {
 
     Map<String, String> headersFromContext = getHeadersFromContext();
     log.info("checkOut:: headers from context: {}", headersFromContext);
-    var loanPolicy = executionService.executeSystemUserScoped(itemTenant,
+    var loanPolicy = contextService.execute(itemTenant, folioContext,
       () -> retrieveLoanPolicy(checkOutRequest, headersFromContext));
     loanPolicyCloningService.clone(loanPolicy);
 
@@ -70,7 +70,7 @@ public class CheckOutServiceImpl implements CheckOutService {
   }
 
   protected Map<String, String> getHeadersFromContext() {
-    return folioExecutionContext.getOkapiHeaders()
+    return folioContext.getOkapiHeaders()
       .entrySet()
       .stream()
       .filter(entry -> PERMISSIONS.equalsIgnoreCase(entry.getKey()) ||

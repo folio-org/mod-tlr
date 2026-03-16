@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-import org.folio.client.feign.SearchInstanceClient;
+import org.folio.client.SearchInstanceClient;
 import org.folio.domain.dto.SearchHolding;
 import org.folio.domain.dto.SearchInstance;
 import org.folio.domain.dto.SearchInstancesResponse;

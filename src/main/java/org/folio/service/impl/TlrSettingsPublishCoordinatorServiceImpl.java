@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.folio.client.feign.ConsortiaClient;
+import org.folio.client.ConsortiaClient;
 import org.folio.domain.dto.PublicationRequest;
 import org.folio.domain.dto.PublicationResponse;
 import org.folio.domain.dto.Tenant;
@@ -16,7 +16,7 @@ import org.folio.service.PublishCoordinatorService;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;

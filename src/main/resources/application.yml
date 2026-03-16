@@ -26,10 +26,6 @@ spring:
       accept-single-value-as-array: true
   mustache:
     check-template-location: false
-  cloud:
-    openfeign:
-      okhttp:
-        enabled: true
   kafka:
     bootstrap-servers: ${KAFKA_HOST:localhost}:${KAFKA_PORT:9092}
     security:
@@ -54,10 +50,20 @@ folio:
     password: ${SYSTEM_USER_PASSWORD:mod-tlr}
     lastname: System
     permissionsFilePath: permissions/mod-tlr.csv
+  exchange:
+    enabled: true # REQUIRED for HTTP service clients
   logging:
-    feign:
-      enabled: true
-      level: full
+    # Levels:
+    # NONE     No logging
+    # BASIC    URI, HTTP method, status code, duration
+    # HEADERS  BASIC + request and response headers
+    # FULL     HEADERS + request and response bodies
+    request:
+      enabled: true # Optional, logs incoming HTTP requests
+      level: BASIC # Optional
+    exchange:
+      enabled: true # Optional, logs outgoing HTTP client requests
+      level: HEADERS # Optional, default: BASIC
 management:
   endpoints:
     web:
@@ -77,3 +83,7 @@ management:
     readinessstate:
       enabled: true
 debug: false
+logging:
+  level:
+    org.folio.spring.filter.LoggingRequestFilter: DEBUG
+    org.folio.spring.client.ExchangeLoggingInterceptor: DEBUG

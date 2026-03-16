@@ -5,7 +5,6 @@ import java.util.function.Function;
 import org.folio.service.CloningService;
 import org.springframework.stereotype.Service;
 
-import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
@@ -20,11 +19,10 @@ public abstract class CloningServiceImpl<T> implements CloningService<T> {
     final String id = idExtractor.apply(original);
     final String type = original.getClass().getSimpleName();
     log.info("clone:: looking for {} {} ", type, id);
-    T clone;
-    try {
-      clone = find(id);
+    T clone = find(id);
+    if (clone != null) {
       log.info("clone:: {} {} already exists", type, id);
-    } catch (FeignException.NotFound e) {
+    } else {
       log.info("clone:: {} {} not found, creating it", type, id);
       clone = create(buildClone(original));
       log.info("clone:: {} {} created", type, id);

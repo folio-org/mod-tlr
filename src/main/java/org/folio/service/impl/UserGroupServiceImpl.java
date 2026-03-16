@@ -2,7 +2,7 @@ package org.folio.service.impl;
 
 import java.util.Collection;
 
-import org.folio.client.feign.UserGroupClient;
+import org.folio.client.UserGroupClient;
 import org.folio.domain.dto.UserGroup;
 import org.folio.domain.dto.UserGroups;
 import org.folio.service.UserGroupService;

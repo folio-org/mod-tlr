@@ -23,7 +23,7 @@ public class DefaultKafkaEvent<T> extends KafkaEvent<T> {
   private String id;
   private String tenant;
   private DefaultKafkaEventType type;
-  private long timestamp;
+  private Long timestamp;
   @ToString.Exclude
   private DefaultKafkaEventData<T> data;
 

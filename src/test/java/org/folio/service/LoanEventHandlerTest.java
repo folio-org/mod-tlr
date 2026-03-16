@@ -3,10 +3,9 @@ package org.folio.service;
 import static java.util.Collections.emptyList;
 import static java.util.UUID.randomUUID;
 import static org.folio.support.kafka.EventType.UPDATE;
+import static org.folio.util.TestUtils.mockFolioExecutionContextService;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -20,7 +19,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 
-import org.folio.client.feign.LoanStorageClient;
+import org.folio.client.LoanStorageClient;
 import org.folio.domain.dto.Loan;
 import org.folio.domain.dto.Loans;
 import org.folio.domain.dto.Tenant;
@@ -29,7 +28,8 @@ import org.folio.domain.dto.TransactionStatusResponse;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.impl.LoanEventHandler;
-import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.spring.FolioExecutionContext;
+import org.folio.spring.scope.FolioExecutionContextService;
 import org.folio.support.CqlQuery;
 import org.folio.support.kafka.DefaultKafkaEvent;
 import org.folio.support.kafka.EventType;
@@ -57,7 +57,9 @@ class LoanEventHandlerTest {
   @Mock
   private LoanStorageClient loanStorageClient;
   @Mock
-  private SystemUserScopedExecutionService executionService;
+  private FolioExecutionContextService contextService;
+  @Mock
+  private FolioExecutionContext folioContext;
   @Mock
   private ConsortiaService consortiaService;
   @InjectMocks
@@ -96,11 +98,7 @@ class LoanEventHandlerTest {
       .thenReturn(List.of(new Tenant().id(TENANT_ID_COLLEGE), new Tenant().id(TENANT_ID_CONSORTIUM)));
     when(loanStorageClient.getByQuery(any(CqlQuery.class), eq(1)))
       .thenReturn(new Loans(Collections.emptyList(), 0));
-    doAnswer(invocation -> {
-      ((Runnable) invocation.getArguments()[1]).run();
-      return null;
-    }).when(executionService).executeAsyncSystemUserScoped(anyString(), any(Runnable.class));
-
+    mockFolioExecutionContextService(contextService);
     loanEventHandler.handle(event);
 
     var expectedQuery = CqlQuery.exactMatch("itemId", event.getNewVersion().getItemId())
@@ -118,10 +116,7 @@ class LoanEventHandlerTest {
       .thenReturn(List.of(new Tenant().id(TENANT_ID_COLLEGE), new Tenant().id(TENANT_ID_CONSORTIUM)));
     when(loanStorageClient.getByQuery(any(CqlQuery.class), eq(1)))
       .thenReturn(new Loans(List.of(event.getNewVersion()), 1));
-    doAnswer(invocation -> {
-      ((Runnable) invocation.getArguments()[1]).run();
-      return null;
-    }).when(executionService).executeAsyncSystemUserScoped(anyString(), any(Runnable.class));
+    mockFolioExecutionContextService(contextService);
 
     loanEventHandler.handle(event);
 
@@ -129,8 +124,8 @@ class LoanEventHandlerTest {
       .and(CqlQuery.exactMatch("status.name", "Open"));
     verify(loanStorageClient, times(1)).getByQuery(expectedQuery, 1);
     verify(loanStorageClient, times(1)).updateLoan(event.getOldVersion().getId(), event.getNewVersion());
-    verify(executionService, times(1)).executeAsyncSystemUserScoped(eq(TENANT_ID_COLLEGE),
-      any(Runnable.class));
+    verify(contextService, times(1)).execute(eq(TENANT_ID_COLLEGE),
+      any(FolioExecutionContext.class), any(Runnable.class));
   }
 
   @Test

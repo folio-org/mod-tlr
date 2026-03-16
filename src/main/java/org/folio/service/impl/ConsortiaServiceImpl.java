@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.folio.client.feign.ConsortiaClient;
-import org.folio.client.feign.ConsortiaConfigurationClient;
+import org.folio.client.ConsortiaClient;
+import org.folio.client.ConsortiaConfigurationClient;
 import org.folio.domain.dto.ConsortiaConfiguration;
 import org.folio.domain.dto.SharingInstance;
 import org.folio.domain.dto.Status;

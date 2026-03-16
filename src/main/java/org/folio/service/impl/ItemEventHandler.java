@@ -7,15 +7,16 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
-import org.folio.client.feign.CirculationItemClient;
-import org.folio.client.feign.DcbEcsTransactionClient;
+import org.folio.client.CirculationItemClient;
+import org.folio.client.DcbEcsTransactionClient;
 import org.folio.domain.dto.DcbItem;
 import org.folio.domain.dto.DcbTransaction;
 import org.folio.domain.dto.Item;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.KafkaEventHandler;
-import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.spring.FolioExecutionContext;
+import org.folio.spring.scope.FolioExecutionContextService;
 import org.folio.support.kafka.KafkaEvent;
 import org.springframework.stereotype.Service;
 
@@ -29,7 +30,8 @@ public class ItemEventHandler implements KafkaEventHandler<Item> {
   private final CirculationItemClient circulationItemClient;
   private final EcsTlrRepository ecsTlrRepository;
   private final DcbEcsTransactionClient dcbEcsTransactionClient;
-  private final SystemUserScopedExecutionService executionService;
+  private final FolioExecutionContextService contextService;
+  private final FolioExecutionContext folioContext;
 
   @Override
   public void handle(KafkaEvent<Item> event) {
@@ -77,7 +79,7 @@ public class ItemEventHandler implements KafkaEventHandler<Item> {
   }
 
   private void updateCirculationItemInTenant(String tenantId, String itemId, String itemBarcode) {
-    executionService.executeAsyncSystemUserScoped(tenantId,
+    contextService.execute(tenantId, folioContext,
       () -> {
         log.info("updateCirculationItemInTenant:: updating circulation item {} in tenant {}",
           itemId, tenantId);
@@ -122,7 +124,7 @@ public class ItemEventHandler implements KafkaEventHandler<Item> {
     log.info("updateDcbTransactionBarcode:: tenant: {}, transaction ID: {}, item barcode: {}",
       tenantId, transactionId, item.getBarcode());
 
-    executionService.executeSystemUserScoped(tenantId, () ->
+    contextService.execute(tenantId, folioContext, () ->
       dcbEcsTransactionClient.updateTransaction(transactionId.toString(),
         new DcbTransaction().item(new DcbItem().barcode(item.getBarcode()))));
   }

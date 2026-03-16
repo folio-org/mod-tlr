@@ -5,7 +5,8 @@ import java.util.function.Consumer;
 import org.folio.service.ConsortiaService;
 import org.folio.service.ConsortiumService;
 import org.folio.service.KafkaEventHandler;
-import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.spring.FolioExecutionContext;
+import org.folio.spring.scope.FolioExecutionContextService;
 import org.folio.support.kafka.KafkaEvent;
 
 import lombok.AllArgsConstructor;
@@ -17,7 +18,8 @@ public abstract class AbstractCentralTenantEventHandler<T> implements KafkaEvent
 
   protected final ConsortiumService consortiumService;
   protected final ConsortiaService consortiaService;
-  protected final SystemUserScopedExecutionService systemUserScopedExecutionService;
+  protected final FolioExecutionContextService contextService;
+  protected final FolioExecutionContext folioContext;
 
   protected void processEvent(KafkaEvent<T> event, Consumer<T> eventConsumer) {
     log.debug("processEvent:: params: event={}", () -> event);
@@ -36,6 +38,6 @@ public abstract class AbstractCentralTenantEventHandler<T> implements KafkaEvent
     log.debug("processForAllDataTenants:: params: consortiumId={}", consortiumId);
     consortiaService.getAllConsortiumTenants(consortiumId).getTenants().stream()
       .filter(tenant -> !tenant.getIsCentral())
-      .forEach(tenant -> systemUserScopedExecutionService.executeAsyncSystemUserScoped(tenant.getId(), action));
+      .forEach(tenant -> contextService.execute(tenant.getId(), folioContext, action));
   }
 }

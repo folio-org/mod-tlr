@@ -1,7 +1,7 @@
 package org.folio.service;
 
 import static java.util.UUID.randomUUID;
-import static org.folio.util.TestUtils.mockSystemUserService;
+import static org.folio.util.TestUtils.mockFolioExecutionContextService;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.folio.client.feign.CirculationErrorForwardingClient;
+import org.folio.client.CirculationErrorForwardingClient;
 import org.folio.domain.dto.Loan;
 import org.folio.domain.dto.LoanStatus;
 import org.folio.domain.dto.Request;
@@ -26,7 +26,8 @@ import org.folio.domain.mapper.CirculationMapperImpl;
 import org.folio.domain.type.ErrorCode;
 import org.folio.exception.ValidationException;
 import org.folio.repository.EcsTlrRepository;
-import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.spring.FolioExecutionContext;
+import org.folio.spring.scope.FolioExecutionContextService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -55,7 +56,9 @@ public abstract class AbstractLoanActionServiceTest<R, C> {
   @Mock
   protected EcsTlrRepository ecsTlrRepository;
   @Mock
-  protected SystemUserScopedExecutionService systemUserService;
+  protected FolioExecutionContextService contextService;
+  @Mock
+  protected FolioExecutionContext folioContext;
 
   protected abstract void performLoanAction(R request);
   protected abstract R buildRequestByLoanId();
@@ -67,7 +70,7 @@ public abstract class AbstractLoanActionServiceTest<R, C> {
   @Test
   void loanActionByLoanIdInLocalAndLendingTenant() {
     C circulationRequest = buildCirculationRequest();
-    mockSystemUserService(systemUserService);
+    mockFolioExecutionContextService(contextService);
     mockClientAction(LOCAL_TENANT_LOAN_ID.toString(), circulationRequest);
     when(loanService.fetchLoan(LOCAL_TENANT_LOAN_ID.toString()))
       .thenReturn(Optional.of(buildLoan(LOCAL_TENANT_LOAN_ID)));
@@ -88,7 +91,7 @@ public abstract class AbstractLoanActionServiceTest<R, C> {
   @Test
   void loanActionByUserAndItemIdInLocalAndLendingTenant() {
     C circulationRequest = buildCirculationRequest();
-    mockSystemUserService(systemUserService);
+    mockFolioExecutionContextService(contextService);
     mockClientAction(LOCAL_TENANT_LOAN_ID.toString(), circulationRequest);
     when(loanService.findOpenLoan(USER_ID.toString(), ITEM_ID.toString()))
       .thenReturn(Optional.of(buildLoan(LOCAL_TENANT_LOAN_ID))) // loan in local tenant
@@ -158,7 +161,7 @@ public abstract class AbstractLoanActionServiceTest<R, C> {
     verifyNoInteractions(circulationClient);
     verifyNoInteractions(requestService);
     verifyNoInteractions(ecsTlrRepository);
-    verifyNoInteractions(systemUserService);
+    verifyNoInteractions(contextService);
   }
 
   @Test
@@ -184,13 +187,13 @@ public abstract class AbstractLoanActionServiceTest<R, C> {
     verifyNoInteractions(circulationClient);
     verifyNoInteractions(requestService);
     verifyNoInteractions(ecsTlrRepository);
-    verifyNoInteractions(systemUserService);
+    verifyNoInteractions(contextService);
   }
 
   @Test
   void loanActionFailsWhenLoanIsNotFoundInLendingTenant() {
     C circulationRequest = buildCirculationRequest();
-    mockSystemUserService(systemUserService);
+    mockFolioExecutionContextService(contextService);
     mockClientAction(LOCAL_TENANT_LOAN_ID.toString(), circulationRequest);
     when(loanService.fetchLoan(LOCAL_TENANT_LOAN_ID.toString()))
       .thenReturn(Optional.of(buildLoan(LOCAL_TENANT_LOAN_ID)));

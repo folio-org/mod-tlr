@@ -5,6 +5,7 @@ import static java.util.stream.Collectors.toMap;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -32,7 +33,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -57,16 +58,15 @@ import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ContextConfiguration(initializers = BaseIT.DockerPostgresDataSourceInitializer.class)
 @TestPropertySource(properties = {
   "spring.kafka.consumer.auto-offset-reset=earliest"
@@ -93,12 +93,14 @@ public class BaseIT {
   private static final int WIRE_MOCK_PORT = TestSocketUtils.findAvailableTcpPort();
   protected static WireMockServer wireMockServer = new WireMockServer(WIRE_MOCK_PORT);
 
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL)
-    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-    .configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true)
-    .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+  private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder()
+    .changeDefaultPropertyInclusion(v -> JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, null))
+    .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+    .enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
+    .build();
 
-  @Autowired
+  @LocalServerPort
+  private int localServerPort;
   private WebTestClient webClient;
   @Autowired
   private FolioExecutionContext context;
@@ -125,6 +127,11 @@ public class BaseIT {
 
   @BeforeEach
   void beforeEachTest() {
+    webClient = WebTestClient.bindToServer()
+      .baseUrl("http://localhost:" + localServerPort)
+      .responseTimeout(Duration.ofSeconds(10))
+      .build();
+
     doPost("/_/tenant", asJsonString(new TenantAttributes().moduleTo("mod-tlr")))
       .expectStatus().isNoContent();
 
@@ -277,7 +284,7 @@ public class BaseIT {
   }
 
   private static Map<String, Collection<String>> buildDefaultHeaders() {
-    return new HashMap<>(defaultHeadersForRequest().entrySet()
+    return new HashMap<>(defaultHeadersForRequest().headerSet()
       .stream()
       .collect(toMap(Map.Entry::getKey, Map.Entry::getValue)));
   }

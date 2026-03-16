@@ -1,19 +1,19 @@
 package org.folio.service;
 
 import static java.util.UUID.randomUUID;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.UUID;
-import java.util.concurrent.Callable;
 
-import org.folio.client.feign.DcbTransactionClient;
+import org.folio.client.DcbTransactionClient;
 import org.folio.domain.dto.TransactionStatus;
 import org.folio.domain.dto.TransactionStatusResponse;
 import org.folio.service.impl.DcbServiceImpl;
-import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.spring.FolioExecutionContext;
+import org.folio.spring.scope.FolioExecutionContextService;
+import org.folio.util.TestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -28,15 +28,15 @@ class DcbServiceTest {
   @Mock
   private DcbTransactionClient dcbTransactionClient;
   @Mock
-  private SystemUserScopedExecutionService executionService;
+  private FolioExecutionContextService contextService;
+  @Mock
+  private FolioExecutionContext folioContext;
   @InjectMocks
   private DcbServiceImpl dcbService;
 
   @BeforeEach
   public void setup() {
-    // Bypass the use of system user and return the result of Callable immediately
-    when(executionService.executeSystemUserScoped(any(String.class), any(Callable.class)))
-      .thenAnswer(invocation -> invocation.getArgument(1, Callable.class).call());
+    TestUtils.mockFolioExecutionContextService(contextService);
   }
 
   @ParameterizedTest

@@ -2,6 +2,7 @@ package org.folio.service;
 
 import static java.util.Collections.EMPTY_MAP;
 import static org.folio.support.MockDataUtils.getMockDataAsString;
+import static org.folio.util.TestUtils.mockFolioExecutionContextService;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
@@ -10,7 +11,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.folio.domain.dto.UserGroup;
+import org.folio.spring.FolioExecutionContext;
 import org.folio.exception.KafkaEventDeserializationException;
+import org.folio.util.TestUtils;
 import org.junit.jupiter.api.Test;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -30,18 +33,13 @@ class UserGroupEventHandlerTest extends BaseEventHandlerTest {
     mockConsortiumService();
     when(consortiaService.getAllConsortiumTenants(anyString())).thenReturn(mockTenantCollection());
     when(userGroupService.create(any(UserGroup.class))).thenReturn(new UserGroup());
-
-    doAnswer(invocation -> {
-      ((Runnable) invocation.getArguments()[1]).run();
-      return null;
-    }).when(systemUserScopedExecutionService).executeAsyncSystemUserScoped(anyString(),
-      any(Runnable.class));
+    mockFolioExecutionContextService(contextService);
 
     eventListener.handleUserGroupEvent(USER_GROUP_CREATING_EVENT_SAMPLE,
       buildKafkaHeaders(CENTRAL_TENANT_ID));
 
-    verify(systemUserScopedExecutionService, times(3)).executeAsyncSystemUserScoped(anyString(),
-      any(Runnable.class));
+    verify(contextService, times(3)).execute(anyString(),
+      any(FolioExecutionContext.class), any(Runnable.class));
     verify(userGroupService, times(2)).create(any(UserGroup.class));
   }
 
@@ -50,18 +48,13 @@ class UserGroupEventHandlerTest extends BaseEventHandlerTest {
     mockConsortiumService();
     when(consortiaService.getAllConsortiumTenants(anyString())).thenReturn(mockTenantCollection());
     when(userGroupService.update(any(UserGroup.class))).thenReturn(new UserGroup());
-
-    doAnswer(invocation -> {
-      ((Runnable) invocation.getArguments()[1]).run();
-      return null;
-    }).when(systemUserScopedExecutionService).executeAsyncSystemUserScoped(anyString(),
-      any(Runnable.class));
+    mockFolioExecutionContextService(contextService);
 
     eventListener.handleUserGroupEvent(USER_GROUP_UPDATING_EVENT_SAMPLE,
       buildKafkaHeaders(CENTRAL_TENANT_ID));
 
-    verify(systemUserScopedExecutionService, times(3))
-      .executeAsyncSystemUserScoped(anyString(), any(Runnable.class));
+    verify(contextService, times(3))
+      .execute(anyString(), any(FolioExecutionContext.class), any(Runnable.class));
     verify(userGroupService, times(2)).update(any(UserGroup.class));
   }
 
@@ -73,20 +66,20 @@ class UserGroupEventHandlerTest extends BaseEventHandlerTest {
     when(userGroupService.create(any(UserGroup.class))).thenReturn(new UserGroup());
 
     doAnswer(invocation -> {
-      ((Runnable) invocation.getArguments()[1]).run();
+      ((Runnable) invocation.getArguments()[2]).run();
       return null;
-    }).when(systemUserScopedExecutionService).executeAsyncSystemUserScoped(anyString(),
-      any(Runnable.class));
+    }).when(contextService).execute(anyString(),
+      any(FolioExecutionContext.class), any(Runnable.class));
 
     try {
       eventListener.handleUserGroupEvent(USER_GROUP_CREATING_EVENT_SAMPLE,
         new MessageHeaders(EMPTY_MAP));
-      verify(systemUserScopedExecutionService, times(1)).executeAsyncSystemUserScoped(
-        anyString(), any(Runnable.class));
+      verify(contextService, times(1)).execute(
+        anyString(), any(FolioExecutionContext.class), any(Runnable.class));
       verify(userGroupService, times(0)).create(any(UserGroup.class));
     } catch (KafkaEventDeserializationException e) {
-      verify(systemUserScopedExecutionService, times(0)).executeAsyncSystemUserScoped(
-        anyString(), any(Runnable.class));
+      verify(contextService, times(0)).execute(
+        anyString(), any(FolioExecutionContext.class), any(Runnable.class));
       verify(userGroupService, times(0)).create(any(UserGroup.class));
     }
   }

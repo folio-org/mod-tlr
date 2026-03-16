@@ -28,7 +28,8 @@ import org.folio.domain.dto.ServicePoint;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.impl.RequestEventHandler;
-import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.spring.FolioExecutionContext;
+import org.folio.spring.scope.FolioExecutionContextService;
 import org.folio.support.kafka.DefaultKafkaEvent;
 import org.folio.support.kafka.KafkaEvent;
 import org.junit.jupiter.api.Test;
@@ -57,7 +58,9 @@ class RequestEventHandlerTest {
   @Mock
   private ServicePointService servicePointService;
   @Mock
-  private SystemUserScopedExecutionService executionService;
+  private FolioExecutionContextService contextService;
+  @Mock
+  private FolioExecutionContext folioContext;
   @Mock
   private CloningService<ServicePoint> servicePointCloningService;
 
@@ -143,8 +146,8 @@ class RequestEventHandlerTest {
       .thenReturn(mockServicePoint);
     when(servicePointCloningService.clone(mockServicePoint))
       .thenReturn(mockServicePoint);
-    when(executionService.executeSystemUserScoped(any(String.class), any(Callable.class)))
-      .thenAnswer(invocation -> invocation.getArgument(1, Callable.class).call());
+    when(contextService.execute(any(String.class), any(FolioExecutionContext.class), any(Callable.class)))
+      .thenAnswer(invocation -> invocation.getArgument(2, Callable.class).call());
     when(ecsTlrRepository.findBySecondaryRequestId(PRIMARY_REQUEST_ID))
       .thenReturn(Optional.of(ecsTlr));
     when(requestService.getRequestFromStorage(SECONDARY_REQUEST_ID.toString(), SECONDARY_REQUEST_TENANT_ID))

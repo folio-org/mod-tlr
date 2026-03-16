@@ -7,7 +7,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 
-import org.folio.client.feign.ConsortiaClient;
+import org.folio.client.ConsortiaClient;
 import org.folio.domain.dto.PublicationRequest;
 import org.folio.domain.dto.PublicationResponse;
 import org.folio.domain.dto.Tenant;

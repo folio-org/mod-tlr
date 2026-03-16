@@ -2,7 +2,7 @@ package org.folio.service.impl;
 
 import java.util.Collection;
 
-import org.folio.client.feign.ServicePointClient;
+import org.folio.client.ServicePointClient;
 import org.folio.domain.dto.ServicePoint;
 import org.folio.domain.dto.ServicePoints;
 import org.folio.service.ServicePointService;
