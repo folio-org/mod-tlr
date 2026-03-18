@@ -1,7 +1,9 @@
 package org.folio.service.impl;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Optional.ofNullable;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 
 import org.apache.commons.lang3.BooleanUtils;
@@ -53,7 +55,7 @@ public class UserServiceImpl implements UserService {
       log.info("isUserAlreadyExistsError:: status: {}, not a duplicate user error", e.getStatusCode().value());
       return false;
     }
-    return e.getResponseBodyAsString().contains("User with this id already exists");
+    return e.getResponseBodyAsString(UTF_8).contains("User with this id already exists");
   }
 
   @Override
