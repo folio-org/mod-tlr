@@ -50,7 +50,8 @@ public class HttpClientConfiguration {
   }
 
   @Bean
-  public AddressTypeClient addressTypeClient(HttpServiceProxyFactory factory) {
+  public AddressTypeClient addressTypeClient(
+    @Qualifier("httpServiceProxyFactory") HttpServiceProxyFactory factory) {
     return factory.createClient(AddressTypeClient.class);
   }
 
@@ -61,7 +62,8 @@ public class HttpClientConfiguration {
   }
 
   @Bean
-  public CirculationClient circulationClient(HttpServiceProxyFactory factory) {
+  public CirculationClient circulationClient(
+    @Qualifier("httpServiceProxyFactory") HttpServiceProxyFactory factory) {
     return factory.createClient(CirculationClient.class);
   }
 
@@ -72,127 +74,152 @@ public class HttpClientConfiguration {
   }
 
   @Bean
-  public CirculationItemClient circulationItemClient(HttpServiceProxyFactory factory) {
+  public CirculationItemClient circulationItemClient(
+    @Qualifier("httpServiceProxyFactory") HttpServiceProxyFactory factory) {
     return factory.createClient(CirculationItemClient.class);
   }
 
   @Bean
-  public ConsortiaClient consortiaClient(HttpServiceProxyFactory factory) {
+  public ConsortiaClient consortiaClient(
+    @Qualifier("httpServiceProxyFactory") HttpServiceProxyFactory factory) {
     return factory.createClient(ConsortiaClient.class);
   }
 
   @Bean
-  public ConsortiaConfigurationClient consortiaConfigurationClient(HttpServiceProxyFactory factory) {
+  public ConsortiaConfigurationClient consortiaConfigurationClient(
+    @Qualifier("httpServiceProxyFactory") HttpServiceProxyFactory factory) {
     return factory.createClient(ConsortiaConfigurationClient.class);
   }
 
   @Bean
-  public ConsortiumSearchClient consortiumSearchClient(HttpServiceProxyFactory factory) {
+  public ConsortiumSearchClient consortiumSearchClient(
+    @Qualifier("httpServiceProxyFactory") HttpServiceProxyFactory factory) {
     return factory.createClient(ConsortiumSearchClient.class);
   }
 
   @Bean
-  public DcbEcsTransactionClient dcbEcsTransactionClient(HttpServiceProxyFactory factory) {
+  public DcbEcsTransactionClient dcbEcsTransactionClient(
+    @Qualifier("httpServiceProxyFactory") HttpServiceProxyFactory factory) {
     return factory.createClient(DcbEcsTransactionClient.class);
   }
 
   @Bean
-  public DcbTransactionClient dcbTransactionClient(HttpServiceProxyFactory factory) {
+  public DcbTransactionClient dcbTransactionClient(
+    @Qualifier("httpServiceProxyFactory") HttpServiceProxyFactory factory) {
     return factory.createClient(DcbTransactionClient.class);
   }
 
   @Bean
-  public DepartmentClient departmentClient(HttpServiceProxyFactory factory) {
+  public DepartmentClient departmentClient(
+    @Qualifier("httpServiceProxyFactory") HttpServiceProxyFactory factory) {
     return factory.createClient(DepartmentClient.class);
   }
 
   @Bean
-  public HoldingClient holdingClient(HttpServiceProxyFactory factory) {
+  public HoldingClient holdingClient(
+    @Qualifier("httpServiceProxyFactory") HttpServiceProxyFactory factory) {
     return factory.createClient(HoldingClient.class);
   }
 
   @Bean
-  public InstanceClient instanceClient(HttpServiceProxyFactory factory) {
+  public InstanceClient instanceClient(
+    @Qualifier("httpServiceProxyFactory") HttpServiceProxyFactory factory) {
     return factory.createClient(InstanceClient.class);
   }
 
   @Bean
-  public ItemClient itemClient(HttpServiceProxyFactory factory) {
+  public ItemClient itemClient(
+    @Qualifier("httpServiceProxyFactory") HttpServiceProxyFactory factory) {
     return factory.createClient(ItemClient.class);
   }
 
   @Bean
-  public LoanPolicyClient loanPolicyClient(HttpServiceProxyFactory factory) {
+  public LoanPolicyClient loanPolicyClient(
+    @Qualifier("httpServiceProxyFactory") HttpServiceProxyFactory factory) {
     return factory.createClient(LoanPolicyClient.class);
   }
 
   @Bean
-  public LoanStorageClient loanStorageClient(HttpServiceProxyFactory factory) {
+  public LoanStorageClient loanStorageClient(
+    @Qualifier("httpServiceProxyFactory") HttpServiceProxyFactory factory) {
     return factory.createClient(LoanStorageClient.class);
   }
 
   @Bean
-  public LoanTypeClient loanTypeClient(HttpServiceProxyFactory factory) {
+  public LoanTypeClient loanTypeClient(
+    @Qualifier("httpServiceProxyFactory") HttpServiceProxyFactory factory) {
     return factory.createClient(LoanTypeClient.class);
   }
 
   @Bean
-  public LocationCampusClient locationCampusClient(HttpServiceProxyFactory factory) {
+  public LocationCampusClient locationCampusClient(
+    @Qualifier("httpServiceProxyFactory") HttpServiceProxyFactory factory) {
     return factory.createClient(LocationCampusClient.class);
   }
 
   @Bean
-  public LocationClient locationClient(HttpServiceProxyFactory factory) {
+  public LocationClient locationClient(
+    @Qualifier("httpServiceProxyFactory") HttpServiceProxyFactory factory) {
     return factory.createClient(LocationClient.class);
   }
 
   @Bean
-  public LocationInstitutionClient locationInstitutionClient(HttpServiceProxyFactory factory) {
+  public LocationInstitutionClient locationInstitutionClient(
+    @Qualifier("httpServiceProxyFactory") HttpServiceProxyFactory factory) {
     return factory.createClient(LocationInstitutionClient.class);
   }
 
   @Bean
-  public LocationLibraryClient locationLibraryClient(HttpServiceProxyFactory factory) {
+  public LocationLibraryClient locationLibraryClient(
+    @Qualifier("httpServiceProxyFactory") HttpServiceProxyFactory factory) {
     return factory.createClient(LocationLibraryClient.class);
   }
 
   @Bean
-  public MaterialTypeClient materialTypeClient(HttpServiceProxyFactory factory) {
+  public MaterialTypeClient materialTypeClient(
+    @Qualifier("httpServiceProxyFactory") HttpServiceProxyFactory factory) {
     return factory.createClient(MaterialTypeClient.class);
   }
 
   @Bean
-  public RequestCirculationClient requestCirculationClient(HttpServiceProxyFactory factory) {
+  public RequestCirculationClient requestCirculationClient(
+    @Qualifier("httpServiceProxyFactory") HttpServiceProxyFactory factory) {
     return factory.createClient(RequestCirculationClient.class);
   }
 
   @Bean
-  public RequestStorageClient requestStorageClient(HttpServiceProxyFactory factory) {
+  public RequestStorageClient requestStorageClient(
+    @Qualifier("httpServiceProxyFactory") HttpServiceProxyFactory factory) {
     return factory.createClient(RequestStorageClient.class);
   }
 
   @Bean
-  public SearchInstanceClient searchInstanceClient(HttpServiceProxyFactory factory) {
+  public SearchInstanceClient searchInstanceClient(
+    @Qualifier("httpServiceProxyFactory") HttpServiceProxyFactory factory) {
     return factory.createClient(SearchInstanceClient.class);
   }
 
   @Bean
-  public ServicePointClient servicePointClient(HttpServiceProxyFactory factory) {
+  public ServicePointClient servicePointClient(
+    @Qualifier("httpServiceProxyFactory") HttpServiceProxyFactory factory) {
     return factory.createClient(ServicePointClient.class);
   }
 
   @Bean
-  public UserClient userClient(HttpServiceProxyFactory factory) {
+  public UserClient userClient(
+    @Qualifier("httpServiceProxyFactory") HttpServiceProxyFactory factory) {
     return factory.createClient(UserClient.class);
   }
 
   @Bean
-  public UserGroupClient userGroupClient(HttpServiceProxyFactory factory) {
+  public UserGroupClient userGroupClient(
+    @Qualifier("httpServiceProxyFactory") HttpServiceProxyFactory factory) {
     return factory.createClient(UserGroupClient.class);
   }
 
   @Bean
-  public UserTenantsClient userTenantsClient(HttpServiceProxyFactory factory) {
+  public UserTenantsClient userTenantsClient(
+    @Qualifier("httpServiceProxyFactory") HttpServiceProxyFactory factory) {
     return factory.createClient(UserTenantsClient.class);
   }
 }
