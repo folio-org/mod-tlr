@@ -5,7 +5,6 @@ import static java.util.stream.Collectors.toMap;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -33,8 +32,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.http.HttpHeaders;
@@ -58,13 +57,13 @@ import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import tools.jackson.databind.DeserializationFeature;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ContextConfiguration(initializers = BaseIT.DockerPostgresDataSourceInitializer.class)
@@ -74,6 +73,7 @@ import lombok.extern.log4j.Log4j2;
 @Testcontainers
 @DirtiesContext
 @Log4j2
+@AutoConfigureWebTestClient(timeout = "PT10S")
 public class BaseIT {
   private static final String FOLIO_ENVIRONMENT = "folio";
   protected static final String HEADER_TENANT = "x-okapi-tenant";
@@ -99,8 +99,7 @@ public class BaseIT {
     .enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
     .build();
 
-  @LocalServerPort
-  private int localServerPort;
+  @Autowired
   private WebTestClient webClient;
   @Autowired
   private FolioExecutionContext context;
@@ -127,11 +126,6 @@ public class BaseIT {
 
   @BeforeEach
   void beforeEachTest() {
-    webClient = WebTestClient.bindToServer()
-      .baseUrl("http://localhost:" + localServerPort)
-      .responseTimeout(Duration.ofSeconds(10))
-      .build();
-
     doPost("/_/tenant", asJsonString(new TenantAttributes().moduleTo("mod-tlr")))
       .expectStatus().isNoContent();
 
