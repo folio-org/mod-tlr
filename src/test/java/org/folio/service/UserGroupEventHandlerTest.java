@@ -1,6 +1,5 @@
 package org.folio.service;
 
-import static java.util.Collections.EMPTY_MAP;
 import static org.folio.support.MockDataUtils.getMockDataAsString;
 import static org.folio.util.TestUtils.mockFolioExecutionContextService;
 import static org.mockito.ArgumentMatchers.any;
