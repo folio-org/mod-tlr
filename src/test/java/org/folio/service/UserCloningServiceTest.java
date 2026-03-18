@@ -145,11 +145,13 @@ class UserCloningServiceTest {
 
     when(userClient.getUser(any(String.class))).thenReturn(null);
 
-    assertThrows(HttpClientErrorException.class, () -> userCloningService.clone(new User()
+    User user = new User()
       .id(UUID.randomUUID().toString())
       .personal(new UserPersonal()
         .firstName("FirstName")
-        .lastName("LastName"))));
+        .lastName("LastName"));
+
+    assertThrows(HttpClientErrorException.class, () -> userCloningService.clone(user));
 
     verify(userService, Mockito.times(1)).find(any(String.class));
   }

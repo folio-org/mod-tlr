@@ -10,10 +10,11 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Map;
+
 import org.folio.domain.dto.UserGroup;
-import org.folio.spring.FolioExecutionContext;
 import org.folio.exception.KafkaEventDeserializationException;
-import org.folio.util.TestUtils;
+import org.folio.spring.FolioExecutionContext;
 import org.junit.jupiter.api.Test;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -73,7 +74,7 @@ class UserGroupEventHandlerTest extends BaseEventHandlerTest {
 
     try {
       eventListener.handleUserGroupEvent(USER_GROUP_CREATING_EVENT_SAMPLE,
-        new MessageHeaders(EMPTY_MAP));
+        new MessageHeaders(Map.of()));
       verify(contextService, times(1)).execute(
         anyString(), any(FolioExecutionContext.class), any(Runnable.class));
       verify(userGroupService, times(0)).create(any(UserGroup.class));
