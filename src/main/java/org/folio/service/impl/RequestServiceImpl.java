@@ -243,23 +243,22 @@ public class RequestServiceImpl implements RequestService {
 
     // Check if circulation item already exists in the tenant we want to create it in
     var existingCirculationItem = circulationItemClient.getCirculationItem(itemId);
-    if (existingCirculationItem.isPresent()) {
-      CirculationItem item2 = existingCirculationItem.get();
-      var existingStatus = item2.getStatus() == null
+    if (existingCirculationItem != null) {
+      var existingStatus = existingCirculationItem.getStatus() == null
         ? null
-        : item2.getStatus().getName();
+        : existingCirculationItem.getStatus().getName();
       log.info("createCirculationItem:: circulation item already exists in status {}",
         existingStatus);
 
       if (existingStatus == circulationItemStatus) {
-        return item2;
+        return existingCirculationItem;
       }
       log.info("createCirculationItem:: updating circulation item status to {}", circulationItemStatus);
-      item2.setStatus(new CirculationItemStatus()
+      existingCirculationItem.setStatus(new CirculationItemStatus()
         .name(circulationItemStatus)
         .date(item.getStatus().getDate())
       );
-      return circulationItemClient.updateCirculationItem(itemId, item2);
+      return circulationItemClient.updateCirculationItem(itemId, existingCirculationItem);
     }
 
     Instance instance = getInstanceFromStorage(instanceId, inventoryTenantId);

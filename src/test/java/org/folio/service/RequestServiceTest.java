@@ -5,10 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Optional;
 import java.util.UUID;
 
 import org.folio.client.CirculationItemClient;
@@ -74,23 +74,23 @@ class RequestServiceTest {
 
   @Test
   void shouldReturnExistingCirculationItemWhenStatusMatches() {
-    when(itemClient.get(ITEM_ID)).thenReturn(
+    when(requestService.getItemFromStorage(eq(ITEM_ID), anyString())).thenReturn(
       new Item().status(new ItemStatus().name(ItemStatus.NameEnum.AVAILABLE))
     );
     CirculationItem existingItem = new CirculationItem()
       .status(new CirculationItemStatus().name(CirculationItemStatus.NameEnum.AVAILABLE));
-    when(circulationItemClient.getCirculationItem(any())).thenReturn(Optional.of(existingItem));
+    when(circulationItemClient.getCirculationItem(any())).thenReturn(existingItem);
 
     assertEquals(existingItem, requestService.createCirculationItem(secondaryRequest, LENDER_ID));
   }
 
   @Test
   void shouldUpdateExistingCirculationItemWhenStatusDiverges() {
-    when(itemClient.get(ITEM_ID)).thenReturn(
+    when(requestService.getItemFromStorage(eq(ITEM_ID), anyString())).thenReturn(
       new Item().status(new ItemStatus().name(ItemStatus.NameEnum.PAGED))
     );
     CirculationItem existingItem = new CirculationItem().id(UUID.randomUUID());
-    when(circulationItemClient.getCirculationItem(any())).thenReturn(Optional.of(existingItem));
+    when(circulationItemClient.getCirculationItem(any())).thenReturn(existingItem);
     CirculationItem updatedItem = new CirculationItem().id(UUID.randomUUID())
       .status(new CirculationItemStatus().name(CirculationItemStatus.NameEnum.AVAILABLE));
     when(circulationItemClient.updateCirculationItem(anyString(), any())).thenReturn(updatedItem);
@@ -100,17 +100,17 @@ class RequestServiceTest {
 
   @Test
   void shouldCreateCirculationItem() {
-    when(circulationItemClient.getCirculationItem(any())).thenReturn(Optional.empty());
+    when(circulationItemClient.getCirculationItem(any())).thenReturn(null);
     when(circulationItemClient.createCirculationItem(any(), any())).thenReturn(new CirculationItem());
 
     Item item = new Item();
     item.setStatus(new ItemStatus(ItemStatus.NameEnum.PAGED));
-    when(itemClient.get(ITEM_ID)).thenReturn(item);
+    when(requestService.getItemFromStorage(eq(ITEM_ID), anyString())).thenReturn(item);
 
     String instanceTitle = "Title";
     Instance instance = new Instance();
     instance.setTitle(instanceTitle);
-    when(instanceClient.get(INSTANCE_ID)).thenReturn(instance);
+    when(requestService.getInstanceFromStorage(eq(INSTANCE_ID), anyString())).thenReturn(instance);
 
     CirculationItem expectedCirculationItem = new CirculationItem()
       .status(new CirculationItemStatus()

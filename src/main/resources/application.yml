@@ -63,7 +63,7 @@ folio:
       level: BASIC # Optional
     exchange:
       enabled: true # Optional, logs outgoing HTTP client requests
-      level: HEADERS # Optional, default: BASIC
+      level: BASIC # Optional, default: BASIC
 management:
   endpoints:
     web:

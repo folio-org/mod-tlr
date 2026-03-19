@@ -9,10 +9,10 @@ import static org.folio.domain.dto.Request.FulfillmentPreferenceEnum.HOLD_SHELF;
 import static org.folio.domain.dto.Request.StatusEnum.CLOSED_CANCELLED;
 import static org.folio.support.Constants.INTERIM_SERVICE_POINT_ID;
 import static org.folio.util.TestUtils.buildEvent;
+import static org.folio.util.TestUtils.mockFolioExecutionContextService;
 import static org.folio.util.TestUtils.randomId;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -21,7 +21,6 @@ import static org.mockito.Mockito.when;
 import java.util.Date;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.Callable;
 
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.ServicePoint;
@@ -146,8 +145,7 @@ class RequestEventHandlerTest {
       .thenReturn(mockServicePoint);
     when(servicePointCloningService.clone(mockServicePoint))
       .thenReturn(mockServicePoint);
-    when(contextService.execute(any(String.class), any(FolioExecutionContext.class), any(Callable.class)))
-      .thenAnswer(invocation -> invocation.getArgument(2, Callable.class).call());
+    mockFolioExecutionContextService(contextService);
     when(ecsTlrRepository.findBySecondaryRequestId(PRIMARY_REQUEST_ID))
       .thenReturn(Optional.of(ecsTlr));
     when(requestService.getRequestFromStorage(SECONDARY_REQUEST_ID.toString(), SECONDARY_REQUEST_TENANT_ID))

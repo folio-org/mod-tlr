@@ -73,7 +73,7 @@ import tools.jackson.databind.json.JsonMapper;
 @Testcontainers
 @DirtiesContext
 @Log4j2
-@AutoConfigureWebTestClient(timeout = "PT10S")
+@AutoConfigureWebTestClient(timeout = "PT10S") // 10 seconds
 public class BaseIT {
   private static final String FOLIO_ENVIRONMENT = "folio";
   protected static final String HEADER_TENANT = "x-okapi-tenant";

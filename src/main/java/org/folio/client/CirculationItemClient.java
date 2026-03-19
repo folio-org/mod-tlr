@@ -1,7 +1,5 @@
 package org.folio.client;
 
-import java.util.Optional;
-
 import org.folio.domain.dto.CirculationItem;
 import org.folio.domain.dto.CirculationItems;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,7 +14,7 @@ import org.springframework.web.service.annotation.PutExchange;
 public interface CirculationItemClient {
 
   @GetExchange(value = "/{circulationItemId}")
-  Optional<CirculationItem> getCirculationItem(@PathVariable String circulationItemId);
+  CirculationItem getCirculationItem(@PathVariable String circulationItemId);
 
   @PostExchange(value = "/{circulationItemId}")
   CirculationItem createCirculationItem(@PathVariable String circulationItemId,

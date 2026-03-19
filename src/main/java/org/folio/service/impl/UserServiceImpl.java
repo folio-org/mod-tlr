@@ -3,7 +3,6 @@ package org.folio.service.impl;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Optional.ofNullable;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 
 import org.apache.commons.lang3.BooleanUtils;
@@ -75,8 +74,7 @@ public class UserServiceImpl implements UserService {
   public boolean isInactiveInTenant(String userId, String tenantId) {
     log.info("isInactiveInTenant:: checking if user {} is active", userId);
 
-    return contextService.execute(tenantId,
-      folioContext,
+    return contextService.execute(tenantId, folioContext,
       () -> ofNullable(userClient.getUser(userId))
         .map(User::getActive)
         .map(BooleanUtils::negate)
