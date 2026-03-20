@@ -6,10 +6,9 @@ import org.folio.api.BaseIT;
 import org.folio.domain.dto.Tenant;
 import org.folio.domain.dto.TenantCollection;
 import org.folio.listener.kafka.KafkaEventListener;
-import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.spring.scope.FolioExecutionContextService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 abstract class BaseEventHandlerTest extends BaseIT {
   protected static final String TENANT = "consortium";
@@ -21,8 +20,8 @@ abstract class BaseEventHandlerTest extends BaseIT {
   protected ConsortiumService consortiumService;
   @MockitoBean
   protected ConsortiaService consortiaService;
-  @MockitoSpyBean
-  protected SystemUserScopedExecutionService systemUserScopedExecutionService;
+  @MockitoBean
+  protected FolioExecutionContextService contextService;
   @Autowired
   protected KafkaEventListener eventListener;
 

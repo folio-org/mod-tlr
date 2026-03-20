@@ -6,7 +6,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-import org.folio.client.feign.LoanStorageClient;
+import org.folio.client.LoanStorageClient;
 import org.folio.domain.dto.Loan;
 import org.folio.service.LoanService;
 import org.folio.support.CqlQuery;

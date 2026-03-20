@@ -6,8 +6,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-import org.folio.client.feign.SearchInstanceClient;
-import org.folio.client.feign.ConsortiumSearchClient;
+import org.folio.client.SearchInstanceClient;
+import org.folio.client.ConsortiumSearchClient;
 import org.folio.domain.dto.BatchIds;
 import org.folio.domain.dto.ConsortiumItem;
 import org.folio.domain.dto.ConsortiumItems;

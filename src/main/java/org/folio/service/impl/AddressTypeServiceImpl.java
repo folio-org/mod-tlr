@@ -2,7 +2,7 @@ package org.folio.service.impl;
 
 import java.util.Collection;
 
-import org.folio.client.feign.AddressTypeClient;
+import org.folio.client.AddressTypeClient;
 import org.folio.domain.dto.AddressType;
 import org.folio.domain.dto.AddressTypes;
 import org.folio.service.AddressTypeService;

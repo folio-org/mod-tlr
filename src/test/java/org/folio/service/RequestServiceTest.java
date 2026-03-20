@@ -1,17 +1,19 @@
 package org.folio.service;
 
+import static org.folio.util.TestUtils.mockFolioExecutionContextService;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.UUID;
 
-import org.folio.client.feign.CirculationItemClient;
+import org.folio.client.CirculationItemClient;
+import org.folio.client.InstanceClient;
+import org.folio.client.ItemClient;
 import org.folio.domain.dto.CirculationItem;
 import org.folio.domain.dto.CirculationItemStatus;
 import org.folio.domain.dto.Instance;
@@ -20,7 +22,7 @@ import org.folio.domain.dto.ItemStatus;
 import org.folio.domain.dto.Request;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.service.impl.RequestServiceImpl;
-import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.spring.scope.FolioExecutionContextService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -32,7 +34,11 @@ class RequestServiceTest {
   @MockitoBean
   private CirculationItemClient circulationItemClient;
   @MockitoBean
-  private SystemUserScopedExecutionService systemUserScopedExecutionService;
+  private ItemClient itemClient;
+  @MockitoBean
+  private InstanceClient instanceClient;
+  @MockitoBean
+  private FolioExecutionContextService contextService;
   @MockitoSpyBean
   private RequestServiceImpl requestService;
   private EcsTlrEntity ecsTlrEntity;
@@ -48,11 +54,7 @@ class RequestServiceTest {
   void setUp() {
     ecsTlrEntity = new EcsTlrEntity();
     secondaryRequest = new Request().itemId(ITEM_ID).instanceId(INSTANCE_ID);
-    doAnswer(invocation -> {
-      ((Runnable) invocation.getArguments()[1]).run();
-      return null;
-    }).when(systemUserScopedExecutionService).executeAsyncSystemUserScoped(anyString(),
-      any(Runnable.class));
+    mockFolioExecutionContextService(contextService);
   }
 
   @Test

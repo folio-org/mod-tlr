@@ -20,8 +20,8 @@ import static org.folio.domain.dto.ItemStatus.NameEnum.PAGED;
 import static org.folio.domain.dto.ItemStatus.NameEnum.RESTRICTED;
 import static org.folio.domain.dto.Request.RequestTypeEnum.HOLD;
 import static org.folio.domain.dto.Request.RequestTypeEnum.PAGE;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
 
 import java.util.Collection;
 import java.util.EnumSet;
@@ -187,8 +187,8 @@ class StaffSlipsApiTest extends BaseIT {
     getPickSlips()
       .expectStatus().isOk()
       .expectBody()
-      .jsonPath("pickSlips").value(hasSize(1))
-      .jsonPath("totalRecords").value(is(1))
+      .jsonPath("pickSlips").value(slips -> assertThat((List<?>) slips, hasSize(1)))
+      .jsonPath("totalRecords").isEqualTo(1)
       .jsonPath("pickSlips[*].currentDateTime").exists()
       .jsonPath("pickSlips[*].item").exists()
       .jsonPath("pickSlips[*].request").exists()
@@ -288,8 +288,8 @@ class StaffSlipsApiTest extends BaseIT {
     getSearchSlips()
       .expectStatus().isOk()
       .expectBody()
-      .jsonPath("searchSlips").value(hasSize(2))
-      .jsonPath("totalRecords").value(is(2))
+      .jsonPath("searchSlips").value(slips -> assertThat((List<?>) slips, hasSize(2)))
+      .jsonPath("totalRecords").isEqualTo(2)
       .jsonPath("searchSlips[*].currentDateTime").exists()
       .jsonPath("searchSlips[*].item").exists()
       .jsonPath("searchSlips[*].request").exists()

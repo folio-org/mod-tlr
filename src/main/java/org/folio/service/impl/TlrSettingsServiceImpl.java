@@ -8,7 +8,6 @@ import org.folio.domain.mapper.TlrSettingsMapper;
 import org.folio.repository.TlrSettingsRepository;
 import org.folio.service.PublishCoordinatorService;
 import org.folio.service.TlrSettingsService;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
@@ -46,7 +45,6 @@ public class TlrSettingsServiceImpl implements TlrSettingsService {
       });
   }
 
-  @NotNull
   private Optional<TlrSettingsEntity> findTlrSettings() {
     return tlrSettingsRepository.findAll(PageRequest.of(0, 1))
       .stream()

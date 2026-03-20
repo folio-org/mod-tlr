@@ -1,6 +1,6 @@
 package org.folio.service.impl;
 
-import org.folio.client.feign.CirculationErrorForwardingClient;
+import org.folio.client.CirculationErrorForwardingClient;
 import org.folio.domain.dto.DeclareItemLostRequest;
 import org.folio.domain.dto.Loan;
 import org.folio.domain.mapper.CirculationMapper;
@@ -8,7 +8,8 @@ import org.folio.repository.EcsTlrRepository;
 import org.folio.service.DeclareItemLostService;
 import org.folio.service.LoanService;
 import org.folio.service.RequestService;
-import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.spring.FolioExecutionContext;
+import org.folio.spring.scope.FolioExecutionContextService;
 import org.springframework.stereotype.Service;
 
 import lombok.extern.log4j.Log4j2;
@@ -24,10 +25,11 @@ implements DeclareItemLostService {
     LoanService loanService,
     RequestService requestService,
     EcsTlrRepository ecsTlrRepository,
-    SystemUserScopedExecutionService systemUserService) {
+    FolioExecutionContextService contextService,
+    FolioExecutionContext folioContext) {
 
     super(circulationClient, circulationMapper, loanService, requestService, ecsTlrRepository,
-      systemUserService);
+      contextService, folioContext);
   }
 
   @Override

@@ -4,7 +4,8 @@ import org.folio.domain.dto.User;
 import org.folio.service.ConsortiaService;
 import org.folio.service.ConsortiumService;
 import org.folio.service.UserService;
-import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.spring.FolioExecutionContext;
+import org.folio.spring.scope.FolioExecutionContextService;
 import org.folio.support.kafka.EventType;
 import org.folio.support.kafka.KafkaEvent;
 import org.springframework.stereotype.Service;
@@ -19,10 +20,11 @@ public class UserEventHandler extends AbstractCentralTenantEventHandler<User> {
 
   public UserEventHandler(ConsortiumService consortiumService,
     ConsortiaService consortiaService,
-    SystemUserScopedExecutionService systemUserScopedExecutionService,
+    FolioExecutionContextService contextService,
+    FolioExecutionContext folioContext,
     UserService userService) {
 
-    super(consortiumService, consortiaService, systemUserScopedExecutionService);
+    super(consortiumService, consortiaService, contextService, folioContext);
     this.userService = userService;
   }
 

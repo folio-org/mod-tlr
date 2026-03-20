@@ -2,7 +2,7 @@ package org.folio.service.impl;
 
 import java.util.Collection;
 
-import org.folio.client.feign.DepartmentClient;
+import org.folio.client.DepartmentClient;
 import org.folio.domain.dto.Department;
 import org.folio.domain.dto.Departments;
 import org.folio.service.DepartmentService;

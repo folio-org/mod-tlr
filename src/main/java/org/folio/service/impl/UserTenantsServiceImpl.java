@@ -2,7 +2,7 @@ package org.folio.service.impl;
 
 import java.util.List;
 
-import org.folio.client.feign.UserTenantsClient;
+import org.folio.client.UserTenantsClient;
 import org.folio.domain.dto.UserTenant;
 import org.folio.domain.dto.UserTenantCollection;
 import org.folio.service.UserTenantsService;

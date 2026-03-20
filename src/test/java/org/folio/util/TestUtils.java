@@ -7,7 +7,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static java.lang.String.format;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.lenient;
 
 import java.util.Base64;
 import java.util.Date;
@@ -16,7 +16,8 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 
 import org.apache.http.HttpStatus;
-import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.spring.FolioExecutionContext;
+import org.folio.spring.scope.FolioExecutionContextService;
 import org.folio.support.kafka.DefaultKafkaEvent;
 import org.folio.support.kafka.KafkaEvent;
 import org.json.JSONArray;
@@ -103,9 +104,11 @@ public class TestUtils {
       .withTenantIdHeaderValue(tenant);
   }
 
-  public static void mockSystemUserService(SystemUserScopedExecutionService systemUserService) {
-    doAnswer(invocation -> ((Callable<?>) invocation.getArguments()[1]).call())
-      .when(systemUserService).executeSystemUserScoped(anyString(), any(Callable.class));
+  public static void mockFolioExecutionContextService(FolioExecutionContextService service) {
+    lenient().doAnswer(invocation -> ((Callable<?>) invocation.getArguments()[2]).call())
+      .when(service).execute(anyString(), any(FolioExecutionContext.class), any(Callable.class));
+    lenient().doAnswer(invocation -> { ((Runnable) invocation.getArguments()[2]).run(); return null; })
+      .when(service).execute(anyString(), any(FolioExecutionContext.class), any(Runnable.class));
   }
 
   public static String randomId() {

@@ -67,7 +67,8 @@ import org.folio.service.ServicePointService;
 import org.folio.service.StaffSlipsService;
 import org.folio.service.UserGroupService;
 import org.folio.service.UserService;
-import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.spring.FolioExecutionContext;
+import org.folio.spring.scope.FolioExecutionContextService;
 import org.folio.support.CqlQuery;
 
 import lombok.Getter;
@@ -87,7 +88,8 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
   private final InventoryService inventoryService;
   private final RequestService requestService;
   private final ConsortiaService consortiaService;
-  private final SystemUserScopedExecutionService executionService;
+  private final FolioExecutionContextService contextService;
+  private final FolioExecutionContext folioContext;
   private final UserService userService;
   private final UserGroupService userGroupService;
   private final DepartmentService departmentService;
@@ -153,7 +155,7 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
     CqlQuery locationsQuery = CqlQuery.exactMatch("primaryServicePoint", servicePointId);
 
     getAllConsortiumTenants()
-      .forEach(tenantId -> executionService.executeSystemUserScoped(tenantId, () -> {
+      .forEach(tenantId -> contextService.execute(tenantId, folioContext, () -> {
         log.info("getStaffSlips:: searching for relevant locations and items in tenant {}", tenantId);
         Collection<Location> locations = locationService.findLocations(locationsQuery);
         Map<String, Location> locationsById = toMapById(locations, Location::getId);
@@ -259,7 +261,7 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
     return context.getLocationsByTenant()
       .keySet()
       .stream()
-      .collect(toMap(identity(), tenantId -> executionService.executeSystemUserScoped(tenantId,
+      .collect(toMap(identity(), tenantId -> contextService.execute(tenantId, folioContext,
         () -> findHoldingsForHolds(instanceIds, context, tenantId))));
   }
 
@@ -378,7 +380,7 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
   private void fetchDataFromLendingTenants(StaffSlipsContext context) {
     context.getItemContextsByTenant()
       .keySet()
-      .forEach(tenantId -> executionService.executeSystemUserScoped(tenantId,
+      .forEach(tenantId -> contextService.execute(tenantId, folioContext,
         () -> fetchDataFromLendingTenant(context, tenantId)));
   }
 

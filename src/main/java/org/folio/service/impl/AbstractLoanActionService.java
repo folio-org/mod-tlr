@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.folio.client.feign.CirculationErrorForwardingClient;
+import org.folio.client.CirculationErrorForwardingClient;
 import org.folio.domain.dto.Loan;
 import org.folio.domain.dto.Request;
 import org.folio.domain.entity.EcsTlrEntity;
@@ -18,7 +18,8 @@ import org.folio.exception.ExceptionFactory;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.LoanService;
 import org.folio.service.RequestService;
-import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.spring.FolioExecutionContext;
+import org.folio.spring.scope.FolioExecutionContextService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -35,7 +36,8 @@ public abstract class AbstractLoanActionService<T> {
   protected final LoanService loanService;
   protected final RequestService requestService;
   protected final EcsTlrRepository ecsTlrRepository;
-  protected final SystemUserScopedExecutionService systemUserService;
+  protected final FolioExecutionContextService contextService;
+  protected final FolioExecutionContext folioContext;
 
   protected void perform(T actionRequest) {
     log.info("perform:: processing loan action request: {}", toString(actionRequest));
@@ -95,7 +97,7 @@ public abstract class AbstractLoanActionService<T> {
 
   private void performAction(Loan localLoan, String tenantId, T actionRequest) {
     log.info("performAction:: tenant={}", tenantId);
-    systemUserService.executeSystemUserScoped(tenantId, () -> {
+    contextService.execute(tenantId, folioContext, () -> {
       Loan loanInLendingTenant = findOpenLoan(localLoan.getUserId(), localLoan.getItemId());
       performActionInCirculation(loanInLendingTenant, actionRequest);
       return null;

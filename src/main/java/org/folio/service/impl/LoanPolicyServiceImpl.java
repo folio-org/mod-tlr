@@ -1,6 +1,6 @@
 package org.folio.service.impl;
 
-import org.folio.client.feign.LoanPolicyClient;
+import org.folio.client.LoanPolicyClient;
 import org.folio.domain.dto.LoanPolicy;
 import org.folio.service.LoanPolicyService;
 import org.springframework.stereotype.Service;

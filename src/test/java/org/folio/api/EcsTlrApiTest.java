@@ -14,17 +14,20 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.put;
 import static com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static org.folio.domain.dto.EcsTlr.RequestLevelEnum.ITEM;
 import static org.folio.domain.dto.EcsTlr.RequestLevelEnum.TITLE;
 import static org.folio.domain.dto.EcsTlr.RequestTypeEnum.HOLD;
 import static org.folio.domain.dto.EcsTlr.RequestTypeEnum.PAGE;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.INTERMEDIATE;
 import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.PRIMARY;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
-import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_CONTENT;
 
 import java.util.Date;
 import java.util.List;
@@ -88,8 +91,7 @@ class EcsTlrApiTest extends BaseIT {
   private static final String REQUESTS_URL = "/circulation/requests";
   private static final String USERS_URL = "/users";
   private static final String SERVICE_POINTS_URL = "/service-points";
-  private static final String SEARCH_INSTANCES_URL =
-    "/search/instances\\?query=id==" + INSTANCE_ID + "&expandAll=true";
+  private static final String SEARCH_INSTANCES_URL = "/search/instances";
   private static final String ECS_REQUEST_TRANSACTIONS_URL = "/ecs-request-transactions";
   private static final String POST_ECS_REQUEST_TRANSACTION_URL_PATTERN =
     ECS_REQUEST_TRANSACTIONS_URL + "/" + UUID_PATTERN;
@@ -179,7 +181,7 @@ class EcsTlrApiTest extends BaseIT {
       .expectStatus().isCreated()
       .expectBody()
       .jsonPath("$.id").exists()
-      .jsonPath("$.id").value(not(Matchers.equalTo(ecsTlr.getId())))
+      .jsonPath("$.id").value(id -> assertThat((String) id, not(Matchers.equalTo(ecsTlr.getId()))))
       .json(asJsonString(expectedPostEcsTlrResponse));
     assertEquals(TENANT_ID_CONSORTIUM, getCurrentTenantId());
 
@@ -190,8 +192,7 @@ class EcsTlrApiTest extends BaseIT {
 
     // 3. Verify calls to other modules
 
-    wireMockServer.verify(getRequestedFor(urlMatching(SEARCH_INSTANCES_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
+    verifySearchInstanceCall();
 
     wireMockServer.verify(getRequestedFor(urlMatching(USERS_URL + "/" + REQUESTER_ID))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
@@ -345,14 +346,13 @@ class EcsTlrApiTest extends BaseIT {
       .totalRecords(0)
       .instances(List.of());
 
-    wireMockServer.stubFor(get(urlMatching(SEARCH_INSTANCES_URL))
-      .willReturn(jsonResponse(mockSearchInstancesResponse, HttpStatus.SC_OK)));
+    mockInstanceSearch(mockSearchInstancesResponse);
 
     doPost(TLR_URL, ecsTlr)
-      .expectStatus().isEqualTo(INTERNAL_SERVER_ERROR);
+      .expectStatus().isEqualTo(UNPROCESSABLE_CONTENT);
 
     wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(USERS_URL)));
-    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(SEARCH_INSTANCES_URL)));
+    wireMockServer.verify(exactly(0), getRequestedFor(urlPathMatching(SEARCH_INSTANCES_URL)));
   }
 
   @ParameterizedTest
@@ -370,21 +370,20 @@ class EcsTlrApiTest extends BaseIT {
           .items(List.of(buildItem(randomId(), TENANT_ID_UNIVERSITY, "Available")))
       ));
 
-    wireMockServer.stubFor(get(urlMatching(SEARCH_INSTANCES_URL))
-      .willReturn(jsonResponse(mockSearchInstancesResponse, HttpStatus.SC_OK)));
+    mockInstanceSearch(mockSearchInstancesResponse);
 
     wireMockServer.stubFor(get(urlMatching(USERS_URL + "/" + requesterId))
       .willReturn(notFound()));
 
     doPost(TLR_URL, ecsTlr)
-      .expectStatus().isEqualTo(INTERNAL_SERVER_ERROR);
+      .expectStatus().isEqualTo(UNPROCESSABLE_CONTENT);
 
     wireMockServer.verify(getRequestedFor(urlMatching(USERS_URL + "/" + requesterId))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
 
     wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(INSTANCE_REQUESTS_URL)));
     wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(REQUESTS_URL)));
-    wireMockServer.verify(exactly(0), postRequestedFor(urlMatching(SEARCH_INSTANCES_URL)));
+    wireMockServer.verify(exactly(0), getRequestedFor(urlPathMatching(SEARCH_INSTANCES_URL)));
   }
 
   @ParameterizedTest
@@ -402,8 +401,7 @@ class EcsTlrApiTest extends BaseIT {
           .items(List.of(buildItem(randomId(), TENANT_ID_UNIVERSITY, "Available")))
       ));
 
-    wireMockServer.stubFor(get(urlMatching(SEARCH_INSTANCES_URL))
-      .willReturn(jsonResponse(mockSearchInstancesResponse, HttpStatus.SC_OK)));
+    mockInstanceSearch(mockSearchInstancesResponse);
 
     wireMockServer.stubFor(get(urlMatching(USERS_URL + "/" + REQUESTER_ID))
       .willReturn(jsonResponse(buildPrimaryRequestRequester(REQUESTER_ID), HttpStatus.SC_OK)));
@@ -414,8 +412,7 @@ class EcsTlrApiTest extends BaseIT {
     doPost(TLR_URL, ecsTlr)
       .expectStatus().isEqualTo(INTERNAL_SERVER_ERROR);
 
-    wireMockServer.verify(getRequestedFor(urlMatching(SEARCH_INSTANCES_URL))
-      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
+    verifySearchInstanceCall();
 
     wireMockServer.verify(getRequestedFor(urlMatching(USERS_URL + "/" + REQUESTER_ID))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
@@ -440,8 +437,7 @@ class EcsTlrApiTest extends BaseIT {
           .items(List.of(buildItem(randomId(), TENANT_ID_UNIVERSITY, "Available")))
       ));
 
-    wireMockServer.stubFor(get(urlMatching(SEARCH_INSTANCES_URL))
-      .willReturn(jsonResponse(mockSearchInstancesResponse, HttpStatus.SC_OK)));
+    mockInstanceSearch(mockSearchInstancesResponse);
 
     User primaryRequestRequester = buildPrimaryRequestRequester(REQUESTER_ID, false);
 
@@ -450,7 +446,7 @@ class EcsTlrApiTest extends BaseIT {
       .willReturn(jsonResponse(primaryRequestRequester, HttpStatus.SC_OK)));
 
     doPost(TLR_URL, ecsTlr)
-      .expectStatus().isEqualTo(UNPROCESSABLE_ENTITY)
+      .expectStatus().isEqualTo(UNPROCESSABLE_CONTENT)
       .expectBody()
       .jsonPath("$.errors[0].code").isEqualTo("ECS_REQUEST_CANNOT_BE_PLACED_FOR_INACTIVE_PATRON");
 
@@ -485,8 +481,8 @@ class EcsTlrApiTest extends BaseIT {
         .tenantId(TENANT_ID_CONSORTIUM)
         .items(items)
       ));
-    wireMockServer.stubFor(get(urlMatching(SEARCH_INSTANCES_URL))
-      .willReturn(jsonResponse(mockSearchInstancesResponse, HttpStatus.SC_OK)));
+
+    mockInstanceSearch(mockSearchInstancesResponse);
 
     ServicePoint primaryRequestPickupServicePoint = buildPrimaryRequestPickupServicePoint(PICKUP_SERVICE_POINT_ID);
     ServicePoint secondaryRequestServicePoint = buildPickupServicePointClone(primaryRequestPickupServicePoint);
@@ -550,8 +546,7 @@ class EcsTlrApiTest extends BaseIT {
         .items(items)
       ));
 
-    wireMockServer.stubFor(get(urlMatching(SEARCH_INSTANCES_URL))
-      .willReturn(jsonResponse(mockSearchInstancesResponse, HttpStatus.SC_OK)));
+    mockInstanceSearch(mockSearchInstancesResponse);
 
     // 1.2 Mock user endpoints
 
@@ -864,6 +859,22 @@ class EcsTlrApiTest extends BaseIT {
       .code(primaryRequestPickupServicePoint.getCode())
       .discoveryDisplayName(primaryRequestPickupServicePoint.getDiscoveryDisplayName())
       .pickupLocation(primaryRequestPickupServicePoint.getPickupLocation());
+  }
+
+  private static void mockInstanceSearch(SearchInstancesResponse mockSearchInstancesResponse) {
+    wireMockServer.stubFor(get(urlPathEqualTo(SEARCH_INSTANCES_URL))
+      .withQueryParam("query", equalTo("id==\"" + INSTANCE_ID + "\""))
+      .withQueryParam("expandAll", equalTo("true"))
+      .withQueryParam("limit", equalTo("1"))
+      .willReturn(jsonResponse(mockSearchInstancesResponse, HttpStatus.SC_OK)));
+  }
+
+  private static void verifySearchInstanceCall() {
+    wireMockServer.verify(1, getRequestedFor(urlPathEqualTo(SEARCH_INSTANCES_URL))
+      .withQueryParam("query", equalTo("id==\"" + INSTANCE_ID + "\""))
+      .withQueryParam("expandAll", equalTo("true"))
+      .withQueryParam("limit", equalTo("1"))
+      .withHeader(HEADER_TENANT, equalTo(TENANT_ID_CONSORTIUM)));
   }
 
 }
