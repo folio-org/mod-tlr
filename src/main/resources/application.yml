@@ -51,19 +51,14 @@ folio:
     lastname: System
     permissionsFilePath: permissions/mod-tlr.csv
   exchange:
-    enabled: true # REQUIRED for HTTP service clients
-  logging:
-    # Levels:
-    # NONE     No logging
-    # BASIC    URI, HTTP method, status code, duration
-    # HEADERS  BASIC + request and response headers
-    # FULL     HEADERS + request and response bodies
+    enabled: true
+  logging: # https://github.com/folio-org/folio-spring-support/blob/master/doc/REQUEST_LOGGING.md
     request:
-      enabled: true # Optional, logs incoming HTTP requests
-      level: BASIC # Optional
+      enabled: false # Logs incoming HTTP requests
+      level: BASIC
     exchange:
-      enabled: true # Optional, logs outgoing HTTP client requests
-      level: BASIC # Optional, default: BASIC
+      enabled: false # Logs outgoing requests
+      level: BASIC
 management:
   endpoints:
     web:
