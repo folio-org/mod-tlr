@@ -10,8 +10,8 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
-import org.folio.client.feign.CirculationClient;
-import org.folio.client.feign.ConsortiumSearchClient;
+import org.folio.client.CirculationClient;
+import org.folio.client.ConsortiumSearchClient;
 import org.folio.domain.dto.AllowedServicePointsInner;
 import org.folio.domain.dto.AllowedServicePointsRequest;
 import org.folio.domain.dto.AllowedServicePointsResponse;
@@ -21,7 +21,8 @@ import org.folio.repository.EcsTlrRepository;
 import org.folio.service.AllowedServicePointsService;
 import org.folio.service.RequestService;
 import org.folio.service.UserService;
-import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.spring.FolioExecutionContext;
+import org.folio.spring.scope.FolioExecutionContextService;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
@@ -37,7 +38,8 @@ public abstract class AllowedServicePointsServiceImpl implements AllowedServiceP
   protected final ConsortiumSearchClient consortiumSearchClient;
   protected final CirculationClient circulationClient;
   private final UserService userService;
-  protected final SystemUserScopedExecutionService executionService;
+  protected final FolioExecutionContextService contextService;
+  protected final FolioExecutionContext folioContext;
   private final RequestService requestService;
   private final EcsTlrRepository ecsTlrRepository;
 
@@ -92,8 +94,8 @@ public abstract class AllowedServicePointsServiceImpl implements AllowedServiceP
   private AllowedServicePointsResponse getForReplace(AllowedServicePointsRequest request) {
     EcsTlrEntity ecsTlr = findEcsTlr(request);
 
-    var allowedServicePoints = executionService.executeSystemUserScoped(
-      ecsTlr.getSecondaryRequestTenantId(), () -> circulationClient.allowedServicePoints(
+    var allowedServicePoints = contextService.execute(
+      ecsTlr.getSecondaryRequestTenantId(), folioContext, () -> circulationClient.allowedServicePoints(
         REPLACE.getValue(), ecsTlr.getSecondaryRequestId().toString()));
 
     Request secondaryRequest = requestService.getRequestFromStorage(

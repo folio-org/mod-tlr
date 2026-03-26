@@ -1,22 +1,22 @@
 package org.folio.service.impl;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Optional.ofNullable;
-import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 
-import java.nio.CharBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 
 import org.apache.commons.lang3.BooleanUtils;
-import org.folio.client.feign.UserClient;
+import org.folio.client.UserClient;
 import org.folio.domain.dto.User;
 import org.folio.domain.dto.Users;
 import org.folio.service.UserService;
-import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.spring.FolioExecutionContext;
+import org.folio.spring.scope.FolioExecutionContextService;
 import org.folio.support.BulkFetcher;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpStatusCodeException;
 
-import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
@@ -26,7 +26,8 @@ import lombok.extern.log4j.Log4j2;
 public class UserServiceImpl implements UserService {
 
   private final UserClient userClient;
-  private final SystemUserScopedExecutionService systemUserScopedExecutionService;
+  private final FolioExecutionContextService contextService;
+  private final FolioExecutionContext folioContext;
 
   @Override
   public User find(String userId) {
@@ -39,7 +40,7 @@ public class UserServiceImpl implements UserService {
     log.info("create:: creating user {}", user.getId());
     try {
       return userClient.postUser(user);
-    } catch (FeignException e) {
+    } catch (HttpStatusCodeException e) {
       if (isUserAlreadyExistsError(e)) {
         log.info("create:: user {} already exists, repeating find()", user.getId());
         return find(user.getId());
@@ -48,16 +49,12 @@ public class UserServiceImpl implements UserService {
     }
   }
 
-  private boolean isUserAlreadyExistsError(FeignException e) {
-    if (e.status() != UNPROCESSABLE_ENTITY.value()) {
-      log.info("isUserAlreadyExistsError:: status: {}, not a duplicate user error", e.status());
+  private boolean isUserAlreadyExistsError(HttpStatusCodeException e) {
+    if (e.getStatusCode().value() != HttpStatus.UNPROCESSABLE_CONTENT.value()) {
+      log.info("isUserAlreadyExistsError:: status: {}, not a duplicate user error", e.getStatusCode().value());
       return false;
     }
-    return e.responseBody()
-      .map(StandardCharsets.UTF_8::decode)
-      .map(CharBuffer::toString)
-      .filter(body -> body.contains("User with this id already exists"))
-      .isPresent();
+    return e.getResponseBodyAsString(UTF_8).contains("User with this id already exists");
   }
 
   @Override
@@ -77,7 +74,7 @@ public class UserServiceImpl implements UserService {
   public boolean isInactiveInTenant(String userId, String tenantId) {
     log.info("isInactiveInTenant:: checking if user {} is active", userId);
 
-    return systemUserScopedExecutionService.executeSystemUserScoped(tenantId,
+    return contextService.execute(tenantId, folioContext,
       () -> ofNullable(userClient.getUser(userId))
         .map(User::getActive)
         .map(BooleanUtils::negate)

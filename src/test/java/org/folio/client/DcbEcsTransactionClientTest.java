@@ -6,7 +6,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.UUID;
 
-import org.folio.client.feign.DcbEcsTransactionClient;
 import org.folio.domain.dto.DcbTransaction;
 import org.folio.domain.dto.TransactionStatusResponse;
 import org.junit.jupiter.api.Test;

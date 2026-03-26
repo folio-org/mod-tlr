@@ -15,8 +15,8 @@ import static org.folio.support.BarcodeUtil.buildNonEmptyBarcode;
 
 import java.util.UUID;
 
-import org.folio.client.feign.DcbEcsTransactionClient;
-import org.folio.client.feign.DcbTransactionClient;
+import org.folio.client.DcbEcsTransactionClient;
+import org.folio.client.DcbTransactionClient;
 import org.folio.domain.dto.DcbItem;
 import org.folio.domain.dto.DcbTransaction;
 import org.folio.domain.dto.DcbTransaction.RoleEnum;
@@ -26,29 +26,22 @@ import org.folio.domain.dto.TransactionStatus.StatusEnum;
 import org.folio.domain.dto.TransactionStatusResponse;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.service.DcbService;
-import org.folio.spring.service.SystemUserScopedExecutionService;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.folio.spring.FolioExecutionContext;
+import org.folio.spring.scope.FolioExecutionContextService;
 import org.springframework.stereotype.Service;
 
-import feign.FeignException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
 @Service
 @Log4j2
+@RequiredArgsConstructor
 public class DcbServiceImpl implements DcbService {
 
   private final DcbEcsTransactionClient dcbEcsTransactionClient;
   private final DcbTransactionClient dcbTransactionClient;
-  private final SystemUserScopedExecutionService executionService;
-
-  public DcbServiceImpl(@Autowired DcbEcsTransactionClient dcbEcsTransactionClient,
-    @Autowired DcbTransactionClient dcbTransactionClient,
-    @Autowired SystemUserScopedExecutionService executionService) {
-
-    this.dcbEcsTransactionClient = dcbEcsTransactionClient;
-    this.dcbTransactionClient = dcbTransactionClient;
-    this.executionService = executionService;
-  }
+  private final FolioExecutionContextService contextService;
+  private final FolioExecutionContext folioContext;
 
   @Override
   public void createLendingTransaction(EcsTlrEntity ecsTlr) {
@@ -108,7 +101,7 @@ public class DcbServiceImpl implements DcbService {
   private UUID createTransaction(DcbTransaction transaction, String tenantId) {
     final UUID transactionId = UUID.randomUUID();
     log.info("createTransaction:: creating transaction {} in tenant {}", transactionId, tenantId);
-    var response = executionService.executeSystemUserScoped(tenantId,
+    var response = contextService.execute(tenantId, folioContext,
       () -> dcbEcsTransactionClient.createTransaction(transactionId.toString(), transaction));
     log.info("createTransaction:: {} transaction {} created", transaction.getRole(), transactionId);
     log.debug("createTransaction:: {}", () -> response);
@@ -120,7 +113,7 @@ public class DcbServiceImpl implements DcbService {
   public TransactionStatusResponse getTransactionStatus(UUID transactionId, String tenantId) {
     log.info("getTransactionStatus:: transactionId={}, tenantId={}", transactionId, tenantId);
 
-    return executionService.executeSystemUserScoped(tenantId,
+    return contextService.execute(tenantId, folioContext,
       () -> dcbTransactionClient.getDcbTransactionStatus(transactionId.toString()));
   }
 
@@ -172,12 +165,13 @@ public class DcbServiceImpl implements DcbService {
         log.info("updateTransactionStatus: changing status of transaction {} in tenant {} to {}",
           transactionId, tenantId, newStatus.getValue());
 
-        executionService.executeSystemUserScoped(tenantId,
+        TransactionStatusResponse statusUpdateResponse = contextService.execute(tenantId, folioContext,
           () -> dcbTransactionClient.changeDcbTransactionStatus(transactionId.toString(),
             new TransactionStatus().status(newStatus)));
+        if (statusUpdateResponse == null) {
+          log.error("updateTransactionStatus:: transaction {} not found", transactionId);
+        }
       }
-    } catch (FeignException.NotFound e) {
-      log.error("updateTransactionStatus:: transaction {} not found: {}", transactionId, e.getMessage());
     } catch (Exception e) {
       log.error("updateTransactionStatus:: failed to update transaction status: {}", e::getMessage);
       log.debug("updateTransactionStatus:: ", e);
@@ -188,6 +182,10 @@ public class DcbServiceImpl implements DcbService {
     String tenantId) {
 
     TransactionStatusResponse transaction = getTransactionStatus(transactionId, tenantId);
+    if (transaction == null) {
+      log.warn("isTransactionStatusChangeAllowed:: transaction {} not found in tenant {}", transactionId, tenantId);
+      return false;
+    }
     RoleEnum transactionRole = RoleEnum.fromValue(transaction.getRole().getValue());
     StatusEnum currentStatus = StatusEnum.fromValue(transaction.getStatus().getValue());
 

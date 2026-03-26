@@ -3,7 +3,7 @@ package org.folio.service.impl;
 import java.util.Collection;
 import java.util.List;
 
-import org.folio.client.feign.LocationClient;
+import org.folio.client.LocationClient;
 import org.folio.domain.dto.Location;
 import org.folio.support.CqlQuery;
 import org.springframework.stereotype.Service;

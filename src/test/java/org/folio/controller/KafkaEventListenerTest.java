@@ -50,8 +50,9 @@ import org.folio.domain.dto.TransactionStatusResponse;
 import org.folio.domain.dto.UserGroup;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
+import org.folio.spring.FolioExecutionContext;
 import org.folio.spring.integration.XOkapiHeaders;
-import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.spring.scope.FolioExecutionContextService;
 import org.folio.support.kafka.DefaultKafkaEvent;
 import org.folio.support.kafka.KafkaEvent;
 import org.junit.jupiter.api.BeforeEach;
@@ -97,7 +98,9 @@ class KafkaEventListenerTest extends BaseIT {
   @Autowired
   private EcsTlrRepository ecsTlrRepository;
   @Autowired
-  private SystemUserScopedExecutionService executionService;
+  private FolioExecutionContextService contextService;
+  @Autowired
+  private FolioExecutionContext folioContext;
 
   @BeforeEach
   void beforeEach() {
@@ -805,12 +808,12 @@ class KafkaEventListenerTest extends BaseIT {
   }
 
   private EcsTlrEntity createEcsTlr(EcsTlrEntity ecsTlr) {
-    return executionService.executeSystemUserScoped(CENTRAL_TENANT_ID,
+    return contextService.execute(CENTRAL_TENANT_ID, folioContext,
       () -> ecsTlrRepository.save(ecsTlr));
   }
 
   private EcsTlrEntity getEcsTlr(UUID id) {
-    return executionService.executeSystemUserScoped(CENTRAL_TENANT_ID,
+    return contextService.execute(CENTRAL_TENANT_ID, folioContext,
       () -> ecsTlrRepository.findById(id)).orElseThrow();
   }
 

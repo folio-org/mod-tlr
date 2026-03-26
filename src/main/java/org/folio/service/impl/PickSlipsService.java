@@ -15,7 +15,8 @@ import org.folio.service.RequestService;
 import org.folio.service.ServicePointService;
 import org.folio.service.UserGroupService;
 import org.folio.service.UserService;
-import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.spring.FolioExecutionContext;
+import org.folio.spring.scope.FolioExecutionContextService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -28,12 +29,14 @@ public class PickSlipsService extends StaffSlipsServiceImpl {
   @Autowired
   public PickSlipsService(LocationService locationService, InventoryService inventoryService,
     RequestService requestService, ConsortiaService consortiaService,
-    SystemUserScopedExecutionService executionService, UserService userService,
+    FolioExecutionContextService contextService,
+    FolioExecutionContext folioContext, UserService userService,
     UserGroupService userGroupService, DepartmentService departmentService,
     AddressTypeService addressTypeService, ServicePointService servicePointService) {
 
     super(EnumSet.of(PAGED), EnumSet.of(OPEN_NOT_YET_FILLED), EnumSet.of(PAGE), locationService,
-      inventoryService, requestService, consortiaService, executionService, userService,
-      userGroupService, departmentService, addressTypeService, servicePointService);
+      inventoryService, requestService, consortiaService, contextService,
+      folioContext, userService, userGroupService, departmentService, addressTypeService,
+      servicePointService);
   }
 }

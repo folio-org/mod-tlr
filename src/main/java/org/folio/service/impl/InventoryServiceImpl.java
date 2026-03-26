@@ -3,14 +3,14 @@ package org.folio.service.impl;
 import java.util.Collection;
 import java.util.Optional;
 
-import org.folio.client.feign.HoldingClient;
-import org.folio.client.feign.InstanceClient;
-import org.folio.client.feign.ItemClient;
-import org.folio.client.feign.LoanTypeClient;
-import org.folio.client.feign.LocationCampusClient;
-import org.folio.client.feign.LocationInstitutionClient;
-import org.folio.client.feign.LocationLibraryClient;
-import org.folio.client.feign.MaterialTypeClient;
+import org.folio.client.HoldingClient;
+import org.folio.client.InstanceClient;
+import org.folio.client.ItemClient;
+import org.folio.client.LoanTypeClient;
+import org.folio.client.LocationCampusClient;
+import org.folio.client.LocationInstitutionClient;
+import org.folio.client.LocationLibraryClient;
+import org.folio.client.MaterialTypeClient;
 import org.folio.domain.dto.Campus;
 import org.folio.domain.dto.Campuses;
 import org.folio.domain.dto.HoldingsRecord;
@@ -31,8 +31,6 @@ import org.folio.service.InventoryService;
 import org.folio.support.BulkFetcher;
 import org.folio.support.CqlQuery;
 import org.springframework.stereotype.Service;
-
-import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
@@ -83,14 +81,13 @@ public class InventoryServiceImpl implements InventoryService {
   @Override
   public Optional<Instance> findInstance(String instanceId) {
     log.info("findInstance:: searching instance {}", instanceId);
-    try {
-      Instance instance = instanceClient.get(instanceId);
-      log.info("findInstance:: instance {} found", instanceId);
-      return Optional.of(instance);
-    } catch (FeignException.NotFound e) {
+    Instance instance = instanceClient.get(instanceId);
+    if (instance == null) {
       log.warn("findInstance:: instance {} not found", instanceId);
       return Optional.empty();
     }
+    log.info("findInstance:: instance {} found", instanceId);
+    return Optional.of(instance);
   }
 
   @Override

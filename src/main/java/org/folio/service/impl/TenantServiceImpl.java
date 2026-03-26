@@ -23,7 +23,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import org.folio.client.feign.SearchInstanceClient;
+import org.folio.client.SearchInstanceClient;
 import org.folio.domain.dto.ItemStatusEnum;
 import org.folio.domain.dto.SearchHolding;
 import org.folio.domain.dto.SearchInstance;
@@ -33,7 +33,6 @@ import org.folio.domain.dto.SearchItemStatus;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.service.ConsortiumService;
 import org.folio.service.TenantService;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
 import lombok.RequiredArgsConstructor;
@@ -128,7 +127,6 @@ public class TenantServiceImpl implements TenantService {
       .collect(groupingBy(identity(), counting()));
   }
 
-  @NotNull
   private static Map<String, Map<String, Long>> mapItemsToItemStatusOccurrences(
     Map<String, List<SearchItem>> itemsByTenant) {
 

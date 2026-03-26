@@ -15,8 +15,8 @@ import java.util.List;
 import java.util.UUID;
 
 import org.folio.api.BaseIT;
-import org.folio.client.feign.CirculationItemClient;
-import org.folio.client.feign.DcbEcsTransactionClient;
+import org.folio.client.CirculationItemClient;
+import org.folio.client.DcbEcsTransactionClient;
 import org.folio.domain.dto.CirculationItem;
 import org.folio.domain.dto.CirculationItems;
 import org.folio.domain.dto.DcbItem;
@@ -25,16 +25,18 @@ import org.folio.domain.dto.Item;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.impl.ItemEventHandler;
-import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.spring.FolioExecutionContext;
+import org.folio.spring.scope.FolioExecutionContextService;
 import org.folio.support.kafka.EventType;
 import org.folio.support.kafka.InventoryKafkaEvent;
 import org.folio.support.kafka.KafkaEvent;
+import org.folio.util.TestUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 class ItemEventHandlerTest extends BaseIT {
   private static final EnumSet<EventType> SUPPORTED_EVENT_TYPES = EnumSet.of(UPDATE);
@@ -44,12 +46,17 @@ class ItemEventHandlerTest extends BaseIT {
   private CirculationItemClient circulationItemClient;
   @MockitoBean
   private EcsTlrRepository ecsTlrRepository;
-  @MockitoSpyBean
-  private SystemUserScopedExecutionService executionService;
+  @MockitoBean
+  private FolioExecutionContextService contextService;
   @MockitoBean
   private DcbEcsTransactionClient dcbEcsTransactionClient;
   @Autowired
   private ItemEventHandler itemEventHandler;
+
+  @BeforeEach
+  void beforeEach() {
+    TestUtils.mockFolioExecutionContextService(contextService);
+  }
 
   @ParameterizedTest
   @EnumSource(EventType.class)
@@ -119,8 +126,8 @@ class ItemEventHandlerTest extends BaseIT {
     var dcbTransactionPatch = new DcbTransaction().item(new DcbItem().barcode(NEW_BARCODE));
 
     verify(ecsTlrRepository).findByItemId(itemId);
-    verify(executionService).executeAsyncSystemUserScoped(eq(TENANT_ID_UNIVERSITY), any());
-    verify(executionService).executeAsyncSystemUserScoped(eq(TENANT_ID_CONSORTIUM), any());
+    verify(contextService).execute(eq(TENANT_ID_UNIVERSITY), any(FolioExecutionContext.class), any(Runnable.class));
+    verify(contextService).execute(eq(TENANT_ID_CONSORTIUM), any(FolioExecutionContext.class), any(Runnable.class));
     verify(circulationItemClient, times(2))
       .updateCirculationItem(itemId.toString(), circulationItem);
     verify(dcbEcsTransactionClient).updateTransaction(primaryRequestDcbTransactionId.toString(),

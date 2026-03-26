@@ -13,6 +13,7 @@ import static org.folio.domain.dto.Request.RequestTypeEnum.HOLD;
 import static org.folio.domain.dto.Request.RequestTypeEnum.PAGE;
 import static org.folio.support.CqlQuery.exactMatch;
 import static org.folio.support.CqlQuery.exactMatchAny;
+import static org.folio.util.TestUtils.mockFolioExecutionContextService;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
@@ -31,7 +32,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.Callable;
 import java.util.stream.Stream;
 
 import org.folio.domain.dto.AddressType;
@@ -61,7 +61,8 @@ import org.folio.domain.dto.UserPersonal;
 import org.folio.domain.dto.UserPersonalAddressesInner;
 import org.folio.service.impl.PickSlipsService;
 import org.folio.service.impl.SearchSlipsService;
-import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.spring.FolioExecutionContext;
+import org.folio.spring.scope.FolioExecutionContextService;
 import org.folio.support.CqlQuery;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -97,7 +98,9 @@ class StaffSlipsServiceTest {
   @Mock
   private ConsortiaService consortiaService;
   @Mock
-  private SystemUserScopedExecutionService executionService;
+  private FolioExecutionContextService contextService;
+  @Mock
+  private FolioExecutionContext folioContext;
   @Mock
   private UserService userService;
   @Mock
@@ -117,9 +120,7 @@ class StaffSlipsServiceTest {
 
   @BeforeEach
   public void setup() {
-    // Bypass the use of system user and return the result of Callable immediately
-    when(executionService.executeSystemUserScoped(any(String.class), any(Callable.class)))
-      .thenAnswer(invocation -> invocation.getArgument(1, Callable.class).call());
+    mockFolioExecutionContextService(contextService);
   }
 
   @Test
@@ -432,7 +433,7 @@ class StaffSlipsServiceTest {
     Collection<StaffSlip> staffSlips = pickSlipsService.getStaffSlips(SERVICE_POINT_ID);
 
     assertThat(staffSlips, empty());
-    verifyNoInteractions(locationService, inventoryService, requestService, executionService);
+    verifyNoInteractions(locationService, inventoryService, requestService, contextService);
   }
 
   @Test

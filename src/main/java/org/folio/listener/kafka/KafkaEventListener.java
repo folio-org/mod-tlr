@@ -23,7 +23,7 @@ import org.folio.spring.FolioExecutionContext;
 import org.folio.spring.FolioModuleMetadata;
 import org.folio.spring.integration.XOkapiHeaders;
 import org.folio.spring.scope.FolioExecutionContextSetter;
-import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.spring.scope.FolioExecutionContextService;
 import org.folio.support.kafka.DefaultKafkaEvent;
 import org.folio.support.kafka.InventoryKafkaEvent;
 import org.folio.support.kafka.KafkaEvent;
@@ -31,10 +31,11 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.JavaType;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -43,15 +44,17 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 @RequiredArgsConstructor
 public class KafkaEventListener {
-  private static final ObjectMapper objectMapper = new ObjectMapper()
-    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+  private static final ObjectMapper objectMapper = JsonMapper.builder()
+    .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+    .build();
   private final RequestEventHandler requestEventHandler;
   private final LoanEventHandler loanEventHandler;
   private final ItemEventHandler itemEventHandler;
   private final UserGroupEventHandler userGroupEventHandler;
   private final UserEventHandler userEventHandler;
   private final ConsortiumService consortiumService;
-  private final SystemUserScopedExecutionService systemUserScopedExecutionService;
+  private final FolioExecutionContextService contextService;
+  private final FolioExecutionContext folioContext;
   private final RequestBatchUpdateEventHandler requestBatchEventHandler;
   private final FolioModuleMetadata folioModuleMetadata;
 
@@ -117,8 +120,8 @@ public class KafkaEventListener {
         log.info("handleEvent:: current tenant is not a consortium member, ignoring event {}", event::getId);
         return;
       }
-      systemUserScopedExecutionService.executeAsyncSystemUserScoped(
-        consortiumService.getCentralTenantId(), () -> handler.handle(event));
+      contextService.execute(consortiumService.getCentralTenantId(),
+        folioContext, () -> handler.handle(event));
     } catch (Exception e) {
       log.error("handleEvent:: failed to handle event {}", event.getId(), e);
     }
@@ -134,7 +137,7 @@ public class KafkaEventListener {
       return objectMapper.<KafkaEvent<T>>readValue(eventString, eventType)
         .withTenantIdHeaderValue(getHeaderValue(messageHeaders, XOkapiHeaders.TENANT, true))
         .withUserIdHeaderValue(getHeaderValue(messageHeaders, XOkapiHeaders.USER_ID, false));
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       log.error("deserialize:: failed to deserialize event", e);
       throw new KafkaEventDeserializationException(e);
     }

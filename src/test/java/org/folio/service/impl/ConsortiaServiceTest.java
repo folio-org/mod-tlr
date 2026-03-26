@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import org.folio.client.feign.ConsortiaClient;
+import org.folio.client.ConsortiaClient;
 import org.folio.domain.dto.SharingInstance;
 import org.folio.domain.dto.Status;
 import org.folio.service.ConsortiumService;

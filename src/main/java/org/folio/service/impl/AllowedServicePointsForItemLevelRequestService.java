@@ -4,15 +4,16 @@ import java.util.Collection;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
-import org.folio.client.feign.CirculationClient;
-import org.folio.client.feign.ConsortiumSearchClient;
+import org.folio.client.CirculationClient;
+import org.folio.client.ConsortiumSearchClient;
 import org.folio.domain.dto.AllowedServicePointsRequest;
 import org.folio.domain.dto.AllowedServicePointsResponse;
 import org.folio.domain.dto.SearchItemResponse;
 import org.folio.repository.EcsTlrRepository;
 import org.folio.service.RequestService;
 import org.folio.service.UserService;
-import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.spring.FolioExecutionContext;
+import org.folio.spring.scope.FolioExecutionContextService;
 import org.springframework.stereotype.Service;
 
 import lombok.extern.log4j.Log4j2;
@@ -23,11 +24,12 @@ public class AllowedServicePointsForItemLevelRequestService extends AllowedServi
 
   public AllowedServicePointsForItemLevelRequestService(ConsortiumSearchClient searchClient,
     CirculationClient circulationClient, UserService userService,
-    SystemUserScopedExecutionService executionService, RequestService requestService,
+    FolioExecutionContextService contextService,
+    FolioExecutionContext folioContext, RequestService requestService,
     EcsTlrRepository ecsTlrRepository) {
 
-    super(searchClient, circulationClient, userService, executionService,
-      requestService, ecsTlrRepository);
+    super(searchClient, circulationClient, userService, contextService,
+      folioContext, requestService, ecsTlrRepository);
   }
 
   @Override
@@ -47,7 +49,7 @@ public class AllowedServicePointsForItemLevelRequestService extends AllowedServi
     log.info("getAllowedServicePointsFromTenant:: parameters: request: {}, " +
       "patronGroupId: {}, tenantId: {}", request, patronGroupId, tenantId);
 
-    return executionService.executeSystemUserScoped(tenantId,
+    return contextService.execute(tenantId, folioContext,
       () -> circulationClient.allowedServicePointsByItem(patronGroupId,
         request.getOperation().getValue(), request.getItemId()));
   }

@@ -10,7 +10,6 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.UUID;
 
-import org.folio.client.feign.SearchInstanceClient;
 import org.folio.domain.dto.SearchInstance;
 import org.folio.domain.dto.SearchInstancesResponse;
 import org.folio.support.CqlQuery;

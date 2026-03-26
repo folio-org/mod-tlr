@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.4.3</version>
+    <version>4.0.2</version>
     <relativePath />
   </parent>
   <groupId>org.folio</groupId>
@@ -32,7 +32,7 @@
     <argLine />
 
     <!-- runtime dependencies -->
-    <folio-spring-support.version>9.0.0</folio-spring-support.version>
+    <folio-spring-support.version>10.0.0-RC1</folio-spring-support.version>
     <openapi-generator.version>7.4.0</openapi-generator.version>
     <mapstruct.version>1.6.3</mapstruct.version>
 
@@ -86,30 +86,14 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>org.springframework.kafka</groupId>
-      <artifactId>spring-kafka</artifactId>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-kafka</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-cache</artifactId>
     </dependency>
 
-    <dependency>
-      <groupId>com.fasterxml.jackson.module</groupId>
-      <artifactId>jackson-module-jaxb-annotations</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.datatype</groupId>
-      <artifactId>jackson-datatype-jdk8</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-core</artifactId>
-    </dependency>
 
     <dependency>
       <groupId>org.projectlombok</groupId>
@@ -141,6 +125,16 @@
     </dependency>
 
     <!-- Test dependencies -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webmvc-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-webtestclient</artifactId>
+      <scope>compile</scope>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>

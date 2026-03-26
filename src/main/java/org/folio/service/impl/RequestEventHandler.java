@@ -29,7 +29,8 @@ import org.folio.service.DcbService;
 import org.folio.service.KafkaEventHandler;
 import org.folio.service.RequestService;
 import org.folio.service.ServicePointService;
-import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.spring.FolioExecutionContext;
+import org.folio.spring.scope.FolioExecutionContextService;
 import org.folio.support.kafka.KafkaEvent;
 import org.springframework.stereotype.Service;
 
@@ -45,7 +46,8 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
 
   private final DcbService dcbService;
   private final EcsTlrRepository ecsTlrRepository;
-  private final SystemUserScopedExecutionService executionService;
+  private final FolioExecutionContextService contextService;
+  private final FolioExecutionContext folioContext;
   private final ServicePointService servicePointService;
   private final CloningService<ServicePoint> servicePointCloningService;
   private final RequestService requestService;
@@ -278,9 +280,9 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
     }
     log.info("clonePickupServicePoint:: ensuring that service point {} exists in tenant {}",
       pickupServicePointId, targetRequestTenantId);
-    ServicePoint pickupServicePoint = executionService.executeSystemUserScoped(
-      primaryRequestTenantId, () -> servicePointService.find(pickupServicePointId));
-    executionService.executeSystemUserScoped(targetRequestTenantId,
+    ServicePoint pickupServicePoint = contextService.execute(
+      primaryRequestTenantId, folioContext, () -> servicePointService.find(pickupServicePointId));
+    contextService.execute(targetRequestTenantId, folioContext,
       () -> servicePointCloningService.clone(pickupServicePoint));
   }
 

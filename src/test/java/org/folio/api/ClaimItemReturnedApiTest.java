@@ -11,6 +11,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.folio.spring.integration.XOkapiHeaders.TENANT;
 import static org.folio.support.MockDataUtils.buildCirculationClaimItemReturnedRequest;
 import static org.folio.support.MockDataUtils.buildClaimItemReturnedRequest;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasEntry;
@@ -21,6 +22,8 @@ import static org.hamcrest.Matchers.stringContainsInOrder;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 import org.folio.domain.dto.CirculationClaimItemReturnedRequest;
 import org.folio.domain.dto.ClaimItemReturnedRequest;
@@ -115,16 +118,16 @@ class ClaimItemReturnedApiTest extends LoanActionBaseIT {
       new Date(), ACTION_COMMENT);
 
     claimItemReturned(request)
-      .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY)
+      .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT)
       .expectBody()
-      .jsonPath("$.errors").value(hasSize(1))
+      .jsonPath("$.errors").value(errors -> assertThat((List<?>) errors, hasSize(1)))
       .jsonPath("$.errors[0].code").isEqualTo("LOAN_NOT_FOUND")
       .jsonPath("$.errors[0].message").isEqualTo("Loan not found")
       .jsonPath("$.errors[0].type").isEqualTo("ValidationException")
-      .jsonPath("$.errors[0].parameters").value(hasSize(1))
-      .jsonPath("$.errors[0].parameters").value(containsInAnyOrder(
+      .jsonPath("$.errors[0].parameters").value(params -> assertThat((List<?>) params, hasSize(1)))
+      .jsonPath("$.errors[0].parameters").value(params -> assertThat((List<Map<String, String>>) params, containsInAnyOrder(
         allOf(hasEntry("key", "id"), hasEntry("value", LOCAL_TENANT_LOAN_ID.toString()))
-      ));
+      )));
   }
 
   @Test
@@ -136,29 +139,29 @@ class ClaimItemReturnedApiTest extends LoanActionBaseIT {
       .itemClaimedReturnedDateTime(new Date());
 
     claimItemReturned(invalidRequest)
-      .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY)
+      .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT)
       .expectBody()
-      .jsonPath("$.errors").value(hasSize(1))
+      .jsonPath("$.errors").value(errors -> assertThat((List<?>) errors, hasSize(1)))
       .jsonPath("$.errors[0].code").isEqualTo("INVALID_LOAN_ACTION_REQUEST")
       .jsonPath("$.errors[0].message").isEqualTo(INVALID_REQUEST_ERROR_MESSAGE)
       .jsonPath("$.errors[0].type").isEqualTo("ValidationException")
-      .jsonPath("$.errors[0].parameters").value(hasSize(3))
-      .jsonPath("$.errors[0].parameters").value(containsInAnyOrder(
+      .jsonPath("$.errors[0].parameters").value(params -> assertThat((List<?>) params, hasSize(3)))
+      .jsonPath("$.errors[0].parameters").value(params -> assertThat((List<Map<String, String>>) params, containsInAnyOrder(
         allOf(hasEntry("key", "loanId"), hasEntry("value", LOCAL_TENANT_LOAN_ID.toString())),
         allOf(hasEntry("key", "userId"), hasEntry("value", USER_ID.toString())),
         allOf(hasEntry("key", "itemId"), hasEntry("value", ITEM_ID.toString()))
-      ));
+      )));
   }
 
   @Test
   void claimItemReturnedFailsWhenRequestDoesNotHaveItemClaimedReturnedDateTime() {
     claimItemReturned(new ClaimItemReturnedRequest().itemClaimedReturnedDateTime(null))
-      .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY)
+      .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_CONTENT)
       .expectBody()
-      .jsonPath("$.errors").value(hasSize(1))
+      .jsonPath("$.errors").value(errors -> assertThat((List<?>) errors, hasSize(1)))
       .jsonPath("$.errors[0].type").isEqualTo("MethodArgumentNotValidException")
-      .jsonPath("$.errors[0].message").value(stringContainsInOrder(
-        "Validation failed for argument", "must not be null"));
+      .jsonPath("$.errors[0].message").value(msg -> assertThat((String) msg, stringContainsInOrder(
+        "Validation failed for argument", "must not be null")));
   }
 
   @Test
@@ -174,10 +177,10 @@ class ClaimItemReturnedApiTest extends LoanActionBaseIT {
     claimItemReturned(request)
       .expectStatus().isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
       .expectBody()
-      .jsonPath("$.errors").value(hasSize(1))
-      .jsonPath("$.errors[0].type").isEqualTo("DecodeException")
+      .jsonPath("$.errors").value(errors -> assertThat((List<?>) errors, hasSize(1)))
+      .jsonPath("$.errors[0].type").isEqualTo("RestClientException")
       .jsonPath("$.errors[0].code").isEqualTo("INTERNAL_SERVER_ERROR")
-      .jsonPath("$.errors[0].message").value(startsWith("Error while extracting response"));
+      .jsonPath("$.errors[0].message").value(msg -> assertThat((String) msg, startsWith("Error while extracting response")));
   }
 
   private WebTestClient.ResponseSpec claimItemReturned(

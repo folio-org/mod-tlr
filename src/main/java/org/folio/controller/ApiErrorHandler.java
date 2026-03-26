@@ -36,14 +36,14 @@ public class ApiErrorHandler {
 
   @ExceptionHandler(ValidationException.class)
   public ResponseEntity<Errors> handleValidationException(ValidationException e) {
-    return handleApiException(e, HttpStatus.UNPROCESSABLE_ENTITY);
+    return handleApiException(e, HttpStatus.UNPROCESSABLE_CONTENT);
   }
 
   // Catches validation errors from @Valid annotations
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<Errors> handleValidationError(MethodArgumentNotValidException e) {
     logException(e);
-    return buildSingleErrorResponseEntity(HttpStatus.UNPROCESSABLE_ENTITY,
+    return buildSingleErrorResponseEntity(HttpStatus.UNPROCESSABLE_CONTENT,
       buildError(e, ErrorCode.METHOD_ARGUMENT_NOT_VALID));
   }
 

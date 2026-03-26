@@ -15,12 +15,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.folio.client.feign.CirculationClient;
-import org.folio.client.feign.CirculationItemClient;
-import org.folio.client.feign.InstanceClient;
-import org.folio.client.feign.ItemClient;
-import org.folio.client.feign.RequestCirculationClient;
-import org.folio.client.feign.RequestStorageClient;
+import org.folio.client.CirculationClient;
+import org.folio.client.CirculationItemClient;
+import org.folio.client.InstanceClient;
+import org.folio.client.ItemClient;
+import org.folio.client.RequestCirculationClient;
+import org.folio.client.RequestStorageClient;
 import org.folio.domain.RequestWrapper;
 import org.folio.domain.dto.CirculationItem;
 import org.folio.domain.dto.CirculationItemStatus;
@@ -41,7 +41,8 @@ import org.folio.service.InventoryService;
 import org.folio.service.RequestService;
 import org.folio.service.ServicePointService;
 import org.folio.service.UserService;
-import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.spring.FolioExecutionContext;
+import org.folio.spring.scope.FolioExecutionContextService;
 import org.folio.support.BulkFetcher;
 import org.folio.support.CqlQuery;
 import org.folio.support.DateTimeUtils;
@@ -55,7 +56,8 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public class RequestServiceImpl implements RequestService {
 
-  private final SystemUserScopedExecutionService executionService;
+  private final FolioExecutionContextService contextService;
+  private final FolioExecutionContext folioContext;
   private final CirculationClient circulationClient;
   private final CirculationItemClient circulationItemClient;
   private final ItemClient itemClient;
@@ -66,7 +68,6 @@ public class RequestServiceImpl implements RequestService {
   private final ServicePointService servicePointService;
   private final CloningService<User> userCloningService;
   private final CloningService<ServicePoint> servicePointCloningService;
-  private final SystemUserScopedExecutionService systemUserScopedExecutionService;
   private final ConsortiaService consortiaService;
   private final ConsortiumService consortiumService;
   private final InventoryService inventoryService;
@@ -83,7 +84,7 @@ public class RequestServiceImpl implements RequestService {
 
     createShadowInstance(primaryRequest.getInstanceId(), primaryRequestTenantId);
 
-    return executionService.executeSystemUserScoped(primaryRequestTenantId, () -> {
+    return contextService.execute(primaryRequestTenantId, folioContext, () -> {
       CirculationItem circItem = createCirculationItem(primaryRequest, secondaryRequestTenantId);
       Request request = circulationClient.createRequest(primaryRequest);
       log.info("createPrimaryRequest:: primary request {} created in tenant {}",
@@ -101,7 +102,7 @@ public class RequestServiceImpl implements RequestService {
       return;
     }
 
-    systemUserScopedExecutionService.executeSystemUserScoped(targetTenantId, () -> {
+    contextService.execute(targetTenantId, folioContext, () -> {
       if (inventoryService.findInstance(instanceId).isPresent()) {
         log.info("createShadowInstance:: instance {} already exists in tenant {}, doing nothing",
           instanceId, targetTenantId);
@@ -123,14 +124,14 @@ public class RequestServiceImpl implements RequestService {
     log.info("createSecondaryRequest:: creating secondary request {} in one of potential " +
       "tenants: {}", requestId, secondaryRequestTenantIds);
 
-    User primaryRequestRequester = executionService.executeSystemUserScoped(primaryRequestTenantId,
-      () -> userService.find(requesterId));
-    ServicePoint primaryRequestPickupServicePoint = executionService.executeSystemUserScoped(
-      primaryRequestTenantId, () -> servicePointService.find(pickupServicePointId));
+    User primaryRequestRequester = contextService.execute(primaryRequestTenantId,
+      folioContext, () -> userService.find(requesterId));
+    ServicePoint primaryRequestPickupServicePoint = contextService.execute(
+      primaryRequestTenantId, folioContext, () -> servicePointService.find(pickupServicePointId));
 
     for (String secondaryRequestTenantId : secondaryRequestTenantIds) {
       try {
-        return executionService.executeSystemUserScoped(secondaryRequestTenantId, () -> {
+        return contextService.execute(secondaryRequestTenantId, folioContext, () -> {
           log.info("createSecondaryRequest:: creating requester {} in tenant {}",
             requesterId, secondaryRequestTenantId);
           cloneRequester(primaryRequestRequester);
@@ -175,10 +176,10 @@ public class RequestServiceImpl implements RequestService {
       final String requesterId = intermediateRequest.getRequesterId();
       final String pickupServicePointId = intermediateRequest.getPickupServicePointId();
 
-      User primaryRequestRequester = executionService.executeSystemUserScoped(primaryRequestTenantId,
-        () -> userService.find(requesterId));
-      ServicePoint primaryRequestPickupServicePoint = executionService.executeSystemUserScoped(
-        primaryRequestTenantId, () -> servicePointService.find(pickupServicePointId));
+      User primaryRequestRequester = contextService.execute(primaryRequestTenantId,
+        folioContext, () -> userService.find(requesterId));
+      ServicePoint primaryRequestPickupServicePoint = contextService.execute(
+        primaryRequestTenantId, folioContext, () -> servicePointService.find(pickupServicePointId));
 
       log.info("createIntermediateRequest:: creating requester {} in tenant {}",
         requesterId, intermediateRequestTenantId);
@@ -241,7 +242,7 @@ public class RequestServiceImpl implements RequestService {
       itemStatus, circulationItemStatus);
 
     // Check if circulation item already exists in the tenant we want to create it in
-    CirculationItem existingCirculationItem = circulationItemClient.getCirculationItem(itemId);
+    var existingCirculationItem = circulationItemClient.getCirculationItem(itemId);
     if (existingCirculationItem != null) {
       var existingStatus = existingCirculationItem.getStatus() == null
         ? null
@@ -313,21 +314,22 @@ public class RequestServiceImpl implements RequestService {
   @Override
   public Item getItemFromStorage(String itemId, String tenantId) {
     log.info("getItemFromStorage:: Fetching item {} from tenant {}", itemId, tenantId);
-    return systemUserScopedExecutionService.executeSystemUserScoped(tenantId,
+    return contextService.execute(tenantId, folioContext,
       () -> itemClient.get(itemId));
   }
 
   @Override
   public Instance getInstanceFromStorage(String instanceId, String tenantId) {
     log.info("getInstanceFromStorage:: Fetching instance {} from tenant {}", instanceId, tenantId);
-    return systemUserScopedExecutionService.executeSystemUserScoped(tenantId,
+    return contextService.execute(tenantId, folioContext,
       () -> instanceClient.get(instanceId));
   }
 
   @Override
   public Request getRequestFromStorage(String requestId, String tenantId) {
     log.info("getRequestFromStorage:: getting request {} from storage in tenant {}", requestId, tenantId);
-    return executionService.executeSystemUserScoped(tenantId, () -> getRequestFromStorage(requestId));
+    return contextService.execute(tenantId, folioContext,
+      () -> getRequestFromStorage(requestId));
   }
 
   @Override
@@ -360,7 +362,7 @@ public class RequestServiceImpl implements RequestService {
       () -> tenantId);
     log.debug("updateRequestInStorage:: {}", request);
 
-    return executionService.executeSystemUserScoped(tenantId,
+    return contextService.execute(tenantId, folioContext,
       () -> requestStorageClient.updateRequest(request.getId(), request));
   }
 
@@ -369,7 +371,7 @@ public class RequestServiceImpl implements RequestService {
     log.info("getRequestsQueueByInstanceId:: parameters instanceId: {}, tenantId: {}",
       instanceId, tenantId);
 
-    return executionService.executeSystemUserScoped(tenantId,
+    return contextService.execute(tenantId, folioContext,
       () -> requestCirculationClient.getRequestsQueueByInstanceId(instanceId).getRequests());
   }
 
@@ -392,7 +394,7 @@ public class RequestServiceImpl implements RequestService {
     log.info("getRequestsQueueByItemId:: parameters itemId: {}, tenantId: {}",
       itemId, tenantId);
 
-    return executionService.executeSystemUserScoped(tenantId,
+    return contextService.execute(tenantId, folioContext,
       () -> requestCirculationClient.getRequestsQueueByItemId(itemId).getRequests());
   }
 
@@ -403,7 +405,7 @@ public class RequestServiceImpl implements RequestService {
     log.info("reorderRequestsQueueForInstance:: parameters instanceId: {}, tenantId: {}, " +
         "reorderQueue: {}", instanceId, tenantId, reorderQueue);
 
-    return executionService.executeSystemUserScoped(tenantId,
+    return contextService.execute(tenantId, folioContext,
       () -> requestCirculationClient.reorderRequestsQueueForInstanceId(instanceId, reorderQueue)
         .getRequests());
   }
@@ -415,7 +417,7 @@ public class RequestServiceImpl implements RequestService {
     log.info("reorderRequestsQueueForItem:: parameters itemId: {}, tenantId: {}, " +
       "reorderQueue: {}", itemId, tenantId, reorderQueue);
 
-    return executionService.executeSystemUserScoped(tenantId,
+    return contextService.execute(tenantId, folioContext,
       () -> requestCirculationClient.reorderRequestsQueueForItemId(itemId, reorderQueue)
         .getRequests());
   }

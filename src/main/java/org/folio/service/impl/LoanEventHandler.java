@@ -13,7 +13,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 
-import org.folio.client.feign.LoanStorageClient;
+import org.folio.client.LoanStorageClient;
 import org.folio.domain.dto.Loan;
 import org.folio.domain.dto.Tenant;
 import org.folio.domain.dto.TransactionStatus.StatusEnum;
@@ -24,7 +24,8 @@ import org.folio.repository.EcsTlrRepository;
 import org.folio.service.ConsortiaService;
 import org.folio.service.DcbService;
 import org.folio.service.KafkaEventHandler;
-import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.spring.FolioExecutionContext;
+import org.folio.spring.scope.FolioExecutionContextService;
 import org.folio.support.CqlQuery;
 import org.folio.support.kafka.KafkaEvent;
 import org.springframework.stereotype.Service;
@@ -42,7 +43,8 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
 
   private final DcbService dcbService;
   private final EcsTlrRepository ecsTlrRepository;
-  private final SystemUserScopedExecutionService executionService;
+  private final FolioExecutionContextService contextService;
+  private final FolioExecutionContext folioContext;
   private final ConsortiaService consortiaService;
   private final LoanStorageClient loanStorageClient;
 
@@ -96,7 +98,7 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
     consortiaService.getAllConsortiumTenants().stream()
       .map(Tenant::getId)
       .filter(tenantId -> !tenantId.equals(eventTenantId))
-      .forEach(tenantId -> executionService.executeAsyncSystemUserScoped(tenantId,
+      .forEach(tenantId -> contextService.execute(tenantId, folioContext,
         () -> synchronizeOpenLoanWithUpdatedLoan(updatedLoan)));
   }
 

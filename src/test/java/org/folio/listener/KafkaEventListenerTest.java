@@ -16,13 +16,15 @@ import java.util.Map;
 import org.folio.exception.KafkaEventDeserializationException;
 import org.folio.listener.kafka.KafkaEventListener;
 import org.folio.service.ConsortiumService;
+import org.folio.service.impl.ItemEventHandler;
 import org.folio.service.impl.LoanEventHandler;
 import org.folio.service.impl.RequestBatchUpdateEventHandler;
 import org.folio.service.impl.RequestEventHandler;
 import org.folio.service.impl.UserEventHandler;
 import org.folio.service.impl.UserGroupEventHandler;
+import org.folio.spring.FolioExecutionContext;
 import org.folio.spring.FolioModuleMetadata;
-import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.spring.scope.FolioExecutionContextService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -35,11 +37,15 @@ class KafkaEventListenerTest {
   @Mock
   RequestEventHandler requestEventHandler;
   @Mock
+  ItemEventHandler itemEventHandler;
+  @Mock
   LoanEventHandler loanEventHandler;
   @Mock
   RequestBatchUpdateEventHandler requestBatchEventHandler;
   @Mock
-  SystemUserScopedExecutionService systemUserScopedExecutionService;
+  FolioExecutionContextService contextService;
+  @Mock
+  FolioExecutionContext folioContext;
   @Mock
   UserGroupEventHandler userGroupEventHandler;
   @Mock
@@ -54,15 +60,16 @@ class KafkaEventListenerTest {
   @Test
   void shouldHandleExceptionInEventHandler() {
     when(consortiumService.isCurrentTenantConsortiumMember()).thenReturn(true);
-    doThrow(new NullPointerException("NPE")).when(systemUserScopedExecutionService)
-      .executeAsyncSystemUserScoped(any(), any());
+    when(consortiumService.getCentralTenantId()).thenReturn("central");
+    doThrow(new NullPointerException("NPE")).when(contextService)
+      .execute(any(String.class), any(FolioExecutionContext.class), any(Runnable.class));
     kafkaEventListener.handleRequestEvent("{}",
       new MessageHeaders(Map.of(
         TENANT, "default".getBytes(),
         USER_ID, "08d51c7a-0f36-4f3d-9e35-d285612a23df".getBytes()
       )));
 
-    verify(systemUserScopedExecutionService).executeAsyncSystemUserScoped(any(), any());
+    verify(contextService).execute(any(String.class), any(FolioExecutionContext.class), any(Runnable.class));
   }
 
   @Test
@@ -83,7 +90,7 @@ class KafkaEventListenerTest {
   void shouldIgnoreEventIfTenantIsNotConsortiumMember() {
     when(consortiumService.isCurrentTenantConsortiumMember()).thenReturn(false);
     kafkaEventListener.handleRequestEvent("{}", new MessageHeaders(Map.of(TENANT, "test".getBytes())));
-    verifyNoInteractions(systemUserScopedExecutionService);
+    verifyNoInteractions(contextService);
   }
 
 }

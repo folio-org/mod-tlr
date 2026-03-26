@@ -23,7 +23,8 @@ import org.folio.service.RequestService;
 import org.folio.service.ServicePointService;
 import org.folio.service.UserGroupService;
 import org.folio.service.UserService;
-import org.folio.spring.service.SystemUserScopedExecutionService;
+import org.folio.spring.FolioExecutionContext;
+import org.folio.spring.scope.FolioExecutionContextService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -39,12 +40,14 @@ public class SearchSlipsService extends StaffSlipsServiceImpl {
   @Autowired
   public SearchSlipsService(LocationService locationService, InventoryService inventoryService,
     RequestService requestService, ConsortiaService consortiaService,
-    SystemUserScopedExecutionService executionService, UserService userService,
+    FolioExecutionContextService contextService,
+    FolioExecutionContext folioContext, UserService userService,
     UserGroupService userGroupService, DepartmentService departmentService,
     AddressTypeService addressTypeService, ServicePointService servicePointService) {
 
     super(ITEM_STATUSES, EnumSet.of(OPEN_NOT_YET_FILLED), EnumSet.of(HOLD), locationService,
-      inventoryService, requestService, consortiaService, executionService, userService,
-      userGroupService, departmentService, addressTypeService, servicePointService);
+      inventoryService, requestService, consortiaService, contextService,
+      folioContext, userService, userGroupService, departmentService, addressTypeService,
+      servicePointService);
   }
 }

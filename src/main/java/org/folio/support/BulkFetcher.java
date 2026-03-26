@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 import org.apache.commons.lang3.StringUtils;
-import org.folio.client.feign.GetByQueryClient;
+import org.folio.client.GetByQueryClient;
 
 import com.google.common.collect.Lists;
 
