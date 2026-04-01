@@ -2,6 +2,7 @@ package org.folio.controller;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.folio.domain.dto.Error;
 import org.folio.domain.dto.Errors;
@@ -11,6 +12,7 @@ import org.folio.exception.ApiException;
 import org.folio.exception.BadRequestException;
 import org.folio.exception.NotFoundException;
 import org.folio.exception.ValidationException;
+import org.folio.spring.exception.FolioContextExecutionException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -45,6 +47,18 @@ public class ApiErrorHandler {
     logException(e);
     return buildSingleErrorResponseEntity(HttpStatus.UNPROCESSABLE_CONTENT,
       buildError(e, ErrorCode.METHOD_ARGUMENT_NOT_VALID));
+  }
+
+  @ExceptionHandler(FolioContextExecutionException.class)
+  public ResponseEntity<Errors> handleFolioContextExecutionException(FolioContextExecutionException e) {
+    Exception exceptionToHandle = Optional.ofNullable(e.getCause())
+      .filter(Exception.class::isInstance)
+      .map(Exception.class::cast)
+      .orElse(e);
+    logException(exceptionToHandle);
+
+    return buildSingleErrorResponseEntity(HttpStatus.UNPROCESSABLE_CONTENT,
+      buildError(exceptionToHandle, ErrorCode.METHOD_ARGUMENT_NOT_VALID));
   }
 
   @ExceptionHandler(Exception.class)
