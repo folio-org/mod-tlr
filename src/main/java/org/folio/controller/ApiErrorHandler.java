@@ -51,14 +51,11 @@ public class ApiErrorHandler {
 
   @ExceptionHandler(FolioContextExecutionException.class)
   public ResponseEntity<Errors> handleFolioContextExecutionException(FolioContextExecutionException e) {
-    Exception exceptionToHandle = Optional.ofNullable(e.getCause())
-      .filter(Exception.class::isInstance)
-      .map(Exception.class::cast)
-      .orElse(e);
-    logException(exceptionToHandle);
+    Throwable throwableToHandle = Optional.ofNullable(e.getCause()).orElse(e);
+    logException(throwableToHandle);
 
     return buildSingleErrorResponseEntity(HttpStatus.UNPROCESSABLE_CONTENT,
-      buildError(exceptionToHandle, ErrorCode.METHOD_ARGUMENT_NOT_VALID));
+      buildError(throwableToHandle, ErrorCode.METHOD_ARGUMENT_NOT_VALID));
   }
 
   @ExceptionHandler(Exception.class)
@@ -85,11 +82,11 @@ public class ApiErrorHandler {
       .body(errorResponse);
   }
 
-  private static Error buildError(Exception e, ErrorCode code) {
-    return buildError(e, code, null);
+  private static Error buildError(Throwable t, ErrorCode code) {
+    return buildError(t, code, null);
   }
 
-  private static Error buildError(Exception e, ErrorCode code, Map<String, String> parameters) {
+  private static Error buildError(Throwable t, ErrorCode code, Map<String, String> parameters) {
     List<Parameter> params = null;
     if (parameters != null) {
       params = parameters.entrySet()
@@ -98,14 +95,14 @@ public class ApiErrorHandler {
         .toList();
     }
 
-    return new Error(e.getMessage())
+    return new Error(t.getMessage())
       .code(code.getValue())
-      .type(e.getClass().getSimpleName())
+      .type(t.getClass().getSimpleName())
       .parameters(params);
   }
 
-  private static void logException(Exception e) {
-    log.error("logException:: handling {}", e.getClass().getSimpleName(), e);
+  private static void logException(Throwable t) {
+    log.error("logException:: handling {}", t.getClass().getSimpleName(), t);
   }
 
 }
