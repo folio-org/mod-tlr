@@ -2,6 +2,8 @@ package org.folio.service.impl;
 
 import static java.lang.String.format;
 import static org.folio.domain.dto.DCBConstants.LOCATION_ID;
+import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.INTERMEDIATE;
+import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.PRIMARY;
 import static org.folio.support.BarcodeUtil.buildNonEmptyBarcode;
 import static org.folio.support.CqlQuery.exactMatch;
 import static org.folio.support.CqlQuery.greaterThen;
@@ -30,6 +32,7 @@ import org.folio.domain.dto.ItemStatus;
 import org.folio.domain.dto.Loan;
 import org.folio.domain.dto.ReorderQueue;
 import org.folio.domain.dto.Request;
+import org.folio.domain.dto.RequestItem;
 import org.folio.domain.dto.Requests;
 import org.folio.domain.dto.ServicePoint;
 import org.folio.domain.dto.User;
@@ -75,23 +78,21 @@ public class RequestServiceImpl implements RequestService {
   private static final String HOLDINGS_RECORD_ID = "10cd3a5a-d36f-4c7a-bc4f-e1ae3cf820c9";
 
   @Override
-  public RequestWrapper createPrimaryRequest(Request primaryRequest,
+  public RequestWrapper createPrimaryRequest(Request secondaryRequest,
     String primaryRequestTenantId, String secondaryRequestTenantId) {
 
-    final String requestId = primaryRequest.getId();
-    log.info("createPrimaryRequest:: creating primary request {} in tenant {}", requestId,
-      primaryRequestTenantId);
-
-    createShadowInstance(primaryRequest.getInstanceId(), primaryRequestTenantId);
+    log.info("createPrimaryRequest:: creating primary request in tenant {}", primaryRequestTenantId);
+    createShadowInstance(secondaryRequest.getInstanceId(), primaryRequestTenantId);
 
     return contextService.execute(primaryRequestTenantId, folioContext, () -> {
-      CirculationItem circItem = createCirculationItem(primaryRequest, secondaryRequestTenantId);
-      Request request = circulationClient.createRequest(primaryRequest);
+      CirculationItem circItem = createCirculationItem(secondaryRequest, secondaryRequestTenantId);
+      Request primaryRequest = circulationClient.createRequest(
+        buildPrimaryRequest(secondaryRequest, circItem));
       log.info("createPrimaryRequest:: primary request {} created in tenant {}",
-        requestId, primaryRequestTenantId);
-      log.debug("createPrimaryRequest:: primary request: {}", () -> request);
-      updateCirculationItemOnRequestCreation(circItem, request);
-      return new RequestWrapper(request, primaryRequestTenantId);
+        primaryRequest.getId(), primaryRequestTenantId);
+      log.debug("createPrimaryRequest:: primary request: {}", primaryRequest);
+      updateCirculationItemOnRequestCreation(circItem, primaryRequest);
+      return new RequestWrapper(primaryRequest, primaryRequestTenantId);
     });
   }
 
@@ -164,17 +165,17 @@ public class RequestServiceImpl implements RequestService {
   }
 
   @Override
-  public RequestWrapper createIntermediateRequest(Request intermediateRequest,
+  public RequestWrapper createIntermediateRequest(Request secondaryRequest,
     String primaryRequestTenantId, String intermediateRequestTenantId,
     String secondaryRequestTenantId) {
 
     log.info("createIntermediateRequest:: creating intermediate request in tenant {}, instance {}," +
-        " item {}, requester {}", intermediateRequestTenantId, intermediateRequest.getInstanceId(),
-      intermediateRequest.getItemId(), intermediateRequest.getRequesterId());
+        " item {}, requester {}", intermediateRequestTenantId, secondaryRequest.getInstanceId(),
+      secondaryRequest.getItemId(), secondaryRequest.getRequesterId());
 
     try {
-      final String requesterId = intermediateRequest.getRequesterId();
-      final String pickupServicePointId = intermediateRequest.getPickupServicePointId();
+      final String requesterId = secondaryRequest.getRequesterId();
+      final String pickupServicePointId = secondaryRequest.getPickupServicePointId();
 
       User primaryRequestRequester = contextService.execute(primaryRequestTenantId,
         folioContext, () -> userService.find(requesterId));
@@ -189,11 +190,12 @@ public class RequestServiceImpl implements RequestService {
         pickupServicePointId, intermediateRequestTenantId);
       servicePointCloningService.clone(primaryRequestPickupServicePoint);
 
-      CirculationItem circItem = createCirculationItem(intermediateRequest, secondaryRequestTenantId);
+      CirculationItem circItem = createCirculationItem(secondaryRequest, secondaryRequestTenantId);
 
       log.info("createIntermediateRequest:: creating intermediate request in tenant {}",
         intermediateRequestTenantId);
-      Request request = circulationClient.createRequest(intermediateRequest);
+      Request request = circulationClient.createRequest(
+        buildIntermediateRequest(secondaryRequest, circItem));
       log.info("createIntermediateRequest:: intermediate request {} created in tenant {}",
         request.getId(), intermediateRequestTenantId);
 
@@ -208,7 +210,8 @@ public class RequestServiceImpl implements RequestService {
 
     String errorMessage = format(
       "Failed to create intermediate request for instance %s, item %s, requester %s in tenant %s",
-      intermediateRequest.getInstanceId(), intermediateRequest.getItemId(), intermediateRequest.getRequesterId(), intermediateRequestTenantId);
+      secondaryRequest.getInstanceId(), secondaryRequest.getItemId(),
+      secondaryRequest.getRequesterId(), intermediateRequestTenantId);
     log.error("createIntermediateRequest:: {}", errorMessage);
     throw new RequestCreatingException(errorMessage);
   }
@@ -450,4 +453,46 @@ public class RequestServiceImpl implements RequestService {
       userService.update(requesterClone);
     }
   }
+
+  private static Request buildPrimaryRequest(Request secondaryRequest, CirculationItem circItem) {
+    return buildRequest(secondaryRequest, circItem, PRIMARY);
+  }
+
+  private static Request buildIntermediateRequest(Request secondaryRequest, CirculationItem circItem) {
+    return buildRequest(secondaryRequest, circItem, INTERMEDIATE);
+  }
+
+  private static Request buildRequest(Request secondaryRequest, CirculationItem circItem,
+    Request.EcsRequestPhaseEnum ecsRequestPhase) {
+
+    Request request = new Request()
+      .id(secondaryRequest.getId())
+      .instanceId(secondaryRequest.getInstanceId())
+      .requesterId(secondaryRequest.getRequesterId())
+      .requestDate(secondaryRequest.getRequestDate())
+      .requestExpirationDate(secondaryRequest.getRequestExpirationDate())
+      .holdShelfExpirationDate(secondaryRequest.getHoldShelfExpirationDate())
+      .requestLevel(secondaryRequest.getRequestLevel())
+      .requestType(secondaryRequest.getRequestType())
+      .ecsRequestPhase(ecsRequestPhase)
+      .fulfillmentPreference(secondaryRequest.getFulfillmentPreference())
+      .pickupServicePointId(secondaryRequest.getPickupServicePointId())
+      .patronComments(secondaryRequest.getPatronComments());
+
+    if (circItem != null) {
+      Optional.ofNullable(circItem.getId())
+        .map(UUID::toString)
+        .ifPresent(request::setItemId);
+
+      Optional.ofNullable(circItem.getHoldingsRecordId())
+        .map(UUID::toString)
+        .ifPresent(request::setHoldingsRecordId);
+
+      Optional.ofNullable(circItem.getBarcode())
+        .ifPresent(barcode -> request.setItem(new RequestItem().barcode(barcode)));
+    }
+
+    return request;
+  }
+
 }

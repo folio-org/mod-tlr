@@ -1,8 +1,6 @@
 package org.folio.service.impl;
 
 import static java.util.Optional.of;
-import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.INTERMEDIATE;
-import static org.folio.domain.dto.Request.EcsRequestPhaseEnum.PRIMARY;
 import static org.folio.domain.type.ErrorCode.ECS_REQUEST_CANNOT_BE_PLACED_FOR_INACTIVE_PATRON;
 import static org.folio.domain.type.ErrorCode.PATRON_HAS_OPEN_ECS_TLR_FOR_THE_SAME_TITLE;
 import static org.folio.exception.ExceptionFactory.validationError;
@@ -33,7 +31,6 @@ import org.folio.service.RequestService;
 import org.folio.service.TenantService;
 import org.folio.service.TlrSettingsService;
 import org.folio.service.UserService;
-import org.folio.service.UserTenantsService;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -49,7 +46,6 @@ public class EcsTlrServiceImpl implements EcsTlrService {
   private final TenantService tenantService;
   private final RequestService requestService;
   private final DcbService dcbService;
-  private final UserTenantsService userTenantsService;
   private final UserService userService;
   private final TlrSettingsService tlrSettingsService;
   private final ConsortiumService consortiumService;
@@ -88,7 +84,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     log.info("create:: Creating primary request for ECS TLR (ILR), instance {}, item {}, requester {}",
       ecsTlrDto.getInstanceId(), ecsTlrDto.getItemId(), ecsTlrDto.getRequesterId());
     RequestWrapper primaryRequestWrapper = requestService.createPrimaryRequest(
-      buildPrimaryRequest(secondaryRequest), primaryRequestTenantId, secondaryRequestTenantId);
+      secondaryRequest, primaryRequestTenantId, secondaryRequestTenantId);
 
     updateEcsTlr(ecsTlr, primaryRequestWrapper, secondaryRequestWrapper);
 
@@ -96,7 +92,7 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     if (!primaryRequestTenantId.equals(centralTenantId)) {
       log.info("create:: Primary request tenant is not central, creating intermediate request");
       RequestWrapper intermediateRequest = requestService.createIntermediateRequest(
-        buildIntermediateRequest(secondaryRequest), primaryRequestTenantId, centralTenantId,
+        secondaryRequest, primaryRequestTenantId, centralTenantId,
         secondaryRequestTenantId);
       updateEcsTlrWithIntermediateRequest(ecsTlr, intermediateRequest);
     }
@@ -234,30 +230,6 @@ public class EcsTlrServiceImpl implements EcsTlrService {
     log.debug("save:: ECS TLR: {}", () -> ecsTlr);
 
     return savedEcsTlr;
-  }
-
-  private static Request buildPrimaryRequest(Request secondaryRequest) {
-    return buildRequest(secondaryRequest, PRIMARY);
-  }
-
-  private static Request buildIntermediateRequest(Request secondaryRequest) {
-    return buildRequest(secondaryRequest, INTERMEDIATE);
-  }
-
-  private static Request buildRequest(Request secondaryRequest, EcsRequestPhaseEnum ecsRequestPhase) {
-    return new Request()
-      .id(secondaryRequest.getId())
-      .instanceId(secondaryRequest.getInstanceId())
-      .itemId(secondaryRequest.getItemId())
-      .holdingsRecordId(secondaryRequest.getHoldingsRecordId())
-      .requesterId(secondaryRequest.getRequesterId())
-      .requestDate(secondaryRequest.getRequestDate())
-      .requestLevel(secondaryRequest.getRequestLevel())
-      .requestType(secondaryRequest.getRequestType())
-      .ecsRequestPhase(ecsRequestPhase)
-      .fulfillmentPreference(secondaryRequest.getFulfillmentPreference())
-      .pickupServicePointId(secondaryRequest.getPickupServicePointId())
-      .patronComments(secondaryRequest.getPatronComments());
   }
 
   private Request buildSecondaryRequest(EcsTlrEntity ecsTlr) {

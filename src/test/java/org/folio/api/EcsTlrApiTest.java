@@ -83,6 +83,7 @@ class EcsTlrApiTest extends BaseIT {
   private static final String PRIMARY_REQUEST_ID = SECONDARY_REQUEST_ID;
   private static final String INTERMEDIATE_REQUEST_ID = SECONDARY_REQUEST_ID;
   private static final String CONSORTIUM_ID = "23085034-7e68-4927-9d17-1de20a06a512";
+  private static final String CIRCULATION_ITEM_HOLDINGS_RECORD_ID = randomId();
 
   private static final String UUID_PATTERN =
     "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}";
@@ -678,6 +679,8 @@ class EcsTlrApiTest extends BaseIT {
 
     Item mockItem = new Item()
       .id(ITEM_ID)
+      .holdingsRecordId(CIRCULATION_ITEM_HOLDINGS_RECORD_ID)
+      .barcode(ITEM_BARCODE)
       .status(requestType == HOLD
         ? new ItemStatus(ItemStatus.NameEnum.CHECKED_OUT)
         : new ItemStatus(ItemStatus.NameEnum.AVAILABLE));
@@ -788,12 +791,13 @@ class EcsTlrApiTest extends BaseIT {
     return new Request()
       .id(PRIMARY_REQUEST_ID)
       .itemId(ITEM_ID)
-      .holdingsRecordId(HOLDINGS_RECORD_ID)
+      .holdingsRecordId(CIRCULATION_ITEM_HOLDINGS_RECORD_ID)
       .instanceId(secondaryRequest.getInstanceId())
-      .item(secondaryRequest.getItem())
+      .item(new RequestItem().barcode(ITEM_BARCODE))
       .instance(secondaryRequest.getInstance())
       .requesterId(secondaryRequest.getRequesterId())
       .requestDate(secondaryRequest.getRequestDate())
+      .requestExpirationDate(secondaryRequest.getRequestExpirationDate())
       .requestLevel(secondaryRequest.getRequestLevel())
       .requestType(secondaryRequest.getRequestType())
       .ecsRequestPhase(ecsRequestPhase)
