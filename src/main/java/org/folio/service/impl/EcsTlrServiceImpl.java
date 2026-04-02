@@ -252,6 +252,8 @@ public class EcsTlrServiceImpl implements EcsTlrService {
       .holdingsRecordId(secondaryRequest.getHoldingsRecordId())
       .requesterId(secondaryRequest.getRequesterId())
       .requestDate(secondaryRequest.getRequestDate())
+      .requestExpirationDate(secondaryRequest.getRequestExpirationDate())
+      .holdShelfExpirationDate(secondaryRequest.getHoldShelfExpirationDate())
       .requestLevel(secondaryRequest.getRequestLevel())
       .requestType(secondaryRequest.getRequestType())
       .ecsRequestPhase(ecsRequestPhase)
