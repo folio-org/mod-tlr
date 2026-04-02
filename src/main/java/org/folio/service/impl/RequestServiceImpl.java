@@ -86,8 +86,7 @@ public class RequestServiceImpl implements RequestService {
 
     return contextService.execute(primaryRequestTenantId, folioContext, () -> {
       CirculationItem circItem = createCirculationItem(secondaryRequest, secondaryRequestTenantId);
-      Request primaryRequest = circulationClient.createRequest(
-        buildPrimaryRequest(secondaryRequest, circItem));
+      Request primaryRequest = createRequest(buildPrimaryRequest(secondaryRequest, circItem));
       log.info("createPrimaryRequest:: primary request {} created in tenant {}",
         primaryRequest.getId(), primaryRequestTenantId);
       log.debug("createPrimaryRequest:: primary request: {}", primaryRequest);
@@ -143,7 +142,7 @@ public class RequestServiceImpl implements RequestService {
 
           log.info("createSecondaryRequest:: creating secondary request {} in tenant {}",
             requestId, secondaryRequestTenantId);
-          Request secondaryRequest = circulationClient.createRequest(request);
+          Request secondaryRequest = createRequest(request);
           log.info("createSecondaryRequest:: secondary request {} created in tenant {}",
             secondaryRequest.getId(), secondaryRequestTenantId);
           log.debug("createSecondaryRequest:: secondary request: {}", () -> secondaryRequest);
@@ -162,6 +161,15 @@ public class RequestServiceImpl implements RequestService {
       request.getInstanceId(), secondaryRequestTenantIds);
     log.error("createSecondaryRequest:: {}", errorMessage);
     throw new RequestCreatingException(errorMessage);
+  }
+
+  private Request createRequest(Request request) {
+    try {
+      return circulationClient.createRequest(request);
+    } catch (Exception e) {
+      log.error("createRequest:: failed to create {} request", request.getEcsRequestPhase(), e);
+      throw e;
+    }
   }
 
   @Override
@@ -194,8 +202,7 @@ public class RequestServiceImpl implements RequestService {
 
       log.info("createIntermediateRequest:: creating intermediate request in tenant {}",
         intermediateRequestTenantId);
-      Request request = circulationClient.createRequest(
-        buildIntermediateRequest(secondaryRequest, circItem));
+      Request request = createRequest(buildIntermediateRequest(secondaryRequest, circItem));
       log.info("createIntermediateRequest:: intermediate request {} created in tenant {}",
         request.getId(), intermediateRequestTenantId);
 
