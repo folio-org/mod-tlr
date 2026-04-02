@@ -794,6 +794,7 @@ class EcsTlrApiTest extends BaseIT {
       .instance(secondaryRequest.getInstance())
       .requesterId(secondaryRequest.getRequesterId())
       .requestDate(secondaryRequest.getRequestDate())
+      .requestExpirationDate(secondaryRequest.getRequestExpirationDate())
       .requestLevel(secondaryRequest.getRequestLevel())
       .requestType(secondaryRequest.getRequestType())
       .ecsRequestPhase(ecsRequestPhase)
