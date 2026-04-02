@@ -2,6 +2,7 @@ package org.folio.controller;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.folio.domain.dto.Error;
 import org.folio.domain.dto.Errors;
@@ -11,6 +12,7 @@ import org.folio.exception.ApiException;
 import org.folio.exception.BadRequestException;
 import org.folio.exception.NotFoundException;
 import org.folio.exception.ValidationException;
+import org.folio.spring.exception.FolioContextExecutionException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -47,6 +49,15 @@ public class ApiErrorHandler {
       buildError(e, ErrorCode.METHOD_ARGUMENT_NOT_VALID));
   }
 
+  @ExceptionHandler(FolioContextExecutionException.class)
+  public ResponseEntity<Errors> handleFolioContextExecutionException(FolioContextExecutionException e) {
+    Throwable throwableToHandle = Optional.ofNullable(e.getCause()).orElse(e);
+    logException(throwableToHandle);
+
+    return buildSingleErrorResponseEntity(HttpStatus.UNPROCESSABLE_CONTENT,
+      buildError(throwableToHandle, ErrorCode.METHOD_ARGUMENT_NOT_VALID));
+  }
+
   @ExceptionHandler(Exception.class)
   public ResponseEntity<Errors> handleAnyException(Exception e) {
     logException(e);
@@ -71,11 +82,11 @@ public class ApiErrorHandler {
       .body(errorResponse);
   }
 
-  private static Error buildError(Exception e, ErrorCode code) {
-    return buildError(e, code, null);
+  private static Error buildError(Throwable t, ErrorCode code) {
+    return buildError(t, code, null);
   }
 
-  private static Error buildError(Exception e, ErrorCode code, Map<String, String> parameters) {
+  private static Error buildError(Throwable t, ErrorCode code, Map<String, String> parameters) {
     List<Parameter> params = null;
     if (parameters != null) {
       params = parameters.entrySet()
@@ -84,14 +95,14 @@ public class ApiErrorHandler {
         .toList();
     }
 
-    return new Error(e.getMessage())
+    return new Error(t.getMessage())
       .code(code.getValue())
-      .type(e.getClass().getSimpleName())
+      .type(t.getClass().getSimpleName())
       .parameters(params);
   }
 
-  private static void logException(Exception e) {
-    log.error("logException:: handling {}", e.getClass().getSimpleName(), e);
+  private static void logException(Throwable t) {
+    log.error("logException:: handling {}", t.getClass().getSimpleName(), t);
   }
 
 }
