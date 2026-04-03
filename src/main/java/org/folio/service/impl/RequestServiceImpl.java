@@ -150,9 +150,8 @@ public class RequestServiceImpl implements RequestService {
           return new RequestWrapper(secondaryRequest, secondaryRequestTenantId);
         });
       } catch (Exception e) {
-        log.error("createSecondaryRequest:: failed to create secondary request in tenant {}: {}",
-          secondaryRequestTenantId, e.getMessage());
-        log.debug("createSecondaryRequest:: ", e);
+        log.error("createSecondaryRequest:: failed to create secondary request in tenant {}",
+          secondaryRequestTenantId, e);
       }
     }
 
