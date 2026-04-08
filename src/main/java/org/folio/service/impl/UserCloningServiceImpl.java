@@ -39,6 +39,8 @@ public class UserCloningServiceImpl extends CloningServiceImpl<User> {
       .type(UserType.SHADOW.getValue())
       .barcode(original.getBarcode())
       .active(true);
+    log.info("buildClone:: original: {}", original);
+    log.info("buildClone:: clone: {}", clone);
 
     // TODO: Remove hardcoded Secure Patron name. mod-tlr shouldn't know about secure requests,
     //  but there should be a mechanism to let it know that the user's name should also be copied
@@ -54,6 +56,7 @@ public class UserCloningServiceImpl extends CloningServiceImpl<User> {
         .lastName(lastName ==  null ? "" : lastName));
     }
 
+    log.info("buildClone:: clone: {}", clone);
     log.debug("buildClone:: result: {}", clone::getId);
     return clone;
   }
