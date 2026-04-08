@@ -48,6 +48,10 @@ public class UserCloningServiceImpl extends CloningServiceImpl<User> {
       clone.personal(new UserPersonal()
         .firstName(firstName)
         .lastName(lastName));
+    } else {
+      clone.personal(new UserPersonal()
+        .firstName(firstName == null ? "" : firstName)
+        .lastName(lastName ==  null ? "" : lastName));
     }
 
     log.debug("buildClone:: result: {}", clone::getId);
