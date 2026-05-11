@@ -217,6 +217,7 @@ public class DcbServiceImpl implements DcbService {
     }
     else if (role == BORROWING_PICKUP || role == PICKUP) {
       isStatusChangeAllowed = (oldStatus == CREATED && newStatus == OPEN) ||
+        (oldStatus == ITEM_CHECKED_OUT && newStatus == ITEM_CHECKED_IN) ||
         (oldStatus == ITEM_CHECKED_IN && newStatus == CLOSED) ||
         (oldStatus != CANCELLED && newStatus == CANCELLED);
     }

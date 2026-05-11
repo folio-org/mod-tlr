@@ -11,7 +11,6 @@ import static org.folio.support.kafka.EventType.UPDATE;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 import org.folio.client.LoanStorageClient;
@@ -28,6 +27,7 @@ import org.folio.service.KafkaEventHandler;
 import org.folio.spring.FolioExecutionContext;
 import org.folio.spring.scope.FolioExecutionContextService;
 import org.folio.support.CqlQuery;
+import org.folio.support.LoanAction;
 import org.folio.support.kafka.KafkaEvent;
 import org.springframework.stereotype.Service;
 
@@ -38,8 +38,9 @@ import lombok.extern.log4j.Log4j2;
 @Service
 @Log4j2
 public class LoanEventHandler implements KafkaEventHandler<Loan> {
-  private static final Set<String> LOAN_ACTIONS_CHECK_IN = Set.of(
-    "checkedin", "checkedInReturnedByPatron", "checkedInFoundByLibrary");
+  private static final EnumSet<LoanAction> LOAN_ACTIONS_CHECK_IN = EnumSet.of(
+    LoanAction.CHECKED_IN, LoanAction.RESOLVE_CLAIM_AS_RETURNED_BY_PATRON,
+    LoanAction.RESOLVE_CLAIM_AS_FOUND_BY_LIBRARY);
   private static final EnumSet<TransactionStatusResponse.StatusEnum>
     RELEVANT_TRANSACTION_STATUSES_FOR_CHECK_IN = EnumSet.of(ITEM_CHECKED_OUT, ITEM_CHECKED_IN, CLOSED);
 
@@ -70,7 +71,7 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
     Loan loan = event.getNewVersion();
     String loanAction = loan.getAction();
     log.info("handle:: loan action: {}", loanAction);
-    if (LOAN_ACTIONS_CHECK_IN.contains(loanAction)) {
+    if (LOAN_ACTIONS_CHECK_IN.stream().anyMatch(a -> a.getValue().equals(loanAction))) {
       log.info("handleUpdateEvent:: processing loan check-in event: {}", event::getId);
       handleCheckInEvent(event);
     } else {
