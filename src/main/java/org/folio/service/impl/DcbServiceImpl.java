@@ -174,7 +174,7 @@ public class DcbServiceImpl implements DcbService {
       }
     } catch (Exception e) {
       log.error("updateTransactionStatus:: failed to update transaction status: {}", e::getMessage);
-      log.debug("updateTransactionStatus:: ", e);
+      log.info("updateTransactionStatus:: ", e);
     }
   }
 
