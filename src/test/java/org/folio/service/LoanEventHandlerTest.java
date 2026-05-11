@@ -275,7 +275,11 @@ class LoanEventHandlerTest {
     "BORROWING-PICKUP, ITEM_CHECKED_IN, LENDER, ITEM_CHECKED_IN, lending_tenant, CLOSED",
     "BORROWING-PICKUP, ITEM_CHECKED_IN, LENDER, CLOSED, lending_tenant, CLOSED",
     "PICKUP, ITEM_CHECKED_IN, LENDER, ITEM_CHECKED_IN, lending_tenant, CLOSED",
-    "PICKUP, ITEM_CHECKED_IN, LENDER, CLOSED, lending_tenant, CLOSED"
+    "PICKUP, ITEM_CHECKED_IN, LENDER, CLOSED, lending_tenant, CLOSED",
+    "BORROWING-PICKUP, ITEM_CHECKED_OUT, LENDER, ITEM_CHECKED_IN, lending_tenant, CLOSED",
+    "BORROWING-PICKUP, ITEM_CHECKED_OUT, LENDER, CLOSED, lending_tenant, CLOSED",
+    "PICKUP, ITEM_CHECKED_OUT, LENDER, ITEM_CHECKED_IN, lending_tenant, CLOSED",
+    "PICKUP, ITEM_CHECKED_OUT, LENDER, CLOSED, lending_tenant, CLOSED"
   })
   void checkInEventIsHandled(String primaryTransactionRole, String primaryTransactionStatus,
     String secondaryTransactionRole, String secondaryTransactionStatus, String eventTenant,
