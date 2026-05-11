@@ -212,6 +212,7 @@ public class DcbServiceImpl implements DcbService {
         (oldStatus == OPEN && newStatus == AWAITING_PICKUP) ||
         (oldStatus == AWAITING_PICKUP && newStatus == ITEM_CHECKED_OUT) ||
         (oldStatus == ITEM_CHECKED_OUT && newStatus == ITEM_CHECKED_IN) ||
+        (oldStatus == ITEM_CHECKED_OUT && newStatus == CLOSED) ||
         (oldStatus == ITEM_CHECKED_IN && newStatus == CLOSED) ||
         (oldStatus != CANCELLED && newStatus == CANCELLED);
     }
