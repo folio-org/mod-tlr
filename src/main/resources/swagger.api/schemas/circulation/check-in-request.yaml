@@ -1,0 +1,29 @@
+type: object
+description: Check-in request
+properties:
+  itemBarcode:
+    description: Barcode of the item to be checked in
+    type: string
+  servicePointId:
+    description: Service point where the item is being processed
+    type: string
+    format: uuid
+  checkInDate:
+    description: When the item was checked in
+    type: string
+    format: date-time
+  claimedReturnedResolution:
+    description: Describes how the library resolved the situation where an item that was claimed returned
+    type: string
+    enum:
+      - Found by library
+      - Returned by patron
+  sessionId:
+    description: Randomly generated UUID which must be the same for all check-in requests issued in scope of the same check-in session
+    type: string
+    format: uuid
+additionalProperties: false
+required:
+  - itemBarcode
+  - checkInDate
+  - servicePointId

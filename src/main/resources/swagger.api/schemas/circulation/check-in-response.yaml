@@ -1,0 +1,13 @@
+type: object
+description: Check-in response
+properties:
+  loan:
+    $ref: 'check-out-response.yaml'
+  staffSlipContext:
+    description: Context for staff slip tokens
+    type: object
+    additionalProperties: true
+  inHouseUse:
+    description: Defines whether the current check-in operation considered as in-house use or not.
+    type: boolean
+additionalProperties: false

@@ -1,6 +1,7 @@
 package org.folio.client.config;
 
 import org.folio.client.AddressTypeClient;
+import org.folio.client.CheckInClient;
 import org.folio.client.CheckOutClient;
 import org.folio.client.CirculationClient;
 import org.folio.client.CirculationErrorForwardingClient;
@@ -53,6 +54,12 @@ public class HttpClientConfiguration {
   public AddressTypeClient addressTypeClient(
     @Qualifier("httpServiceProxyFactory") HttpServiceProxyFactory factory) {
     return factory.createClient(AddressTypeClient.class);
+  }
+
+  @Bean
+  public CheckInClient checkInClient(
+      @Qualifier("errorForwardingHttpServiceProxyFactory") HttpServiceProxyFactory factory) {
+    return factory.createClient(CheckInClient.class);
   }
 
   @Bean

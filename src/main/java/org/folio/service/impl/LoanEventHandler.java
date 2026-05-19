@@ -1,5 +1,7 @@
 package org.folio.service.impl;
 
+import static org.folio.domain.dto.CheckInRequest.ClaimedReturnedResolutionEnum.FOUND_BY_LIBRARY;
+import static org.folio.domain.dto.CheckInRequest.ClaimedReturnedResolutionEnum.RETURNED_BY_PATRON;
 import static org.folio.domain.dto.TransactionStatusResponse.RoleEnum.BORROWING_PICKUP;
 import static org.folio.domain.dto.TransactionStatusResponse.RoleEnum.LENDER;
 import static org.folio.domain.dto.TransactionStatusResponse.RoleEnum.PICKUP;
@@ -14,7 +16,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import org.folio.client.CheckInClient;
+import org.folio.client.ItemClient;
 import org.folio.client.LoanStorageClient;
+import org.folio.domain.dto.CheckInRequest;
+import org.folio.domain.dto.CheckInResponse;
+import org.folio.domain.dto.Item;
 import org.folio.domain.dto.Loan;
 import org.folio.domain.dto.Tenant;
 import org.folio.domain.dto.TransactionStatus.StatusEnum;
@@ -38,6 +45,9 @@ import lombok.extern.log4j.Log4j2;
 @Service
 @Log4j2
 public class LoanEventHandler implements KafkaEventHandler<Loan> {
+  private static final String LOAN_ACTION_CHECKED_IN_FOUND_BY_LIBRARY = "checkedInFoundByLibrary";
+  private static final String LOAN_ACTION_CHECKED_IN_RETURNED_BY_PATRON = "checkedInReturnedByPatron";
+
   private static final Set<String> LOAN_ACTIONS_CHECK_IN = Set.of(
     "checkedin", "checkedInReturnedByPatron", "checkedInFoundByLibrary");
   private static final EnumSet<TransactionStatusResponse.StatusEnum>
@@ -49,6 +59,8 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
   private final FolioExecutionContext folioContext;
   private final ConsortiaService consortiaService;
   private final LoanStorageClient loanStorageClient;
+  private final CheckInClient checkInClient;
+  private final ItemClient itemClient;
 
   @Override
   public void handle(KafkaEvent<Loan> event) {
@@ -183,6 +195,35 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
         log.info("updateEcsTlr:: check-in happened in primary request tenant ({}), updating transactions",
           primaryTenantId);
         dcbService.updateTransactionStatuses(StatusEnum.ITEM_CHECKED_IN, ecsTlr);
+
+        /**
+         * mod-dcb will fail to check in "claimed returned" item in Central
+         * because mod-circulation requires resolution.
+         * mod-tlr needs to perform this check in with proper resolution.
+         */
+        if (primaryTransactionRole == PICKUP &&
+          List.of(LOAN_ACTION_CHECKED_IN_FOUND_BY_LIBRARY,
+            LOAN_ACTION_CHECKED_IN_RETURNED_BY_PATRON).contains(loan.getAction())) {
+          CheckInRequest.ClaimedReturnedResolutionEnum claimedReturnedResolution = null;
+          if (LOAN_ACTION_CHECKED_IN_FOUND_BY_LIBRARY.equals(loan.getAction())) {
+            claimedReturnedResolution = FOUND_BY_LIBRARY;
+          } else if (LOAN_ACTION_CHECKED_IN_RETURNED_BY_PATRON.equals(loan.getAction())) {
+            claimedReturnedResolution = RETURNED_BY_PATRON;
+          }
+
+          log.info("updateEcsTlr:: central tenant check in, fetching item {}", loan.getItemId());
+          Item item = itemClient.get(loan.getItemId());
+          log.info("updateEcsTlr:: checking in item by barcode {}", item.getBarcode());
+          
+          CheckInResponse checkInResponse = checkInClient.checkIn(new CheckInRequest()
+              .itemBarcode(item.getBarcode())
+            .checkInDate(loan.getSystemReturnDate())
+            .claimedReturnedResolution(claimedReturnedResolution));
+
+          log.info("updateEcsTlr:: loan action after check in: {}",
+            checkInResponse.getLoan().getAction());
+        }
+
         return;
       }
       else if (eventTenantIdIsSecondaryTenantId && secondaryTransactionRole == LENDER &&

@@ -101,6 +101,10 @@ components:
       $ref: 'schemas/circulation/check-out-dry-run-request.yaml'
     check-out-dry-run-response:
       $ref: 'schemas/circulation/check-out-dry-run-response.yaml'
+    check-in-request:
+      $ref: 'schemas/circulation/check-in-request.yaml'
+    check-in-response:
+      $ref: 'schemas/circulation/check-in-response.yaml'
     loan-policy:
       $ref: 'schemas/circulation-storage/loan-policy.json'
     errorResponse:
