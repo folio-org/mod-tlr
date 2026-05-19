@@ -17,6 +17,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.folio.client.CheckInClient;
+import org.folio.client.CirculationItemClient;
 import org.folio.client.ItemClient;
 import org.folio.client.LoanStorageClient;
 import org.folio.domain.dto.CheckInRequest;
@@ -60,7 +61,7 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
   private final ConsortiaService consortiaService;
   private final LoanStorageClient loanStorageClient;
   private final CheckInClient checkInClient;
-  private final ItemClient itemClient;
+  private final CirculationItemClient circulationItemClient;
 
   @Override
   public void handle(KafkaEvent<Loan> event) {
@@ -211,12 +212,14 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
             claimedReturnedResolution = RETURNED_BY_PATRON;
           }
 
-          log.info("updateEcsTlr:: central tenant check in, fetching item {}", loan.getItemId());
-          Item item = itemClient.get(loan.getItemId());
-          log.info("updateEcsTlr:: checking in item by barcode {}", item.getBarcode());
+          log.info("updateEcsTlr:: central tenant check in, fetching circulation item {}",
+            ecsTlr.getItemId());
+          var circulationItem = circulationItemClient
+            .getCirculationItem(ecsTlr.getItemId().toString());
+          log.info("updateEcsTlr:: checking in item by barcode {}", circulationItem.getBarcode());
           
           CheckInResponse checkInResponse = checkInClient.checkIn(new CheckInRequest()
-              .itemBarcode(item.getBarcode())
+              .itemBarcode(circulationItem.getBarcode())
             .checkInDate(loan.getSystemReturnDate())
             .claimedReturnedResolution(claimedReturnedResolution));
 
