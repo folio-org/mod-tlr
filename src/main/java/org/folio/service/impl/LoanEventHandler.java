@@ -217,9 +217,10 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
           var circulationItem = circulationItemClient
             .getCirculationItem(ecsTlr.getItemId().toString());
           log.info("updateEcsTlr:: checking in item by barcode {}", circulationItem.getBarcode());
-          
+
           CheckInResponse checkInResponse = checkInClient.checkIn(new CheckInRequest()
-              .itemBarcode(circulationItem.getBarcode())
+            .itemBarcode(circulationItem.getBarcode())
+            .servicePointId(UUID.fromString(loan.getCheckinServicePointId()))
             .checkInDate(loan.getSystemReturnDate())
             .claimedReturnedResolution(claimedReturnedResolution));
 
