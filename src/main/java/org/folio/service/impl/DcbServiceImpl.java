@@ -157,6 +157,11 @@ public class DcbServiceImpl implements DcbService {
       ecsTlr.getSecondaryRequestTenantId());
   }
 
+  @Override
+  public void updateTransactionStatus(UUID transactionId, StatusEnum newStatus, String tenantId) {
+    updateTransactionStatus(transactionId, newStatus, null, tenantId);
+  }
+
   private void updateTransactionStatus(UUID transactionId, StatusEnum newStatus, TransactionStatusContext context,
     String tenantId) {
 
