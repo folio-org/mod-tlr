@@ -19,5 +19,5 @@ TransactionStatus:
       type: object
       description: Optional context for the transaction status update
       properties:
-        claimReturnedResolution:
-          $ref: 'ClaimReturnedResolution.yaml#/ClaimReturnedResolution'
+        claimedReturnedResolution:
+          $ref: 'claimedReturnedResolution.yaml#/ClaimedReturnedResolution'

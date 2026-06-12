@@ -17,7 +17,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.folio.client.LoanStorageClient;
-import org.folio.domain.dto.ClaimReturnedResolution;
+import org.folio.domain.dto.ClaimedReturnedResolution;
 import org.folio.domain.dto.Loan;
 import org.folio.domain.dto.Tenant;
 import org.folio.domain.dto.TransactionStatus.StatusEnum;
@@ -51,9 +51,9 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
     LOAN_ACTION_CHECKED_IN_RETURNED_BY_PATRON, LOAN_ACTION_CHECKED_IN_FOUND_BY_LIBRARY);
   private static final EnumSet<TransactionStatusResponse.StatusEnum>
     RELEVANT_TRANSACTION_STATUSES_FOR_CHECK_IN = EnumSet.of(ITEM_CHECKED_OUT, ITEM_CHECKED_IN, CLOSED);
-  private static final Map<String, ClaimReturnedResolution> LOAN_ACTION_TO_CLAIMED_RESOLVED_RESOLUTION = Map.of(
-    LOAN_ACTION_CHECKED_IN_RETURNED_BY_PATRON, ClaimReturnedResolution.RETURNED_BY_PATRON,
-    LOAN_ACTION_CHECKED_IN_FOUND_BY_LIBRARY, ClaimReturnedResolution.FOUND_BY_LIBRARY);
+  private static final Map<String, ClaimedReturnedResolution> LOAN_ACTION_TO_CLAIMED_RESOLVED_RESOLUTION = Map.of(
+    LOAN_ACTION_CHECKED_IN_RETURNED_BY_PATRON, ClaimedReturnedResolution.RETURNED_BY_PATRON,
+    LOAN_ACTION_CHECKED_IN_FOUND_BY_LIBRARY, ClaimedReturnedResolution.FOUND_BY_LIBRARY);
 
   private final DcbService dcbService;
   private final EcsTlrRepository ecsTlrRepository;
@@ -224,7 +224,7 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
   private static @Nullable TransactionStatusContext buildTransactionStatusContext(Loan loan) {
     return Optional.ofNullable(loan.getAction())
       .map(LOAN_ACTION_TO_CLAIMED_RESOLVED_RESOLUTION::get)
-      .map(resolution -> new TransactionStatusContext().claimReturnedResolution(resolution))
+      .map(resolution -> new TransactionStatusContext().claimedReturnedResolution(resolution))
       .orElse(null);
   }
 

@@ -1,6 +1,6 @@
-ClaimReturnedResolution:
+ClaimedReturnedResolution:
   type: string
-  description: Claim returned resolution
+  description: Claimed returned resolution
   enum:
     - Found by library
     - Returned by patron
