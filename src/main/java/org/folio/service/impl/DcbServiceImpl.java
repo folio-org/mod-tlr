@@ -23,6 +23,7 @@ import org.folio.domain.dto.DcbTransaction.RoleEnum;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.TransactionStatus;
 import org.folio.domain.dto.TransactionStatus.StatusEnum;
+import org.folio.domain.dto.TransactionStatusContext;
 import org.folio.domain.dto.TransactionStatusResponse;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.service.DcbService;
@@ -136,21 +137,29 @@ public class DcbServiceImpl implements DcbService {
 
   @Override
   public void updateTransactionStatuses(TransactionStatus.StatusEnum newStatus, EcsTlrEntity ecsTlr) {
-    log.info("updateTransactionStatuses:: updating primary transaction status to {}", newStatus::getValue);
-    updateTransactionStatus(ecsTlr.getPrimaryRequestDcbTransactionId(), newStatus,
-      ecsTlr.getPrimaryRequestTenantId());
-
-    log.info("updateTransactionStatuses:: updating intermediate transaction status to {}", newStatus::getValue);
-    updateTransactionStatus(ecsTlr.getIntermediateRequestDcbTransactionId(), newStatus,
-      ecsTlr.getIntermediateRequestTenantId());
-
-    log.info("updateTransactionStatuses:: updating secondary transaction status to {}", newStatus::getValue);
-    updateTransactionStatus(ecsTlr.getSecondaryRequestDcbTransactionId(), newStatus,
-      ecsTlr.getSecondaryRequestTenantId());
+    updateTransactionStatuses(newStatus, null, ecsTlr);
   }
 
   @Override
-  public void updateTransactionStatus(UUID transactionId, StatusEnum newStatus, String tenantId) {
+  public void updateTransactionStatuses(TransactionStatus.StatusEnum newStatus, TransactionStatusContext context,
+    EcsTlrEntity ecsTlr) {
+
+    log.info("updateTransactionStatuses:: updating primary transaction status to {}", newStatus::getValue);
+    updateTransactionStatus(ecsTlr.getPrimaryRequestDcbTransactionId(), newStatus, context,
+      ecsTlr.getPrimaryRequestTenantId());
+
+    log.info("updateTransactionStatuses:: updating intermediate transaction status to {}", newStatus::getValue);
+    updateTransactionStatus(ecsTlr.getIntermediateRequestDcbTransactionId(), newStatus, context,
+      ecsTlr.getIntermediateRequestTenantId());
+
+    log.info("updateTransactionStatuses:: updating secondary transaction status to {}", newStatus::getValue);
+    updateTransactionStatus(ecsTlr.getSecondaryRequestDcbTransactionId(), newStatus, context,
+      ecsTlr.getSecondaryRequestTenantId());
+  }
+
+  private void updateTransactionStatus(UUID transactionId, StatusEnum newStatus, TransactionStatusContext context,
+    String tenantId) {
+
     if (transactionId == null) {
       log.info("updateTransactionStatus:: transaction ID is null, doing nothing");
       return;
@@ -167,7 +176,7 @@ public class DcbServiceImpl implements DcbService {
 
         TransactionStatusResponse statusUpdateResponse = contextService.execute(tenantId, folioContext,
           () -> dcbTransactionClient.changeDcbTransactionStatus(transactionId.toString(),
-            new TransactionStatus().status(newStatus)));
+            new TransactionStatus().status(newStatus).context(context)));
         if (statusUpdateResponse == null) {
           log.error("updateTransactionStatus:: transaction {} not found", transactionId);
         }

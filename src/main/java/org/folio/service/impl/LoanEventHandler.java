@@ -11,13 +11,17 @@ import static org.folio.support.kafka.EventType.UPDATE;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
 import org.folio.client.LoanStorageClient;
+import org.folio.domain.dto.ClaimReturnedResolution;
 import org.folio.domain.dto.Loan;
 import org.folio.domain.dto.Tenant;
 import org.folio.domain.dto.TransactionStatus.StatusEnum;
+import org.folio.domain.dto.TransactionStatusContext;
 import org.folio.domain.dto.TransactionStatusResponse;
 import org.folio.domain.dto.TransactionStatusResponse.RoleEnum;
 import org.folio.domain.entity.EcsTlrEntity;
@@ -31,6 +35,7 @@ import org.folio.support.CqlQuery;
 import org.folio.support.kafka.KafkaEvent;
 import org.springframework.stereotype.Service;
 
+import jakarta.annotation.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
@@ -42,6 +47,9 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
     "checkedin", "checkedInReturnedByPatron", "checkedInFoundByLibrary");
   private static final EnumSet<TransactionStatusResponse.StatusEnum>
     RELEVANT_TRANSACTION_STATUSES_FOR_CHECK_IN = EnumSet.of(ITEM_CHECKED_OUT, ITEM_CHECKED_IN, CLOSED);
+  private static final Map<String, ClaimReturnedResolution> LOAN_ACTION_TO_CLAIMED_RESOLVED_RESOLUTION = Map.of(
+    "checkedInReturnedByPatron", ClaimReturnedResolution.RETURNED_BY_PATRON,
+    "checkedInFoundByLibrary", ClaimReturnedResolution.FOUND_BY_LIBRARY);
 
   private final DcbService dcbService;
   private final EcsTlrRepository ecsTlrRepository;
@@ -182,7 +190,7 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
 
         log.info("updateEcsTlr:: check-in happened in primary request tenant ({}), updating transactions",
           primaryTenantId);
-        dcbService.updateTransactionStatuses(StatusEnum.ITEM_CHECKED_IN, ecsTlr);
+        dcbService.updateTransactionStatuses(StatusEnum.ITEM_CHECKED_IN, buildTransactionStatusContext(loan), ecsTlr);
         return;
       }
       else if (eventTenantIdIsSecondaryTenantId && secondaryTransactionRole == LENDER &&
@@ -205,6 +213,13 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
     log.info("findEcsTlrs:: found {} ECS TLRs", ecsTlrs::size);
 
     return ecsTlrs;
+  }
+
+  private static @Nullable TransactionStatusContext buildTransactionStatusContext(Loan loan) {
+    return Optional.ofNullable(loan.getAction())
+      .map(LOAN_ACTION_TO_CLAIMED_RESOLVED_RESOLUTION::get)
+      .map(resolution -> new TransactionStatusContext().claimReturnedResolution(resolution))
+      .orElse(null);
   }
 
 }
