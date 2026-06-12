@@ -43,13 +43,17 @@ import lombok.extern.log4j.Log4j2;
 @Service
 @Log4j2
 public class LoanEventHandler implements KafkaEventHandler<Loan> {
-  private static final Set<String> LOAN_ACTIONS_CHECK_IN = Set.of(
-    "checkedin", "checkedInReturnedByPatron", "checkedInFoundByLibrary");
+  public static final String LOAN_ACTION_CHECKED_IN = "checkedin";
+  public static final String LOAN_ACTION_CHECKED_IN_RETURNED_BY_PATRON = "checkedInReturnedByPatron";
+  public static final String LOAN_ACTION_CHECKED_IN_FOUND_BY_LIBRARY = "checkedInFoundByLibrary";
+
+  private static final Set<String> LOAN_ACTIONS_CHECK_IN = Set.of(LOAN_ACTION_CHECKED_IN,
+    LOAN_ACTION_CHECKED_IN_RETURNED_BY_PATRON, LOAN_ACTION_CHECKED_IN_FOUND_BY_LIBRARY);
   private static final EnumSet<TransactionStatusResponse.StatusEnum>
     RELEVANT_TRANSACTION_STATUSES_FOR_CHECK_IN = EnumSet.of(ITEM_CHECKED_OUT, ITEM_CHECKED_IN, CLOSED);
   private static final Map<String, ClaimReturnedResolution> LOAN_ACTION_TO_CLAIMED_RESOLVED_RESOLUTION = Map.of(
-    "checkedInReturnedByPatron", ClaimReturnedResolution.RETURNED_BY_PATRON,
-    "checkedInFoundByLibrary", ClaimReturnedResolution.FOUND_BY_LIBRARY);
+    LOAN_ACTION_CHECKED_IN_RETURNED_BY_PATRON, ClaimReturnedResolution.RETURNED_BY_PATRON,
+    LOAN_ACTION_CHECKED_IN_FOUND_BY_LIBRARY, ClaimReturnedResolution.FOUND_BY_LIBRARY);
 
   private final DcbService dcbService;
   private final EcsTlrRepository ecsTlrRepository;
@@ -190,7 +194,9 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
 
         log.info("updateEcsTlr:: check-in happened in primary request tenant ({}), updating transactions",
           primaryTenantId);
-        dcbService.updateTransactionStatuses(StatusEnum.ITEM_CHECKED_IN, buildTransactionStatusContext(loan), ecsTlr);
+        TransactionStatusContext context = buildTransactionStatusContext(loan);
+        log.info("updateEcsTlr:: context={}", context);
+        dcbService.updateTransactionStatuses(StatusEnum.ITEM_CHECKED_IN, context, ecsTlr);
         return;
       }
       else if (eventTenantIdIsSecondaryTenantId && secondaryTransactionRole == LENDER &&
