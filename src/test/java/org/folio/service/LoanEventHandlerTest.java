@@ -2,7 +2,6 @@ package org.folio.service;
 
 import static java.util.Collections.emptyList;
 import static java.util.UUID.randomUUID;
-import static org.folio.service.impl.LoanEventHandler.LOAN_ACTION_CHECKED_IN_RETURNED_BY_PATRON;
 import static org.folio.support.kafka.EventType.UPDATE;
 import static org.folio.util.TestUtils.mockFolioExecutionContextService;
 import static org.mockito.ArgumentMatchers.any;
@@ -389,9 +388,12 @@ class LoanEventHandlerTest {
   }
 
   private static TransactionStatusContext buildExpectedClaimedReturnedContext(String loanAction) {
-    ClaimedReturnedResolution resolution = LOAN_ACTION_CHECKED_IN_RETURNED_BY_PATRON.equals(loanAction)
-      ? ClaimedReturnedResolution.RETURNED_BY_PATRON
-      : ClaimedReturnedResolution.FOUND_BY_LIBRARY;
-    return new TransactionStatusContext().claimedReturnedResolution(resolution);
+    return switch (loanAction) {
+      case "checkedInReturnedByPatron" -> new TransactionStatusContext()
+        .claimedReturnedResolution(ClaimedReturnedResolution.RETURNED_BY_PATRON);
+      case "checkedInFoundByLibrary" -> new TransactionStatusContext()
+        .claimedReturnedResolution(ClaimedReturnedResolution.FOUND_BY_LIBRARY);
+      default -> throw new IllegalArgumentException("Unexpected loan action: " + loanAction);
+    };
   }
 }
