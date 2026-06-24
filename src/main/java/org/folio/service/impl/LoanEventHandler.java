@@ -51,7 +51,7 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
     LOAN_ACTION_CHECKED_IN_RETURNED_BY_PATRON, LOAN_ACTION_CHECKED_IN_FOUND_BY_LIBRARY);
   private static final EnumSet<TransactionStatusResponse.StatusEnum>
     RELEVANT_TRANSACTION_STATUSES_FOR_CHECK_IN = EnumSet.of(ITEM_CHECKED_OUT, ITEM_CHECKED_IN, CLOSED);
-  private static final Map<String, ClaimedReturnedResolution> LOAN_ACTION_TO_CLAIMED_RESOLVED_RESOLUTION = Map.of(
+  private static final Map<String, ClaimedReturnedResolution> LOAN_ACTION_TO_CLAIMED_RETURNED_RESOLUTION = Map.of(
     LOAN_ACTION_CHECKED_IN_RETURNED_BY_PATRON, ClaimedReturnedResolution.RETURNED_BY_PATRON,
     LOAN_ACTION_CHECKED_IN_FOUND_BY_LIBRARY, ClaimedReturnedResolution.FOUND_BY_LIBRARY);
 
@@ -195,7 +195,6 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
         log.info("updateEcsTlr:: check-in happened in primary request tenant ({}), updating transactions",
           primaryTenantId);
         TransactionStatusContext context = buildTransactionStatusContext(loan);
-        log.info("updateEcsTlr:: context={}", context);
         dcbService.updateTransactionStatuses(StatusEnum.ITEM_CHECKED_IN, context, ecsTlr);
         return;
       }
@@ -223,7 +222,7 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
 
   private static @Nullable TransactionStatusContext buildTransactionStatusContext(Loan loan) {
     return Optional.ofNullable(loan.getAction())
-      .map(LOAN_ACTION_TO_CLAIMED_RESOLVED_RESOLUTION::get)
+      .map(LOAN_ACTION_TO_CLAIMED_RETURNED_RESOLUTION::get)
       .map(resolution -> new TransactionStatusContext().claimedReturnedResolution(resolution))
       .orElse(null);
   }
