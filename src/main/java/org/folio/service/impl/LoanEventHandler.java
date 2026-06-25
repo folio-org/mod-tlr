@@ -43,9 +43,9 @@ import lombok.extern.log4j.Log4j2;
 @Service
 @Log4j2
 public class LoanEventHandler implements KafkaEventHandler<Loan> {
-  public static final String LOAN_ACTION_CHECKED_IN = "checkedin";
-  public static final String LOAN_ACTION_CHECKED_IN_RETURNED_BY_PATRON = "checkedInReturnedByPatron";
-  public static final String LOAN_ACTION_CHECKED_IN_FOUND_BY_LIBRARY = "checkedInFoundByLibrary";
+  private static final String LOAN_ACTION_CHECKED_IN = "checkedin";
+  private static final String LOAN_ACTION_CHECKED_IN_RETURNED_BY_PATRON = "checkedInReturnedByPatron";
+  private static final String LOAN_ACTION_CHECKED_IN_FOUND_BY_LIBRARY = "checkedInFoundByLibrary";
 
   private static final Set<String> LOAN_ACTIONS_CHECK_IN = Set.of(LOAN_ACTION_CHECKED_IN,
     LOAN_ACTION_CHECKED_IN_RETURNED_BY_PATRON, LOAN_ACTION_CHECKED_IN_FOUND_BY_LIBRARY);
