@@ -18,10 +18,10 @@ import org.folio.spring.FolioExecutionContext;
 import org.folio.spring.scope.FolioExecutionContextService;
 import org.folio.util.TestUtils;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -105,8 +105,9 @@ class DcbServiceTest {
       .status(TransactionStatusResponse.StatusEnum.fromValue(status));
   }
 
-  @Test
-  void updateTransactionStatusesWithContextPassesContextToDcbClient() {
+  @ParameterizedTest
+  @EnumSource(value = TransactionStatusResponse.RoleEnum.class, names = {"LENDER", "BORROWER"})
+  void updateTransactionStatusesWithContextPassesContextToDcbClient(TransactionStatusResponse.RoleEnum role) {
     String transactionId = randomUUID().toString();
     TransactionStatusContext context = new TransactionStatusContext()
       .claimedReturnedResolution(ClaimedReturnedResolution.RETURNED_BY_PATRON);
@@ -115,9 +116,9 @@ class DcbServiceTest {
       .context(context);
 
     when(dcbTransactionClient.getDcbTransactionStatus(transactionId))
-      .thenReturn(buildTransactionStatusResponse("LENDER", "ITEM_CHECKED_OUT"));
+      .thenReturn(buildTransactionStatusResponse(role.getValue(), "ITEM_CHECKED_OUT"));
     when(dcbTransactionClient.changeDcbTransactionStatus(transactionId, expectedTransactionStatus))
-      .thenReturn(buildTransactionStatusResponse("LENDER", "ITEM_CHECKED_IN"));
+      .thenReturn(buildTransactionStatusResponse(role.getValue(), "ITEM_CHECKED_IN"));
 
     EcsTlrEntity ecsTlr = new EcsTlrEntity();
     ecsTlr.setPrimaryRequestDcbTransactionId(UUID.fromString(transactionId));
