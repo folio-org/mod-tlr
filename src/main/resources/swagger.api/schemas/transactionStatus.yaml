@@ -15,3 +15,9 @@ TransactionStatus:
         - ERROR #Error occurred
     message:
       type: string
+    context:
+      type: object
+      description: Optional context for the transaction status update
+      properties:
+        claimedReturnedResolution:
+          $ref: 'claimedReturnedResolution.yaml#/ClaimedReturnedResolution'
