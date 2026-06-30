@@ -8,8 +8,11 @@ import static org.mockito.Mockito.when;
 import java.util.UUID;
 
 import org.folio.client.DcbTransactionClient;
+import org.folio.domain.dto.ClaimedReturnedResolution;
 import org.folio.domain.dto.TransactionStatus;
+import org.folio.domain.dto.TransactionStatusContext;
 import org.folio.domain.dto.TransactionStatusResponse;
+import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.service.impl.DcbServiceImpl;
 import org.folio.spring.FolioExecutionContext;
 import org.folio.spring.scope.FolioExecutionContextService;
@@ -18,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -99,6 +103,30 @@ class DcbServiceTest {
     return new TransactionStatusResponse()
       .role(TransactionStatusResponse.RoleEnum.fromValue(role))
       .status(TransactionStatusResponse.StatusEnum.fromValue(status));
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = TransactionStatusResponse.RoleEnum.class, names = {"LENDER", "BORROWER"})
+  void updateTransactionStatusesWithContextPassesContextToDcbClient(TransactionStatusResponse.RoleEnum role) {
+    String transactionId = randomUUID().toString();
+    TransactionStatusContext context = new TransactionStatusContext()
+      .claimedReturnedResolution(ClaimedReturnedResolution.RETURNED_BY_PATRON);
+    TransactionStatus expectedTransactionStatus = new TransactionStatus()
+      .status(TransactionStatus.StatusEnum.ITEM_CHECKED_IN)
+      .context(context);
+
+    when(dcbTransactionClient.getDcbTransactionStatus(transactionId))
+      .thenReturn(buildTransactionStatusResponse(role.getValue(), "ITEM_CHECKED_OUT"));
+    when(dcbTransactionClient.changeDcbTransactionStatus(transactionId, expectedTransactionStatus))
+      .thenReturn(buildTransactionStatusResponse(role.getValue(), "ITEM_CHECKED_IN"));
+
+    EcsTlrEntity ecsTlr = new EcsTlrEntity();
+    ecsTlr.setPrimaryRequestDcbTransactionId(UUID.fromString(transactionId));
+    ecsTlr.setPrimaryRequestTenantId("test_tenant");
+
+    dcbService.updateTransactionStatuses(TransactionStatus.StatusEnum.ITEM_CHECKED_IN, context, ecsTlr);
+
+    verify(dcbTransactionClient).changeDcbTransactionStatus(transactionId, expectedTransactionStatus);
   }
 
 }
