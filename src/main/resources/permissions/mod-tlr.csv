@@ -26,6 +26,7 @@ circulation-storage.loans.item.put
 inventory-storage.service-points.item.get
 inventory-storage.service-points.collection.get
 inventory-storage.service-points.item.post
+circulation-storage.cancellation-reasons.item.get
 dcb.ecs-request.transactions.post
 circulation.requests.allowed-service-points.get
 dcb.transactions.status.get

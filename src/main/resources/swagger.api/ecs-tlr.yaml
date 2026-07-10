@@ -127,6 +127,8 @@ components:
       $ref: 'schemas/inventory/servicePoint.json'
     userGroup:
       $ref: 'schemas/users/userGroup.json'
+    cancellationReason:
+      $ref: 'schemas/circulation-storage/cancellation-reason.json'
     requestsBatchUpdate:
       $ref: 'schemas/requests-batch-update.json'
     reorderQueue:

@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "description": "Cancellation reason",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Id of the cancellation reason record"
+    },
+    "name": {
+      "type": "string",
+      "description": "Name of the cancellation reason"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the cancellation reason"
+    },
+    "publicDescription": {
+      "type": "string",
+      "description": "Public description of the cancellation reason"
+    },
+    "requiresAdditionalInformation": {
+      "type": "boolean",
+      "description": "Indicates if additional information is required when this reason is used"
+    },
+    "source": {
+      "type": "string",
+      "description": "Origin of the cancellation reason record, e.g. 'System', 'User', 'Consortium' etc."
+    },
+    "metadata": {
+      "type": "object",
+      "$ref": "../metadata.json",
+      "readonly": true
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "name"
+  ]
+}
