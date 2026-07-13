@@ -22,6 +22,7 @@ import java.util.Date;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.folio.domain.dto.CancellationReason;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.ServicePoint;
 import org.folio.domain.entity.EcsTlrEntity;
@@ -47,6 +48,8 @@ class RequestEventHandlerTest {
   private static final String PRIMARY_REQUEST_TENANT_ID = "primary_tenant";
   private static final String SECONDARY_REQUEST_TENANT_ID = "secondary_tenant";
   private static final String INTERMEDIATE_REQUEST_TENANT_ID = "intermediate_tenant";
+  // the id used by DCB when canceling a request, must match RequestEventHandler.DCB_CANCELLATION_REASON_ID
+  private static final String DCB_CANCELLATION_REASON_ID = "50ed35b2-1397-4e83-a76b-642adf91ca2a";
 
   @Mock
   private DcbService dcbService;
@@ -62,6 +65,8 @@ class RequestEventHandlerTest {
   private FolioExecutionContext folioContext;
   @Mock
   private CloningService<ServicePoint> servicePointCloningService;
+  @Mock
+  private CancellationReasonService cancellationReasonService;
 
   @InjectMocks
   private RequestEventHandler handler;
@@ -208,6 +213,138 @@ class RequestEventHandlerTest {
     verify(requestService).updateRequestInStorage(requestCaptor.capture(), eq(SECONDARY_REQUEST_TENANT_ID));
     Request updatedSecondaryRequest = requestCaptor.getValue();
     assertThat(updatedSecondaryRequest.getStatus(), is(CLOSED_CANCELLED));
+  }
+
+  @Test
+  void sharedCancellationReasonIdIsPropagatedAsIsToTargetRequest() {
+    String cancellationReasonId = randomId();
+    EcsTlrEntity ecsTlr = buildEcsTlr();
+    Request primaryRequest = new Request()
+      .id(PRIMARY_REQUEST_ID.toString())
+      .ecsRequestPhase(PRIMARY)
+      .requestLevel(Request.RequestLevelEnum.TITLE)
+      .requestType(Request.RequestTypeEnum.HOLD)
+      .status(CLOSED_CANCELLED)
+      .cancellationReasonId(cancellationReasonId);
+    Request secondaryRequest = new Request()
+      .id(SECONDARY_REQUEST_ID.toString())
+      .ecsRequestPhase(SECONDARY)
+      .status(Request.StatusEnum.OPEN_IN_TRANSIT);
+
+    mockFolioExecutionContextService(contextService);
+    when(ecsTlrRepository.findBySecondaryRequestId(PRIMARY_REQUEST_ID))
+      .thenReturn(Optional.of(ecsTlr));
+    when(requestService.getRequestFromStorage(SECONDARY_REQUEST_ID.toString(), SECONDARY_REQUEST_TENANT_ID))
+      .thenReturn(secondaryRequest);
+    when(cancellationReasonService.find(cancellationReasonId))
+      .thenReturn(new CancellationReason().id(cancellationReasonId).name("Shared reason").source("Consortium"));
+
+    KafkaEvent<Request> event = buildRequestUpdateEvent(primaryRequest, primaryRequest,
+      PRIMARY_REQUEST_TENANT_ID);
+    handler.handle(event);
+
+    verify(requestService).updateRequestInStorage(requestCaptor.capture(), eq(SECONDARY_REQUEST_TENANT_ID));
+    Request updatedSecondaryRequest = requestCaptor.getValue();
+    assertThat(updatedSecondaryRequest.getStatus(), is(CLOSED_CANCELLED));
+    assertThat(updatedSecondaryRequest.getCancellationReasonId(), is(cancellationReasonId));
+  }
+
+  @Test
+  void nonSharedCancellationReasonIdFallsBackToDcbCancellationReasonId() {
+    String cancellationReasonId = randomId();
+    EcsTlrEntity ecsTlr = buildEcsTlr();
+    Request primaryRequest = new Request()
+      .id(PRIMARY_REQUEST_ID.toString())
+      .ecsRequestPhase(PRIMARY)
+      .requestLevel(Request.RequestLevelEnum.TITLE)
+      .requestType(Request.RequestTypeEnum.HOLD)
+      .status(CLOSED_CANCELLED)
+      .cancellationReasonId(cancellationReasonId);
+    Request secondaryRequest = new Request()
+      .id(SECONDARY_REQUEST_ID.toString())
+      .ecsRequestPhase(SECONDARY)
+      .status(Request.StatusEnum.OPEN_IN_TRANSIT);
+
+    mockFolioExecutionContextService(contextService);
+    when(ecsTlrRepository.findBySecondaryRequestId(PRIMARY_REQUEST_ID))
+      .thenReturn(Optional.of(ecsTlr));
+    when(requestService.getRequestFromStorage(SECONDARY_REQUEST_ID.toString(), SECONDARY_REQUEST_TENANT_ID))
+      .thenReturn(secondaryRequest);
+    when(cancellationReasonService.find(cancellationReasonId))
+      .thenReturn(new CancellationReason().id(cancellationReasonId).name("Local reason").source("System"));
+
+    KafkaEvent<Request> event = buildRequestUpdateEvent(primaryRequest, primaryRequest,
+      PRIMARY_REQUEST_TENANT_ID);
+    handler.handle(event);
+
+    verify(requestService).updateRequestInStorage(requestCaptor.capture(), eq(SECONDARY_REQUEST_TENANT_ID));
+    Request updatedSecondaryRequest = requestCaptor.getValue();
+    assertThat(updatedSecondaryRequest.getStatus(), is(CLOSED_CANCELLED));
+    assertThat(updatedSecondaryRequest.getCancellationReasonId(), is(DCB_CANCELLATION_REASON_ID));
+  }
+
+  @Test
+  void cancellationReasonLookupFailureFallsBackToDcbCancellationReasonId() {
+    String cancellationReasonId = randomId();
+    EcsTlrEntity ecsTlr = buildEcsTlr();
+    Request primaryRequest = new Request()
+      .id(PRIMARY_REQUEST_ID.toString())
+      .ecsRequestPhase(PRIMARY)
+      .requestLevel(Request.RequestLevelEnum.TITLE)
+      .requestType(Request.RequestTypeEnum.HOLD)
+      .status(CLOSED_CANCELLED)
+      .cancellationReasonId(cancellationReasonId);
+    Request secondaryRequest = new Request()
+      .id(SECONDARY_REQUEST_ID.toString())
+      .ecsRequestPhase(SECONDARY)
+      .status(Request.StatusEnum.OPEN_IN_TRANSIT);
+
+    mockFolioExecutionContextService(contextService);
+    when(ecsTlrRepository.findBySecondaryRequestId(PRIMARY_REQUEST_ID))
+      .thenReturn(Optional.of(ecsTlr));
+    when(requestService.getRequestFromStorage(SECONDARY_REQUEST_ID.toString(), SECONDARY_REQUEST_TENANT_ID))
+      .thenReturn(secondaryRequest);
+    when(cancellationReasonService.find(cancellationReasonId))
+      .thenThrow(new RuntimeException("not found"));
+
+    KafkaEvent<Request> event = buildRequestUpdateEvent(primaryRequest, primaryRequest,
+      PRIMARY_REQUEST_TENANT_ID);
+    handler.handle(event);
+
+    verify(requestService).updateRequestInStorage(requestCaptor.capture(), eq(SECONDARY_REQUEST_TENANT_ID));
+    Request updatedSecondaryRequest = requestCaptor.getValue();
+    assertThat(updatedSecondaryRequest.getStatus(), is(CLOSED_CANCELLED));
+    assertThat(updatedSecondaryRequest.getCancellationReasonId(), is(DCB_CANCELLATION_REASON_ID));
+  }
+
+  @Test
+  void missingPrimaryCancellationReasonIdFallsBackToDcbCancellationReasonId() {
+    EcsTlrEntity ecsTlr = buildEcsTlr();
+    Request primaryRequest = new Request()
+      .id(PRIMARY_REQUEST_ID.toString())
+      .ecsRequestPhase(PRIMARY)
+      .requestLevel(Request.RequestLevelEnum.TITLE)
+      .requestType(Request.RequestTypeEnum.HOLD)
+      .status(CLOSED_CANCELLED);
+    Request secondaryRequest = new Request()
+      .id(SECONDARY_REQUEST_ID.toString())
+      .ecsRequestPhase(SECONDARY)
+      .status(Request.StatusEnum.OPEN_IN_TRANSIT);
+
+    when(ecsTlrRepository.findBySecondaryRequestId(PRIMARY_REQUEST_ID))
+      .thenReturn(Optional.of(ecsTlr));
+    when(requestService.getRequestFromStorage(SECONDARY_REQUEST_ID.toString(), SECONDARY_REQUEST_TENANT_ID))
+      .thenReturn(secondaryRequest);
+
+    KafkaEvent<Request> event = buildRequestUpdateEvent(primaryRequest, primaryRequest,
+      PRIMARY_REQUEST_TENANT_ID);
+    handler.handle(event);
+
+    verifyNoInteractions(cancellationReasonService);
+    verify(requestService).updateRequestInStorage(requestCaptor.capture(), eq(SECONDARY_REQUEST_TENANT_ID));
+    Request updatedSecondaryRequest = requestCaptor.getValue();
+    assertThat(updatedSecondaryRequest.getStatus(), is(CLOSED_CANCELLED));
+    assertThat(updatedSecondaryRequest.getCancellationReasonId(), is(DCB_CANCELLATION_REASON_ID));
   }
 
   private static KafkaEvent<Request> buildRequestUpdateEvent(Request oldVersion,

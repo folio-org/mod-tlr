@@ -18,12 +18,14 @@ import java.util.UUID;
 import java.util.function.Function;
 
 import org.apache.commons.lang3.StringUtils;
+import org.folio.domain.dto.CancellationReason;
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.Request.EcsRequestPhaseEnum;
 import org.folio.domain.dto.Request.FulfillmentPreferenceEnum;
 import org.folio.domain.dto.ServicePoint;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
+import org.folio.service.CancellationReasonService;
 import org.folio.service.CloningService;
 import org.folio.service.DcbService;
 import org.folio.service.KafkaEventHandler;
@@ -43,6 +45,8 @@ import lombok.extern.log4j.Log4j2;
 public class RequestEventHandler implements KafkaEventHandler<Request> {
   // the id used by DCB when canceling a request
   private static final String DCB_CANCELLATION_REASON_ID = "50ed35b2-1397-4e83-a76b-642adf91ca2a";
+  // source of a cancellation reason record that is shared across all tenants in the consortium
+  private static final String CONSORTIUM_SOURCE = "Consortium";
 
   private final DcbService dcbService;
   private final EcsTlrRepository ecsTlrRepository;
@@ -51,6 +55,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
   private final ServicePointService servicePointService;
   private final CloningService<ServicePoint> servicePointCloningService;
   private final RequestService requestService;
+  private final CancellationReasonService cancellationReasonService;
 
   @Override
   public void handle(KafkaEvent<Request> event) {
@@ -257,7 +262,7 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
       targetRequest.setCancelledDate(new Date());
       targetRequest.setCancellationAdditionalInformation("Request cancelled by DCB");
       targetRequest.setCancelledByUserId(event.getUserIdHeaderValue());
-      targetRequest.setCancellationReasonId(DCB_CANCELLATION_REASON_ID);
+      targetRequest.setCancellationReasonId(resolveCancellationReasonId(ecsTlr, primaryRequest));
       shouldUpdateTargetRequest = true;
     }
 
@@ -284,6 +289,42 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
       primaryRequestTenantId, folioContext, () -> servicePointService.find(pickupServicePointId));
     contextService.execute(targetRequestTenantId, folioContext,
       () -> servicePointCloningService.clone(pickupServicePoint));
+  }
+
+  private String resolveCancellationReasonId(EcsTlrEntity ecsTlr, Request primaryRequest) {
+    String cancellationReasonId = primaryRequest.getCancellationReasonId();
+    if (StringUtils.isBlank(cancellationReasonId)) {
+      log.info("resolveCancellationReasonId:: primary request has no cancellation reason ID, " +
+        "falling back to DCB cancellation reason");
+      return DCB_CANCELLATION_REASON_ID;
+    }
+
+    log.info("resolveCancellationReasonId:: looking up cancellation reason {}", cancellationReasonId);
+    CancellationReason cancellationReason;
+    try {
+      cancellationReason = contextService.execute(ecsTlr.getPrimaryRequestTenantId(), folioContext,
+        () -> cancellationReasonService.find(cancellationReasonId));
+    } catch (Exception e) {
+      log.error("resolveCancellationReasonId:: failed to look up cancellation reason {}, " +
+        "falling back to DCB cancellation reason", cancellationReasonId, e);
+      return DCB_CANCELLATION_REASON_ID;
+    }
+
+    if (cancellationReason == null) {
+      log.warn("resolveCancellationReasonId:: cancellation reason {} not found, " +
+        "falling back to DCB cancellation reason", cancellationReasonId);
+      return DCB_CANCELLATION_REASON_ID;
+    }
+
+    if (CONSORTIUM_SOURCE.equalsIgnoreCase(cancellationReason.getSource())) {
+      log.info("resolveCancellationReasonId:: cancellation reason {} is shared across the consortium, " +
+        "using the real cancellation reason ID", cancellationReasonId);
+      return cancellationReasonId;
+    }
+
+    log.info("resolveCancellationReasonId:: cancellation reason {} is not shared across the consortium, " +
+      "falling back to DCB cancellation reason", cancellationReasonId);
+    return DCB_CANCELLATION_REASON_ID;
   }
 
   private boolean needToCancelHoldTlr(Request primaryRequest, Request targetRequest) {

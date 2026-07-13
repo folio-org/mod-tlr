@@ -430,6 +430,10 @@
       "version": "3.4"
     },
     {
+      "id": "cancellation-reason-storage",
+      "version": "1.2"
+    },
+    {
       "id": "ecs-request-transactions",
       "version": "1.0"
     },
@@ -476,6 +480,7 @@
         "inventory-storage.service-points.item.get",
         "inventory-storage.service-points.collection.get",
         "inventory-storage.service-points.item.post",
+        "circulation-storage.cancellation-reasons.item.get",
         "dcb.ecs-request.transactions.post",
         "circulation.requests.allowed-service-points.get",
         "dcb.transactions.status.get",
