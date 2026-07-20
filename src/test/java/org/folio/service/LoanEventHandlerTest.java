@@ -20,10 +20,12 @@ import java.util.List;
 import java.util.UUID;
 
 import org.folio.client.LoanStorageClient;
+import org.folio.domain.dto.ClaimedReturnedResolution;
 import org.folio.domain.dto.Loan;
 import org.folio.domain.dto.Loans;
 import org.folio.domain.dto.Tenant;
 import org.folio.domain.dto.TransactionStatus;
+import org.folio.domain.dto.TransactionStatusContext;
 import org.folio.domain.dto.TransactionStatusResponse;
 import org.folio.domain.entity.EcsTlrEntity;
 import org.folio.repository.EcsTlrRepository;
@@ -39,6 +41,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -195,6 +198,88 @@ class LoanEventHandlerTest {
   }
 
   @ParameterizedTest
+  @ValueSource(strings = {"checkedInReturnedByPatron", "checkedInFoundByLibrary"})
+  void claimResolvedCheckInEventIsIgnoredWhenEcsTlrForUpdatedLoanIsNotFound(String loanAction) {
+    UUID itemId = randomUUID();
+    Loan loan = new Loan()
+      .id(randomUUID().toString())
+      .action(loanAction)
+      .itemId(itemId.toString())
+      .userId(randomUUID().toString());
+
+    when(ecsTlrRepository.findByItemId(itemId)).thenReturn(emptyList());
+
+    loanEventHandler.handle(createEvent(loan));
+
+    verify(ecsTlrRepository).findByItemId(itemId);
+    verifyNoInteractions(dcbService);
+  }
+
+  @ParameterizedTest
+  @CsvSource(value = {
+    "checkedInReturnedByPatron, BORROWING-PICKUP, ITEM_CHECKED_OUT, LENDER, ITEM_CHECKED_OUT, borrowing_tenant, ITEM_CHECKED_IN",
+    "checkedInReturnedByPatron, BORROWING-PICKUP, ITEM_CHECKED_IN, LENDER, ITEM_CHECKED_IN, lending_tenant, CLOSED",
+    "checkedInFoundByLibrary, PICKUP, ITEM_CHECKED_OUT, LENDER, ITEM_CHECKED_OUT, borrowing_tenant, ITEM_CHECKED_IN",
+    "checkedInFoundByLibrary, PICKUP, ITEM_CHECKED_IN, LENDER, CLOSED, lending_tenant, CLOSED"
+  })
+  void claimResolvedCheckInEventIsHandled(String loanAction, String primaryTransactionRole,
+    String primaryTransactionStatus, String secondaryTransactionRole, String secondaryTransactionStatus,
+    String eventTenant, String expectedNewTransactionStatus) {
+
+    String primaryRequestTenant = "borrowing_tenant";
+    String secondaryRequestTenant = "lending_tenant";
+    UUID primaryTransactionId = randomUUID();
+    UUID secondaryTransactionId = randomUUID();
+    UUID itemId = randomUUID();
+    Loan loan = new Loan()
+      .action(loanAction)
+      .itemId(itemId.toString())
+      .userId(randomUUID().toString());
+
+    EcsTlrEntity mockEcsTlr = new EcsTlrEntity();
+    mockEcsTlr.setId(randomUUID());
+    mockEcsTlr.setPrimaryRequestTenantId(primaryRequestTenant);
+    mockEcsTlr.setSecondaryRequestTenantId(secondaryRequestTenant);
+    mockEcsTlr.setPrimaryRequestDcbTransactionId(primaryTransactionId);
+    mockEcsTlr.setSecondaryRequestDcbTransactionId(secondaryTransactionId);
+
+    when(ecsTlrRepository.findByItemId(itemId)).thenReturn(List.of(mockEcsTlr));
+    when(dcbService.getTransactionStatus(primaryTransactionId, primaryRequestTenant))
+      .thenReturn(buildTransactionStatusResponse(primaryTransactionRole, primaryTransactionStatus));
+    when(dcbService.getTransactionStatus(secondaryTransactionId, secondaryRequestTenant))
+      .thenReturn(buildTransactionStatusResponse(secondaryTransactionRole, secondaryTransactionStatus));
+
+    TransactionStatus.StatusEnum expectedNewStatus = TransactionStatus.StatusEnum.fromValue(
+      expectedNewTransactionStatus);
+
+    boolean checkInInPrimaryTenant = eventTenant.equals(primaryRequestTenant);
+    if (checkInInPrimaryTenant) {
+      TransactionStatusContext expectedContext = buildExpectedClaimedReturnedContext(loanAction);
+      doNothing().when(dcbService).updateTransactionStatuses(expectedNewStatus, expectedContext, mockEcsTlr);
+    } else {
+      doNothing().when(dcbService).updateTransactionStatuses(expectedNewStatus, mockEcsTlr);
+    }
+
+    KafkaEvent<Loan> event = new DefaultKafkaEvent<>(randomUUID().toString(), eventTenant,
+      DefaultKafkaEvent.DefaultKafkaEventType.UPDATED, 0L,
+      new DefaultKafkaEvent.DefaultKafkaEventData<>(loan, loan))
+      .withTenantIdHeaderValue(eventTenant)
+      .withUserIdHeaderValue("random_user_id");
+
+    loanEventHandler.handle(event);
+
+    verify(ecsTlrRepository).findByItemId(itemId);
+    verify(dcbService).getTransactionStatus(primaryTransactionId, primaryRequestTenant);
+    verify(dcbService).getTransactionStatus(secondaryTransactionId, secondaryRequestTenant);
+    if (checkInInPrimaryTenant) {
+      TransactionStatusContext expectedContext = buildExpectedClaimedReturnedContext(loanAction);
+      verify(dcbService).updateTransactionStatuses(expectedNewStatus, expectedContext, mockEcsTlr);
+    } else {
+      verify(dcbService).updateTransactionStatuses(expectedNewStatus, mockEcsTlr);
+    }
+  }
+
+  @ParameterizedTest
   @CsvSource(value = {
     "BORROWING-PICKUP, ITEM_CHECKED_OUT, LENDER, ITEM_CHECKED_OUT, borrowing_tenant, ITEM_CHECKED_IN",
     "BORROWING-PICKUP, ITEM_CHECKED_IN, LENDER, ITEM_CHECKED_OUT, borrowing_tenant, ITEM_CHECKED_IN",
@@ -243,7 +328,13 @@ class LoanEventHandlerTest {
 
     TransactionStatus.StatusEnum expectedNewStatus = TransactionStatus.StatusEnum.fromValue(
       expectedNewTransactionStatus);
-    doNothing().when(dcbService).updateTransactionStatuses(expectedNewStatus, mockEcsTlr);
+
+    boolean checkInInPrimaryTenant = eventTenant.equals(primaryRequestTenant);
+    if (checkInInPrimaryTenant) {
+      doNothing().when(dcbService).updateTransactionStatuses(expectedNewStatus, null, mockEcsTlr);
+    } else {
+      doNothing().when(dcbService).updateTransactionStatuses(expectedNewStatus, mockEcsTlr);
+    }
 
     DefaultKafkaEvent.DefaultKafkaEventData<Loan> eventData =
       new DefaultKafkaEvent.DefaultKafkaEventData<>(loan, loan);
@@ -257,7 +348,11 @@ class LoanEventHandlerTest {
     verify(ecsTlrRepository).findByItemId(itemId);
     verify(dcbService).getTransactionStatus(primaryTransactionId, primaryRequestTenant);
     verify(dcbService).getTransactionStatus(secondaryTransactionId, secondaryRequestTenant);
-    verify(dcbService).updateTransactionStatuses(expectedNewStatus, mockEcsTlr);
+    if (checkInInPrimaryTenant) {
+      verify(dcbService).updateTransactionStatuses(expectedNewStatus, null, mockEcsTlr);
+    } else {
+      verify(dcbService).updateTransactionStatuses(expectedNewStatus, mockEcsTlr);
+    }
   }
 
   private static TransactionStatusResponse buildTransactionStatusResponse(String role, String status) {
@@ -290,5 +385,15 @@ class LoanEventHandlerTest {
       new DefaultKafkaEvent.DefaultKafkaEventData<>(oldLoan, newLoan))
         .withTenantIdHeaderValue(TENANT_ID_CONSORTIUM)
         .withUserIdHeaderValue("test_user");
+  }
+
+  private static TransactionStatusContext buildExpectedClaimedReturnedContext(String loanAction) {
+    return switch (loanAction) {
+      case "checkedInReturnedByPatron" -> new TransactionStatusContext()
+        .claimedReturnedResolution(ClaimedReturnedResolution.RETURNED_BY_PATRON);
+      case "checkedInFoundByLibrary" -> new TransactionStatusContext()
+        .claimedReturnedResolution(ClaimedReturnedResolution.FOUND_BY_LIBRARY);
+      default -> throw new IllegalArgumentException("Unexpected loan action: " + loanAction);
+    };
   }
 }

@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import org.folio.domain.dto.Request;
 import org.folio.domain.dto.TransactionStatus;
+import org.folio.domain.dto.TransactionStatusContext;
 import org.folio.domain.dto.TransactionStatusResponse;
 import org.folio.domain.entity.EcsTlrEntity;
 
@@ -15,6 +16,8 @@ public interface DcbService {
   void createPickupTransaction(EcsTlrEntity ecsTlr, Request request);
   void updateTransactionStatuses(TransactionStatus.StatusEnum newStatus, EcsTlrEntity ecsTlr);
   TransactionStatusResponse getTransactionStatus(UUID transactionId, String tenantId);
+  void updateTransactionStatuses(TransactionStatus.StatusEnum newStatus, TransactionStatusContext context,
+    EcsTlrEntity ecsTlr);
   void updateTransactionStatus(UUID transactionId, TransactionStatus.StatusEnum newStatus,
     String tenantId);
 }

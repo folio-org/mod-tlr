@@ -1,3 +1,6 @@
+## 1.2.1 2026-07-20
+* Add claimed returned resolution to DCB transaction update request (MODTLR-305)
+
 ## 1.2.0 2026-04-15
 * Increase memory allocation to 1 GB (MODTLR-176)
 * Fix issue with creating ECS request for Paged item (MODTLR-162)
