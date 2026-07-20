@@ -82,7 +82,7 @@ public class LoanEventHandler implements KafkaEventHandler<Loan> {
     Loan loan = event.getNewVersion();
     String loanAction = loan.getAction();
     log.info("handle:: loan action: {}", loanAction);
-    if (LOAN_ACTION_CHECKED_IN.equals(loanAction)) {
+    if (LOAN_ACTIONS_CHECK_IN.contains(loanAction)) {
       log.info("handleUpdateEvent:: processing loan check-in event: {}", event::getId);
       handleCheckInEvent(event);
     } else {
