@@ -378,6 +378,22 @@
       "version": "14.4"
     },
     {
+      "id": "declare-item-lost",
+      "version": "0.3"
+    },
+    {
+      "id": "claim-item-returned",
+      "version": "0.2"
+    },
+    {
+      "id": "loan-policy-storage",
+      "version": "2.4"
+    },
+    {
+      "id": "loan-storage",
+      "version": "7.4"
+    },
+    {
       "id": "circulation-item",
       "version": "1.0"
     },
