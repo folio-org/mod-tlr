@@ -1,3 +1,6 @@
+## 1.2.2 2026-08-20
+* Add missing interface dependency declarations (MODTLR-314)
+
 ## 1.2.1 2026-07-20
 * Add claimed returned resolution to DCB transaction update request (MODTLR-305)
 
