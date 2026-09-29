@@ -33,6 +33,8 @@
 
     <!-- runtime dependencies -->
     <folio-spring-support.version>10.0.0</folio-spring-support.version>
+    <!-- Temporary Kafka/common snapshot for the MODTLR-324 proof of concept. Replace with an aligned release. -->
+    <folio-spring-kafka.version>10.1.0-SNAPSHOT</folio-spring-kafka.version>
     <openapi-generator.version>7.4.0</openapi-generator.version>
     <mapstruct.version>1.6.3</mapstruct.version>
 
@@ -64,6 +66,17 @@
       <groupId>org.folio</groupId>
       <artifactId>folio-spring-system-user</artifactId>
       <version>${folio-spring-support.version}</version>
+    </dependency>
+    <!-- Aligns the module metadata API used by folio-spring-kafka until folio-spring-support is upgraded. -->
+    <dependency>
+      <groupId>org.folio</groupId>
+      <artifactId>folio-spring-common</artifactId>
+      <version>${folio-spring-kafka.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.folio</groupId>
+      <artifactId>folio-spring-kafka</artifactId>
+      <version>${folio-spring-kafka.version}</version>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -206,6 +219,12 @@
   </dependencies>
 
   <build>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>true</filtering>
+      </resource>
+    </resources>
     <plugins>
 
       <plugin>

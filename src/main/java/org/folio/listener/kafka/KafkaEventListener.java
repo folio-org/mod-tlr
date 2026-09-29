@@ -60,7 +60,8 @@ public class KafkaEventListener {
 
   @KafkaListener(
     topicPattern = "${folio.environment}\\.\\w+\\.circulation\\.request",
-    groupId = "${spring.kafka.consumer.group-id}"
+    groupId = "${spring.kafka.consumer.group-id}",
+    filter = "tenantAwareMessageFilter"
   )
   public void handleRequestEvent(String eventString, @Headers Map<String, Object> messageHeaders) {
     handleEvent(eventString, requestEventHandler, messageHeaders, DefaultKafkaEvent.class, Request.class);
@@ -68,7 +69,8 @@ public class KafkaEventListener {
 
   @KafkaListener(
     topicPattern = "${folio.environment}\\.\\w+\\.circulation\\.loan",
-    groupId = "${spring.kafka.consumer.group-id}"
+    groupId = "${spring.kafka.consumer.group-id}",
+    filter = "tenantAwareMessageFilter"
   )
   public void handleLoanEvent(String eventString, @Headers Map<String, Object> messageHeaders) {
     handleEvent(eventString, loanEventHandler, messageHeaders, DefaultKafkaEvent.class, Loan.class);
@@ -76,7 +78,8 @@ public class KafkaEventListener {
 
   @KafkaListener(
     topicPattern = "${folio.environment}\\.\\w+\\.inventory\\.item",
-    groupId = "${spring.kafka.consumer.group-id}"
+    groupId = "${spring.kafka.consumer.group-id}",
+    filter = "tenantAwareMessageFilter"
   )
   public void handleItemEvent(String eventString, @Headers Map<String, Object> messageHeaders) {
     handleEvent(eventString, itemEventHandler, messageHeaders, InventoryKafkaEvent.class, Item.class);
@@ -84,7 +87,8 @@ public class KafkaEventListener {
 
   @KafkaListener(
     topicPattern = "${folio.environment}\\.\\w+\\.circulation\\.request-queue-reordering",
-    groupId = "${spring.kafka.consumer.group-id}"
+    groupId = "${spring.kafka.consumer.group-id}",
+    filter = "tenantAwareMessageFilter"
   )
   public void handleRequestBatchUpdateEvent(String eventString, @Headers Map<String, Object> messageHeaders) {
     handleEvent(eventString, requestBatchEventHandler, messageHeaders, DefaultKafkaEvent.class, RequestsBatchUpdate.class);
@@ -92,7 +96,8 @@ public class KafkaEventListener {
 
   @KafkaListener(
     topicPattern = "${folio.environment}\\.\\w+\\.users\\.userGroup",
-    groupId = "${spring.kafka.consumer.group-id}"
+    groupId = "${spring.kafka.consumer.group-id}",
+    filter = "tenantAwareMessageFilter"
   )
   public void handleUserGroupEvent(String eventString, @Headers Map<String, Object> messageHeaders) {
     handleEvent(eventString, userGroupEventHandler, messageHeaders, DefaultKafkaEvent.class, UserGroup.class);
@@ -100,7 +105,8 @@ public class KafkaEventListener {
 
   @KafkaListener(
     topicPattern = "${folio.environment}\\.\\w+\\.users\\.users",
-    groupId = "${spring.kafka.consumer.group-id}"
+    groupId = "${spring.kafka.consumer.group-id}",
+    filter = "tenantAwareMessageFilter"
   )
   public void handleUserEvent(String eventString, @Headers Map<String, Object> messageHeaders) {
     handleEvent(eventString, userEventHandler, messageHeaders, DefaultKafkaEvent.class, User.class);

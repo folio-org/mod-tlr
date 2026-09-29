@@ -3,6 +3,7 @@ server:
 spring:
   application:
     name: mod-tlr
+    version: ${MODULE_VERSION:@project.version@}
   datasource:
     username: ${DB_USERNAME:folio_admin}
     password: ${DB_PASSWORD:folio_admin}
@@ -37,13 +38,20 @@ spring:
       trust-store-location: ${KAFKA_SSL_TRUSTSTORE_LOCATION:}
     consumer:
       auto-offset-reset: latest
-      group-id: ${ENV:folio}-mod-tlr-group
+      group-id: ${ENV:folio}-mod-tlr-group-${spring.application.version}
 folio:
   tenant:
     validation:
       enabled: true
   environment: ${ENV:folio}
   okapi-url: ${OKAPI_URL:http://okapi:9130}
+  kafka:
+    tenant-filter:
+      enabled: ${KAFKA_TENANT_FILTER_ENABLED:false}
+      ignore-empty-batch: true
+      tenant-disabled-strategy: ${KAFKA_TENANT_FILTER_TENANT_DISABLED_STRATEGY:skip}
+      all-tenants-disabled-strategy: ${KAFKA_TENANT_FILTER_ALL_TENANTS_DISABLED_STRATEGY:fail}
+      entitlement-refresh-interval-seconds: ${KAFKA_TENANT_FILTER_ENTITLEMENT_REFRESH_INTERVAL_SECONDS:900}
   system-user:
     enabled:  ${SYSTEM_USER_ENABLED:true}
     username: ${SYSTEM_USER_NAME:mod-tlr}
@@ -59,6 +67,9 @@ folio:
     exchange:
       enabled: false # Logs outgoing requests
       level: BASIC
+okapi:
+  # Required by folio-spring-kafka's sidecar entitlement client.
+  url: ${OKAPI_URL:http://okapi:9130}
 management:
   endpoints:
     web:

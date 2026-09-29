@@ -60,6 +60,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
 
@@ -77,7 +78,6 @@ class KafkaEventListenerTest extends BaseIT {
   private static final String USER_GROUPS_URL_PATTERN = "/groups";
   private static final String REQUEST_STORAGE_URL_PATTERN = ".*/request-storage/requests/%s";
   private static final String SERVICE_POINTS_URL = "/service-points";
-  private static final String CONSUMER_GROUP_ID = "folio-mod-tlr-group";
 
   private static final UUID INSTANCE_ID = randomUUID();
   private static final UUID HOLDINGS_ID = randomUUID();
@@ -101,6 +101,8 @@ class KafkaEventListenerTest extends BaseIT {
   private FolioExecutionContextService contextService;
   @Autowired
   private FolioExecutionContext folioContext;
+  @Value("${spring.kafka.consumer.group-id}")
+  private String consumerGroupId;
 
   @BeforeEach
   void beforeEach() {
@@ -651,9 +653,9 @@ class KafkaEventListenerTest extends BaseIT {
   }
 
   private void publishEventAndWait(String tenant, String topic, String payload) {
-    final int initialOffset = getOffset(topic, CONSUMER_GROUP_ID);
+    final int initialOffset = getOffset(topic, consumerGroupId);
     publishEvent(tenant, topic, payload);
-    waitForOffset(topic, CONSUMER_GROUP_ID, initialOffset + 1);
+    waitForOffset(topic, consumerGroupId, initialOffset + 1);
   }
 
   private void waitForOffset(String topic, String consumerGroupId, int expectedOffset) {
