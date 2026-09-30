@@ -75,6 +75,24 @@ public class RequestEventHandler implements KafkaEventHandler<Request> {
       log.warn("handleRequestUpdateEvent:: event does not contain new version of request");
       return;
     }
+
+    // MCBFF-211 diagnostics: per-request (circulation.request topic) update event, for
+    // correlating this handler's timeline against the batch-level RequestBatchUpdateEventHandler
+    // logs. This handler propagates individual fields (expiration date, fulfillment
+    // preference, pickup SP, cancellation) between primary/secondary - it does NOT propagate
+    // `position` itself, so any position-related bug is NOT expected to originate here, but
+    // the status/phase transitions logged here help pinpoint WHEN in the sequence this event
+    // fires relative to the batch reorder.
+    Request oldVersion = event.getOldVersion();
+    log.info("MCBFF-211 handleRequestUpdateEvent:: event tenant: {}, requestId: {}, itemId: {}, " +
+        "instanceId: {}, requestLevel: {}, requestType: {}, ecsRequestPhase: {}, " +
+        "oldStatus: {}, newStatus: {}, oldPosition: {}, newPosition: {}",
+      event.getTenantIdHeaderValue(), updatedRequest.getId(), updatedRequest.getItemId(),
+      updatedRequest.getInstanceId(), updatedRequest.getRequestLevel(),
+      updatedRequest.getRequestType(), updatedRequest.getEcsRequestPhase(),
+      oldVersion == null ? null : oldVersion.getStatus(), updatedRequest.getStatus(),
+      oldVersion == null ? null : oldVersion.getPosition(), updatedRequest.getPosition());
+
     if (updatedRequest.getEcsRequestPhase() == null) {
       log.info("handleRequestUpdateEvent:: updated request is not an ECS request");
       return;

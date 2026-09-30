@@ -44,6 +44,17 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
     log.info("handle:: processing requests batch update event: {}", event::getId);
     RequestsBatchUpdate requestsBatchUpdate = event.getNewVersion();
 
+    // MCBFF-211 diagnostics: raw event as received, plus which tenant emitted it (the Kafka
+    // topic is tenant-scoped, but this handler always executes under the Central tenant
+    // context - see KafkaEventListener.handleEvent). If instanceId/requestLevel here doesn't
+    // match what we'd expect for a plain item-level Recall (e.g. requestLevel=TITLE even
+    // though the Recall itself is ITEM level), that confirms the batch-level (not per-request)
+    // requestLevel tagging done in mod-circulation-storage is bleeding into this handler.
+    log.info("MCBFF-211 handle:: event tenant: {}, instanceId: {}, itemId: {}, " +
+        "requestLevel: {}, requestIds: {}", event.getTenantIdHeaderValue(),
+      requestsBatchUpdate.getInstanceId(), requestsBatchUpdate.getItemId(),
+      requestsBatchUpdate.getRequestLevel(), requestsBatchUpdate.getRequestIds());
+
     if (isUnifiedQueue(requestsBatchUpdate)) {
       updatePositionsForUnifiedQueue(requestsBatchUpdate.getInstanceId());
     } else {
@@ -67,6 +78,19 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
 
   private void updateQueuePositions(List<Request> queue, boolean isUnifiedQueue) {
     log.debug("updateQueuePositions:: parameters queue: {}, isUnifiedQueue: {}", queue, isUnifiedQueue);
+
+    // MCBFF-211 diagnostics: full snapshot of the Central-tenant queue as fetched for this
+    // instance/item, BEFORE any ECS-phase filtering. This is the queue mod-tlr considers
+    // "authoritative" for computing secondary-request positions. Any request that shows up
+    // here with ecsRequestPhase=null (e.g. a plain item-level Recall) is a real member of
+    // this queue for display/local-resequencing purposes, but will be silently dropped from
+    // sortedRequestIds below.
+    queue.forEach(r -> log.info(
+      "MCBFF-211 updateQueuePositions:: queue member -> id: {}, itemId: {}, instanceId: {}, " +
+        "requestLevel: {}, requestType: {}, ecsRequestPhase: {}, position: {}, status: {}",
+      r.getId(), r.getItemId(), r.getInstanceId(), r.getRequestLevel(), r.getRequestType(),
+      r.getEcsRequestPhase(), r.getPosition(), r.getStatus()));
+
     List<UUID> sortedRequestIds = queue.stream()
       .filter(request -> PRIMARY == request.getEcsRequestPhase() ||
         INTERMEDIATE == request.getEcsRequestPhase())
@@ -75,6 +99,21 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
       .map(request -> UUID.fromString(request.getId()))
       .toList();
     log.debug("updateQueuePositions:: sortedRequestIds: {}", sortedRequestIds);
+
+    // MCBFF-211 diagnostics: requests present in the full queue above but EXCLUDED here
+    // (no PRIMARY/INTERMEDIATE ecsRequestPhase, or null position) - these are invisible to
+    // the cross-tenant position-sync computation below, even though they still occupy a
+    // position slot in the real queue.
+    List<String> excludedFromSync = queue.stream()
+      .filter(request -> !(PRIMARY == request.getEcsRequestPhase()
+        || INTERMEDIATE == request.getEcsRequestPhase()) || request.getPosition() == null)
+      .map(r -> "id=" + r.getId() + ",level=" + r.getRequestLevel() + ",type="
+        + r.getRequestType() + ",phase=" + r.getEcsRequestPhase() + ",position=" + r.getPosition())
+      .toList();
+    log.info("MCBFF-211 updateQueuePositions:: requests EXCLUDED from ECS position sync " +
+      "(no EcsTlrEntity linkage possible): {}", excludedFromSync);
+    log.info("MCBFF-211 updateQueuePositions:: sortedRequestIds (PRIMARY/INTERMEDIATE only, " +
+      "in position order): {}", sortedRequestIds);
 
     // Primary and intermediate request within the same ECS TLR share the same ID, so
     // we can search by either one
@@ -117,6 +156,23 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
       .toList();
     log.debug("sortEcsTlrEntities:: result: {}", sortedEcsTlrQueue);
 
+    // MCBFF-211 diagnostics: index-position (0-based) in this list is what
+    // reorderSecondaryRequestsQueue below uses as the "correct order" for the secondary
+    // request. Note that null entries (a sortedRequestIds member with no matching
+    // EcsTlrEntity) still occupy a slot here, but are filtered out when computing
+    // correctOrder - meaning the index-to-position mapping below is compressed/shifted
+    // relative to the true Central-tenant queue whenever any PRIMARY/INTERMEDIATE request in
+    // sortedRequestIds isn't resolvable to an EcsTlrEntity (should be rare) - the bigger risk
+    // is upstream: items EXCLUDED from sortedRequestIds entirely (see updateQueuePositions
+    // log) are never in this list, so they don't even get a "null slot".
+    for (int i = 0; i < sortedEcsTlrQueue.size(); i++) {
+      EcsTlrEntity e = sortedEcsTlrQueue.get(i);
+      log.info("MCBFF-211 sortEcsTlrEntities:: index {} -> primaryRequestId: {}, " +
+          "secondaryRequestId: {}, secondaryRequestTenantId: {}",
+        i, sortedRequestIds.get(i), e == null ? null : e.getSecondaryRequestId(),
+        e == null ? null : e.getSecondaryRequestTenantId());
+    }
+
     return sortedEcsTlrQueue;
   }
 
@@ -136,6 +192,14 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
 
     log.debug("reorderSecondaryRequestsQueue:: correctOrder: {}", correctOrder);
 
+    // MCBFF-211 diagnostics: this is the "correct order" (1-based rank) that will be applied
+    // to each secondary request's NEW position value below. Compare this rank against the
+    // secondary request's actual current position in its home (Data/Secure) tenant queue -
+    // divergence here, specifically an off-by-N shift, is the hypothesized root cause of the
+    // Hold/Recall position swap.
+    log.info("MCBFF-211 reorderSecondaryRequestsQueue:: correctOrder (secondaryRequestId -> " +
+      "rank): {}", correctOrder);
+
     groupedSecondaryRequestsByTenantId.forEach((tenantId, secondaryRequests) ->
       updateReorderedRequests(reorderSecondaryRequestsForTenant(
         tenantId, secondaryRequests, correctOrder), tenantId, isUnifiedQueue));
@@ -150,6 +214,16 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
       .toList();
     log.debug("reorderSecondaryRequestsForTenant:: sortedCurrentPositions: {}",
       sortedCurrentPositions);
+
+    // MCBFF-211 diagnostics: secondary requests in this tenant's queue BEFORE reordering,
+    // with their current position and the "correctOrder" rank that will be used to re-sort
+    // them. This is the actual per-tenant secondary queue that this method is about to
+    // mutate positions for.
+    secondaryRequests.forEach(r -> log.info(
+      "MCBFF-211 reorderSecondaryRequestsForTenant:: tenant: {} - secondary request BEFORE " +
+        "-> id: {}, itemId: {}, currentPosition: {}, correctOrderRank: {}",
+      tenantId, r.getId(), r.getItemId(), r.getPosition(),
+      correctOrder.getOrDefault(UUID.fromString(r.getId()), 0)));
 
     secondaryRequests.sort(Comparator.comparingInt(r -> correctOrder.getOrDefault(
       UUID.fromString(r.getId()), 0)));
@@ -167,6 +241,16 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
         log.debug("reorderSecondaryRequestsForTenant:: request {} updated", request);
       }
     });
+
+    // MCBFF-211 diagnostics: the final set of secondary requests that WILL be pushed to the
+    // Data/Secure tenant's storage via reorder API, with their NEW position value.
+    log.info("MCBFF-211 reorderSecondaryRequestsForTenant:: tenant: {} - requests to be " +
+        "updated AFTER reorder: {}", tenantId,
+      reorderedRequests.stream()
+        .map(r -> "id=" + r.getId() + ",itemId=" + r.getItemId() + ",newPosition="
+          + r.getPosition())
+        .toList());
+
     return reorderedRequests;
   }
 
@@ -193,6 +277,24 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
       updatedQueue = new ArrayList<>(requestService.getRequestsQueueByItemId(id, tenantId));
     }
 
+    // MCBFF-211 diagnostics: this is the FULL secondary/Data-tenant queue as it exists RIGHT
+    // NOW in that tenant's own storage (i.e. its own authoritative view, independent of
+    // Central), fetched fresh right before we overwrite positions on it. Compare this
+    // against the "MCBFF-211 updateQueuePositions" log from the Central-tenant side above -
+    // if this Data-tenant queue contains entries that never appeared in the Central-tenant
+    // computation (e.g. because they have no ecsRequestPhase / no EcsTlrEntity, such as a
+    // locally-placed item-level Recall living directly in this Data tenant), then this
+    // reorder call is about to renumber the Data tenant's queue using an "order" that was
+    // computed while blind to that Recall's real position - this is the crux of the
+    // hypothesized root cause.
+    updatedQueue.forEach(r -> log.info(
+      "MCBFF-211 updateReorderedRequests:: tenant: {} - queue member (BEFORE reorder push) " +
+        "-> id: {}, itemId: {}, requestLevel: {}, requestType: {}, ecsRequestPhase: {}, " +
+        "currentPosition: {}, willBeOverwritten: {}",
+      tenantId, r.getId(), r.getItemId(), r.getRequestLevel(), r.getRequestType(),
+      r.getEcsRequestPhase(), r.getPosition(),
+      updatedPositionMap.containsKey(r.getPosition())));
+
     for (int i = 0; i < updatedQueue.size(); i++) {
       Request currentRequest = updatedQueue.get(i);
       if (updatedPositionMap.containsKey(currentRequest.getPosition())) {
@@ -206,10 +308,23 @@ public class RequestBatchUpdateEventHandler implements KafkaEventHandler<Request
         .newPosition(request.getPosition())));
     log.debug("updateReorderedRequests:: reorderQueue: {}", reorderQueue);
 
+    // MCBFF-211 diagnostics: the exact reorder request body being POSTed to the Data
+    // tenant's /queue/{instance|item}/{id}/reorder endpoint - this is what will actually
+    // change positions in storage for that tenant.
+    log.info("MCBFF-211 updateReorderedRequests:: tenant: {} - final ReorderQueue payload " +
+      "being sent to /queue/{}/{}/reorder: {}", tenantId,
+      isUnifiedQueue ? "instance" : "item", id, reorderQueue);
+
     List<Request> requests = isUnifiedQueue
       ? requestService.reorderRequestsQueueForInstance(id, tenantId, reorderQueue)
       : requestService.reorderRequestsQueueForItem(id, tenantId, reorderQueue);
 
     log.debug("updateReorderedRequests:: result: {}", requests);
+    log.info("MCBFF-211 updateReorderedRequests:: tenant: {} - queue AFTER reorder: {}",
+      tenantId,
+      requests == null ? null : requests.stream()
+        .map(r -> "id=" + r.getId() + ",itemId=" + r.getItemId() + ",position="
+          + r.getPosition())
+        .toList());
   }
 }
