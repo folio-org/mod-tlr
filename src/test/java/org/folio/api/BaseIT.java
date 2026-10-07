@@ -94,7 +94,7 @@ public class BaseIT {
   protected static WireMockServer wireMockServer = new WireMockServer(WIRE_MOCK_PORT);
 
   private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder()
-    .changeDefaultPropertyInclusion(v -> JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, null))
+    .changeDefaultPropertyInclusion(v -> JsonInclude.Value.construct(JsonInclude.Include.NON_EMPTY, null))
     .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
     .enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
     .build();
