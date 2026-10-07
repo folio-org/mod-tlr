@@ -304,8 +304,8 @@ class AllowedServicePointsApiTest extends BaseIT {
       REQUESTER_ID, INSTANCE_ID))
       .expectStatus().isEqualTo(200)
       .expectBody().jsonPath("$.Page").isNotEmpty()
-      .jsonPath("$.Hold").doesNotExist()
-      .jsonPath("$.Recall").doesNotExist();
+      .jsonPath("$.Hold").isEmpty()
+      .jsonPath("$.Recall").isEmpty();
   }
 
   private AllowedServicePointsInner buildAllowedServicePoint(String name) {
