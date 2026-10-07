@@ -618,6 +618,17 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
           .primaryContributor(primaryContributor)
           .allContributors(allContributors);
       }
+
+      staffSlipItem
+        .datesOfPublication(joinNonBlank(Optional.ofNullable(instance.getPublication())
+          .orElse(emptyList())
+          .stream()
+          .filter(Objects::nonNull)
+          .map(publication -> publication.getDateOfPublication())
+          .toList()))
+        .editions(joinNonBlank(instance.getEditions()))
+        .physicalDescriptions(joinNonBlank(instance.getPhysicalDescriptions()))
+        .instanceHrid(instance.getHrid());
     }
 
     if (itemId == null) {
@@ -669,7 +680,9 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
       .copy(copyNumber)
       .numberOfPieces(item.getNumberOfPieces())
       .displaySummary(item.getDisplaySummary())
-      .descriptionOfPieces(item.getDescriptionOfPieces());
+      .descriptionOfPieces(item.getDescriptionOfPieces())
+      .accessionNumber(item.getAccessionNumber())
+      .administrativeNotes(joinNonBlank(item.getAdministrativeNotes()));
 
     Location location = itemContext.getLocation();
     if (location != null) {
@@ -817,6 +830,18 @@ public class StaffSlipsServiceImpl implements StaffSlipsService {
 
   private static <T> Collector<T, ?, Map<String, T>> mapById(Function<T, String> idExtractor) {
     return toMap(idExtractor, identity());
+  }
+
+  private static String joinNonBlank(Collection<String> values) {
+    if (values == null) {
+      return null;
+    }
+
+    String joined = values.stream()
+      .filter(value -> !isBlank(value))
+      .collect(joining("; "));
+
+    return joined.isEmpty() ? null : joined;
   }
 
   private static String getCountryName(String countryCode) {
