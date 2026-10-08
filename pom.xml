@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>4.0.5</version>
+    <version>4.1.1</version>
     <relativePath />
   </parent>
   <groupId>org.folio</groupId>
@@ -33,7 +33,7 @@
 
     <!-- runtime dependencies -->
     <folio-spring-support.version>10.0.0</folio-spring-support.version>
-    <openapi-generator.version>7.4.0</openapi-generator.version>
+    <openapi-generator.version>7.25.0</openapi-generator.version>
     <mapstruct.version>1.6.3</mapstruct.version>
 
     <!-- test dependencies -->
@@ -370,6 +370,9 @@
                 <useSpringBoot3>true</useSpringBoot3>
                 <useTags>true</useTags>
               </configOptions>
+              <additionalProperties>
+                <additionalProperty>defaultToEmptyContainer=</additionalProperty>
+              </additionalProperties>
             </configuration>
           </execution>
           <execution>
