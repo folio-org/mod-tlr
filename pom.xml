@@ -370,6 +370,9 @@
                 <useSpringBoot3>true</useSpringBoot3>
                 <useTags>true</useTags>
               </configOptions>
+              <additionalProperties>
+                <additionalProperty>defaultToEmptyContainer=</additionalProperty>
+              </additionalProperties>
             </configuration>
           </execution>
           <execution>

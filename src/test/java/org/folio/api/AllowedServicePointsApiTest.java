@@ -293,8 +293,6 @@ class AllowedServicePointsApiTest extends BaseIT {
 
     var allowedSpResponse = new AllowedServicePointsResponse();
     allowedSpResponse.setPage(Set.of(buildAllowedServicePoint("page_sp")));
-    allowedSpResponse.setHold(null);
-    allowedSpResponse.setRecall(null);
 
     wireMockServer.stubFor(get(urlMatching(ALLOWED_SPS_MOD_CIRCULATION_URL_PATTERN))
       .withHeader(HEADER_TENANT, equalTo(TENANT_ID_COLLEGE))
@@ -304,8 +302,8 @@ class AllowedServicePointsApiTest extends BaseIT {
       REQUESTER_ID, INSTANCE_ID))
       .expectStatus().isEqualTo(200)
       .expectBody().jsonPath("$.Page").isNotEmpty()
-      .jsonPath("$.Hold").isEmpty()
-      .jsonPath("$.Recall").isEmpty();
+      .jsonPath("$.Hold").doesNotExist()
+      .jsonPath("$.Recall").doesNotExist();
   }
 
   private AllowedServicePointsInner buildAllowedServicePoint(String name) {
