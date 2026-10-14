@@ -70,9 +70,9 @@ public abstract class AllowedServicePointsServiceImpl implements AllowedServiceP
     }
 
     return new AllowedServicePointsResponse()
-      .page(Set.copyOf(page.values()))
-      .hold(Set.copyOf(hold.values()))
-      .recall(Set.copyOf(recall.values()));
+      .page(CollectionUtils.isEmpty(page.values()) ? null : Set.copyOf(page.values()))
+      .hold(CollectionUtils.isEmpty(hold.values()) ? null : Set.copyOf(hold.values()))
+      .recall(CollectionUtils.isEmpty(recall.values()) ? null : Set.copyOf(recall.values()));
   }
 
   private void combineAndFilterDuplicates(
