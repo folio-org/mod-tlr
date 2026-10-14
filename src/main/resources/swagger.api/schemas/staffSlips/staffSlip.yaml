@@ -59,6 +59,18 @@ properties:
       lastCheckedInDateTime:
         type: string
         format: date-time
+      accessionNumber:
+        type: string
+      administrativeNotes:
+        type: string
+      datesOfPublication:
+        type: string
+      editions:
+        type: string
+      physicalDescriptions:
+        type: string
+      instanceHrid:
+        type: string
 
   request:
     type: object
