@@ -4,13 +4,13 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>4.0.2</version>
+    <version>4.1.1</version>
     <relativePath />
   </parent>
   <groupId>org.folio</groupId>
   <artifactId>mod-tlr</artifactId>
   <name>mod-tlr</name>
-  <version>1.2.3-SNAPSHOT</version>
+  <version>1.2.4-SNAPSHOT</version>
   <description>FOLIO mod-tlr module</description>
   <packaging>jar</packaging>
 
@@ -32,7 +32,7 @@
     <argLine />
 
     <!-- runtime dependencies -->
-    <folio-spring-support.version>10.0.0-RC1</folio-spring-support.version>
+    <folio-spring-support.version>10.0.1</folio-spring-support.version>
     <openapi-generator.version>7.4.0</openapi-generator.version>
     <mapstruct.version>1.6.3</mapstruct.version>
 
