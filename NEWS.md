@@ -1,3 +1,6 @@
+## 1.2.3 2026-10-20
+* Upgrade to Spring Boot v4.1.1 (MODTLR-325)
+
 ## 1.2.2 2026-08-20
 * Add missing interface dependency declarations (MODTLR-314)
 
