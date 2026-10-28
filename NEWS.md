@@ -1,6 +1,7 @@
 ## 1.3.0-SNAPSHOT
 * Propagate real cancellation reason to Member tenant for shared/consortium reasons (MODTLR-312)
 * Upgrade to Spring Boot v4.1.1 (MODTLR-326)
+* Set scope=test for spring-webflux and spring-boot-webtestclient (MODTLR-329)
 
 ## 1.2.0 2026-04-15
 * Increase memory allocation to 1 GB (MODTLR-176)
