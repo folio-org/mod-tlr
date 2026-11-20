@@ -1,3 +1,6 @@
+## 1.2.4 2026-11-20
+* Include additional item fields in GET `tlr/staff-slips/pick-slips/{servicePointId}` (MODTLR-330)
+
 ## 1.2.3 2026-10-20
 * Upgrade to Spring Boot v4.1.1 (MODTLR-325)
 
