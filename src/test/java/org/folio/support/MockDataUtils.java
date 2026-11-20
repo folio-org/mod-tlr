@@ -20,7 +20,6 @@ import org.folio.domain.dto.Request;
 import org.folio.domain.dto.Request.EcsRequestPhaseEnum;
 import org.folio.domain.dto.Request.StatusEnum;
 import org.folio.domain.entity.EcsTlrEntity;
-import org.testcontainers.shaded.org.apache.commons.io.IOUtils;
 
 import lombok.SneakyThrows;
 
@@ -151,7 +150,7 @@ public class MockDataUtils {
   public static String getMockDataAsString(String path) {
     try (InputStream resourceAsStream = EcsTlrApplication.class.getClassLoader().getResourceAsStream(path)) {
       if (resourceAsStream != null) {
-        return IOUtils.toString(resourceAsStream, StandardCharsets.UTF_8);
+        return new String(resourceAsStream.readAllBytes(), StandardCharsets.UTF_8);
       } else {
         StringBuilder sb = new StringBuilder();
         try (Stream<String> lines = Files.lines(Paths.get(path))) {

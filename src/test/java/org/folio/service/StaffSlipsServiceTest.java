@@ -40,6 +40,7 @@ import org.folio.domain.dto.Department;
 import org.folio.domain.dto.HoldingsRecord;
 import org.folio.domain.dto.Instance;
 import org.folio.domain.dto.InstanceContributorsInner;
+import org.folio.domain.dto.InstancePublicationInner;
 import org.folio.domain.dto.Institution;
 import org.folio.domain.dto.Item;
 import org.folio.domain.dto.ItemEffectiveCallNumberComponents;
@@ -217,6 +218,12 @@ class StaffSlipsServiceTest {
     assertThat(pickSlipItem.getCallNumber(), is("CN"));
     assertThat(pickSlipItem.getCallNumberPrefix(), is("PFX"));
     assertThat(pickSlipItem.getCallNumberSuffix(), is("SFX"));
+    assertThat(pickSlipItem.getAccessionNumber(), is("ACC-1"));
+    assertThat(pickSlipItem.getAdministrativeNotes(), is("Note 1; Note 2"));
+    assertThat(pickSlipItem.getDatesOfPublication(), is("2020"));
+    assertThat(pickSlipItem.getEditions(), is("2nd ed."));
+    assertThat(pickSlipItem.getPhysicalDescriptions(), is("300 pages"));
+    assertThat(pickSlipItem.getInstanceHrid(), is("in00000000001"));
 
     StaffSlipRequest pickSlipRequest = actualPickSlip.getRequest();
     assertThat(pickSlipRequest.getRequestID(), is(UUID.fromString(request.getId())));
@@ -604,6 +611,8 @@ class StaffSlipsServiceTest {
       .numberOfPieces("1")
       .displaySummary("summary")
       .descriptionOfPieces("description")
+      .accessionNumber("ACC-1")
+      .administrativeNotes(List.of("Note 1", "Note 2"))
       .effectiveLocationId(locationId)
       .effectiveCallNumberComponents(new ItemEffectiveCallNumberComponents()
         .callNumber("CN")
@@ -626,7 +635,11 @@ class StaffSlipsServiceTest {
       .contributors(List.of(
         new InstanceContributorsInner().name("First, Author").primary(true),
         new InstanceContributorsInner().name("Second, Author").primary(null)
-      ));
+      ))
+      .hrid("in00000000001")
+      .publication(List.of(new InstancePublicationInner().dateOfPublication("2020")))
+      .editions(Set.of("2nd ed."))
+      .physicalDescriptions(List.of("300 pages"));
   }
 
   private static Location buildLocation() {
